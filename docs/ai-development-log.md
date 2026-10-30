@@ -1,6 +1,6 @@
 # AI Development Log – Contact Manager
 
-Namen: sproti beležiti, katere naloge sta izvajala AI agenta, kakšna navodila sta prejela, kaj je delovalo, kaj ni, in koliko človeških popravkov je bilo potrebnih. Ta dnevnik je osnova za predstavitev in primerjavo razvojnih pristopov.
+Namen: sproti beležiti, katere naloge je izvajal AI agent (Claude Code), kakšna navodila je prejel, kaj je delovalo, kaj ni, in koliko človeških popravkov je bilo potrebnih. Ta dnevnik je osnova za predstavitev in primerjavo razvojnih pristopov.
 
 ## Dogovorjena pravila beleženja
 
@@ -10,7 +10,7 @@ Namen: sproti beležiti, katere naloge sta izvajala AI agenta, kakšna navodila 
 - Napako ločiva od spremembe zahteve: `agent-error`, `unclear-requirement`, `human-decision`, `tool-or-environment` ali `none`.
 - Zabeleživa, kako sva rezultat preverila (test, pregled kode, demonstracija), ne samo agentove trditve, da je naloga končana.
 - Ne objavljava skrivnih ključev, zasebnih podatkov, celih avtentikacijskih tokenov ali občutljivih delov sej.
-- Če drugi agent samo pregleda rezultat, to izrecno označiva kot **review**, ne kot neodvisno implementacijo.
+- Če ločena seja Claude Code samo pregleda rezultat, to izrecno označiva kot **review**, ne kot neodvisno implementacijo. Ker gre za isti model, takega pregleda ne štejeva kot neodvisno preverjanje.
 
 ---
 
@@ -18,9 +18,10 @@ Namen: sproti beležiti, katere naloge sta izvajala AI agenta, kakšna navodila 
 
 - **Datum:** YYYY-MM-DD
 - **Razvijalec:** [član ekipe]
-- **Faza SDD:** [constitution / specify / clarify / plan / tasks / implement / converge / review]
-- **Agent:** [Codex CLI / Claude Code]
-- **Model (točna različica, če je prikazana):** [model]
+- **Faza SDD:** [constitution / specify / clarify / plan / checklist / tasks / analyze / implement / converge / review]
+- **Agent:** Claude Code [različica, npr. 2.1.314]
+- **Model (točna različica, če je prikazana):** [npr. claude-opus-5-5]
+- **Spec Kit različica:** [npr. 1.2.5]
 - **Git veja / commit:** [veja, commit ali PR povezava]
 - **Naloga / cilj:** [kaj sva želela doseči]
 - **Vhodni dokumenti:** [npr. `docs/project-brief.md`, `spec.md`]
@@ -45,7 +46,7 @@ Namen: sproti beležiti, katere naloge sta izvajala AI agenta, kakšna navodila 
 | Naloge z vsaj enim popravkom navodil | [ ] |
 | Potrjene napake agenta | [ ] |
 | Nejasne ali spremenjene zahteve | [ ] |
-| Napake, odkrite z drugim agentom | [ ] |
+| Napake, odkrite s pregledom (razvijalec ali ločena review seja) | [ ] |
 | Naloge s preverjenimi testi | [ ] |
 
 *Opomba: številke so opisne in niso same po sebi dokaz, da je en razvojni pristop boljši od drugega.*
