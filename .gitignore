@@ -1,0 +1,11 @@
+# verify.sh – full log of the last run
+.verify/
+
+# Claude Code – local, per-user settings
+.claude/settings.local.json
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
