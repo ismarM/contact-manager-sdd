@@ -1,0 +1,51 @@
+STACK
+- react + i18n + typescript + nginx
+- springboot
+- postgresql
+- firebase avtentikacija
+
+FUNKCIONALNE
+- registracija&prijava preko firebase google provider, odjava
+- ustvarjanje skupine kontaktov (nastavi se naslov, opis, barva; postaneš owner skupine)
+- ustvarjanje kontaktov znotraj skupine kontaktov (kontakt ima predefinirane atribute ime, priimek, naslov, e-naslov, telefon, pravtako pa naj podpira dodajanje drugih atributov v stilu kluč=vrednost - npr. kompetenca='web dev'; kontakt ima tudi poljubne značke npr. ne_obveščaj, konferenca2025, ...; editor in višje)
+- urejanje kontaktov (editor in višje)
+- urejanje skupine kontaktov (owner in admin)
+- prikaz vseh skupin kontaktov, katerih član je uporabnik (ločeno glede na role)
+- zapuščanje skupine kontaktov (vsi člani lahko skupino zapustijo, razen owner; izjema so večno arhivirane skupine brez ownerja - takrat tudi navaden član, v kolikor je zadnji, skupine ne more zapustiti - lahko jo le izbriše)
+- dodajanje že registriranih članov v skupino kontaktov po njihovem enaslovu (dodamo lahko druge uporabnike, ki jim dodelimo 'role' - tj. editor, viewer, admin - dodeljen role mora biti nižji od rola uporabnika, ki ga je dodelil; uporabnik dobi povabilo v aplikaciji, na katerega se lahko odzove; le admin in višje)
+- odstranjevanje članov (owner in admin, le nižje od sebe)
+- spreminjanje 'rola' članov skupine kontaktov (owner in admin, le nižjim od sebe)
+- izbris kontaktov (editor in višje)
+- verzioniranje sprememb kontaktov znotraj skupine (vsaka skupina ima svojo revizijsko sled; beleži vse - dodajanje, odstranjevanje, urejeanje, združevanje, rollback)
+- pregled revizijske sledi (viewer in višje)
+- možnost "rollbacka" na poljubno točko na revizijski sledi (admin in owner; vrne stanje skupine na mesto, ki ga točka opisuje)
+- iskanje podvojenih kontaktov znotraj skupine (po različnih kategorijah; editor in višje)
+- združevanje podvojenih kontaktov (tabela razlik, z možnostjo izbire katera vrednosti bodo v združenem kontaktu; editor in višje)
+- iskanje kontaktov znotraj skupine s filtri (atributi, custom atributi, značke, razvrščanje - asc/desc, ...; viewer in višje)
+- izvoz izbranik kontaktov v excel (viewer in višje)
+- arhiviranje skupine kontaktov (owner) - članom ne prepreči dostopa, le "zamrzne" skupino in jo označi kot arhivirano
+- prikaz arhiviranih skupin kontaktov
+- prikaz kontaktov v skupini kontaktov (člani - viewer in višje)
+- množično urejanje kontaktov (editor in višje lahko izbere več kontaktov, nato pa nastavi značke in druge lastnosti, izbriše, ...)
+- prenos lastništva skupine (owner lahko svojo vlogo preda drugemu članu, s tem sam postane admin, drugi uporabnik pa owner)
+- odarhiviranje skupine (owner lahko skupino od-arhivira - le ta postane odmrzjena in deluje normalno kot prej)
+- potrditvena okna za nevarne operacije
+- stran za neobstoječe poti
+- v arhivirani skupini ni mogoče početi nič, edina operacija je "odarhiviranje" in pregled skupine ali izbris skupine (glej točko izbris) ali zapuščanje skupine (efektivno imajo vsi člani enake pravice kot viewer)
+- prikaz prejetih povabil v skupine
+- možnost sprejetja ali zavrnitve povabila v skupino
+- izvoz svojih podatkov (članstva v skupinah, povabila, osebni podatki, skupine katerih uporabnik je owner - ostali podatki so od uporabnika neodvisni; format json)
+- izbris računa (uporabnikove informacije in povabila se izbrišejo; ni dovoljeno, dokler je uporabnik lastnik katerekoli skupine, ki ni arhivirana - v arhiviranih skupinah katerih uporabnik je lastnik se naj kot lastnik prikaže "izbrisan uporabnik", skupina pa ostane večno arhivirana; tudi v revizjiskih sledeh drugih skupin se njegovo ime prikaže kot "izbrisan uporabnik", tako kot vsepovsod, kjer je bilo prikazano; arhivirane skupine, katerih uporabnik je edini član se izbrišejo)
+- izbris skupine (le, če je uporabnik edini član - bo zaradi pravil vedno tudi owner, razen, če je skupina "večno arhivirana" - tudi v tem primeru se skupina izbriše, čeprav zadnji član ni owner)
+
+NEFUNKCIONALNE
+- dostop do zaledja preko zavarovanega REST vmesnika
+- WCAG 2.1 AA
+- responsive UI
+- PWA
+- kontakti so izolirani med različnimi skupinami kontaktov
+- neuspehi in napake na UI se ustrezno prikažejo, pravtako se prikažejo uspehi
+- upoštevanje GDPR (pravica do izbrisa računa in izvoza podatkov)
+- jezik vmesnika je slovenščina/angleščina
+- atomarnost urejanja kontaktov in članov (sočasne zahteve se ustrezno razrešijo - optimistično zaklepanje)
+- paginacija

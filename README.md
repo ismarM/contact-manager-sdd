@@ -14,6 +14,4 @@ using Spec-Driven Development (SDD).
 - AI Agent: Claude Code
 
 ## Documentation
-- [Project Brief](docs/project-brief.md)
-- [Design Language](docs/design.md)
-- [AI Development Log](docs/ai-development-log.md)
+
