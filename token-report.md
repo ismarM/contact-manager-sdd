@@ -27,3 +27,7 @@ Token usage per AI session in this project. One row per session; subagent sessio
 | 1g | └ subagent: Specify 012 (GDPR) | Claude Code subagent | claude-opus-5-5 | 1 / 10 | 13 | 20 | 17 730 (2 724) | 102 582 | 732 385 | 852 717 |
 | | **Subagents subtotal (1a–1g)** | | | 7 / 83 | 91 | 166 | 228 747 (46 436) | 879 195 | 6 833 163 | 7 941 271 |
 | | **Session 1 total (main + subagents)** | | | 16 / 190 | 233 | 406 | 390 768 (91 757) | 1 343 521 | 27 860 574 | **29 595 269** |
+| 2 | 000-ogrodje: clarify → plan → tasks → analyze → implement (tests) → test review → implement → converge → CI check, merge (`9a9fff35`) – **main session**, no subagents; one automatic context compaction | Claude Code (CLI) | claude-opus-5-5 | 14 / 211 | 215 | 452 | 289 801 (82 871) | 580 987 | 47 170 156 | **48 041 396** |
+| | **Project total (sessions 1–2)** | | | 30 / 401 | 448 | 858 | 680 569 (174 628) | 1 924 508 | 75 030 730 | **77 636 665** |
+
+Session 2 notes: the user message count excludes the 2 answers given through question dialogs (C1–C3 choice, JDK installed) and the `/context` command, which the log does not store. The numbers were read from the log while this report was being written, so the last turn (writing this report) is only partly counted.
