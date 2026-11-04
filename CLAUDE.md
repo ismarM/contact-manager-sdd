@@ -12,7 +12,8 @@
 - Celoten izpis: .verify/last.log (odpri le, če kratek izpis ne zadošča)
 
 ## Pravila
-- Najprej testi (padejo zaradi pravega razloga), nato koda; pred kodo testi čakajo na pregled razvijalcev.
+- Najprej testi (padejo zaradi pravega razloga), nato koda; pred kodo teste pregleda nov podagent `pregled-testov` (workflow §4.2) – koda šele po SPREJETO; testi v ločenem commitu `test(NNN)`.
+- Od plana do PR delaj sam, brez čakanja; ustavi se le v primerih iz workflow §0.2 (pod tabelo). Združita razvijalca.
 - Testa nikoli ne spremeni, da bi ustrezal kodi; vsaka sprememba testa → vnos v DECISIONS.md.
 - Testi nosijo FR-ID (@Tag / ime testa); UI testi samo getByRole/getByLabel; axe brez kršitev.
 - Vsak endpoint skupine ima vnos v matriki izolacije (401/404/403/2xx, arhivirana 409).

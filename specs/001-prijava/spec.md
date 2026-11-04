@@ -8,6 +8,17 @@
 
 **Input**: User description: "Registracija in prijava prek Firebase z Googlovim ponudnikom ter odjava; registracija se zgodi ob prvi prijavi. Zaščitene poti, ogrodje aplikacije (zgornja vrstica, meni računa, Preskoči na vsebino), stran za neobstoječe poti in Moj račun – razdelka Profil in Videz (jezik sl/en, tema sistemska/svetla/temna)."
 
+## Clarifications
+
+### Session 2026-11-04
+
+Popravka razvijalca: (1) izbira jezika in teme mora ostati tudi ob prijavi na drugi napravi (trajna zunaj seje in naprave); (2) po odjavi v enem zavihku mora biti drugi zavihek odjavljen ne le ob prvi navigaciji, temveč že ob prvi interakciji, ki pošlje zahtevek, ki zahteva prijavo.
+
+- Q: Shranjevanje jezika in teme v profil nasprotuje konstituciji VI in design.md 4.3 (samo v brskalniku) – ali ju spremenimo? → A: Da; konstitucija 1.1.0, design.md 4.3 in vnos D-19 v DECISIONS.md.
+- Q: Kaj velja ob prijavi, če se izbira v profilu razlikuje od izbire na napravi? → A: Velja izbira iz profila; le če profil izbire še nima, se vanj shrani trenutna izrecna izbira naprave (FR-001-19).
+- Q: Kaj se zgodi, če shranjevanje izbire v profil ne uspe (brez povezave, napaka zaledja)? → A: Izbira ostane uveljavljena na napravi, prikaže se sporočilo o napaki, profil obdrži prejšnjo vrednost, brez samodejnega ponovnega poskusa (FR-001-19).
+- Q: Kaj naredi zavihek, ko uporabnik, odjavljen v drugem zavihku, sproži dejanje z zahtevkom, ki zahteva prijavo? → A: Zahtevek ničesar ne spremeni; preusmeritev na prijavo s sporočilom o poteku seje (FR-001-10) in po prijavi vrnitev na isto pot.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Prva prijava z Googlom ustvari račun (Priority: P1)
@@ -67,6 +78,7 @@ prikaže zaščitene vsebine. Ob simuliranem poteku seje (emulator) se prikaže 
 1. **[FR-001-09]** **Given** prijavljen uporabnik, **When** v meniju računa ali na strani *Moj račun* izbere »Odjava« / "Sign out", **Then** se seja konča, podatki prejšnjega uporabnika se odstranijo iz pomnilnika vmesnika, uporabnik je na strani za prijavo, nadaljnji zahtevki ne nosijo žetona.
 2. **[FR-001-09]** **Given** uporabnik se je pravkar odjavil, **When** v brskalniku klikne *Nazaj* ali odpre prej obiskano zaščiteno pot, **Then** je preusmerjen na stran za prijavo in zaščitena vsebina se ne prikaže.
 3. **[FR-001-10]** **Given** prijavljen uporabnik, čigar seje ni mogoče več podaljšati ali zaledje na zahtevek vrne `401`, **When** se to zgodi med delom na poti `/x`, **Then** je preusmerjen na stran za prijavo s sporočilom »Seja je potekla. Prijavi se znova.« / "Your session has expired. Please sign in again." in se po ponovni prijavi vrne na `/x`.
+4. **[FR-001-10]** **Given** uporabnik je prijavljen v zavihkih A in B, zavihek B je na poti `/x`, **When** se v zavihku A odjavi in nato v zavihku B brez navigacije sproži dejanje, ki pošlje zahtevek na API, ki zahteva prijavo (npr. shrani obrazec ali osveži podatke), **Then** zahtevek ničesar ne spremeni, zavihek B je preusmerjen na stran za prijavo s sporočilom »Seja je potekla. Prijavi se znova.« / "Your session has expired. Please sign in again." in se po ponovni prijavi vrne na `/x`.
 
 ---
 
@@ -82,7 +94,7 @@ glavno vsebino; meni računa se odpre, zapre z *Esc* in vrne fokus; pot `/ne-obs
 
 **Acceptance Scenarios**:
 
-1. **[FR-001-11]** **Given** prijavljen uporabnik na katerikoli strani, **When** se stran izriše, **Then** ima zgornjo vrstico (design.md 7.1) z besednim znakom *Kontakti* (povezava na začetno stran) in gumbom menija računa z začetnicami uporabnika ter dostopnim imenom »Meni računa« / "Account menu", ter glavno vsebino v elementu `main`.
+1. **[FR-001-11]** **Given** prijavljen uporabnik na katerikoli strani, **When** se stran izriše, **Then** ima zgornjo vrstico (design.md 7.1) z besednim znakom *Kontakti* (povezava na začetno stran) in gumbom menija računa z ikono osebe (brez vidnega besedila; začetnice bi kršile WCAG 2.5.3, ker niso del dostopnega imena) ter dostopnim imenom »Meni računa« / "Account menu" [CR-01], ter glavno vsebino v elementu `main`.
 2. **[FR-001-11]** **Given** odprta stran, **When** uporabnik prvič pritisne *Tab*, **Then** se pokaže povezava »Preskoči na vsebino« / "Skip to content", ki ob aktivaciji premakne fokus na začetek glavne vsebine.
 3. **[FR-001-12]** **Given** zaprt meni računa, **When** ga uporabnik odpre, **Then** vsebuje »Moj račun«, izbiro jezika (Slovenščina / English) in »Odjava«; puščice premikajo fokus med elementi, *Esc* ali klik drugam meni zapre in fokus se vrne na gumb (design.md 8.16).
 4. **[FR-001-12]** **Given** odprt meni računa, **When** uporabnik izbere jezik, **Then** se jezik zamenja enako kot v *Mojem računu* (FR-001-15).
@@ -94,21 +106,26 @@ glavno vsebino; meni računa se odpre, zapre z *Esc* in vrne fokus; pot `/ne-obs
 ### User Story 5 - Moj račun: Profil in Videz (Priority: P2)
 
 Uporabnik v *Mojem računu* vidi svoje ime in e-naslov iz Google računa ter izbere jezik vmesnika in temo. Izbira
-velja takoj in ostane na tej napravi, tudi na strani za prijavo.
+velja takoj, shrani se v njegov profil in velja na vseh napravah, na katerih se prijavi; na tej napravi ostane tudi
+po odjavi, na strani za prijavo.
 
 **Why this priority**: dvojezičnost in izbira teme sta zahtevi konstitucije IV in design.md; brez Profila uporabnik ne ve, s katerim računom je prijavljen.
 
 **Independent Test**: v *Mojem računu* izberi *English* in *Temna*; vmesnik se takoj prevede, `<html lang="en">`,
-shema temna; po osvežitvi in po odjavi (stran za prijavo) ostane enako.
+shema temna; po osvežitvi in po odjavi (stran za prijavo) ostane enako; ob prijavi istega uporabnika v drugem
+brskalniškem profilu (druga naprava brez shranjene izbire) je vmesnik takoj po prijavi v angleščini in temni shemi.
 
 **Acceptance Scenarios**:
 
 1. **[FR-001-14]** **Given** prijavljen uporabnik, **When** odpre *Moj račun*, **Then** razdelek »Profil« / "Profile" prikaže ime in e-naslov iz Google računa samo za branje (brez polj za urejanje).
-2. **[FR-001-15]** **Given** *Moj račun*, razdelek »Videz« / "Appearance", **When** uporabnik v skupini izbirnih gumbov »Jezik« / "Language" izbere *English*, **Then** so vsa besedila, dostopna imena, naslov strani in `<html lang>` takoj v angleščini brez ponovnega nalaganja, izbira pa ostane po osvežitvi in po odjavi.
-3. **[FR-001-15]** **Given** stran za prijavo, **When** neprijavljen obiskovalec pod kartico izbere *Slovenščina* ali *English*, **Then** se jezik zamenja in shrani enako kot v *Mojem računu*.
-4. **[FR-001-16]** **Given** naprava brez shranjene izbire jezika, **When** se aplikacija naloži v brskalniku z jezikom `sl` ali `sl-SI`, **Then** je vmesnik v slovenščini; ob katerem koli drugem jeziku brskalnika v angleščini.
-5. **[FR-001-17]** **Given** razdelek »Videz«, **When** uporabnik v skupini »Tema« / "Theme" izbere *Svetla* ali *Temna*, **Then** se shema takoj zamenja in ostane po osvežitvi brez bliska napačne teme; ob izbiri *Sistemska* sledi nastavitvi sistema in shranjena izbira se izbriše (design.md 4.3). Privzeto je izbrana *Sistemska*.
-6. **[FR-001-18]** **Given** katerakoli stran te funkcionalnosti, **When** se izriše, **Then** ima edinstven naslov v izbranem jeziku: »Prijava – Kontakti« / "Sign in – Contacts", »Moj račun – Kontakti« / "My account – Contacts", »Te strani ni – Kontakti« / "Page not found – Contacts".
+2. **[FR-001-15]** **Given** *Moj račun*, razdelek »Videz« / "Appearance", **When** uporabnik v skupini izbirnih gumbov »Jezik« / "Language" izbere *English*, **Then** so vsa besedila, dostopna imena, naslov strani in `<html lang>` takoj v angleščini brez ponovnega nalaganja, izbira se shrani v profil in na napravo ter ostane po osvežitvi, po odjavi in ob prijavi na drugi napravi.
+3. **[FR-001-15]** **Given** stran za prijavo, **When** neprijavljen obiskovalec pod kartico izbere *Slovenščina* ali *English*, **Then** se jezik takoj zamenja in shrani na tej napravi; po prijavi velja pravilo FR-001-19.
+4. **[FR-001-16]** **Given** neprijavljen obiskovalec na napravi brez shranjene izbire jezika, **When** se aplikacija naloži v brskalniku z jezikom `sl` ali `sl-SI`, **Then** je vmesnik v slovenščini; ob katerem koli drugem jeziku brskalnika v angleščini.
+5. **[FR-001-17]** **Given** razdelek »Videz«, **When** uporabnik v skupini »Tema« / "Theme" izbere *Svetla* ali *Temna*, **Then** se shema takoj zamenja in ostane po osvežitvi brez bliska napačne teme; ob izbiri *Sistemska* sledi nastavitvi sistema in shranjena izbira se izbriše na napravi in v profilu (design.md 4.3). Privzeto je izbrana *Sistemska*.
+6. **[FR-001-19]** **Given** uporabnik je na napravi A izbral *English* in *Temna*, **When** se prijavi na napravi B, kjer je shranjeno *Slovenščina* in *Svetla* ali ni shranjeno nič, **Then** je vmesnik takoj po prijavi v angleščini in temni shemi, izbira pa se shrani tudi na napravi B.
+7. **[FR-001-19]** **Given** uporabnik, čigar profil še nima izbire jezika in teme, na napravi pa je izrecno izbrano *English* in *Temna*, **When** se prijavi, **Then** se ta izbira shrani v njegov profil; če je na napravi *Sistemska* oziroma jezik ni izbran, profil ostane brez izbire.
+8. **[FR-001-19]** **Given** prijavljen uporabnik brez povezave ali z napako zaledja, **When** v *Mojem računu* ali meniju računa zamenja jezik ali temo, **Then** izbira takoj velja in ostane na tej napravi, prikaže se sporočilo »Izbire ni bilo mogoče shraniti v račun.« / "Your choice could not be saved to your account." (design.md 8.13), profil obdrži prejšnjo vrednost.
+9. **[FR-001-18]** **Given** katerakoli stran te funkcionalnosti, **When** se izriše, **Then** ima edinstven naslov v izbranem jeziku: »Prijava – Kontakti« / "Sign in – Contacts", »Moj račun – Kontakti« / "My account – Contacts", »Te strani ni – Kontakti« / "Page not found – Contacts".
 
 ---
 
@@ -128,16 +145,20 @@ scenarij `404` za tuj vir ne obstaja.
 | FR-001-06 | neprijavljen obiskovalec s ciljno potjo na tuj izvor (npr. `//zlonamerno.si`) | prijava | preusmeritev na začetno stran aplikacije, ne na tuj izvor |
 | FR-001-09 | uporabnik po odjavi | *Nazaj* v brskalniku, zaščitena pot | preusmeritev na prijavo, zaščitena vsebina se ne prikaže |
 | FR-001-10 | prijavljen uporabnik s poteklo sejo | zahtevek na API | 401; vmesnik preusmeri na prijavo s sporočilom o poteku seje |
+| FR-001-10 | uporabnik, odjavljen v drugem zavihku | v tem zavihku dejanje, ki pošlje zahtevek na API (npr. shranjevanje) | nič se ne spremeni (zahtevek brez veljavnega žetona → 401); preusmeritev na prijavo s sporočilom o poteku seje |
+| FR-001-19 | unauthenticated (no/invalid/expired token) | branje ali sprememba izbire jezika in teme v profilu | 401 `UNAUTHENTICATED`, profil se ne spremeni |
 | FR-001-04 | prijava prekinjena ali neuspešna | prijava z Googlom | sporočilo napake v kartici, uporabnik ostane neprijavljen, profil se ne ustvari |
 
 ### Edge Cases
 
-- Google račun brez imena: kot ime se prikaže e-naslov; začetnice v meniju računa so prva črka e-naslova.
+- Google račun brez imena: kot ime se prikaže e-naslov (v *Profilu* in na vrhu menija računa) [CR-01].
 - Zelo dolgo ime ali e-naslov: v zgornji vrstici in meniju se skrajša z elipso, v *Profilu* je prikazano v celoti s prelomom, brez vodoravnega drsenja pri 320 px.
-- Uporabnik je prijavljen v dveh zavihkih in se v enem odjavi: drugi zavihek ob naslednji navigaciji ali zahtevku preide na stran za prijavo.
+- Uporabnik je prijavljen v dveh zavihkih in se v enem odjavi: drugi zavihek preide na stran za prijavo najpozneje ob prvi navigaciji ali prvi interakciji, ki pošlje zahtevek na API, ki zahteva prijavo; tak zahtevek ničesar ne spremeni (FR-001-10).
+- Uporabnik ima aplikacijo hkrati odprto na dveh napravah in na eni zamenja jezik ali temo: druga naprava jo uveljavi ob naslednjem nalaganju aplikacije ali prijavi; sprotna sinhronizacija med odprtimi napravami ni v obsegu.
+- Prva prijava na novi napravi: do prijave velja izbira naprave (oziroma privzeto), po prijavi se zamenja na izbiro iz profila; ob naslednjih nalaganjih na tej napravi ni bliska napačne teme.
 - Brskalnik blokira pojavno okno za prijavo: sporočilo napake v kartici z navodilom, naj dovoli pojavna okna, ali prijava s preusmeritvijo – izbere `plan.md`; uporabnik ni nikoli brez povratne informacije.
-- Brskalnik ne dovoli shranjevanja v lokalni pomnilnik (zasebni način): jezik in tema veljata do zaprtja strani; aplikacija ne pade.
-- Neznana vrednost v shranjenem jeziku ali temi: prezre se in velja privzeto (jezik brskalnika, *Sistemska*).
+- Brskalnik ne dovoli shranjevanja v lokalni pomnilnik (zasebni način): pred prijavo jezik in tema veljata do zaprtja strani, po prijavi velja izbira iz profila; aplikacija ne pade.
+- Neznana vrednost v shranjenem jeziku ali temi (na napravi ali v profilu): prezre se in velja privzeto (jezik brskalnika, *Sistemska*).
 - Brez povezave (PWA): stran za prijavo in ogrodje se naložita, poskus prijave pokaže sporočilo o manjkajoči povezavi (design.md 8.15).
 - Uporabnik med prijavo ročno spremeni ciljno pot v neobstoječo: po prijavi vidi »Te strani ni«.
 
@@ -154,21 +175,22 @@ scenarij `404` za tuj vir ne obstaja.
 - **FR-001-07**: Zaledje MORA pri vsakem zahtevku na API, razen javnega preverjanja zdravja (FR-000-02), preveriti žeton Firebase (podpis, izdajatelj, projekt, veljavnost) in zahtevek brez žetona ali z neveljavnim ali poteklim žetonom zavrniti z `401` in kodo `UNAUTHENTICATED`, ne da bi kar koli spremenilo; uporabnik zahtevka se določi samo iz žetona. *(najnižja vloga: —)*
 - **FR-001-08**: Zaledje MORA prijavljenemu uporabniku omogočiti branje lastnega profila (ime, e-naslov) in NE SME ponujati branja profila drugega uporabnika po identifikatorju. *(najnižja vloga: —)*
 - **FR-001-09**: Sistem MORA v meniju računa in na strani *Moj račun* ponuditi »Odjava«, ki konča sejo, iz vmesnika odstrani podatke odjavljenega uporabnika in ga preusmeri na stran za prijavo; po odjavi zaščitena vsebina ni dosegljiva niti z gumbom *Nazaj*. *(najnižja vloga: —)*
-- **FR-001-10**: Sistem MORA ob poteku seje (žetona ni mogoče podaljšati ali zaledje vrne `401`) uporabnika preusmeriti na stran za prijavo s sporočilom »Seja je potekla. Prijavi se znova.« in ga po ponovni prijavi vrniti na pot, kjer je bil. *(najnižja vloga: —)*
-- **FR-001-11**: Sistem MORA vse zaščitene strani izrisati v ogrodju aplikacije (design.md 7.1): zgornja vrstica z besednim znakom *Kontakti* (povezava na začetno stran) in menijem računa (začetnice uporabnika), povezava »Preskoči na vsebino« kot prvi element, na katerega pride fokus (design.md 8.12), in glavna vsebina v elementu `main`. *(najnižja vloga: —)*
+- **FR-001-10**: Sistem MORA ob poteku seje (žetona ni mogoče podaljšati, zaledje vrne `401` ali se je uporabnik odjavil v drugem zavihku) uporabnika preusmeriti na stran za prijavo s sporočilom »Seja je potekla. Prijavi se znova.« in ga po ponovni prijavi vrniti na pot, kjer je bil. Po odjavi v drugem zavihku MORA zavihek preiti na stran za prijavo najpozneje ob prvi navigaciji ali prvi interakciji, ki pošlje zahtevek na API, ki zahteva prijavo; tak zahtevek NE SME ničesar spremeniti. *(najnižja vloga: —)*
+- **FR-001-11**: Sistem MORA vse zaščitene strani izrisati v ogrodju aplikacije (design.md 7.1): zgornja vrstica z besednim znakom *Kontakti* (povezava na začetno stran) in menijem računa (gumb z ikono osebe, brez vidnega besedila) [CR-01], povezava »Preskoči na vsebino« kot prvi element, na katerega pride fokus (design.md 8.12), in glavna vsebina v elementu `main`. *(najnižja vloga: —)*
 - **FR-001-12**: Meni računa MORA vsebovati »Moj račun«, izbiro jezika (Slovenščina / English) in »Odjava« ter delovati s tipkovnico po design.md 8.16 (puščice, *Esc*, klik drugam, vrnitev fokusa na gumb). *(najnižja vloga: —)*
 - **FR-001-13**: Sistem MORA za vsako neobstoječo pot prijavljenemu uporabniku prikazati stran »Te strani ni« (design.md 9.10) s povezavo »Na seznam skupin«; ista stran MORA biti na voljo drugim funkcionalnostim za vire, za katere zaledje vrne `404`, ne da bi razkrila obstoj vira. *(najnižja vloga: —)*
 - **FR-001-14**: Stran *Moj račun* MORA imeti razdelek »Profil« z imenom in e-naslovom iz Google računa samo za branje. *(najnižja vloga: —)*
-- **FR-001-15**: Stran *Moj račun* MORA imeti razdelek »Videz« s skupino izbirnih gumbov »Jezik« (*Slovenščina*, *English*); izbira MORA takoj zamenjati vsa besedila, dostopna imena, naslove strani in `<html lang>` brez ponovnega nalaganja in se shraniti v brskalniku na tej napravi; enaka izbira jezika MORA biti na voljo na strani za prijavo pod kartico in v meniju računa. *(najnižja vloga: —; na strani za prijavo javno)*
+- **FR-001-15**: Stran *Moj račun* MORA imeti razdelek »Videz« s skupino izbirnih gumbov »Jezik« (*Slovenščina*, *English*); izbira MORA takoj zamenjati vsa besedila, dostopna imena, naslove strani in `<html lang>` brez ponovnega nalaganja in se shraniti v brskalniku na tej napravi ter, če je uporabnik prijavljen, v njegovem profilu (FR-001-19); enaka izbira jezika MORA biti na voljo na strani za prijavo pod kartico in v meniju računa. *(najnižja vloga: —; na strani za prijavo javno)*
 - **FR-001-16**: Sistem MORA brez shranjene izbire jezika uporabiti jezik brskalnika: `sl` (s katerokoli regijo) → slovenščina, vsak drug jezik → angleščina; shranjena izbira ima prednost. *(najnižja vloga: javno)*
-- **FR-001-17**: Razdelek »Videz« MORA imeti skupino izbirnih gumbov »Tema« (*Sistemska*, *Svetla*, *Temna*; privzeto *Sistemska*); izbira MORA takoj veljati, *Svetla* in *Temna* se shranita v brskalniku in uveljavita ob naslednjem nalaganju brez bliska napačne teme, *Sistemska* shranjeno izbiro izbriše (design.md 4.3). *(najnižja vloga: —)*
+- **FR-001-17**: Razdelek »Videz« MORA imeti skupino izbirnih gumbov »Tema« (*Sistemska*, *Svetla*, *Temna*; privzeto *Sistemska*); izbira MORA takoj veljati, *Svetla* in *Temna* se shranita v brskalniku in v profilu (FR-001-19) ter uveljavita ob naslednjem nalaganju brez bliska napačne teme, *Sistemska* shranjeno izbiro izbriše v brskalniku in v profilu (design.md 4.3). *(najnižja vloga: —)*
+- **FR-001-19**: Sistem MORA izbiro jezika in teme prijavljenega uporabnika hraniti v njegovem profilu, da velja na vseh napravah, na katerih se prijavi: (a) ob prijavi in ob nalaganju aplikacije s prijavljenim uporabnikom se uveljavi izbira iz profila in se shrani tudi v brskalniku; (b) če profil izbire še nima, se vanj shrani trenutna izrecna izbira naprave (*Sistemska* oziroma neizbran jezik pomeni brez izbire); (c) če shranjevanje v profil ne uspe (brez povezave, napaka zaledja), izbira ostane uveljavljena na tej napravi, prikaže se sporočilo »Izbire ni bilo mogoče shraniti v račun.« (design.md 8.13), profil obdrži prejšnjo vrednost, samodejnega ponovnega poskusa ni. Zaledje MORA prijavljenemu uporabniku omogočiti branje in spremembo samo lastne izbire. *(najnižja vloga: —)*
 - **FR-001-18**: Vsaka stran te funkcionalnosti MORA imeti edinstven naslov v izbranem jeziku v obliki »‹Zaslon› – Kontakti« / "‹Screen› – Contacts" (design.md 9, 10). *(najnižja vloga: javno)*
 
 ### Key Entities *(include if feature involves data)*
 
-- **Uporabnik (profil)**: identiteta iz Firebase (stalni identifikator Google računa), ime in e-naslov iz Google računa, čas ustvarjanja. Ustvari se ob prvi prijavi, posodobi ob vsaki naslednji. Drugih osebnih podatkov ne hrani (konstitucija VI).
-- **Seja**: veljavna prijava v brskalniku; žeton, ki ga vmesnik pošilja z vsakim zahtevkom; konča se z odjavo ali potekom.
-- **Nastavitve videza naprave**: jezik (`sl` / `en` ali ni shranjen) in tema (*Svetla* / *Temna* ali ni shranjena = *Sistemska*); hranijo se samo v brskalniku, niso vezane na profil.
+- **Uporabnik (profil)**: identiteta iz Firebase (stalni identifikator Google računa), ime in e-naslov iz Google računa, čas ustvarjanja, izbira jezika (`sl` / `en` ali ni shranjena) in teme (*Svetla* / *Temna* ali ni shranjena = *Sistemska*). Ustvari se ob prvi prijavi, ime in e-naslov se posodobita ob vsaki naslednji. Drugih osebnih podatkov ne hrani (konstitucija VI).
+- **Seja**: veljavna prijava v brskalniku; žeton, ki ga vmesnik pošilja z vsakim zahtevkom; konča se z odjavo (tudi v drugem zavihku) ali potekom.
+- **Nastavitve videza v brskalniku**: kopija izbire jezika in teme na napravi; velja pred prijavo (stran za prijavo), ob nalaganju brez bliska in po odjavi. Za prijavljenega uporabnika je vir resnice profil (FR-001-19).
 
 ## Success Criteria *(mandatory)*
 
@@ -178,7 +200,7 @@ scenarij `404` za tuj vir ne obstaja.
 - **SC-002**: 100 % zaščitenih poti neprijavljenega obiskovalca preusmeri na prijavo in ga po prijavi vrne na isto pot s parametri.
 - **SC-003**: 100 % zahtevkov na API brez veljavne prijave (brez, z neveljavnim, s poteklim žetonom) je zavrnjenih; 0 sprememb podatkov ob takih zahtevkih.
 - **SC-004**: Po odjavi je zaščitena vsebina v 0 primerih vidna (vključno z gumbom *Nazaj*).
-- **SC-005**: Sprememba jezika ali teme je vidna takoj (brez ponovnega nalaganja) in ostane po osvežitvi v 100 % poskusov; ob nalaganju ni bliska napačne teme.
+- **SC-005**: Sprememba jezika ali teme je vidna takoj (brez ponovnega nalaganja) in ostane po osvežitvi v 100 % poskusov; ob prijavi istega uporabnika na drugi napravi velja takoj po prijavi v 100 % poskusov; ob nalaganju na napravi s shranjeno izbiro ni bliska napačne teme.
 - **SC-006**: Strani *Prijava*, *Moj račun* in *Te strani ni* pri 360, 768 in 1280 px v obeh jezikih in shemah: 0 kršitev axe; celoten potek (prijava, meni računa, *Moj račun*, odjava) je izvedljiv samo s tipkovnico.
 - **SC-007**: Vsaka stran ima edinstven naslov v obeh jezikih; `<html lang>` se v 100 % primerov ujema z izbranim jezikom.
 
@@ -188,7 +210,7 @@ scenarij `404` za tuj vir ne obstaja.
 - **Začetna stran aplikacije** po prijavi je seznam skupin, ki ga določa **002-skupine**; dokler 002 ne obstaja, je tam začasna vsebina. Povezava »Na seznam skupin« na strani »Te strani ni« vodi tja.
 - **Rezervirano za druge funkcionalnosti** v zgornji vrstici: preklop skupine in stranski pas (**002-skupine**), povezava *Povabila* s številom novih povabil (**006-povabila**). Ta funkcionalnost zanje pusti prostor, ne določa njihovega vedenja.
 - Razdelka *Moji podatki* (izvoz JSON) in *Izbris računa* na strani *Moj račun* določa **012-moji-podatki**; ponovna prijava po izbrisu računa ustvari nov profil po FR-001-02.
-- Jezik in tema sta **nastavitvi naprave**: hranita se v brskalniku (ne na zaledju), veljata že na strani za prijavo pred prijavo in ostaneta po odjavi; na drugi napravi uporabnik izbere znova. Zaledje zato o uporabniku hrani samo ime in e-naslov (konstitucija VI).
+- Jezik in tema sta **nastavitvi uporabnika**: prijavljenemu uporabniku se hranita v profilu in veljata na vseh njegovih napravah; kopija v brskalniku velja že na strani za prijavo pred prijavo in ostane po odjavi. Zaledje o uporabniku hrani ime, e-naslov in to izbiro (konstitucija VI, 1.1.0; D-19). Izbira je del uporabnikovih podatkov za izvoz in izbris računa (**012-moji-podatki**).
 - E-naslov profila je edinstven med uporabniki (en Google račun = en e-naslov) in se primerja ne glede na velikost črk; na tem gradi vabljenje po e-naslovu (**006-povabila**).
 - Odjava konča sejo v aplikaciji in brskalniku; žeton, ki je bil izdan pred odjavo, na zaledju velja do svojega naravnega poteka (kratkotrajni žetoni Firebase), ker aplikacija ga po odjavi ne pošilja več. Preklic žetonov na zaledju ni v obsegu.
 - Neprijavljen obiskovalec na neobstoječi poti je najprej preusmerjen na prijavo (vse poti razen prijave so zaščitene); po prijavi vidi »Te strani ni«.
@@ -199,4 +221,4 @@ scenarij `404` za tuj vir ne obstaja.
 
 | CR | Date | Affected FR-IDs | Summary | DECISIONS |
 |---|---|---|---|---|
-| – | – | – | Ni sprememb | – |
+| CR-01 | 2026-11-04 | FR-001-11 | Gumb menija računa namesto začetnic prikaže ikono osebe: vidne začetnice ob dostopnem imenu »Meni računa« kršijo WCAG 2.5.3 (*Label in Name*), SC-006 pa zahteva axe brez kršitev. Ime in e-naslov uporabnika sta na vrhu menija in v *Profilu*. | D-23, D-24 |

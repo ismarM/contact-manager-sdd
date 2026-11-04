@@ -1,4 +1,45 @@
 {
   "app": { "name": "Kontakti" },
-  "start": { "ready": "Ogrodje aplikacije je pripravljeno." }
+  "start": { "ready": "Ogrodje aplikacije je pripravljeno." },
+  "title": {
+    "login": "Prijava – Kontakti",
+    "account": "Moj račun – Kontakti",
+    "notFound": "Te strani ni – Kontakti"
+  },
+  "language": { "label": "Jezik", "sl": "Slovenščina", "en": "English" },
+  "login": {
+    "tagline": "Kontakti tvojih projektov in podjetij, na enem mestu.",
+    "signIn": "Prijava z Googlom",
+    "sessionExpired": "Seja je potekla. Prijavi se znova.",
+    "error": {
+      "cancelled": "Prijava je bila prekinjena. Poskusi znova.",
+      "popupBlocked": "Brskalnik je blokiral okno za prijavo. Dovoli pojavna okna za to stran in poskusi znova.",
+      "offline": "Ni povezave. Preveri povezavo in poskusi znova.",
+      "failed": "Prijava ni uspela. Poskusi znova."
+    }
+  },
+  "shell": {
+    "skipLink": "Preskoči na vsebino",
+    "accountMenu": "Meni računa",
+    "myAccount": "Moj račun",
+    "signOut": "Odjava",
+    "saveFailed": "Izbire ni bilo mogoče shraniti v račun.",
+    "dismiss": "Zapri sporočilo"
+  },
+  "account": {
+    "heading": "Moj račun",
+    "profile": "Profil",
+    "name": "Ime",
+    "email": "E-naslov",
+    "appearance": "Videz",
+    "theme": "Tema",
+    "themeSystem": "Sistemska",
+    "themeLight": "Svetla",
+    "themeDark": "Temna"
+  },
+  "notFound": {
+    "heading": "Te strani ni",
+    "text": "Povezava je napačna ali pa stran ni več na voljo.",
+    "back": "Na seznam skupin"
+  }
 }

@@ -1,0 +1,149 @@
+openapi: 3.1.0
+info:
+  title: Contact Manager API – prijava in profil (001)
+  version: 0.2.0
+  description: >
+    Profil prijavljenega uporabnika. Vsi endpointi razen /api/health zahtevajo veljaven ID žeton Firebase v glavi
+    Authorization (FR-001-07); uporabnik se določi samo iz žetona (sub), nikoli iz poti ali telesa. Vsak odgovor
+    vsebuje glavo X-Request-Id (FR-000-20). /api/health in privzeta zavrnitev sta v specs/000-ogrodje/contracts.
+servers:
+  - url: http://localhost:8080
+    description: razvoj prek nginx (docker compose up)
+security:
+  - firebaseIdToken: []
+paths:
+  /api/me:
+    put:
+      operationId: syncProfile
+      summary: Registracija ali posodobitev profila ob prijavi (FR-001-02, -03, -08, -19)
+      description: >
+        Ustvari profil iz žetona (ime, e-naslov) ali ga posodobi na trenutne vrednosti iz žetona. Poslana izbira
+        naprave se shrani samo v polja profila, ki so prazna (FR-001-19 b). Vrne profil z veljavno izbiro.
+        Idempotentno; sočasni klici ustvarijo natanko en profil.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Preferences" }
+            example: { language: en, theme: dark }
+      responses:
+        "200":
+          description: Profil je obstajal in je posodobljen.
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/X-Request-Id" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Profile" }
+        "201":
+          description: Profil je ustvarjen (prva prijava).
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/X-Request-Id" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Profile" }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+  /api/me/preferences:
+    put:
+      operationId: updatePreferences
+      summary: Sprememba izbire jezika in teme v profilu (FR-001-15, -17, -19)
+      description: Nastavi obe vrednosti, kot sta poslani; null izbriše izbiro (jezik brskalnika, Sistemska).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Preferences" }
+            example: { language: sl, theme: null }
+      responses:
+        "200":
+          description: Shranjeno; vrne profil.
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/X-Request-Id" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Profile" }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+components:
+  securitySchemes:
+    firebaseIdToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        ID žeton Firebase (ponudnik Google). Preveri se podpis (v načinu emulatorja nepodpisan žeton), izdajatelj
+        https://securetoken.google.com/<projekt>, občinstvo <projekt>, exp, iat in neprazen sub; zahtevan je email.
+  headers:
+    X-Request-Id:
+      description: ID zahtevka (FR-000-20).
+      schema: { type: string, pattern: "^[A-Za-z0-9-]{1,64}$" }
+  responses:
+    Unauthenticated:
+      description: Ni žetona ali je neveljaven, ponarejen, potekel ali izdan za drug projekt. Nič se ne spremeni.
+      headers:
+        X-Request-Id: { $ref: "#/components/headers/X-Request-Id" }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          example: { code: UNAUTHENTICATED }
+    ValidationFailed:
+      description: Neveljavna vrednost jezika ali teme ali neveljaven JSON. Nič se ne spremeni.
+      headers:
+        X-Request-Id: { $ref: "#/components/headers/X-Request-Id" }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ValidationError" }
+          example: { code: VALIDATION_FAILED, errors: [{ field: theme, code: INVALID_VALUE }] }
+  schemas:
+    Language:
+      type: [string, "null"]
+      enum: [sl, en, null]
+      description: null = ni izbire (jezik brskalnika).
+    Theme:
+      type: [string, "null"]
+      enum: [light, dark, null]
+      description: null = Sistemska.
+    Preferences:
+      type: object
+      additionalProperties: false
+      required: [language, theme]
+      properties:
+        language: { $ref: "#/components/schemas/Language" }
+        theme: { $ref: "#/components/schemas/Theme" }
+    Profile:
+      type: object
+      additionalProperties: false
+      required: [name, email, language, theme]
+      properties:
+        name:
+          type: [string, "null"]
+          description: Ime iz Google računa; null, če ga račun nima (vmesnik prikaže e-naslov).
+        email: { type: string, format: email }
+        language: { $ref: "#/components/schemas/Language" }
+        theme: { $ref: "#/components/schemas/Theme" }
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [code]
+      properties:
+        code: { type: string }
+    ValidationError:
+      type: object
+      additionalProperties: false
+      required: [code, errors]
+      properties:
+        code: { type: string, const: VALIDATION_FAILED }
+        errors:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [field, code]
+            properties:
+              field: { type: string, description: "Ime polja (npr. language, theme, neznano polje) ali body za neveljaven JSON." }
+              code:
+                type: string
+                enum: [INVALID_VALUE, REQUIRED, UNKNOWN_FIELD, MALFORMED]
+                description: >
+                  INVALID_VALUE – vrednost ni dovoljena; REQUIRED – polje manjka; UNKNOWN_FIELD – polje ni v shemi
+                  (npr. email – uporabnik se določi samo iz žetona); MALFORMED – telo ni veljaven JSON (field: body).

@@ -8,6 +8,12 @@
 
 **Input**: User description: "Izvoz svojih podatkov v obliki JSON (članstva v skupinah, povabila, osebni podatki, skupine, katerih lastnik je uporabnik – ostali podatki so od uporabnika neodvisni) in izbris računa (uporabnikove informacije in povabila se izbrišejo; ni dovoljen, dokler je uporabnik lastnik katerekoli nearhivirane skupine; v arhiviranih skupinah, katerih lastnik je uporabnik, se kot lastnik prikaže »izbrisan uporabnik«, skupina pa ostane trajno arhivirana; tudi v revizijskih sledeh in povsod drugje se njegovo ime prikaže kot »izbrisan uporabnik«; arhivirane skupine, katerih edini član je uporabnik, se izbrišejo)."
 
+## Clarifications
+
+### Session 2026-11-04
+
+- Q: Ali izvoz vključuje izbiro jezika in teme, ki jo 001 po D-19 hrani v profilu uporabnika? → A: Da; izbira jezika in teme je del osebnih podatkov v izvozu (FR-012-02 (a)), nastavitve, shranjene samo v brskalniku, niso.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Izvoz mojih podatkov v JSON (Priority: P1)
@@ -21,11 +27,12 @@ Prijavljen uporabnik v *Mojem računu* v razdelku *Moji podatki* prebere, kaj iz
 **Acceptance Scenarios**:
 
 1. **[FR-012-01]** **Given** prijavljen uporabnik na strani *Moj račun*, **When** si ogleda razdelek *Moji podatki*, **Then** vidi razlago, da izvoz vsebuje članstva, povabila, osebne podatke in skupine v lasti, ter gumb *Prenesi moje podatke (JSON)*.
-2. **[FR-012-02]** **Given** uporabnik je 2. 11. 2026 član treh skupin (lastnik ene aktivne, urednik v arhivirani, bralec v trajno arhivirani) in ima dve prejeti povabili, **When** klikne *Prenesi moje podatke (JSON)*, **Then** se prenese datoteka »moji-podatki-2026-11-02.json«, ki vsebuje njegovo ime, e-naslov in datum registracije, vsa tri članstva (naslov skupine, vloga, datum včlanitve, stanje arhivirana / trajno arhivirana), obe povabili (naslov skupine, ponujena vloga, pošiljatelj, datum) in skupino, ki jo ima v lasti (naslov, opis, barva, stanje arhiviranja, datum ustvarjanja).
+2. **[FR-012-02]** **Given** uporabnik je 2. 11. 2026 član treh skupin (lastnik ene aktivne, urednik v arhivirani, bralec v trajno arhivirani) in ima dve prejeti povabili, **When** klikne *Prenesi moje podatke (JSON)*, **Then** se prenese datoteka »moji-podatki-2026-11-02.json«, ki vsebuje njegovo ime, e-naslov, datum registracije in v profilu shranjeno izbiro jezika in teme, vsa tri članstva (naslov skupine, vloga, datum včlanitve, stanje arhivirana / trajno arhivirana), obe povabili (naslov skupine, ponujena vloga, pošiljatelj, datum) in skupino, ki jo ima v lasti (naslov, opis, barva, stanje arhiviranja, datum ustvarjanja).
 3. **[FR-012-02]** **Given** uporabnik ima prejeto povabilo, katerega pošiljatelj je medtem izbrisal račun, **When** prenese svoje podatke, **Then** je pri tem povabilu kot pošiljatelj zapisano »izbrisan uporabnik«.
 4. **[FR-012-02]** **Given** nov uporabnik brez članstev in povabil, **When** prenese svoje podatke, **Then** datoteka vsebuje osebne podatke ter prazne sezname članstev, povabil in skupin v lasti.
-5. **[FR-012-03]** **Given** uporabnik je lastnik skupine s kontakti, revizijsko sledjo in drugimi člani, **When** prenese svoje podatke, **Then** datoteka ne vsebuje nobenega kontakta, vnosa revizijske sledi, imena ali e-naslova drugega člana in ne nastavitev videza.
-6. **[FR-012-04]** **Given** strežnik izvoza ne more pripraviti (npr. ni povezave), **When** uporabnik klikne *Prenesi moje podatke (JSON)*, **Then** se nobena datoteka ne prenese, na mestu akcije pa je vidno sporočilo o napaki z gumbom *Poskusi znova*.
+5. **[FR-012-03]** **Given** uporabnik je lastnik skupine s kontakti, revizijsko sledjo in drugimi člani, **When** prenese svoje podatke, **Then** datoteka ne vsebuje nobenega kontakta, vnosa revizijske sledi, imena ali e-naslova drugega člana.
+6. **[FR-012-02]** **Given** uporabnik ima v profilu izbrano *English* in *Temna*, drug uporabnik pa izbire v profilu nima (*Sistemska*, jezik ni izbran), **When** vsak prenese svoje podatke, **Then** datoteka prvega vsebuje jezik `en` in temo `dark`, datoteka drugega pa jezik in temo brez vrednosti.
+7. **[FR-012-04]** **Given** strežnik izvoza ne more pripraviti (npr. ni povezave), **When** uporabnik klikne *Prenesi moje podatke (JSON)*, **Then** se nobena datoteka ne prenese, na mestu akcije pa je vidno sporočilo o napaki z gumbom *Poskusi znova*.
 
 ---
 
@@ -108,8 +115,8 @@ Uporabnik, ki je lastnik vsaj ene nearhivirane skupine, računa ne more izbrisat
 ### Functional Requirements
 
 - **FR-012-01**: Sistem MORA na strani *Moj račun* prikazati razdelek *Moji podatki* z razlago, kaj izvoz vsebuje (osebni podatki, članstva, prejeta povabila, skupine v lasti), in gumbom *Prenesi moje podatke (JSON)* (design.md 9.9, točka 3). *(najnižja vloga: —)*
-- **FR-012-02**: Sistem MORA prijavljenemu uporabniku ob kliku na *Prenesi moje podatke (JSON)* prenesti datoteko »moji-podatki-‹YYYY-MM-DD›.json« (datum izvoza), ki vsebuje samo njegove podatke: (a) osebni podatki – ime, e-naslov, datum registracije; (b) vsa članstva – naslov skupine, vloga, datum včlanitve, ali je skupina arhivirana oziroma trajno arhivirana; (c) vsa prejeta povabila – naslov skupine, ponujena vloga, pošiljatelj (ime ali »izbrisan uporabnik«), datum; (d) skupine, katerih lastnik je – naslov, opis, barva, stanje arhiviranja, datum ustvarjanja. Seznami brez vnosov so v datoteki prazni. *(najnižja vloga: —)*
-- **FR-012-03**: Sistem MORA iz izvoza izpustiti vse podatke, ki niso vezani na uporabnika: kontakte, vnose revizijskih sledi, imena, e-naslove in vloge drugih članov ter nastavitve videza, ki so shranjene samo na napravi. *(najnižja vloga: —)*
+- **FR-012-02**: Sistem MORA prijavljenemu uporabniku ob kliku na *Prenesi moje podatke (JSON)* prenesti datoteko »moji-podatki-‹YYYY-MM-DD›.json« (datum izvoza), ki vsebuje samo njegove podatke: (a) osebni podatki – ime, e-naslov, datum registracije, v profilu shranjena izbira jezika in teme (brez vrednosti, če je ni; 001, FR-001-19); (b) vsa članstva – naslov skupine, vloga, datum včlanitve, ali je skupina arhivirana oziroma trajno arhivirana; (c) vsa prejeta povabila – naslov skupine, ponujena vloga, pošiljatelj (ime ali »izbrisan uporabnik«), datum; (d) skupine, katerih lastnik je – naslov, opis, barva, stanje arhiviranja, datum ustvarjanja. Seznami brez vnosov so v datoteki prazni. *(najnižja vloga: —)*
+- **FR-012-03**: Sistem MORA iz izvoza izpustiti vse podatke, ki niso vezani na uporabnika: kontakte, vnose revizijskih sledi, imena, e-naslove in vloge drugih članov. Kopija nastavitev videza v brskalniku ni podatek strežnika in ni del izvoza. *(najnižja vloga: —)*
 - **FR-012-04**: Sistem MORA ob neuspelem izvozu prikazati vidno sporočilo o napaki na mestu akcije z gumbom *Poskusi znova* (design.md 8.13) in ne sme prenesti delne datoteke. *(najnižja vloga: —)*
 - **FR-012-05**: Sistem MORA na strani *Moj račun* prikazati razdelek *Izbris računa* z razlago posledic izbrisa (izbris osebnih podatkov in prejetih povabil, odstranitev iz vseh skupin, prikaz »izbrisan uporabnik« v arhiviranih skupinah v lasti in revizijskih sledeh, izbris arhiviranih skupin, v katerih je uporabnik edini član, nepovratnost) (design.md 9.9, točka 4). *(najnižja vloga: —)*
 - **FR-012-06**: Sistem MORA izbris računa zavrniti z `409 OWNS_ACTIVE_GROUPS`, dokler je uporabnik lastnik vsaj ene nearhivirane skupine; vmesnik MORA v tem primeru namesto gumba *Izbriši račun* prikazati seznam teh skupin s povezavami na njihove strani in navodilo »Prenesi lastništvo ali arhiviraj te skupine«. *(najnižja vloga: —)*
@@ -146,7 +153,7 @@ Uporabnik, ki je lastnik vsaj ene nearhivirane skupine, računa ne more izbrisat
 
 ## Assumptions
 
-- **Obseg izvoza** (odločitev): izvoz vsebuje samo podatke iz FR-012-02; kontakti, revizijske sledi in podatki drugih članov so podatki skupine, ne uporabnika, in niso v izvozu. Nastavitve videza, ki so shranjene samo na napravi, niso podatki strežnika; če 001 nastavitve hrani na strežniku, se v izvoz ne dodajajo (niso osebni podatki v smislu zahteve) – sprememba bi zahtevala CR.
+- **Obseg izvoza** (odločitev): izvoz vsebuje samo podatke iz FR-012-02; kontakti, revizijske sledi in podatki drugih članov so podatki skupine, ne uporabnika, in niso v izvozu. Izbira jezika in teme, ki jo 001 hrani v profilu (konstitucija VI 1.1.0, D-19), je del osebnih podatkov v izvozu; kopija v brskalniku ni.
 - **Oblika izvoza** (odločitev): datoteka je strojno berljiva, z ustaljeno strukturo, neodvisno od jezika vmesnika (vloge in stanja kot kode, npr. `OWNER`, datumi v mednarodnem zapisu z uro in časovnim pasom); datum v imenu datoteke je datum izvoza po lokalnem času uporabnika. Natančna struktura je stvar `plan.md` / `contracts/`.
 - **Prejeta povabila v izvozu** so povabila, ki v trenutku izvoza obstajajo (neodgovorjena); kaj se zgodi s sprejetimi in zavrnjenimi povabili, določa 006.
 - **Datum registracije** shranjuje 001 ob prvi prijavi; **datum včlanitve** shranjujeta 002 (ustvarjalec) in 006 (sprejem povabila).

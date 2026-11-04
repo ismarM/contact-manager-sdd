@@ -34,7 +34,13 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{html,js,css,woff2,png,svg,ico,webmanifest}'],
-        navigateFallbackDenylist: [/^\/api\//],
+        // API in poti emulatorja Auth (001, research R-04) nikoli iz predpomnilnika.
+        navigateFallbackDenylist: [
+          /^\/api\//,
+          /^\/emulator\//,
+          /^\/identitytoolkit\.googleapis\.com\//,
+          /^\/securetoken\.googleapis\.com\//,
+        ],
       },
     }),
   ],
@@ -44,6 +50,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': 'http://localhost:8080',
+      '/emulator': 'http://localhost:9099',
+      '/identitytoolkit.googleapis.com': 'http://localhost:9099',
+      '/securetoken.googleapis.com': 'http://localhost:9099',
     },
   },
 });

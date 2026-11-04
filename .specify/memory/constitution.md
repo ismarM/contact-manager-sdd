@@ -1,6 +1,10 @@
 <!--
 Sync Impact Report
-- Version change: template → 1.0.0 (first ratification)
+- Version change: 1.1.0 → 2.0.0 (MAJOR, 2026-11-04, D-20): II. – teste pred implementacijo
+  pregleda neodvisen agent `pregled-testov` namesto razvijalcev; razvijalca pregledata testni
+  commit v PR pred združitvijo. Potek: agent sam nadaljuje od plana do PR. Templates: tasks override
+  posodobljen. Prej: 1.0.0 → 1.1.0 (MINOR, 2026-11-04, D-19): VI. – izbira jezika in teme se hrani
+  tudi v profilu uporabnika (velja na vseh napravah), ne le v brskalniku. Prej: template → 1.0.0.
 - Principles: I. Specifikacija je pogodba; II. Najprej testi (NON-NEGOTIABLE);
   III. Izolacija skupin in vloge; IV. Dostopen, dvojezičen, odziven vmesnik;
   V. Celovitost podatkov; VI. Zasebnost in GDPR; VII. Ena pot preverjanja
@@ -44,7 +48,11 @@ so v [`workflow.md`](workflow.md), razdelitev zahtev in skupna pravila v
 
 - Testi so **obvezni** za vsako funkcionalnost in vsak FR-ID.
 - Testi se napišejo pred implementacijo in morajo pasti **zaradi pravega razloga** (manjka
-  vedenje, ne napaka pri prevajanju ali v testu). Pred implementacijo jih pregledata razvijalca.
+  vedenje, ne napaka pri prevajanju ali v testu). Pred implementacijo jih pregleda **neodvisen
+  agent** `pregled-testov` (`.claude/agents/pregled-testov.md`), ki testov ni napisal in jih presoja
+  samo po `spec.md`, `plan.md` in `contracts/`. Koda se začne šele po izidu SPREJETO.
+- Testi se commitajo ločeno (`test(NNN): …`); razvijalca ta commit pregledata v pull requestu pred
+  združitvijo v `main`.
 - Test se po pregledu sme spremeniti samo zato, da se uskladi s specifikacijo, nikoli zato, da bi
   ustrezal kodi; vsaka taka sprememba dobi vnos v `DECISIONS.md`. Obvodi v produkcijski kodi, ki
   služijo le prestajanju testa, so prepovedani.
@@ -55,7 +63,8 @@ so v [`workflow.md`](workflow.md), razdelitev zahtev in skupna pravila v
   (WCAG 2.1 A in AA) brez kršitev; E2E teče pri 360, 768 in 1280 px; izvoz v Excel se v E2E
   prenese in prebere nazaj.
 
-*Razlog:* agent piše kodo hitro; le testi, ki jih pregleda človek, zagotovijo, da dela pravo stvar.
+*Razlog:* agent piše kodo hitro; le testi, ki jih pregleda nekdo drug kot njihov avtor, zagotovijo,
+da dela pravo stvar. Neodvisen agent omogoča delo brez čakanja, človeški pregled ostane pred združitvijo.
 
 ### III. Izolacija skupin in vloge
 
@@ -96,8 +105,9 @@ so v [`workflow.md`](workflow.md), razdelitev zahtev in skupna pravila v
 
 - Uporabnik lahko izvozi svoje podatke (JSON) in izbriše račun; posledice izbrisa so določene v
   specifikaciji 012 in povsod prikazane kot »izbrisan uporabnik«.
-- Hranijo se samo osebni podatki, ki jih aplikacija potrebuje (ime in e-naslov iz Google računa);
-  jezik in tema sta nastavitvi naprave, shranjeni le v brskalniku.
+- Hranijo se samo osebni podatki, ki jih aplikacija potrebuje (ime in e-naslov iz Google računa)
+  in uporabnikova izbira jezika in teme, ki velja na vseh njegovih napravah; kopija izbire v
+  brskalniku velja tudi pred prijavo in po odjavi.
 - Skrivnosti niso v Gitu (gitleaks v pre-commit); pisave in drugi viri se gostijo lokalno, brez
   klicev na tuje CDN-je.
 
@@ -128,8 +138,9 @@ so v [`workflow.md`](workflow.md), razdelitev zahtev in skupna pravila v
 ## Potek razvoja in vrata kakovosti
 
 - Vsaka funkcionalnost gre skozi cikel iz `workflow.md` §0.2: specify → clarify → plan →
-  (checklist) → tasks → analyze → implement (samo testi) → **pregled testov** → implement (koda)
-  → converge → `./verify.sh full` in `traceability.md`.
+  (checklist) → tasks → analyze → implement (samo testi) → **pregled testov** (agent
+  `pregled-testov`) → implement (koda) → converge → `./verify.sh full` in `traceability.md` → PR.
+  Od plana do PR agent nadaljuje sam; razvijalca pregledata in sprejmeta funkcionalnost v PR.
 - Funkcionalnost ima mapo `specs/NNN-ime/` in vejo `ime` **brez številke**; trenutno
   funkcionalnost nastavi `scripts/feature.sh ime`.
 - Funkcionalnost 000 (ogrodje) je pogoj za vse ostale; odvisnosti med funkcionalnostmi so v
@@ -151,4 +162,4 @@ so v [`workflow.md`](workflow.md), razdelitev zahtev in skupna pravila v
   odstopanje se odpravi ali utemelji v razdelku *Complexity Tracking* v `plan.md`.
 - Prvotni dokumenti v `original_documentation/` so zgodovinski in se ne spreminjajo.
 
-**Version**: 1.0.0 | **Ratified**: 2026-11-02 | **Last Amended**: 2026-11-02
+**Version**: 2.0.0 | **Ratified**: 2026-11-02 | **Last Amended**: 2026-11-04
