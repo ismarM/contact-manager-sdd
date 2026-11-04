@@ -140,5 +140,10 @@ components:
             additionalProperties: false
             required: [field, code]
             properties:
-              field: { type: string, description: "Ime polja (npr. language, theme) ali body za neveljaven JSON." }
-              code: { type: string, enum: [INVALID_VALUE, REQUIRED, MALFORMED] }
+              field: { type: string, description: "Ime polja (npr. language, theme, neznano polje) ali body za neveljaven JSON." }
+              code:
+                type: string
+                enum: [INVALID_VALUE, REQUIRED, UNKNOWN_FIELD, MALFORMED]
+                description: >
+                  INVALID_VALUE – vrednost ni dovoljena; REQUIRED – polje manjka; UNKNOWN_FIELD – polje ni v shemi
+                  (npr. email – uporabnik se določi samo iz žetona); MALFORMED – telo ni veljaven JSON (field: body).
