@@ -9,6 +9,7 @@
 Thumbs.db
 .idea/
 .vscode/
+CLAUDE.local.md
 
 # Build output and dependencies
 node_modules/
