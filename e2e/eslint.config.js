@@ -8,10 +8,13 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    // FR-000-18: brez tipa any in brez utišanja preverjanja tipov.
     rules: {
-      // Vklopi T058 (FR-000-18).
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/ban-ts-comment': 'off',
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/ban-ts-comment': [
+        'error',
+        { 'ts-ignore': true, 'ts-nocheck': true, 'ts-check': false, 'ts-expect-error': true },
+      ],
     },
   },
 );

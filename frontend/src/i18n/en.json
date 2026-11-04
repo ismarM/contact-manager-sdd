@@ -1,1 +1,4 @@
-{}
+{
+  "app": { "name": "Contacts" },
+  "start": { "ready": "The application scaffold is ready." }
+}

@@ -1,0 +1,5 @@
+# verify full: vmesnik na naključnih vratih 127.0.0.1, ločen projekt Compose (contact-manager-verify).
+services:
+  frontend:
+    ports:
+      - "127.0.0.1::80"

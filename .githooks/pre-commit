@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Prepreči commit skrivnosti (FR-000-19): gitleaks pregleda staged spremembe; vrednosti so v izpisu skrite.
+# Namestitev: scripts/install-hooks.sh. Izjeme samo v .gitleaks.toml z vnosom v DECISIONS.md.
+set -uo pipefail
+
+GITLEAKS_IMAGE='ghcr.io/gitleaks/gitleaks:v8.30.1'
+ARGS=(git --pre-commit --staged --redact --verbose --no-banner)
+
+if command -v gitleaks >/dev/null 2>&1; then
+  exec gitleaks "${ARGS[@]}"
+fi
+
+if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+  ROOT="$(git rev-parse --show-toplevel)"
+  exec docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp \
+    -v "$ROOT:/repo" -w /repo "$GITLEAKS_IMAGE" "${ARGS[@]}"
+fi
+
+echo 'pre-commit: za preverjanje skrivnosti namesti gitleaks (https://github.com/gitleaks/gitleaks) ali zaženi Docker.' >&2
+exit 1

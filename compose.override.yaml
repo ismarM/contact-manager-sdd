@@ -1,0 +1,8 @@
+# Razvoj: vmesnik na http://localhost:8080 in emulator Auth samo na 127.0.0.1.
+services:
+  frontend:
+    ports:
+      - "127.0.0.1:8080:80"
+  auth:
+    ports:
+      - "127.0.0.1:9099:9099"

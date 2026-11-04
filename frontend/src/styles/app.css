@@ -1,1 +1,193 @@
+/* Oblikovni jezik »Kartoteka« (design.md 4–6, 13.2). Edini vir barv, pisav in senc. */
 @import 'tailwindcss';
+@import '@fontsource-variable/atkinson-hyperlegible-next/index.css';
+@import '@fontsource/atkinson-hyperlegible-mono/400.css';
+
+:root {
+  color-scheme: light dark;
+
+  /* 4.1 Žetoni */
+  --k-bg: light-dark(#f6f5f1, #161513);
+  --k-surface: light-dark(#ffffff, #1f1e1b);
+  --k-sunken: light-dark(#eeece6, #2a2925);
+  --k-text: light-dark(#1c1b19, #eceae5);
+  --k-muted: light-dark(#5c5850, #a8a399);
+  --k-border: light-dark(#86817a, #7c776e);
+  --k-divider: light-dark(#e0ddd5, #34322e);
+  --k-accent: light-dark(#1f4e8c, #8fb5f0);
+  --k-accent-hover: light-dark(#173d6e, #b0cbf5);
+  --k-on-accent: light-dark(#ffffff, #0f203a);
+  --k-accent-soft: light-dark(#e5ecf6, #1d2b41);
+  --k-danger: light-dark(#a12a1d, #f08a7b);
+  --k-danger-soft: light-dark(#fae9e6, #3a1f1b);
+  --k-success: light-dark(#2b6a39, #80c390);
+  --k-success-soft: light-dark(#e6f1e8, #1c3123);
+  --k-warning: light-dark(#7a5800, #e0b64e);
+  --k-warning-soft: light-dark(#faf0d7, #352b12);
+
+  /* 4.2 Barve skupin */
+  --k-group-tinta: light-dark(#2f5fa8, #7fa6e6);
+  --k-group-mah: light-dark(#3e7a3a, #86c07f);
+  --k-group-opeka: light-dark(#b0412f, #ee8c7b);
+  --k-group-oker: light-dark(#9a6a00, #ddb24a);
+  --k-group-sliva: light-dark(#7a4a93, #c79be0);
+  --k-group-morje: light-dark(#1f7a78, #6cc6c2);
+  --k-group-grafit: light-dark(#5e6670, #a3abb5);
+  --k-group-rja: light-dark(#b3561b, #f0a06a);
+
+  /* 5 Tipografija */
+  --k-font-sm: 0.875rem;
+  --k-font-sm--line-height: 1.45;
+  --k-font-md: 1rem;
+  --k-font-md--line-height: 1.5;
+  --k-font-lg: 1.25rem;
+  --k-font-lg--line-height: 1.35;
+  --k-font-xl: 1.5rem;
+  --k-font-xl--line-height: 1.25;
+  --k-font-xxl: 2rem;
+  --k-font-xxl--line-height: 1.2;
+
+  /* 6 Prostor, oblike, sence */
+  --k-space-1: 4px;
+  --k-space-2: 8px;
+  --k-space-3: 12px;
+  --k-space-4: 16px;
+  --k-space-5: 24px;
+  --k-space-6: 32px;
+  --k-space-7: 48px;
+  --k-radius-sm: 4px;
+  --k-radius-md: 6px;
+  --k-shadow-float: 0 8px 24px rgb(0 0 0 / 0.16);
+
+  /* 13.2 Aliasi shadcn/ui – vrednosti so samo žetoni Kartoteke */
+  --background: var(--k-bg);
+  --foreground: var(--k-text);
+  --card: var(--k-surface);
+  --card-foreground: var(--k-text);
+  --popover: var(--k-surface);
+  --popover-foreground: var(--k-text);
+  --secondary: var(--k-surface);
+  --secondary-foreground: var(--k-text);
+  --muted: var(--k-sunken);
+  --muted-foreground: var(--k-muted);
+  --accent: var(--k-sunken);
+  --accent-foreground: var(--k-text);
+  --primary: var(--k-accent);
+  --primary-foreground: var(--k-on-accent);
+  --destructive: var(--k-danger);
+  --destructive-foreground: var(--k-text);
+  --input: var(--k-border);
+  --border: var(--k-divider);
+  --ring: var(--k-accent);
+  --radius: 0.375rem;
+  --sidebar: var(--k-bg);
+  --sidebar-foreground: var(--k-text);
+  --sidebar-accent: var(--k-sunken);
+  --sidebar-accent-foreground: var(--k-text);
+  --sidebar-border: var(--k-divider);
+  --sidebar-primary: var(--k-accent);
+  --sidebar-primary-foreground: var(--k-on-accent);
+  --sidebar-ring: var(--k-accent);
+}
+
+/* 4.3 Izbira uporabnika preglasi sistem */
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+@custom-variant dark {
+  &:where([data-theme='dark'], [data-theme='dark'] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme='light']), :root:not([data-theme='light']) *) {
+      @slot;
+    }
+  }
+}
+
+@theme {
+  --color-*: initial;
+  --color-black: #000;
+  --color-white: #fff;
+  --shadow-*: initial;
+  --shadow-float: 0 8px 24px rgb(0 0 0 / 0.16);
+  --font-sans: 'Atkinson Hyperlegible Next Variable', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Atkinson Hyperlegible Mono', ui-monospace, monospace;
+  --text-xs: 0.875rem;
+  --text-xs--line-height: 1.45;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--k-accent-hover);
+  --color-selected: var(--k-accent-soft);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-soft: var(--k-danger-soft);
+  --color-success: var(--k-success);
+  --color-success-soft: var(--k-success-soft);
+  --color-warning: var(--k-warning);
+  --color-warning-soft: var(--k-warning-soft);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-group-tinta: var(--k-group-tinta);
+  --color-group-mah: var(--k-group-mah);
+  --color-group-opeka: var(--k-group-opeka);
+  --color-group-oker: var(--k-group-oker);
+  --color-group-sliva: var(--k-group-sliva);
+  --color-group-morje: var(--k-group-morje);
+  --color-group-grafit: var(--k-group-grafit);
+  --color-group-rja: var(--k-group-rja);
+  --radius-sm: 4px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 6px;
+  --radius-2xl: 6px;
+}
+
+@layer base {
+  html {
+    font-size-adjust: from-font;
+  }
+  body {
+    @apply bg-background font-sans text-foreground;
+  }
+}
+
+/* 6 Gibanje: ob zmanjšanem gibanju ni prehodov ne animacij */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}

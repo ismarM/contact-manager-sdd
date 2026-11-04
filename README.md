@@ -13,6 +13,29 @@ using Spec-Driven Development (SDD).
 - SDD: GitHub Spec Kit 1.2.6
 - AI Agent: Claude Code
 
+## Prerequisites
+- Docker with Compose v2 (your user must be able to run `docker info`)
+- JDK 21 (`JAVA_HOME` pointing to it, or `javac` 21+ on `PATH`)
+- Node.js 22.12+ and npm
+- Optional: [gitleaks](https://github.com/gitleaks/gitleaks) on `PATH` (otherwise the pre-commit hook uses its Docker image)
+
+## First steps
+```bash
+scripts/install-hooks.sh      # once after cloning: pre-commit hook with gitleaks (no secrets in Git)
+docker compose up --build     # whole system on http://localhost:8080 (health: /api/health)
+```
+No `.env` is needed; `.env.example` lists the variables and their development defaults.
+The Firebase Auth Emulator UI is disabled; the emulator listens on `127.0.0.1:9099`.
+
+## Quality gate
+```bash
+./verify.sh quick   # format, lint, types, suppressions, translations, tool self-tests, unit and FE tests (~30 s)
+./verify.sh full    # + integration, security, whole system in Compose, E2E (~2.5 min, needs Docker)
+```
+On success it prints one line; on failure at most 20 lines naming each error. The full output of the last run is in `.verify/last.log`.
+CI (`.github/workflows/ci.yml`) runs `./verify.sh full` on every push and pull request.
+Protect `main` manually in GitHub: *Settings → Branches → Branch protection* with the required status check `verify`.
+
 ## Documentation
 - [Constitution](.specify/memory/constitution.md) – project principles
 - [Workflow](.specify/memory/workflow.md) – how features are specified, tested and finished
