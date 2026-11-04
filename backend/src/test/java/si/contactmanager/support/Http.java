@@ -18,15 +18,30 @@ public final class Http {
 
     public static HttpResponse<String> send(String method, String url, Map<String, String> headers)
             throws IOException, InterruptedException {
-        HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(url))
-                .timeout(Duration.ofSeconds(30))
-                .method(method, HttpRequest.BodyPublishers.noBody());
+        return send(method, url, headers, null);
+    }
+
+    /** Zahtevek z neobveznim telesom JSON ({@code null} = brez telesa). */
+    public static HttpResponse<String> send(String method, String url, Map<String, String> headers, String jsonBody)
+            throws IOException, InterruptedException {
+        HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(30));
+        if (jsonBody == null) {
+            builder.method(method, HttpRequest.BodyPublishers.noBody());
+        } else {
+            builder.header("Content-Type", "application/json")
+                    .method(method, HttpRequest.BodyPublishers.ofString(jsonBody));
+        }
         headers.forEach(builder::header);
         return CLIENT.send(builder.build(), HttpResponse.BodyHandlers.ofString());
     }
 
     public static HttpResponse<String> get(String url) throws IOException, InterruptedException {
         return send("GET", url, Map.of());
+    }
+
+    /** Glava Authorization z žetonom Bearer. */
+    public static Map<String, String> bearer(String token) {
+        return Map.of("Authorization", "Bearer " + token);
     }
 
     /** JSON brez presledkov, za primerjavo celotnega telesa. */

@@ -5,43 +5,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.Map;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import si.contactmanager.support.ApiTest;
 import si.contactmanager.support.FirebaseEmulatorContainer;
 import si.contactmanager.support.Http;
-import si.contactmanager.support.PostgresContainer;
 
 /**
- * Veriga za 001: emulator izda ID žeton brez pravih ključev (FR-000-04). V 000 zaledje žetonov še ne preverja, zato
- * tudi zahtevek z žetonom dobi 401 (FR-000-10, research R-04).
+ * Veriga emulatorja (FR-000-04): emulator izda ID žeton brez pravih ključev. Od 001 zaledje veljaven žeton sprejme
+ * (FR-001-07); prej je ta test preverjal začasno vedenje 000 (vedno 401) – sprememba v DECISIONS.md (D-22).
  */
 @Tag("FR-000-04")
-@Tag("FR-000-10")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class FirebaseEmulatorIT {
-
-    static final FirebaseEmulatorContainer EMULATOR = new FirebaseEmulatorContainer();
-
-    static {
-        EMULATOR.start();
-    }
-
-    @DynamicPropertySource
-    static void properties(DynamicPropertyRegistry registry) {
-        PostgresContainer.register(registry);
-    }
-
-    @LocalServerPort
-    int port;
+@Tag("FR-001-07")
+class FirebaseEmulatorIT extends ApiTest {
 
     @Test
     void emulatorIssuesIdTokenForDemoProject() throws Exception {
-        String token = EMULATOR.signUp("ana@primer.si", "geslo-123456");
+        String token = emulator().signUp(uniqueEmail(), "geslo-123456");
 
         String[] parts = token.split("\\.");
         assertThat(parts.length).isGreaterThanOrEqualTo(2);
@@ -50,13 +30,20 @@ class FirebaseEmulatorIT {
     }
 
     @Test
-    void apiRejectsEmulatorTokenWith401InScaffold() throws Exception {
-        String token = EMULATOR.signUp("bojan@primer.si", "geslo-123456");
+    void apiAcceptsEmulatorTokenFromGoogleSignIn() throws Exception {
+        String token = newGoogleUser("Bojan Kos").idToken();
 
-        HttpResponse<String> response = Http.send(
-                "GET", "http://localhost:" + port + "/api/anything", Map.of("Authorization", "Bearer " + token));
+        HttpResponse<String> response = put("/api/me", token, null);
 
-        assertThat(response.statusCode()).isEqualTo(401);
-        assertThat(Http.compact(response.body())).isEqualTo("{\"code\":\"UNAUTHENTICATED\"}");
+        assertThat(response.statusCode()).isIn(200, 201);
+    }
+
+    @Test
+    void unknownApiPathWithValidTokenIsNotFound() throws Exception {
+        String token = newGoogleUser("Bojan Kos").idToken();
+
+        HttpResponse<String> response = Http.send("GET", url("/api/anything"), Http.bearer(token));
+
+        assertThat(response.statusCode()).isEqualTo(404);
     }
 }

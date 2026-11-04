@@ -1,4 +1,45 @@
 {
   "app": { "name": "Contacts" },
-  "start": { "ready": "The application scaffold is ready." }
+  "start": { "ready": "The application scaffold is ready." },
+  "title": {
+    "login": "Sign in – Contacts",
+    "account": "My account – Contacts",
+    "notFound": "Page not found – Contacts"
+  },
+  "language": { "label": "Language", "sl": "Slovenščina", "en": "English" },
+  "login": {
+    "tagline": "Contacts for your projects and companies, in one place.",
+    "signIn": "Sign in with Google",
+    "sessionExpired": "Your session has expired. Please sign in again.",
+    "error": {
+      "cancelled": "Sign-in was cancelled. Please try again.",
+      "popupBlocked": "Your browser blocked the sign-in window. Allow pop-ups for this site and try again.",
+      "offline": "You're offline. Check your connection and try again.",
+      "failed": "Sign-in failed. Please try again."
+    }
+  },
+  "shell": {
+    "skipLink": "Skip to content",
+    "accountMenu": "Account menu",
+    "myAccount": "My account",
+    "signOut": "Sign out",
+    "saveFailed": "Your choice could not be saved to your account.",
+    "dismiss": "Dismiss message"
+  },
+  "account": {
+    "heading": "My account",
+    "profile": "Profile",
+    "name": "Name",
+    "email": "Email",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "themeSystem": "System",
+    "themeLight": "Light",
+    "themeDark": "Dark"
+  },
+  "notFound": {
+    "heading": "Page not found",
+    "text": "The link is wrong or the page is no longer available.",
+    "back": "Back to groups"
+  }
 }

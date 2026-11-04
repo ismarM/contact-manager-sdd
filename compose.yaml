@@ -43,8 +43,14 @@ services:
       retries: 12
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_FIREBASE_PROJECT_ID: demo-contact-manager
+        VITE_FIREBASE_EMULATOR: "true"
     depends_on:
+      auth:
+        condition: service_healthy
       backend:
         condition: service_healthy
 
