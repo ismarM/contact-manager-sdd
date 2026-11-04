@@ -1,0 +1,4 @@
+{
+  "app": { "name": "Kontakti" },
+  "start": { "ready": "Ogrodje aplikacije je pripravljeno." }
+}

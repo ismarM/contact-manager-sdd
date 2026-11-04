@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: contact-manager
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/contacts}
+    username: ${DB_USER:contacts}
+    password: ${DB_PASSWORD:contacts}
+  jpa:
+    open-in-view: false
+  flyway:
+    enabled: true
+    fail-on-missing-locations: true
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      base-path: /api
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+      probes:
+        enabled: false
+  info:
+    env:
+      enabled: false
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p [%X{requestId:-}] %logger{36} : %m%n"

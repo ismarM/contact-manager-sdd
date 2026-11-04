@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="2" failures="1">
+  <testsuite name="ogrodje.spec.ts" hostname="w768" tests="2" failures="1" errors="0">
+    <testcase name="shema dark › FR-000-13: shema sledi sistemu, data-theme jo preglasi" classname="ogrodje.spec.ts" time="1.2">
+      <failure message="ogrodje.spec.ts:60:5 FR-000-13" type="FAILURE">Error: expect(received).toBe(expected)</failure>
+    </testcase>
+    <testcase name="shema dark › FR-000-01: zahtevek z začetne strani doseže backend" classname="ogrodje.spec.ts" time="0.3"/>
+  </testsuite>
+</testsuites>

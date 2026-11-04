@@ -10,3 +10,15 @@ Thumbs.db
 .idea/
 .vscode/
 CLAUDE.local.md
+
+# Build output and dependencies
+node_modules/
+backend/target/
+frontend/dist/
+frontend/dev-dist/
+frontend/test-results/
+e2e/test-results/
+e2e/playwright-report/
+
+# Local configuration (see .env.example)
+.env

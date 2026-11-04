@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Ikona PWA (design.md 12): kvadrat v accent z belo kartico z jezičkom; brez prelivov in senc. -->
+  <rect width="512" height="512" fill="#1F4E8C"/>
+  <path fill="#FFFFFF" d="M136 168h80l24 -32h136v240h-240z"/>
+  <rect x="168" y="232" width="176" height="16" fill="#1F4E8C"/>
+  <rect x="168" y="280" width="128" height="16" fill="#1F4E8C"/>
+</svg>
