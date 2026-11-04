@@ -14,7 +14,7 @@ Ustvarjeno ob pregledu testov (T034), posodobljeno po implementaciji (2026-11-04
 | FR-000-08 | Izpis ≤ 20 vrstic, ena vrstica ob uspehu | summarize.test.mjs › FR-000-08: (vse oblike, omejitev); verify-cli.test.mjs › FR-000-08: uspeh … | zelen |
 | FR-000-09 | `.verify/last.log` | verify-cli.test.mjs › FR-000-09: last.log … (rdeč), .verify/ je izključena iz Gita (varovalo) | zelen |
 | FR-000-10 | Privzeta zavrnitev `/api/**` z 401, odjemalec API | DefaultDenySecurityIT › everyApiPathExceptHealthIsDeniedWith401, healthStaysPublic; FirebaseEmulatorIT › apiRejectsEmulatorTokenWith401InScaffold; client.test.ts › FR-000-10: … | zelen |
-| FR-000-11 | CI požene `verify.sh full`, priloži dnevnik | ci-workflow.test.mjs › FR-000-11: …; ročno T049 (zaščita veje) | zelen lokalno; CI in zaščita veje čakata na push (T049) |
+| FR-000-11 | CI požene `verify.sh full`, priloži dnevnik | ci-workflow.test.mjs › FR-000-11: …; ročno T049 (zaščita veje) | zelen v CI (PR #1: rdeč → zelen, `verify-log`); zaščita veje ni na voljo – procesno pravilo (D-18) |
 | FR-000-12 | Začetna stran: axe, isti izvor, 320 px, žetoni | StartPage.test.tsx › FR-000-12: … (varovalo); ogrodje.spec.ts › FR-000-12: …; eslint-rules.test.ts › FR-000-12: … | zelen |
 | FR-000-13 | Svetla/temna shema, `data-theme`, zmanjšano gibanje, vsiljene barve | ogrodje.spec.ts › FR-000-13: shema sledi sistemu …, ob prefers-reduced-motion …, v načinu vsiljenih barv … | zelen |
 | FR-000-14 | sl/en, zaznava jezika, popolnost prevodov | language.test.ts › FR-000-14: …; StartPage.test.tsx › FR-000-14: …; ogrodje.spec.ts › FR-000-14: …; i18n-keys.test.mjs › FR-000-14: … | zelen |
@@ -42,9 +42,9 @@ Ustvarjeno ob pregledu testov (T034), posodobljeno po implementaciji (2026-11-04
 | `./verify.sh full` (informativno) | – | 141 s |
 | SC-004 samopreizkus (FR-000-17) | 10/10 | 10/10, ≤ 11 vrstic (D-16) |
 
-## Odprto pred sprejemom
+## Stanje ob sprejemu
 
-- T049: push veje, pull request z namerno padajočim testom (rdeč status in priloga `verify-log`), nato zelen; zaščita veje `main` z obveznim statusom `verify`.
+- T049: opravljeno (D-18); zaščito veje `main` nastavi lastnik repozitorija, ko bo na voljo (GitHub Pro ali javni repozitorij).
 - T064: označen po navodilu razvijalcev brez izvedbe (D-17); ročni preizkus z bralnikom zaslona se opravi v 001.
-- T065: `./verify.sh full` zelen tudi v CI.
+- T065: `./verify.sh full` zelen lokalno in v CI.
 - Razvijalca potrdita odločitve, ki jih je namesto njiju sprejel Claude Code (D-10, D-15, D-16).

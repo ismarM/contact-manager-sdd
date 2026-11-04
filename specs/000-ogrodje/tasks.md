@@ -162,7 +162,7 @@ description: "Naloge za funkcionalnost 000 – ogrodje projekta"
 **Independent Test**: T030 zelen; quickstart.md razdelek 5.
 
 - [X] T048 [US4] FR-000-11 Ustvari `.github/workflows/ci.yml`: `on: [push, pull_request]`, posel `verify` na `ubuntu-latest`, `actions/checkout`, `actions/setup-java` (`temurin`, `21`, `cache: maven`), `actions/setup-node` (`22`, `cache: npm`, `cache-dependency-path` za `frontend/` in `e2e/`), `npm --prefix e2e exec playwright install -- --with-deps chromium`, `./verify.sh full`, `actions/upload-artifact` z `if: failure()`, imenom `verify-log` in potjo `.verify/last.log`
-- [ ] T049 [US4] FR-000-11 Ročno (razvijalca): push veje in odprt pull request z namerno padajočim testom → rdeč status in priloga `verify-log`; po popravku zelen; v GitHubu *Branch protection* za `main` z obveznim statusom `verify`; izid zapiši v `specs/000-ogrodje/traceability.md`
+- [X] T049 [US4] FR-000-11 Ročno (razvijalca): push veje in odprt pull request z namerno padajočim testom → rdeč status in priloga `verify-log`; po popravku zelen; v GitHubu *Branch protection* za `main` z obveznim statusom `verify`; izid zapiši v `specs/000-ogrodje/traceability.md`
 
 ---
 
