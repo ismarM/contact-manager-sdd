@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="si.contactmanager.shared.web.RequestIdFilterTest" tests="2" failures="1" errors="0" skipped="0">
+  <testcase name="keepsValidIncomingRequestId" classname="si.contactmanager.shared.web.RequestIdFilterTest" time="0.01">
+    <failure message="expected: &quot;nginx-1&quot;&#10; but was: null" type="org.opentest4j.AssertionFailedError">stack</failure>
+  </testcase>
+  <testcase name="clearsMdcAfterRequest" classname="si.contactmanager.shared.web.RequestIdFilterTest" time="0.01"/>
+</testsuite>

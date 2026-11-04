@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: contact-manager
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/contacts}
+    username: ${DB_USER:contacts}
+    password: ${DB_PASSWORD:contacts}
+  jpa:
+    open-in-view: false
+  flyway:
+    enabled: true
+
+server:
+  port: 8080

@@ -13,6 +13,16 @@
 > (razdelek *Tehnološki sklad in omejitve*) in `workflow.md` §3. Ogrodje ne vsebuje poslovnih funkcij in
 > ne dostopa do podatkov skupin.
 
+## Clarifications
+
+### Session 2026-11-04
+
+- Q: Ali naj se `verify.sh` ustavi pri prvem padlem koraku ali izvede vse in poroča o vseh? → A: Statični koraki (format, lint, tipi, utišanja, prevodi) se izvedejo vsi; če je kateri padel, se `verify.sh` ustavi pred testi. Testni koraki (unit BE, unit FE, funkcionalni FE, integracijski, varnostni, E2E) se ustavijo pri prvem padlem koraku.
+- Q: Ali naj `verify.sh` pade tudi ob opozorilih (ESLint, `javac`, TypeScript), ne le ob napakah? → A: Da – vsako opozorilo je napaka (nič opozoril); opozorilo se odpravi ali utiša z odobrenim vnosom D-NN (FR-000-18).
+- Q: Ali naj preverjanje utišanj obravnava tudi izklopljene ali osredotočene teste? → A: `.only` (npr. `it.only`, `test.only`, `describe.only`) je vedno prepovedan, brez izjeme; izklop testa (`@Disabled`, `.skip`, `xit`, `xdescribe`, `test.fixme`) je utišanje in je dovoljen samo s sklicem na D-NN vrste `utišanje`.
+- Q: Ali naj `./verify.sh full` zažene svoj, od razvojnega okolja ločen sklop storitev Docker Compose? → A: Da – ločen projekt Compose z lastnim imenom, volumni in vrati, ki ne trčijo z razvojnim okoljem; po zagonu se odstrani v celoti, razvojno okolje ostane nedotaknjeno.
+- Q: Kakšne dnevniške zapise (loge) naj ogrodje vzpostavi v zaledju? → A: Besedilni logi na stdout; vsak zahtevek dobi ID, ki je v vsaki vrstici loga zahtevka in v glavi odgovora; žetoni, glava `Authorization` in osebni podatki (e-naslov, ime) se nikoli ne zapišejo (FR-000-20).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Zagon celotnega sistema z enim ukazom (Priority: P1)
@@ -34,6 +44,7 @@ začetna stran vrne vsebino ogrodja, preverjanje zdravja zaledja pa poroča »pr
 3. **[FR-000-02]** **Given** zagnan sistem z ustavljeno bazo, **When** se pokliče preverjanje zdravja, **Then** vrne neuspeh (stanje »ni pripravljeno«).
 4. **[FR-000-03]** **Given** prazna baza, **When** se backend zažene, **Then** samodejno uveljavi vse migracije sheme; ob ponovnem zagonu se že uveljavljene migracije ne izvedejo znova.
 5. **[FR-000-04]** **Given** čista kopija repozitorija brez kakršnihkoli pravih ključev, **When** se sistem zažene, **Then** deluje s Firebase Auth Emulatorjem in vrednostmi iz primera konfiguracije (`.env.example` ali enakovredno), ki ne vsebuje skrivnosti.
+6. **[FR-000-20]** **Given** zagnan sistem, **When** se pošlje zahtevek na API z glavo `Authorization: Bearer <žeton>`, **Then** odgovor vsebuje glavo z ID-jem zahtevka, vse vrstice loga zaledja za ta zahtevek vsebujejo isti ID, vrednost žetona pa se v logu ne pojavi.
 
 ---
 
@@ -50,12 +61,13 @@ namerno napako (izhod ≠ 0, največ 20 vrstic, `.verify/last.log` vsebuje celot
 
 **Acceptance Scenarios**:
 
-1. **[FR-000-05]** **Given** repozitorij brez napak, **When** se zažene `./verify.sh quick`, **Then** se izvedejo formatiranje (preverjanje, brez popravljanja), lint, preverjanje tipov, preverjanje utišanj, preverjanje popolnosti prevodov, unit testi BE in FE ter funkcionalni testi FE, izhodna koda je `0`.
+1. **[FR-000-05]** **Given** repozitorij brez napak, **When** se zažene `./verify.sh quick`, **Then** se izvedejo formatiranje (preverjanje, brez popravljanja), lint, preverjanje tipov, preverjanje utišanj, preverjanje popolnosti prevodov, unit testi BE in FE ter funkcionalni testi FE, izhodna koda je `0`; **Given** eno samo opozorilo ESLint ali `javac`, **Then** korak pade.
 2. **[FR-000-06]** **Given** repozitorij brez napak in delujoč Docker, **When** se zažene `./verify.sh full`, **Then** se izvede vse iz `quick`, nato integracijski in varnostni testi BE, zagon sistema in E2E testi pri treh širinah; izhodna koda je `0`.
 3. **[FR-000-07]** **Given** katerikoli korak pade, **When** se `verify.sh` konča, **Then** je izhodna koda različna od `0`; **Given** neznan ali manjkajoč argument, **When** se zažene `./verify.sh foo`, **Then** izpiše navodilo za uporabo in vrne izhodno kodo različno od `0`.
 4. **[FR-000-08]** **Given** uspešen zagon, **When** se `verify.sh` konča, **Then** izpiše natanko eno vrstico z ravnjo in trajanjem (npr. `✓ quick OK (48 s)`).
-5. **[FR-000-08]** **Given** neuspešen zagon, **When** se `verify.sh` konča, **Then** izpiše ime padlega koraka in največ 20 vrstic v obliki `datoteka:vrstica  pravilo  sporočilo` oziroma imena padlih testov s kratkim razlogom; če je napak več, zadnja vrstica pove, koliko jih ni prikazanih.
-6. **[FR-000-09]** **Given** kateregakoli zagona, **When** se `verify.sh` konča, **Then** je celoten izpis vseh korakov v `.verify/last.log`, ki nadomesti izpis prejšnjega zagona; mapa `.verify/` je izključena iz Gita.
+5. **[FR-000-08]** **Given** neuspešen zagon, **When** se `verify.sh` konča, **Then** izpiše imena padlih korakov in skupaj največ 20 vrstic v obliki `datoteka:vrstica  pravilo  sporočilo` oziroma imena padlih testov s kratkim razlogom; če je napak več, zadnja vrstica pove, koliko jih ni prikazanih.
+6. **[FR-000-07]** **Given** padel en statični korak (npr. *format*) in še en (npr. *tipi*), **When** se zažene `./verify.sh quick`, **Then** izpis navede oba koraka, testi pa se ne izvedejo; **Given** vsi statični koraki uspejo in pade unit BE, **Then** se naslednji testni koraki ne izvedejo.
+7. **[FR-000-09]** **Given** kateregakoli zagona, **When** se `verify.sh` konča, **Then** je celoten izpis vseh korakov v `.verify/last.log`, ki nadomesti izpis prejšnjega zagona; mapa `.verify/` je izključena iz Gita.
 
 ---
 
@@ -136,7 +148,7 @@ samopreizkusu navaja vseh 10 primerov z izidom.
 
 ### User Story 7 - Prepoved utišanja opozoril brez odobritve (Priority: P3)
 
-`verify.sh quick` pade, če koda vsebuje utišanje opozoril brez veljavnega sklica na odobren vnos v `DECISIONS.md`.
+`verify.sh quick` pade, če koda vsebuje utišanje opozoril ali izklopljen test brez veljavnega sklica na odobren vnos v `DECISIONS.md`, in vedno, če vsebuje osredotočen test (`.only`).
 
 **Why this priority**: agent bi sicer lahko napake »popravil« z utišanjem; pomembno, a se pokaže šele z rastjo kode.
 
@@ -148,6 +160,8 @@ vrste `utišanje` → `quick` uspe.
 1. **[FR-000-18]** **Given** datoteka z `@SuppressWarnings`, `eslint-disable*`, `@ts-ignore`, `@ts-expect-error` ali tipom `any` brez komentarja s sklicem `DECISIONS D-NN`, **When** se zažene `./verify.sh quick`, **Then** pade z izpisom `datoteka:vrstica` in vrste utišanja.
 2. **[FR-000-18]** **Given** sklic `DECISIONS D-NN`, kjer vnos `D-NN` ne obstaja ali ni vrste `utišanje`, **When** se zažene `./verify.sh quick`, **Then** pade in navede neveljaven sklic.
 3. **[FR-000-18]** **Given** utišanje s sklicem na obstoječ vnos vrste `utišanje`, **When** se zažene `./verify.sh quick`, **Then** preverjanje utišanj uspe.
+4. **[FR-000-18]** **Given** test, izklopljen z `@Disabled`, `.skip`, `xit`, `xdescribe` ali `test.fixme` brez sklica `DECISIONS D-NN`, **When** se zažene `./verify.sh quick`, **Then** pade z izpisom `datoteka:vrstica` in vrste utišanja; s sklicem na obstoječ vnos vrste `utišanje` uspe.
+5. **[FR-000-18]** **Given** test z `.only` (npr. `it.only`, `test.only`, `describe.only`), tudi s sklicem `DECISIONS D-NN`, **When** se zažene `./verify.sh quick`, **Then** pade z izpisom `datoteka:vrstica`.
 
 ---
 
@@ -178,12 +192,15 @@ pravilom → pričakovan rezultat preverjanja** (stolpec *Actor / state* opisuje
 | FR-000-02 | baza ni dosegljiva | preverjanje zdravja | neuspeh (»ni pripravljeno«), brez notranjih podrobnosti |
 | FR-000-03 | migracija z napako | zagon backenda | backend se ne zažene, preverjanje zdravja ne poroča »pripravljeno«, shema ostane v zadnjem veljavnem stanju |
 | FR-000-04, FR-000-19 | prava skrivnost ali ključ v datoteki, ki je pod Gitom | commit | gitleaks commit prepreči |
+| FR-000-20 | zahtevek z žetonom v glavi `Authorization` (veljavnim ali neveljavnim) | klic API | žeton se ne pojavi v logu zaledja; vrstice loga nosijo ID zahtevka |
 | FR-000-05 | napačno formatirana datoteka BE ali FE | `./verify.sh quick` | izhod ≠ 0, korak *format*, `datoteka:vrstica` |
 | FR-000-05 | kršitev ESLint `jsx-a11y` (npr. slika brez `alt`) | `./verify.sh quick` | izhod ≠ 0, korak *lint*, pravilo in `datoteka:vrstica` |
+| FR-000-05 | opozorilo ESLint ali prevajalnika `javac` (brez napak) | `./verify.sh quick` | izhod ≠ 0, korak *lint* oziroma *tipi*, pravilo in `datoteka:vrstica` |
 | FR-000-05 | napaka tipov v TS | `./verify.sh quick` | izhod ≠ 0, korak *tipi*, `datoteka:vrstica` |
 | FR-000-05, FR-000-10 | padajoč unit test BE ali FE | `./verify.sh quick` | izhod ≠ 0, ime testa in kratek razlog |
 | FR-000-05, FR-000-10 | FE test s kršitvijo axe | `./verify.sh quick` | izhod ≠ 0, ime testa in pravilo axe |
 | FR-000-06, FR-000-10 | padajoč integracijski test (Testcontainers + emulator) | `./verify.sh full` | izhod ≠ 0, ime testa; `quick` tega testa ne poganja |
+| FR-000-06 | razvojno okolje teče s podatki v bazi | `./verify.sh full` | `full` teče v ločenem projektu; po koncu razvojne storitve tečejo naprej, podatki nespremenjeni |
 | FR-000-06 | Docker ni na voljo | `./verify.sh full` | izhod ≠ 0, sporočilo, da `full` potrebuje Docker; ne poroča lažnega uspeha |
 | FR-000-06, FR-000-10 | padajoč E2E test pri eni od širin | `./verify.sh full` | izhod ≠ 0, ime testa in širina |
 | FR-000-07 | manjka orodje (npr. Java ali Node) | `./verify.sh quick` | izhod ≠ 0, ime manjkajočega orodja |
@@ -195,6 +212,8 @@ pravilom → pričakovan rezultat preverjanja** (stolpec *Actor / state* opisuje
 | FR-000-14 | ključ prevoda samo v enem jeziku | `./verify.sh quick` | izhod ≠ 0, ključ in manjkajoči jezik |
 | FR-000-15 | aplikacija brez povezave | zahtevek na API | ni odgovora iz predpomnilnika; zahtevek ne uspe |
 | FR-000-18 | `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, `@SuppressWarnings` ali `any` brez sklica | `./verify.sh quick` | izhod ≠ 0, `datoteka:vrstica` in vrsta utišanja |
+| FR-000-18 | izklopljen test (`@Disabled`, `.skip`, `xit`, `xdescribe`, `test.fixme`) brez sklica | `./verify.sh quick` | izhod ≠ 0, `datoteka:vrstica` in vrsta utišanja |
+| FR-000-18 | `.only` v kateremkoli testu (s sklicem ali brez) | `./verify.sh quick` | izhod ≠ 0, `datoteka:vrstica` |
 | FR-000-18 | sklic na neobstoječ `D-NN` ali vnos, ki ni vrste `utišanje` | `./verify.sh quick` | izhod ≠ 0, neveljaven sklic |
 | FR-000-19 | lažna skrivnost v staged datoteki | `git commit` | commit ni ustvarjen |
 
@@ -203,7 +222,8 @@ pravilom → pričakovan rezultat preverjanja** (stolpec *Actor / state* opisuje
 - `verify.sh` zagnan iz podmape: deluje enako kot iz korena repozitorija (sam najde koren).
 - Zagon na Windows prek Git Bash: skripte imajo konce vrstic LF ne glede na nastavitev Gita (`.gitattributes`), sicer bi padle z nerazumljivo napako.
 - Emulator ali baza se v `full` ne zaženeta v razumnem času: korak pade po časovni omejitvi z imenom storitve, ne visi neomejeno.
-- Po `full` storitve, ki jih je zagnal `verify.sh`, ostanejo ustavljene oziroma počiščene, tudi ob neuspehu; drugi zagon ne pade zaradi ostankov prvega.
+- Po `full` so storitve, volumni in omrežja, ki jih je zagnal `verify.sh` (ločen projekt Compose), odstranjeni, tudi ob neuspehu; drugi zagon ne pade zaradi ostankov prvega.
+- `full` med delujočim razvojnim okoljem (`docker compose up`): oba tečeta hkrati brez trka vrat; razvojne storitve in podatki v razvojni bazi ostanejo nespremenjeni.
 - Dva zaporedna zagona: `.verify/last.log` vsebuje samo izpis zadnjega.
 - Beseda `any` v komentarju, nizu ali imenu (npr. `company`) ni utišanje; šteje samo uporaba tipa `any`.
 - Lažno pozitiven zadetek gitleaks: izjema se doda samo v nastavitve gitleaks z vnosom v `DECISIONS.md`, ne z obvodom kavlja.
@@ -218,10 +238,10 @@ pravilom → pričakovan rezultat preverjanja** (stolpec *Actor / state* opisuje
 - **FR-000-02**: Backend MORA ponujati javno preverjanje zdravja, ki vrne uspeh in stanje »pripravljeno« samo, ko je dosegljiva baza, in ne razkrije notranjih podrobnosti; Docker Compose in `verify.sh` ga uporabljata za čakanje na pripravljenost. *(najnižja vloga: javno)*
 - **FR-000-03**: Backend MORA shemo baze upravljati z različicami migracij, ki se ob zagonu samodejno uveljavijo nad prazno ali starejšo bazo; neuspešna migracija prepreči zagon.
 - **FR-000-04**: Sistem MORA v razvoju, testih in CI delovati brez pravih ključev zunanjih storitev (Firebase Auth Emulator z demo projektom); konfiguracija je prek okoljskih spremenljivk, repozitorij vsebuje samo primer konfiguracije brez skrivnosti.
-- **FR-000-05**: `./verify.sh quick` MORA zaporedno izvesti: preverjanje formatiranja (Spotless, Prettier s `prettier-plugin-tailwindcss`; samo preverjanje), lint (ESLint z `jsx-a11y`), preverjanje tipov (`tsc --noEmit`, strict), preverjanje utišanj (FR-000-18), preverjanje popolnosti prevodov (FR-000-14), unit teste BE (JUnit 5) in FE (Vitest) ter funkcionalne teste FE (React Testing Library, MSW, `vitest-axe`).
-- **FR-000-06**: `./verify.sh full` MORA izvesti vse korake `quick`, nato integracijske teste BE (Testcontainers, Firebase Auth Emulator), varnostne teste BE (matrika izolacije), zagnati sistem prek Docker Compose in izvesti E2E teste (Playwright, `@axe-core/playwright` s pravili WCAG 2.1 A in AA, širine 360, 768 in 1280 px).
-- **FR-000-07**: `verify.sh` MORA vrniti izhodno kodo `0` samo, če so uspeli vsi koraki izbrane ravni, sicer kodo različno od `0`; neznan ali manjkajoč argument in manjkajoče orodje MORATA vrniti kodo različno od `0` z navodilom oziroma imenom manjkajočega orodja.
-- **FR-000-08**: `verify.sh` MORA ob uspehu izpisati natanko eno vrstico z ravnjo in trajanjem, ob neuspehu pa ime padlega koraka in največ 20 vrstic (`datoteka:vrstica  pravilo  sporočilo` oziroma ime padlega testa s kratkim razlogom; zadnja vrstica pove število neprikazanih napak, če jih je več).
+- **FR-000-05**: `./verify.sh quick` MORA zaporedno izvesti: preverjanje formatiranja (Spotless, Prettier s `prettier-plugin-tailwindcss`; samo preverjanje), lint (ESLint z `jsx-a11y`), preverjanje tipov (`tsc --noEmit`, strict) in prevajanje BE, preverjanje utišanj (FR-000-18), preverjanje popolnosti prevodov (FR-000-14), unit teste BE (JUnit 5) in FE (Vitest) ter funkcionalne teste FE (React Testing Library, MSW, `vitest-axe`). Vsako opozorilo (ESLint, prevajalnik `javac`, TypeScript) MORA šteti kot napaka – korak z vsaj enim opozorilom pade.
+- **FR-000-06**: `./verify.sh full` MORA izvesti vse korake `quick`, nato integracijske teste BE (Testcontainers, Firebase Auth Emulator), varnostne teste BE (matrika izolacije), zagnati sistem prek Docker Compose kot ločen projekt (lastno ime, volumni in vrata, ki ne trčijo z razvojnim `docker compose up`) in izvesti E2E teste (Playwright, `@axe-core/playwright` s pravili WCAG 2.1 A in AA, širine 360, 768 in 1280 px).
+- **FR-000-07**: `verify.sh` MORA vrniti izhodno kodo `0` samo, če so uspeli vsi koraki izbrane ravni, sicer kodo različno od `0`; statične korake (format, lint, tipi, utišanja, prevodi) MORA izvesti vse, nato se ob kateremkoli padlem ustaviti pred testi, testne korake pa MORA prekiniti pri prvem padlem; neznan ali manjkajoč argument in manjkajoče orodje MORATA vrniti kodo različno od `0` z navodilom oziroma imenom manjkajočega orodja.
+- **FR-000-08**: `verify.sh` MORA ob uspehu izpisati natanko eno vrstico z ravnjo in trajanjem, ob neuspehu pa imena padlih korakov in skupaj največ 20 vrstic (`datoteka:vrstica  pravilo  sporočilo` oziroma ime padlega testa s kratkim razlogom; zadnja vrstica pove število neprikazanih napak, če jih je več).
 - **FR-000-09**: `verify.sh` MORA celoten izpis vsakega zagona zapisati v `.verify/last.log` (nadomesti prejšnjega); `.verify/` MORA biti izključena iz Gita.
 - **FR-000-10**: Ogrodje MORA vsebovati po en preprost, uspešen test na vsaki ravni – unit BE, integracijski BE, varnostni BE (zahtevek na katerokoli pot API-ja razen preverjanja zdravja brez žetona vrne `401`), unit FE, funkcionalni FE (z `vitest-axe`), E2E (z axe pri treh širinah) –, vsak označen s FR-ID te funkcionalnosti (JUnit `@Tag`, Vitest/Playwright v imenu testa), in backend MORA privzeto zavrniti vsak zahtevek na API brez žetona z `401`. *(najnižja vloga: —)*
 - **FR-000-11**: CI (GitHub Actions) MORA ob vsakem pushu in pull requestu na čistem okolju pognati `./verify.sh full`, rezultat prikazati kot status commita in ob neuspehu priložiti `.verify/last.log`; združitev v `main` MORA biti dovoljena samo ob zelenem statusu.
@@ -231,8 +251,9 @@ pravilom → pričakovan rezultat preverjanja** (stolpec *Actor / state* opisuje
 - **FR-000-15**: Frontend MORA biti namestljiva PWA z identiteto po `design.md` 12 (ime, `standalone`, barve, ikone 192, 512 in *maskable*); service worker MORA predpomniti samo ogrodje (HTML, CSS, JS, pisavi, ikone) in NE SME predpomniti odgovorov API-ja.
 - **FR-000-16**: `DECISIONS.md` MORA vsebovati vnos z odločitvijo o shadcn/ui, ki za vsak vzorec iz tabele `design.md` 13.4 izbere natanko en način (nativni element ali shadcn/ui), in vnose za vsa orodja in knjižnice, ki jih uvaja ogrodje; če se shadcn/ui uporabi, MORA biti nameščen po `design.md` 13.4 (komponente v `frontend/src/shared/ui/`, prilagoditve 1–8).
 - **FR-000-17**: Razvijalca MORATA opraviti ročni samopreizkus po `workflow.md` §3.6 (10 namernih napak: formatiranje BE, formatiranje FE, `jsx-a11y`, tipi TS, unit test BE, unit test FE, axe v FE testu, integracijski test, neodobren `eslint-disable`, lažna skrivnost) in izid vsakega primera zapisati v `DECISIONS.md`; samopreizkus se ponovi ob vsaki večji spremembi `verify.sh`.
-- **FR-000-18**: `verify.sh quick` MORA pasti ob vsakem `@SuppressWarnings`, `eslint-disable*`, `@ts-ignore`, `@ts-expect-error` ali uporabi tipa `any`, ki nima v isti ali predhodni vrstici komentarja s sklicem `DECISIONS D-NN` na obstoječ vnos vrste `utišanje` v `DECISIONS.md`.
+- **FR-000-18**: `verify.sh quick` MORA pasti ob vsakem `@SuppressWarnings`, `eslint-disable*`, `@ts-ignore`, `@ts-expect-error` ali uporabi tipa `any`, ki nima v isti ali predhodni vrstici komentarja s sklicem `DECISIONS D-NN` na obstoječ vnos vrste `utišanje` v `DECISIONS.md`. Enako velja za izklopljene teste (`@Disabled`, `.skip`, `xit`, `xdescribe`, `test.fixme`). Osredotočeni testi (`.only`) MORAJO pasti vedno, tudi s sklicem.
 - **FR-000-19**: Repozitorij MORA vsebovati pre-commit kavelj z gitleaks, ki prepreči commit s skrivnostjo v staged datotekah, in en dokumentiran ukaz, ki kavelj namesti na čisti kopiji.
+- **FR-000-20**: Backend MORA pisati besedilne loge na standardni izhod; vsak zahtevek MORA dobiti ID, ki je v vsaki vrstici loga tega zahtevka in v glavi odgovora (ime glave določi `plan.md`); v loge se NE SMEJO zapisati žetoni, glava `Authorization` ali osebni podatki (e-naslov, ime). *(najnižja vloga: —)*
 
 ### Key Entities *(include if feature involves data)*
 

@@ -1,0 +1,4 @@
+[INFO] Compiling 3 source files with javac [debug release 21] to target/classes
+[WARNING] /repo/backend/src/main/java/si/contactmanager/Old.java:[7,9] [deprecation] legacy() in Api has been deprecated
+[ERROR] /repo/backend/src/main/java/si/contactmanager/Broken.java:[12,5] cannot find symbol
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.15.0:compile (default-compile) on project backend: Compilation failure

@@ -1,0 +1,4 @@
+/repo/frontend/src/app/App.tsx:3:5: Unexpected any. Specify a different type. [Error/@typescript-eslint/no-explicit-any]
+/repo/frontend/src/app/StartPage.tsx:10:7: img elements must have an alt prop, either with meaningful text, or an empty string for decorative images. [Error/jsx-a11y/alt-text]
+
+2 problems
