@@ -94,7 +94,7 @@ glavno vsebino; meni računa se odpre, zapre z *Esc* in vrne fokus; pot `/ne-obs
 
 **Acceptance Scenarios**:
 
-1. **[FR-001-11]** **Given** prijavljen uporabnik na katerikoli strani, **When** se stran izriše, **Then** ima zgornjo vrstico (design.md 7.1) z besednim znakom *Kontakti* (povezava na začetno stran) in gumbom menija računa z začetnicami uporabnika ter dostopnim imenom »Meni računa« / "Account menu", ter glavno vsebino v elementu `main`.
+1. **[FR-001-11]** **Given** prijavljen uporabnik na katerikoli strani, **When** se stran izriše, **Then** ima zgornjo vrstico (design.md 7.1) z besednim znakom *Kontakti* (povezava na začetno stran) in gumbom menija računa z ikono osebe (brez vidnega besedila; začetnice bi kršile WCAG 2.5.3, ker niso del dostopnega imena) ter dostopnim imenom »Meni računa« / "Account menu" [CR-01], ter glavno vsebino v elementu `main`.
 2. **[FR-001-11]** **Given** odprta stran, **When** uporabnik prvič pritisne *Tab*, **Then** se pokaže povezava »Preskoči na vsebino« / "Skip to content", ki ob aktivaciji premakne fokus na začetek glavne vsebine.
 3. **[FR-001-12]** **Given** zaprt meni računa, **When** ga uporabnik odpre, **Then** vsebuje »Moj račun«, izbiro jezika (Slovenščina / English) in »Odjava«; puščice premikajo fokus med elementi, *Esc* ali klik drugam meni zapre in fokus se vrne na gumb (design.md 8.16).
 4. **[FR-001-12]** **Given** odprt meni računa, **When** uporabnik izbere jezik, **Then** se jezik zamenja enako kot v *Mojem računu* (FR-001-15).
@@ -151,7 +151,7 @@ scenarij `404` za tuj vir ne obstaja.
 
 ### Edge Cases
 
-- Google račun brez imena: kot ime se prikaže e-naslov; začetnice v meniju računa so prva črka e-naslova.
+- Google račun brez imena: kot ime se prikaže e-naslov (v *Profilu* in na vrhu menija računa) [CR-01].
 - Zelo dolgo ime ali e-naslov: v zgornji vrstici in meniju se skrajša z elipso, v *Profilu* je prikazano v celoti s prelomom, brez vodoravnega drsenja pri 320 px.
 - Uporabnik je prijavljen v dveh zavihkih in se v enem odjavi: drugi zavihek preide na stran za prijavo najpozneje ob prvi navigaciji ali prvi interakciji, ki pošlje zahtevek na API, ki zahteva prijavo; tak zahtevek ničesar ne spremeni (FR-001-10).
 - Uporabnik ima aplikacijo hkrati odprto na dveh napravah in na eni zamenja jezik ali temo: druga naprava jo uveljavi ob naslednjem nalaganju aplikacije ali prijavi; sprotna sinhronizacija med odprtimi napravami ni v obsegu.
@@ -176,7 +176,7 @@ scenarij `404` za tuj vir ne obstaja.
 - **FR-001-08**: Zaledje MORA prijavljenemu uporabniku omogočiti branje lastnega profila (ime, e-naslov) in NE SME ponujati branja profila drugega uporabnika po identifikatorju. *(najnižja vloga: —)*
 - **FR-001-09**: Sistem MORA v meniju računa in na strani *Moj račun* ponuditi »Odjava«, ki konča sejo, iz vmesnika odstrani podatke odjavljenega uporabnika in ga preusmeri na stran za prijavo; po odjavi zaščitena vsebina ni dosegljiva niti z gumbom *Nazaj*. *(najnižja vloga: —)*
 - **FR-001-10**: Sistem MORA ob poteku seje (žetona ni mogoče podaljšati, zaledje vrne `401` ali se je uporabnik odjavil v drugem zavihku) uporabnika preusmeriti na stran za prijavo s sporočilom »Seja je potekla. Prijavi se znova.« in ga po ponovni prijavi vrniti na pot, kjer je bil. Po odjavi v drugem zavihku MORA zavihek preiti na stran za prijavo najpozneje ob prvi navigaciji ali prvi interakciji, ki pošlje zahtevek na API, ki zahteva prijavo; tak zahtevek NE SME ničesar spremeniti. *(najnižja vloga: —)*
-- **FR-001-11**: Sistem MORA vse zaščitene strani izrisati v ogrodju aplikacije (design.md 7.1): zgornja vrstica z besednim znakom *Kontakti* (povezava na začetno stran) in menijem računa (začetnice uporabnika), povezava »Preskoči na vsebino« kot prvi element, na katerega pride fokus (design.md 8.12), in glavna vsebina v elementu `main`. *(najnižja vloga: —)*
+- **FR-001-11**: Sistem MORA vse zaščitene strani izrisati v ogrodju aplikacije (design.md 7.1): zgornja vrstica z besednim znakom *Kontakti* (povezava na začetno stran) in menijem računa (gumb z ikono osebe, brez vidnega besedila) [CR-01], povezava »Preskoči na vsebino« kot prvi element, na katerega pride fokus (design.md 8.12), in glavna vsebina v elementu `main`. *(najnižja vloga: —)*
 - **FR-001-12**: Meni računa MORA vsebovati »Moj račun«, izbiro jezika (Slovenščina / English) in »Odjava« ter delovati s tipkovnico po design.md 8.16 (puščice, *Esc*, klik drugam, vrnitev fokusa na gumb). *(najnižja vloga: —)*
 - **FR-001-13**: Sistem MORA za vsako neobstoječo pot prijavljenemu uporabniku prikazati stran »Te strani ni« (design.md 9.10) s povezavo »Na seznam skupin«; ista stran MORA biti na voljo drugim funkcionalnostim za vire, za katere zaledje vrne `404`, ne da bi razkrila obstoj vira. *(najnižja vloga: —)*
 - **FR-001-14**: Stran *Moj račun* MORA imeti razdelek »Profil« z imenom in e-naslovom iz Google računa samo za branje. *(najnižja vloga: —)*
@@ -221,4 +221,4 @@ scenarij `404` za tuj vir ne obstaja.
 
 | CR | Date | Affected FR-IDs | Summary | DECISIONS |
 |---|---|---|---|---|
-| – | – | – | Ni sprememb | – |
+| CR-01 | 2026-11-04 | FR-001-11 | Gumb menija računa namesto začetnic prikaže ikono osebe: vidne začetnice ob dostopnem imenu »Meni računa« kršijo WCAG 2.5.3 (*Label in Name*), SC-006 pa zahteva axe brez kršitev. Ime in e-naslov uporabnika sta na vrhu menija in v *Profilu*. | D-23, D-24 |

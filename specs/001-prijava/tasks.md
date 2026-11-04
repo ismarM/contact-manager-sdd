@@ -59,7 +59,7 @@ neodvisnega agenta `pregled-testov` (workflow.md §4.2).
 
 - [X] T020 [P] [US1] FR-001-01 FR-001-02 FR-001-04 FR-001-05 FR-001-15 FR-001-18 frontend/src/features/auth/LoginPage.test.tsx in frontend/src/features/auth/signInErrorCode.test.ts (preslikava kod Firebase `auth/popup-closed-by-user`, `auth/cancelled-popup-request`, `auth/popup-blocked`, `auth/network-request-failed`, brez povezave → vzrok sporočila): kartica z naslovom »Kontakti« in gumbom »Prijava z Googlom«, brez `textbox`; klik → `PUT /api/me` in preusmeritev na `/`; vsaka napaka (prekinjeno, blokirano okno, brez povezave, `PUT /api/me` vrne `500`) → ustrezen `alert` iz plan.md, uporabnik ostane na prijavi (ob napaki zaledja odjavljen v gateway), ponoven poskus uspe; prijavljen na `/login` → `/`; gumba »Slovenščina«/»English« zamenjata jezik, `<html lang>`, naslov in shranita izbiro (jezik brskalnika brez shranjene izbire – FR-001-16 – preverita T018 in E2E 000 `de-DE`); naslov »Prijava – Kontakti« / "Sign in – Contacts"; axe brez kršitev
 - [X] T021 [P] [US2] [US3] FR-001-06 FR-001-09 FR-001-10 frontend/src/app/routes.test.tsx: neprijavljen na `/account?x=1` → `/login?next=…`, vsebina *Mojega računa* ni nikoli v DOM (tudi med nalaganjem stanja); po prijavi vrnitev na `/account?x=1`; `next=//zlonamerno.si` → `/`; neprijavljen na `/ne-obstaja` → prijava, po prijavi »Te strani ni«; po *Odjava* v meniju je stran za prijavo brez sporočila, profil ni več prikazan, *Nazaj* (zgodovina) ne prikaže zaščitene vsebine, nadaljnji zahtevki niso poslani; `401` na `PUT /api/me/preferences` → `/login` z `alert` »Seja je potekla. Prijavi se znova.« in po prijavi vrnitev na `/account`; odjava v drugem zavihku (`emitSignedOut`) → isto sporočilo in vrnitev; dejanje z zahtevkom po izgubi uporabnika v gateway ne pošlje zahtevka (MSW ga ne prejme)
-- [X] T022 [P] [US4] FR-001-09 FR-001-11 FR-001-12 FR-001-19 frontend/src/shared/layout/AppShell.test.tsx: prvi *Tab* fokusira »Preskoči na vsebino«, aktivacija premakne fokus na `main`; `banner` s povezavo »Kontakti« na `/`; gumb »Meni računa« z začetnicami (ime brez imena → prva črka e-naslova); meni vsebuje `menuitem` »Moj račun«, skupino »Jezik« z `menuitemradio` in `menuitem` »Odjava«; puščice premikajo fokus, *Esc* zapre in vrne fokus na gumb; izbira *English* v meniju zamenja jezik in pošlje `PUT /api/me/preferences`; neuspeh (`500`) → `alert` »Izbire ni bilo mogoče shraniti v račun.«, jezik ostane, »Zapri sporočilo« ga zapre; axe brez kršitev (zaprt in odprt meni)
+- [X] T022 [P] [US4] FR-001-09 FR-001-11 FR-001-12 FR-001-19 frontend/src/shared/layout/AppShell.test.tsx: prvi *Tab* fokusira »Preskoči na vsebino«, aktivacija premakne fokus na `main`; `banner` s povezavo »Kontakti« na `/`; gumb »Meni računa« z ikono osebe brez vidnega besedila (CR-01; prej začetnice); meni vsebuje `menuitem` »Moj račun«, skupino »Jezik« z `menuitemradio` in `menuitem` »Odjava«; puščice premikajo fokus, *Esc* zapre in vrne fokus na gumb; izbira *English* v meniju zamenja jezik in pošlje `PUT /api/me/preferences`; neuspeh (`500`) → `alert` »Izbire ni bilo mogoče shraniti v račun.«, jezik ostane, »Zapri sporočilo« ga zapre; axe brez kršitev (zaprt in odprt meni)
 - [X] T023 [P] [US5] FR-001-09 FR-001-14 FR-001-15 FR-001-17 FR-001-18 FR-001-19 frontend/src/features/account/AccountPage.test.tsx: naslov »Moj račun«, razdelek »Profil« z imenom in e-naslovom brez `textbox` (brez imena → e-naslov); razdelek »Videz«: skupina »Jezik« – *English* takoj zamenja besedila, dostopna imena, `<html lang="en">`, naslov "My account – Contacts", zapiše `localStorage` in pošlje `PUT /api/me/preferences` z obema vrednostma; skupina »Tema« – *Temna*/*Svetla* nastavi `data-theme` in ključ, *Sistemska* (privzeta) ga odstrani in pošlje `theme: null`; neuspeh shranjevanja → `alert`, izbira ostane; gumb »Odjava« odjavi; axe brez kršitev v svetli in temni temi
 - [X] T024 [P] [US5] FR-001-03 FR-001-19 frontend/src/features/auth/AuthProvider.test.tsx: ob prijavljenem uporabniku (prijava ali nalaganje) se pošlje `PUT /api/me` z izrecno izbiro naprave (`localStorage`, sicer `null`); vrnjena izbira profila se uveljavi in zapiše (profil `en`/`dark` preglasi napravo `sl`/`light`); vrnjeni `null` izbriše ključ in vrne privzeto
 - [X] T025 [P] [US4] FR-001-13 FR-001-18 frontend/src/shared/pages/NotFoundPage.test.tsx: naslov »Te strani ni«, stavek, povezava »Na seznam skupin« na `/`, naslov dokumenta »Te strani ni – Kontakti« in v angleščini "Page not found – Contacts"; komponenta je izvožena za druge funkcionalnosti; axe brez kršitev
@@ -82,50 +82,50 @@ neodvisnega agenta `pregled-testov` (workflow.md §4.2).
 
 **Goal**: prijava z Googlom ustvari ali posodobi profil. **Independent Test**: T014, T020, E2E (1).
 
-- [ ] T028 [US1] FR-001-07 Implementiraj FirebaseJwtDecoder (research R-01): produkcija – `NimbusJwtDecoder` z `JWKSource` in validatorji `iss = https://securetoken.google.com/<projekt>`, `aud ∋ <projekt>`, `exp`/`iat` (60 s zamika), neprazen `sub`, prisoten `email`; emulator – `PlainJWT` samo `alg: none`, isti validatorji; v backend/src/main/java/si/contactmanager/shared/security/FirebaseJwtDecoder.java
-- [ ] T029 [US1] FR-001-07 SecurityConfig: `oauth2ResourceServer().jwt()` z dekoderjem iz FirebaseProperties (`FIREBASE_PROJECT_ID`, emulator ob nastavljenem `FIREBASE_AUTH_EMULATOR_HOST`, JWK URI Googla), obstoječa vstopna točka 401 tudi za `BearerTokenAuthenticationEntryPoint`; `/error` dovoljen, da neobstoječa pot z žetonom vrne `404`; v backend/src/main/java/si/contactmanager/shared/security/SecurityConfig.java in application.yaml
-- [ ] T030 [US1] FR-001-02 FR-001-03 FR-001-19 ProfileRepository (`JdbcClient`, `INSERT … ON CONFLICT (firebase_uid) DO UPDATE SET name, email, language = COALESCE(app_user.language, :language), theme = COALESCE(app_user.theme, :theme), updated_at = now() RETURNING …, (xmax = 0) AS inserted`) v backend/src/main/java/si/contactmanager/account/ProfileRepository.java
-- [ ] T031 [US1] FR-001-02 FR-001-08 `PUT /api/me` v MeController: uporabnik iz `Jwt` (`sub`, `email`, `name`), neobvezno telo `Preferences`, `201`/`200` s `Profile`; ApiExceptionHandler in ValidationError (`400 VALIDATION_FAILED`, `errors[{field, code}]`; neznano polje, neveljaven JSON, neznana vrednost) v backend/src/main/java/si/contactmanager/shared/error/
-- [ ] T032 [US1] FR-001-01 FR-001-02 FR-001-04 firebaseGateway.ts in signInErrorCode.ts (SDK, `GoogleAuthProvider`, `signInWithPopup`, `connectAuthEmulator(auth, location.origin, { disableWarnings: true })` v načinu emulatorja, preslikava kod napak) in main.tsx (gateway v `App`) v frontend/src/features/auth/
-- [ ] T033 [US1] FR-001-01 FR-001-02 FR-001-04 FR-001-05 LoginPage (design.md 9.1: kartica, besedni znak, stavek, gumb z logotipom G, `alert` v kartici, preklop jezika pod kartico) in AuthProvider (stanje, sinhronizacija `PUT /api/me`, ob napaki odjava) v frontend/src/features/auth/
+- [X] T028 [US1] FR-001-07 Implementiraj FirebaseJwtDecoder (research R-01): produkcija – `NimbusJwtDecoder` z `JWKSource` in validatorji `iss = https://securetoken.google.com/<projekt>`, `aud ∋ <projekt>`, `exp`/`iat` (60 s zamika), neprazen `sub`, prisoten `email`; emulator – `PlainJWT` samo `alg: none`, isti validatorji; v backend/src/main/java/si/contactmanager/shared/security/FirebaseJwtDecoder.java
+- [X] T029 [US1] FR-001-07 SecurityConfig: `oauth2ResourceServer().jwt()` z dekoderjem iz FirebaseProperties (`FIREBASE_PROJECT_ID`, emulator ob nastavljenem `FIREBASE_AUTH_EMULATOR_HOST`, JWK URI Googla), obstoječa vstopna točka 401 tudi za `BearerTokenAuthenticationEntryPoint`; `/error` dovoljen, da neobstoječa pot z žetonom vrne `404`; v backend/src/main/java/si/contactmanager/shared/security/SecurityConfig.java in application.yaml
+- [X] T030 [US1] FR-001-02 FR-001-03 FR-001-19 ProfileRepository (`JdbcClient`, `INSERT … ON CONFLICT (firebase_uid) DO UPDATE SET name, email, language = COALESCE(app_user.language, :language), theme = COALESCE(app_user.theme, :theme), updated_at = now() RETURNING …, (xmax = 0) AS inserted`) v backend/src/main/java/si/contactmanager/account/ProfileRepository.java
+- [X] T031 [US1] FR-001-02 FR-001-08 `PUT /api/me` v MeController: uporabnik iz `Jwt` (`sub`, `email`, `name`), neobvezno telo `Preferences`, `201`/`200` s `Profile`; ApiExceptionHandler in ValidationError (`400 VALIDATION_FAILED`, `errors[{field, code}]`; neznano polje, neveljaven JSON, neznana vrednost) v backend/src/main/java/si/contactmanager/shared/error/
+- [X] T032 [US1] FR-001-01 FR-001-02 FR-001-04 firebaseGateway.ts in signInErrorCode.ts (SDK, `GoogleAuthProvider`, `signInWithPopup`, `connectAuthEmulator(auth, location.origin, { disableWarnings: true })` v načinu emulatorja, preslikava kod napak) in main.tsx (gateway v `App`) v frontend/src/features/auth/
+- [X] T033 [US1] FR-001-01 FR-001-02 FR-001-04 FR-001-05 LoginPage (design.md 9.1: kartica, besedni znak, stavek, gumb z logotipom G, `alert` v kartici, preklop jezika pod kartico) in AuthProvider (stanje, sinhronizacija `PUT /api/me`, ob napaki odjava) v frontend/src/features/auth/
 
 ## Phase 6: User Story 2 - Zaščitene poti in zaledje (P1)
 
 **Goal**: neprijavljen ne vidi zaščitenih strani; zaledje zavrne neveljavne žetone. **Independent Test**: T012, T013, T016, T017, T021.
 
-- [ ] T034 [US2] FR-001-06 safeNextPath in RequireAuth (nič se ne izriše, dokler stanje ni znano; `Navigate replace` na `/login?next=`) v frontend/src/features/auth/
-- [ ] T035 [US2] FR-001-05 FR-001-06 Poti v frontend/src/app/App.tsx (`BrowserRouter`, `/login` javno, ostalo pod `RequireAuth` in `AppShell`); prijavljen na `/login` → `next` ali `/`
+- [X] T034 [US2] FR-001-06 safeNextPath in RequireAuth (nič se ne izriše, dokler stanje ni znano; `Navigate replace` na `/login?next=`) v frontend/src/features/auth/
+- [X] T035 [US2] FR-001-05 FR-001-06 Poti v frontend/src/app/App.tsx (`BrowserRouter`, `/login` javno, ostalo pod `RequireAuth` in `AppShell`); prijavljen na `/login` → `next` ali `/`
 
 ## Phase 7: User Story 3 - Odjava in potek seje (P1)
 
 **Independent Test**: T019, T021, E2E (3), (4).
 
-- [ ] T036 [US3] FR-001-07 FR-001-10 authFetch (žeton iz gateway; brez uporabnika ne pošlje in sproži izgubo seje; `401` → izguba seje) v frontend/src/shared/api/authFetch.ts
-- [ ] T037 [US3] FR-001-09 FR-001-10 Lokalna odjava (zastavica, izbris profila, `/login` z `replace`) in izguba seje (gateway `null` brez lokalne odjave, napaka žetona, `401`) → `/login?reason=session-expired&next=` v AuthProvider; obvestilo o poteku seje v LoginPage
+- [X] T036 [US3] FR-001-07 FR-001-10 authFetch (žeton iz gateway; brez uporabnika ne pošlje in sproži izgubo seje; `401` → izguba seje) v frontend/src/shared/api/authFetch.ts
+- [X] T037 [US3] FR-001-09 FR-001-10 Lokalna odjava (zastavica, izbris profila, `/login` z `replace`) in izguba seje (gateway `null` brez lokalne odjave, napaka žetona, `401`) → `/login?reason=session-expired&next=` v AuthProvider; obvestilo o poteku seje v LoginPage
 
 ## Phase 8: User Story 4 - Ogrodje aplikacije in »Te strani ni« (P2)
 
 **Independent Test**: T022, T025, E2E (5), (6).
 
-- [ ] T038 [P] [US4] FR-001-12 shadcn *Dropdown Menu* v frontend/src/shared/ui/dropdown-menu.tsx (radix-ui), prilagojen po design.md 13.4 (fokus 13.3, `text-base`, `h-11`, senca `float`, brez lucide)
-- [ ] T039 [US4] FR-001-11 FR-001-12 AppShell (`header` 56 px z besednim znakom, `main#main tabIndex=-1`, sporočilo o neuspelem shranjevanju), SkipLink in AccountMenu (začetnice, *Moj račun*, jezik, *Odjava*) v frontend/src/shared/layout/; StartPage brez lastnega `main` v frontend/src/app/StartPage.tsx
-- [ ] T040 [P] [US4] FR-001-13 FR-001-18 NotFoundPage (design.md 9.10) in naslovi strani (`useDocumentTitle`) v frontend/src/shared/pages/
+- [X] T038 [P] [US4] FR-001-12 shadcn *Dropdown Menu* v frontend/src/shared/ui/dropdown-menu.tsx (radix-ui), prilagojen po design.md 13.4 (fokus 13.3, `text-base`, `h-11`, senca `float`, brez lucide)
+- [X] T039 [US4] FR-001-11 FR-001-12 AppShell (`header` 56 px z besednim znakom, `main#main tabIndex=-1`, sporočilo o neuspelem shranjevanju), SkipLink in AccountMenu (ikona osebe – CR-01, *Moj račun*, jezik, *Odjava*) v frontend/src/shared/layout/; StartPage brez lastnega `main` v frontend/src/app/StartPage.tsx
+- [X] T040 [P] [US4] FR-001-13 FR-001-18 NotFoundPage (design.md 9.10) in naslovi strani (`useDocumentTitle`) v frontend/src/shared/pages/
 
 ## Phase 9: User Story 5 - Moj račun: Profil in Videz (P2)
 
 **Independent Test**: T015, T018, T023, T024, E2E (7).
 
-- [ ] T041 [US5] FR-001-15 FR-001-17 FR-001-19 `PUT /api/me/preferences` v MeController (obe polji obvezni, `null` dovoljen, zapis z ustvarjanjem profila po potrebi) v backend/src/main/java/si/contactmanager/account/
-- [ ] T042 [US5] FR-001-15 FR-001-16 FR-001-17 preferences.ts (`localStorage` v `try/catch`, neznane vrednosti prezrte, `applyTheme`, `applyLanguage`) in i18n začetni jezik (shranjen > brskalnik) v frontend/src/features/account/preferences.ts in frontend/src/i18n/index.ts
-- [ ] T043 [US5] FR-001-14 FR-001-15 FR-001-17 FR-001-19 AccountPage (Profil `dl`, Videz z `fieldset`/`legend` in nativnimi `radio`, *Odjava*), skupna akcija spremembe izbire (lokalno → `PUT /api/me/preferences` → ob neuspehu sporočilo v ogrodju) v frontend/src/features/account/
-- [ ] T044 [US5] FR-001-19 Uveljavitev izbire iz profila ob sinhronizaciji (`PUT /api/me` s telesom izbire naprave) v frontend/src/features/auth/AuthProvider.tsx
+- [X] T041 [US5] FR-001-15 FR-001-17 FR-001-19 `PUT /api/me/preferences` v MeController (obe polji obvezni, `null` dovoljen, zapis z ustvarjanjem profila po potrebi) v backend/src/main/java/si/contactmanager/account/
+- [X] T042 [US5] FR-001-15 FR-001-16 FR-001-17 preferences.ts (`localStorage` v `try/catch`, neznane vrednosti prezrte, `applyTheme`, `applyLanguage`) in i18n začetni jezik (shranjen > brskalnik) v frontend/src/features/account/preferences.ts in frontend/src/i18n/index.ts
+- [X] T043 [US5] FR-001-14 FR-001-15 FR-001-17 FR-001-19 AccountPage (Profil `dl`, Videz z `fieldset`/`legend` in nativnimi `radio`, *Odjava*), skupna akcija spremembe izbire (lokalno → `PUT /api/me/preferences` → ob neuspehu sporočilo v ogrodju) v frontend/src/features/account/
+- [X] T044 [US5] FR-001-19 Uveljavitev izbire iz profila ob sinhronizaciji (`PUT /api/me` s telesom izbire naprave) v frontend/src/features/auth/AuthProvider.tsx
 
 ---
 
 ## Phase N: Polish & Cross-Cutting Concerns
 
-- [ ] T045 — `/speckit-converge` do »Converged«; `./verify.sh quick` zelen
-- [ ] T046 — Posodobi specs/001-prijava/traceability.md (vsak FR-ID → testi → stanje)
+- [X] T045 — `/speckit-converge` do »Converged«; `./verify.sh quick` zelen
+- [X] T046 — Posodobi specs/001-prijava/traceability.md (vsak FR-ID → testi → stanje)
 - [ ] T047 — `./verify.sh full` zelen
 - [ ] T048 — Potisni vejo `prijava` in odpri PR v `main` (predpostavke, izid pregleda testov, commit `test(001)` v opisu)
 - [ ] T049 — Razvijalca: pregled PR in ročni preizkus s tipkovnico in bralnikom zaslona (design.md §10, quickstart #10); združitev (agent pusti neoznačeno)

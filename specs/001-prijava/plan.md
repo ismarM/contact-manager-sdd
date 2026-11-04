@@ -104,7 +104,7 @@ konstitucije (ta določa žetone za vmesnik, design.md pa sam predpisuje ta gumb
 | Ogrodje | link | »Preskoči na vsebino« / "Skip to content" | prvi element fokusa; premakne fokus na `main` | FR-001-11 |
 | Ogrodje | banner | – | zgornja vrstica (`header`) | FR-001-11 |
 | Ogrodje | link | »Kontakti« / "Contacts" | besedni znak v zgornji vrstici, vodi na `/` | FR-001-11 |
-| Ogrodje | button | »Meni računa« / "Account menu" | odpre meni računa; vidno besedilo so začetnice (ime brez imena → prva črka e-naslova) | FR-001-11, FR-001-12 |
+| Ogrodje | button | »Meni računa« / "Account menu" | odpre meni računa; vidna je samo ikona osebe (`aria-hidden`), brez besedila (CR-01, WCAG 2.5.3); na vrhu menija ime ali e-naslov | FR-001-11, FR-001-12 |
 | Ogrodje | menu | »Meni računa« / "Account menu" | odprt meni (design.md 8.16) | FR-001-12 |
 | Ogrodje | menuitem | »Moj račun« / "My account" | povezava na `/account` | FR-001-12 |
 | Ogrodje | group (v meniju) | »Jezik« / "Language" | izbira jezika v meniju | FR-001-12 |

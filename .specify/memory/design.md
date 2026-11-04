@@ -153,7 +153,7 @@ Uporabnik barve skupine ne izbira poljubno, ampak iz **osmih poimenovanih barv**
 └──────────────┴───────────────────────────────────────────────┘
 ```
 
-- **Zgornja vrstica** (56 px, ena vrstica, pod 12 % višine zaslona): besedni znak *Kontakti* z jezičkom v barvi `accent`, gumb za preklop skupine (pod 1024 px), *Povabila* s številom novih, meni računa (začetnici uporabnika; vsebuje *Moj račun*, jezik, *Odjava*). Pri drsenju navzdol se na telefonu skrije in pri drsenju navzgor vrne; ko vsebuje fokus, ostane vidna.
+- **Zgornja vrstica** (56 px, ena vrstica, pod 12 % višine zaslona): besedni znak *Kontakti* z jezičkom v barvi `accent`, gumb za preklop skupine (pod 1024 px), *Povabila* s številom novih, meni računa (gumb z ikono osebe – začetnice bi kršile WCAG 2.5.3, D-23; vsebuje *Moj račun*, jezik, *Odjava*). Pri drsenju navzdol se na telefonu skrije in pri drsenju navzgor vrne; ko vsebuje fokus, ostane vidna.
 - **Stranski pas** (od 1024 px, širina 256 px): skupine, razvrščene po vlogi (*Lastnik*, *Admin*, *Urednik*, *Bralec* – razdelek brez skupin se ne izriše), povezava *Arhivirane skupine*, gumb *Nova skupina*. Trenutna skupina ima `aria-current="page"` in ozadje `accent-soft`.
 - **Glava skupine:** jeziček, naslov skupine, oznaka vloge, oznaka *Arhivirano* (če velja) in vrstica zavihkov skupine (`nav` s povezavami, ne ARIA zavihki, ker vsak vodi na svojo pot). Zavihek *Dvojniki* vidijo samo urednik in višje, v arhivirani skupini ga ni. Zavihek *Nastavitve* vidijo vsi člani (tam so tudi *Zapusti skupino* in seznam članov); urejanje v njem je omejeno po vlogi.
 

@@ -29,25 +29,30 @@ describe('AppShell', () => {
     expect(screen.getByRole('main')).toHaveFocus();
   });
 
-  it('FR-001-11: zgornja vrstica z besednim znakom in menijem računa z začetnicami', async () => {
+  it('FR-001-11: zgornja vrstica z besednim znakom in menijem računa (ikona brez vidnega besedila, CR-01)', async () => {
     renderSignedIn();
 
     const banner = await screen.findByRole('banner');
     expect(within(banner).getByRole('link', { name: 'Kontakti' })).toHaveAttribute('href', '/');
     const menuButton = within(banner).getByRole('button', { name: 'Meni računa' });
-    expect(menuButton).toHaveTextContent('AN');
+    // WCAG 2.5.3: brez vidnega besedila, ki ga ni v dostopnem imenu (CR-01, D-24).
+    expect(menuButton.textContent).toBe('');
     expect(screen.getByRole('main')).toBeInTheDocument();
   });
 
-  it('FR-001-11: račun brez imena ima za začetnico prvo črko e-naslova', async () => {
+  it('FR-001-11: račun brez imena – na vrhu menija računa je e-naslov (CR-01)', async () => {
     mockProfileApi({ profile: { ...ANA_PROFILE, name: null, email: 'bojan@primer.si' } });
-    renderApp('/', {
+    const { user } = renderApp('/', {
       gateway: createAuthFake({
         user: { uid: 'uid-bojan', email: 'bojan@primer.si', displayName: null },
       }),
     });
 
-    expect(await screen.findByRole('button', { name: 'Meni računa' })).toHaveTextContent(/^B$/);
+    await user.click(await screen.findByRole('button', { name: 'Meni računa' }));
+
+    expect(await screen.findByRole('menu', { name: 'Meni računa' })).toHaveTextContent(
+      'bojan@primer.si',
+    );
   });
 
   it('FR-001-12: meni računa vsebuje Moj račun, izbiro jezika in Odjavo', async () => {
