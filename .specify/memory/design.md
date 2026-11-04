@@ -40,7 +40,7 @@ Vmesnik mora delovati kot skrbno narejeno orodje, ne kot generična predloga. Za
 - mehkih velikih senc pod vsako kartico, »pill« gumbov in zaobljenosti nad 8 px;
 - okrasnih ilustracij, praznih »hero« površin, animiranih ozadij, iskric in svetlečih robov;
 - skeletnih nalagalnikov z bleščečo animacijo;
-- stalnega preklopnika teme v glavi (tema se izbere v *Mojem računu*, 9.9, in se shrani v brskalniku);
+- stalnega preklopnika teme v glavi (tema se izbere v *Mojem računu*, 9.9, in se shrani v profil in brskalnik, 4.3);
 - privzete Tailwind palete (`zinc`, `slate`, `indigo` …) in privzete teme shadcn/ui (sivine, Inter, Lucide, `rounded-xl`, `shadow-sm` na karticah) – obe sta v projektu odstranjeni oziroma preslikani na žetone (13).
 
 ## 4. Barve
@@ -99,7 +99,7 @@ Uporabnik barve skupine ne izbira poljubno, ampak iz **osmih poimenovanih barv**
 
 ### 4.3 Barvne sheme in vsiljene barve
 
-- Privzeto sledimo nastavitvi sistema (`color-scheme: light dark`, brez atributa na `<html>`). Uporabnik lahko v *Mojem računu* izbere *Sistemska*, *Svetla* ali *Temna*. *Svetla* in *Temna* se shranita v `localStorage` in se uveljavita kot `data-theme="light|dark"` na `<html>` (ta nastavi `color-scheme`), *Sistemska* zapis izbriše. Atribut nastavi majhen vrinjen skript v `<head>`, da ni bliska napačne teme; brez JavaScripta stran še vedno sledi sistemu.
+- Privzeto sledimo nastavitvi sistema (`color-scheme: light dark`, brez atributa na `<html>`). Uporabnik lahko v *Mojem računu* izbere *Sistemska*, *Svetla* ali *Temna*. *Svetla* in *Temna* se shranita v `localStorage` in se uveljavita kot `data-theme="light|dark"` na `<html>` (ta nastavi `color-scheme`), *Sistemska* zapis izbriše. Prijavljenemu uporabniku se izbira (tako kot jezik) shrani tudi v profil in velja na vseh njegovih napravah: po prijavi se izbira iz profila zapiše v `localStorage` in uveljavi; `localStorage` je kopija za stran za prijavo, nalaganje brez bliska in čas po odjavi (001, FR-001-19; D-19). Atribut nastavi majhen vrinjen skript v `<head>`, da ni bliska napačne teme; brez JavaScripta stran še vedno sledi sistemu.
 - Tailwindova različica `dark:` je vezana na isto pravilo (13.3), zato se ujema z žetoni.
 - **Način vsiljenih barv** (`forced-colors: active`): vse meje so prave obrobe (`border`, `outline`), nikoli samo `box-shadow` ali ozadje. Izbrana vrstica dobi obrobo `Highlight`, fokus `outline` v `Highlight`. Jeziček skupine ostane viden z `forced-color-adjust: none`, ker je barva tam podatek, ki ga je izbral uporabnik (ime barve je vedno tudi v besedilu).
 

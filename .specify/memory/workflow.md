@@ -8,7 +8,7 @@
 >
 > Prvotni dokumenti (`original_documentation/`) so zgodovinski in se ne spreminjajo; vsebina je prenesena v `.specify/memory/` in `specs/`.
 >
-> To je poenostavljena različica prvotnega okvira: ni orkestratorja, subagentov, zaklepanja testov in vrat 0–3. Teste pred implementacijo pregledata razvijalca.
+> To je poenostavljena različica prvotnega okvira: ni orkestratorja, zaklepanja testov in vrat 0–3. Teste pred implementacijo pregleda neodvisen agent `pregled-testov` (4.2); razvijalca pregledata in sprejmeta funkcionalnost v pull requestu (D-20).
 
 ---
 
@@ -41,14 +41,17 @@ Vsaka funkcionalnost ima mapo `specs/NNN-ime/` in vejo `ime` (brez številke).
 | 0 | `scripts/feature.sh ime` | razvijalca | veja `ime`, `.specify/feature.json` kaže na `specs/NNN-ime` | – |
 | 1 | `/speckit-specify` *(za obstoječe funkcionalnosti že opravljeno)* | razvijalca + agent | `spec.md`: zgodbe, FR-ID, scenariji (1.1–1.3) | potrditev razvijalcev |
 | 2 | `/speckit-clarify` | razvijalca + agent | nejasnosti razrešene v `spec.md` | ni več `[NEEDS CLARIFICATION]` |
-| 3 | `/speckit-plan` | razvijalca + agent | `plan.md` z javnimi vmesniki (1.4), `data-model.md`, `contracts/` | potrditev |
+| 3 | `/speckit-plan` | agent | `plan.md` z javnimi vmesniki (1.4), `data-model.md`, `contracts/` | – (pregled v PR) |
 | 4 | `/speckit-checklist` *(neobvezno)* | razvijalca | kontrolni seznam kakovosti zahtev (npr. varnost, dostopnost) | vse točke `[x]` |
-| 5 | `/speckit-tasks` | agent | `tasks.md` po 1.6 | potrditev |
-| 6 | `/speckit-analyze` | agent | poročilo o skladnosti spec/plan/tasks | brez odprtih neskladij |
-| 7 | `/speckit-implement` – **samo testne naloge** | agent | testi, ki padejo zaradi pravega razloga (2.1) | **pregled testov** razvijalcev (4.2) |
+| 5 | `/speckit-tasks` | agent | `tasks.md` po 1.6 | – (pregled v PR) |
+| 6 | `/speckit-analyze` | agent | poročilo o skladnosti spec/plan/tasks; agent neskladja odpravi | brez odprtih neskladij |
+| 7 | `/speckit-implement` – **samo testne naloge** | agent | testi, ki padejo zaradi pravega razloga (2.1) | **pregled testov**: agent `pregled-testov` vrne SPREJETO (4.2) |
 | 8 | `/speckit-implement` – implementacijske naloge | agent | koda; `./verify.sh quick` zelen | – |
 | 9 | `/speckit-converge` | agent | primerjava kode s spec/plan/tasks; manjkajoče doda kot naloge | ponavljanje 8–9 do »Converged« |
-| 10 | `./verify.sh full`, `traceability.md` | agent + razvijalca | zelena vrata, posodobljena sledljivost (4.4) | sprejem, združitev v `main` |
+| 10 | `./verify.sh full`, `traceability.md`, pull request | agent | zelena vrata, posodobljena sledljivost (4.4), PR v `main` | – |
+| 11 | pregled PR, ročni preizkus dostopnosti | razvijalca | pregled plana, testnega commita in kode; `design.md` §10 | sprejem, združitev v `main` |
+
+Koraki 3–10 tečejo **brez čakanja na razvijalca**. Agent se ustavi in vpraša samo, če: (a) bi moral sprejeti odločitev, ki je specifikacija ne določa (tedaj jo zapiše kot `[NEEDS CLARIFICATION]` in ne ugiba); (b) `pregled-testov` po treh krogih še vrne ZAVRNJENO; (c) `verify.sh` pade zaradi okolja (izhod `3`, Docker), ne zaradi kode. Predpostavke, ki jih je sprejel sam, navede v opisu PR.
 
 ### 0.3 Veje brez številk in trenutna funkcionalnost
 
@@ -127,7 +130,7 @@ Predloge se spreminjajo samo z odločitvijo obeh razvijalcev, zapisano v `DECISI
 - Vsaka naloga navaja **FR-ID-je**, ki jih pokriva, in datoteke, ki jih ustvari ali spremeni, npr. `- [ ] T012 [P] [US2] FR-004-03 … v backend/src/…`.
 - Vrstni red faz: **Setup → Foundational → Testi → Pregled testov → implementacija po zgodbah → Polish**.
   - Faza *Testi* vsebuje vse testne naloge funkcionalnosti (unit, funkcionalni, integracijski, varnostni, E2E).
-  - *Pregled testov* je ena človeška naloga (`T0xx Pregled testov – razvijalca`), ki jo označita razvijalca.
+  - *Pregled testov* je ena naloga (`T0xx Pregled testov – agent pregled-testov`), ki jo agent označi šele po izidu SPREJETO (4.2).
 - Naloge, označene z `[P]`, nimajo skupnih datotek.
 
 ---
@@ -269,13 +272,15 @@ Obseg funkcionalnosti 000:
 ### 4.2 Implementacija v dveh korakih
 
 1. **Testi:** `/speckit-implement` samo za fazi *Setup/Foundational* in *Testi*. Agent poroča, da testi padejo zaradi pravega razloga.
-2. **Pregled testov:** razvijalca pregledata teste glede na `spec.md` in `plan.md`:
+2. **Pregled testov:** agent, ki je napisal teste, zažene **nov** podagent `pregled-testov` (`.claude/agents/pregled-testov.md`) in mu poda samo mapo funkcionalnosti in seznam testnih datotek – ne svojih razlag. Pregledovalec samo bere in teste presodi glede na `spec.md`, `plan.md` in `contracts/`:
    - vsak FR-ID ima test;
    - negativni scenariji in matrika izolacije so pokriti;
+   - endpointi, poti in dostopna imena so iz `plan.md`;
    - selektorji so po vlogah;
-   - asercije so smiselne.
-   Popravke zahtevata od agenta. Ko testi ustrezajo, označita nalogo *Pregled testov* in naredita commit `test(NNN): …`.
+   - asercije so smiselne in testi padejo zaradi pravega razloga.
+   Vrne SPREJETO ali ZAVRNJENO z ugotovitvami. Ob ZAVRNJENO agent teste popravi in zažene **nov** primerek pregledovalca (največ trije krogi; nato se ustavi in vpraša razvijalca). Ob SPREJETO agent označi nalogo *Pregled testov*, zapiše izid vseh krogov v `traceability.md` (razdelek *Pregled testov*) in naredi commit `test(NNN): …` – samo testi in minimalno ogrodje.
 3. **Koda:** `/speckit-implement` za preostale faze, nato `/speckit-converge`, dokler ne vrne »Converged«. Od tu naprej veljajo pravila iz 2.2.
+4. **Pull request:** agent požene `./verify.sh full`, posodobi `traceability.md`, potisne vejo in odpre PR v `main`. Opis PR navaja predpostavke, ki jih je agent sprejel sam, izid pregleda testov in commit `test(NNN)`. Razvijalca pregledata plan, testni commit in kodo ter opravita ročni preizkus dostopnosti (`design.md` §10); združita samo onadva. Če v PR zahtevata spremembo testa, velja 2.2 (vnos v `DECISIONS.md`).
 
 ### 4.3 `DECISIONS.md`
 

@@ -9,7 +9,7 @@ description: "Task list template for feature implementation (project override: t
 
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
-**Tests**: Tests are **MANDATORY** for every feature in this project (constitution, principle II). Every FR-ID in spec.md gets at least one test task. Test tasks come BEFORE implementation and are followed by a human test review.
+**Tests**: Tests are **MANDATORY** for every feature in this project (constitution, principle II). Every FR-ID in spec.md gets at least one test task. Test tasks come BEFORE implementation and are followed by an independent test review by the `pregled-testov` subagent (workflow.md §4.2).
 
 **Organization**: Setup → Foundational → Tests → Test review → implementation per user story → Polish.
 
@@ -81,11 +81,11 @@ description: "Task list template for feature implementation (project override: t
 
 ---
 
-## Phase 4: Test review (human gate)
+## Phase 4: Test review (independent agent gate)
 
-- [ ] T010 — Test review by both developers: every FR-ID has a test; negative scenarios and isolation matrix covered; role-based selectors; meaningful assertions. Then commit `test(NNN): …` and create `traceability.md`.
+- [ ] T010 — Test review by a NEW `pregled-testov` subagent (`.claude/agents/pregled-testov.md`), given only the feature folder and the test files: every FR-ID has a test; negative scenarios and isolation matrix covered; interfaces from plan.md; role-based selectors; meaningful assertions; tests fail for the right reason. On ZAVRNJENO fix the tests and run a new reviewer (max 3 rounds, then stop and ask the developers). On SPREJETO record all rounds in `traceability.md` (section *Pregled testov*) and commit `test(NNN): …` (tests and minimal scaffolding only).
 
-**Checkpoint**: No implementation task starts before T010 is checked. From here on tests change only to match the spec (logged in DECISIONS.md).
+**Checkpoint**: No implementation task starts before T010 is checked (reviewer returned SPREJETO). From here on tests change only to match the spec (logged in DECISIONS.md).
 
 ---
 
@@ -111,8 +111,9 @@ description: "Task list template for feature implementation (project override: t
 ## Phase N: Polish & Cross-Cutting Concerns
 
 - [ ] TXXX — Update specs/[NNN-feature-slug]/traceability.md (every FR-ID → tests → state)
-- [ ] TXXX — Manual keyboard + screen reader check (design.md §10)
 - [ ] TXXX — `./verify.sh full` green
+- [ ] TXXX — Push branch and open PR to `main` (assumptions made, test review result, `test(NNN)` commit in the description)
+- [ ] TXXX — Developers: PR review and manual keyboard + screen reader check (design.md §10); merge (agent leaves this unchecked)
 
 ---
 
@@ -122,7 +123,8 @@ description: "Task list template for feature implementation (project override: t
 - **User stories** start only after the test review; then in priority order (P1 → P2 → P3).
 - **Polish** after all stories.
 - `/speckit-implement` is run twice: first only up to and including Phase 3 (tests), then – after the
-  human review – for the remaining phases (workflow.md §4.2).
+  `pregled-testov` subagent returns SPREJETO – for the remaining phases (workflow.md §4.2). The agent
+  continues without waiting for the developers; they review in the PR.
 
 ## Notes
 
