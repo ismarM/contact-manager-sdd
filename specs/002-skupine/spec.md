@@ -122,7 +122,13 @@ Vsi člani v *Nastavitve → Podatki skupine* vidijo naslov, opis in barvo skupi
 - Skupina je arhivirana, medtem ko admin ureja njene podatke: shranjevanje vrne `409 GROUP_ARCHIVED`, prikaže se razumljivo sporočilo (FR-002-13), obrazec izgine ob ponovnem nalaganju (003).
 - Konflikt verzij, pri katerem je skupino medtem spremenil izbrisan uporabnik: v opozorilu je kot izvajalec prikazan »izbrisan uporabnik« (feature-map §2.5).
 - Dolg naslov ali opis se v vrstici seznama in v stranskem pasu skrajša, celoten pa je dostopen (npr. na glavi skupine in v *Podatkih skupine*); pri 320 px in povečavi 400 % ni vodoravnega drsenja strani.
-- Shranjevanje nespremenjenih podatkov je dovoljeno in uspe.
+- Shranjevanje nespremenjenih podatkov je dovoljeno in uspe (200), vendar se verzija, izvajalec in čas zadnje spremembe ne spremenijo; zato ne povzroči konflikta verzij pri drugih odprtih obrazcih. Če je poslana verzija zastarela, vrne `409 VERSION_CONFLICT` tudi pri nespremenjenih podatkih.
+
+## Clarifications
+
+### Session 2026-11-05
+
+- Q: Ali shranjevanje nespremenjenih podatkov skupine poveča verzijo ter posodobi izvajalca in čas zadnje spremembe? → A: Ne; uspe (200), verzija, izvajalec in čas ostanejo nespremenjeni.
 
 ## Requirements *(mandatory)*
 
@@ -139,7 +145,7 @@ Vsi člani v *Nastavitve → Podatki skupine* vidijo naslov, opis in barvo skupi
 - **FR-002-09**: Sistem MORA zaslonom skupine nastaviti naslov strani »‹Zaslon› – ‹naslov skupine› – Kontakti« (npr. »Nastavitve – Projekt FERI – Kontakti«), zaslonu *Skupine* pa »Skupine – Kontakti«, v jeziku vmesnika. *(najnižja vloga: VIEWER)*
 - **FR-002-10**: Sistem MORA vsem članom skupine v razdelku *Nastavitve → Podatki skupine* (design.md 9.7, točka 1) prikazati naslov, opis in barvo skupine (z imenom barve, ne samo vzorcem). *(najnižja vloga: VIEWER)*
 - **FR-002-11**: Sistem MORA lastniku in adminu nearhivirane skupine v *Podatkih skupine* omogočiti spremembo naslova, opisa in barve z obrazcem in gumbom *Shrani spremembe*; po uspehu prikazati obvestilo o uspehu in nove podatke takoj prikazati v glavi, stranskem pasu, seznamu skupin in naslovu strani; članom z nižjo vlogo in vsem v arhivirani skupini obrazca ne izrisati (strežnik takšno spremembo zavrne po feature-map §2.2). *(najnižja vloga: ADMIN)*
-- **FR-002-12**: Sistem MORA podatkom skupine voditi verzijo: sprememba pošlje verzijo, ki jo je uporabnik videl; ob neujemanju se nič ne spremeni (`409 VERSION_CONFLICT`), vmesnik pa ohrani obrazec z vnosi in ponudi razrešitev po design.md 8.14 (kdo in kdaj je spremenil, *Prikaži razlike*, *Uporabi trenutno različico*, *Shrani moje spremembe*). *(najnižja vloga: ADMIN)*
+- **FR-002-12**: Sistem MORA podatkom skupine voditi verzijo: sprememba pošlje verzijo, ki jo je uporabnik videl; ob neujemanju se nič ne spremeni (`409 VERSION_CONFLICT`); sprememba, ki ne spremeni nobene vrednosti, verzije, izvajalca in časa ne spremeni; vmesnik pa ohrani obrazec z vnosi in ponudi razrešitev po design.md 8.14 (kdo in kdaj je spremenil, *Prikaži razlike*, *Uporabi trenutno različico*, *Shrani moje spremembe*). *(najnižja vloga: ADMIN)*
 - **FR-002-13**: Sistem MORA pri ustvarjanju in urejanju skupine vsak neuspeh prikazati kot razumljivo sporočilo v slovenščini ali angleščini na mestu akcije (design.md 8.13), brez tehničnih kod, in ohraniti vnesene podatke. *(najnižja vloga: —)*
 
 ### Key Entities *(include if feature involves data)*
