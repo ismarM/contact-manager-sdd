@@ -81,7 +81,7 @@ Pri vsakem zahtevku nad podatki skupine se preverja v tem vrstnem redu; prvi neu
 |---|---|---|
 | 1 | ni žetona, neveljaven ali potekel žeton | `401` s kodo `UNAUTHENTICATED` |
 | 2 | skupina ne obstaja ali uporabnik ni njen član (tudi vir v tuji skupini, npr. kontakt druge skupine) | `404` – ne razkrije obstoja |
-| 3 | vloga člana je pod najnižjo dovoljeno ali krši pravilo »le nižjim od sebe« | `403` |
+| 3 | vloga člana je pod najnižjo dovoljeno ali krši pravilo »le nižjim od sebe« | `403` s kodo `FORBIDDEN` (D-25) |
 | 4 | pisanje v arhivirani skupini (§2.4) | `409` s kodo `GROUP_ARCHIVED` |
 | 5 | poslana verzija ni več trenutna (optimistično zaklepanje) | `409` s kodo `VERSION_CONFLICT` |
 | 6 | neveljavni podatki | `400` s kodo `VALIDATION_FAILED` in napakami po poljih |
@@ -145,7 +145,7 @@ Potrditveni dialog (design.md 8.11) je obvezen za: izbris kontakta (tudi množi�
 
 ### 2.10 Register kod napak
 
-Skupne kode (§2.2): `UNAUTHENTICATED` (401), `GROUP_ARCHIVED`, `VERSION_CONFLICT` (409), `VALIDATION_FAILED` (400). Kode poslovnih pravil (409), ki so jih uvedle specifikacije – nova koda se doda sem, obstoječa se ne preimenuje:
+Skupne kode (§2.2): `UNAUTHENTICATED` (401), `FORBIDDEN` (403, D-25), `GROUP_ARCHIVED`, `VERSION_CONFLICT` (409), `VALIDATION_FAILED` (400). Kode poslovnih pravil (409), ki so jih uvedle specifikacije – nova koda se doda sem, obstoječa se ne preimenuje:
 
 | Koda | Funkcionalnost | Pomen |
 |---|---|---|

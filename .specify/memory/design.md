@@ -250,7 +250,7 @@ Dodatni atributi
 
 ### 8.9 Paginacija
 
-- Pod seznamom: »1–25 od 312«, *Prejšnja*, »Stran 2 od 13«, *Naslednja*, izbira velikosti strani (25, 50, 100). Vse v `nav` z dostopnim imenom »Strani rezultatov«.
+- Pod seznamom: »1–25 od 312«, *Prejšnja*, »Stran 2 od 13«, *Naslednja*, izbira velikosti strani (25, 50, 100). Vse v `nav` z dostopnim imenom »Strani rezultatov«; če je na strani več paginiranih seznamov, ime vsebuje ime seznama, npr. »Strani rezultatov: Lastnik« (D-26).
 - Ob menjavi strani se fokus premakne na naslov seznama in seznam se pomakne na vrh. Izbor kontaktov se ohrani čez strani.
 
 ### 8.10 Dialog
