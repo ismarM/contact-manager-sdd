@@ -32,7 +32,7 @@ o uspehu. Odločitve so v [research.md](research.md).
 
 **Project Type**: web application (backend + frontend + e2e)
 
-**Performance Goals**: zaslon *Skupine* pri 100 skupinah < 2 s (SC-002): največ 5 poizvedb po indeksu `group_member (user_id, role)`, največ 100 skupin na razdelek
+**Performance Goals**: zaslon *Skupine* pri 100 skupinah < 2 s (SC-002), merjeno v E2E od navigacije na `/` do vidnih vrstic prvega razdelka (uporabniška izkušnja, ne samo API); največ 5 poizvedb po indeksu `group_member (user_id, role)`, največ 100 skupin na razdelek
 
 **Constraints**: WCAG 2.1 AA, sl/en, optimistično zaklepanje podatkov skupine, paginirani seznami, izolacija skupin, barve samo iz žetonov (`--k-group-*`)
 
@@ -45,9 +45,9 @@ o uspehu. Odločitve so v [research.md](research.md).
 | Principle (constitution) | How this plan complies |
 |---|---|
 | I. Specification is the contract | Pokriti vsi FR-002-01 … FR-002-13 (tabela pokritosti spodaj). *Public Interfaces* določajo endpointe, poti in dostopna imena, na katere se sklicujejo testi. Vsi negativni scenariji iz spec so v testih. |
-| II. Test-first | BE: unit (`GroupInputParserTest`, `GroupColorTest`), integracijski (`GroupCreateIT`, `GroupListIT`, `GroupReadIT`, `GroupUpdateIT`, `GroupConcurrencyIT`), varnostni (`GroupIsolationMatrixIT`). FE: unit (validacija, razporeditev po razdelkih, formatiranje), funkcionalni z MSW in `vitest-axe` (zaslon, stranski pas, meni, dialog, glava, nastavitve, konflikt). E2E `skupine.spec.ts` pri 360/768/1280 px. Pregled testov opravi agent `pregled-testov` pred kodo. |
+| II. Test-first | BE: unit (`GroupInputParserTest`, `GroupColorTest`), integracijski (`GroupCreateIT`, `GroupListIT`, `GroupReadIT`, `GroupUpdateIT`, `GroupConcurrencyIT`), varnostni (`GroupIsolationMatrixIT`). FE: unit (`groupValidation` – pravila podatkov, `conflictMessage` – izvajalec in čas v opozorilu o konfliktu, `ApiError.body`), funkcionalni z MSW in `vitest-axe` (zaslon, stranski pas, meni, dialog, glava, nastavitve, konflikt). E2E `skupine.spec.ts` pri 360/768/1280 px, vključno z merjenjem SC-002 v brskalniku. Pregled testov opravi agent `pregled-testov` pred kodo. |
 | III. Group isolation and roles | Vsak endpoint skupine je v matriki izolacije (401/404/403/2xx, arhivirana 409): `GET /api/groups/{id}` (VIEWER), `PUT /api/groups/{id}` (ADMIN). `POST /api/groups` in `GET /api/groups` sta vezana na uporabnika (—): 401, seznam vsebuje samo lastne nearhivirane skupine. Preverjanje je v skupnem `GroupAccess`, ne v kontrolerjih (D-27). Vmesnik skrije obrazec nižjim vlogam (udobje); zaščita je na zaledju. |
-| IV. Accessible, bilingual, responsive UI | design.md 4.2, 7.1, 7.2, 8.5, 8.9, 8.10, 8.12–8.16, 9.2, 9.7, 9.10; vsa besedila in dostopna imena v sl/en (spodaj); axe v FE testih in E2E; 320 px brez vodoravnega drsenja; prilagoditve shadcn po 13.4 (točke 1–8). |
+| IV. Accessible, bilingual, responsive UI | design.md 4.2, 7.1, 7.2, 8.5, 8.9, 8.10, 8.12–8.16, 9.2, 9.7, 9.10; vsa besedila in dostopna imena v sl/en (spodaj); axe v FE testih in E2E na vseh straneh in stanjih 002 v slovenščini **in** angleščini (SC-006); 320 px brez vodoravnega drsenja; prilagoditve shadcn po 13.4 (točke 1–8). |
 | V. Data integrity | Optimistično zaklepanje podatkov skupine (`version`, `UPDATE … WHERE version = :v` v transakciji z zaklepom vrstice); ustvarjanje skupine in članstva `OWNER` je ena transakcija; delni unikatni indeks zagotavlja največ enega lastnika; vsi seznami paginirani (največ 100). Revizijska sled ne beleži sprememb skupine (spec, Assumptions). |
 | VI. Privacy and GDPR | Osebni podatki: ime in e-naslov izvajalca zadnje spremembe, prikazana članom iste skupine (že del članstva v 007). `updated_by` ima `ON DELETE SET NULL` → »izbrisan uporabnik« (feature-map §2.5, 012). Identifikatorji uporabnikov niso v API-ju; skupine imajo neodgonetljiv `uuid`. |
 | VII. One verification path | Novi testi tečejo v obstoječih korakih `verify.sh`. Odločitve so v `DECISIONS.md`: D-25 (`FORBIDDEN`), D-26 (imena paginacije), D-27 (skupni temelji skupin), D-28 (`sonner`, `uuidv7()`, ICU kolaciji). |
@@ -81,7 +81,8 @@ pregledu PR 002; (3) `contactCount` je do 004 vedno 0 (spec, Assumptions).
 - `GroupDetail`: `{"id","title","description"|null,"color","role","archived","version","updatedAt","updatedBy":{"name"|null,"email"}|null}`;
   `updatedBy: null` = izbrisan uporabnik.
 - Napake: `401 {"code":"UNAUTHENTICATED"}`; `404` s praznim telesom (nečlan in neobstoječa skupina enako; tudi neveljaven
-  zapis `groupId` → `404`); `403 {"code":"FORBIDDEN"}` (D-25; samo član s prenizko vlogo); `409 {"code":"GROUP_ARCHIVED"}`;
+  zapis `groupId` → `404`, samo na poteh `/api/groups/{groupId}`: `groupId` je niz, ki ga razčleni `GroupAccess`, brez splošne
+  preslikave napak tipov za druge endpointe); `403 {"code":"FORBIDDEN"}` (D-25; samo član s prenizko vlogo); `409 {"code":"GROUP_ARCHIVED"}`;
   `409 {"code":"VERSION_CONFLICT","current":GroupDetail}`; `400 {"code":"VALIDATION_FAILED","errors":[{"field","code"}]}` s `field` ∈
   `title|description|color|version|role|page|size|lang|body` in `code` ∈ `REQUIRED|TOO_LONG|INVALID_VALUE|UNKNOWN_FIELD|MALFORMED`.
 - Vrstni red preverjanj pri `PUT`: 401 → 404 → 403 → `GROUP_ARCHIVED` → `VERSION_CONFLICT` → 400 (feature-map §2.2).
@@ -145,7 +146,7 @@ Opomba za teste: ob širini ≥ 1024 px sta *Nova skupina* in povezave skupin hk
 | Dialog | alert | »Skupine ni bilo mogoče ustvariti. Poskusi znova.« / "The group could not be created. Please try again."; »Ni povezave. Preveri povezavo in poskusi znova.« / "You're offline. Check your connection and try again." | napaka akcije nad obrazcem (brez kod) | FR-002-13 |
 | Skupina | region | naslov skupine | glava skupine (`section` z `h1` kot imenom) | FR-002-07 |
 | Skupina | heading (level 1) | naslov skupine | naslov (jeziček `aria-hidden`) | FR-002-07 |
-| Skupina | text | »Lastnik« / "Owner", »Admin«, »Urednik« / "Editor", »Bralec« / "Viewer" | oznaka vloge v glavi (design.md 8.5) | FR-002-07 |
+| Skupina | text | »Vloga: Lastnik« / "Role: Owner", »Vloga: Admin«, »Vloga: Urednik« / "Role: Editor", »Vloga: Bralec« / "Role: Viewer" | oznaka vloge v glavi (design.md 8.5): vidno samo ime vloge, predpona »Vloga: « / "Role: " je vizualno skrita (`sr-only`); testi preverijo besedilo regije (`toHaveTextContent`) | FR-002-07 |
 | Skupina | text | »Arhivirano« / "Archived" | oznaka arhivirane skupine (ikona `aria-hidden`) | FR-002-07 |
 | Skupina | navigation | »Razdelki skupine« / "Group sections" | navigacija med razdelki | FR-002-07 |
 | Skupina | link | »Nastavitve« / "Settings" (`aria-current="page"`) | razdelek *Nastavitve* | FR-002-07 |
@@ -154,14 +155,14 @@ Opomba za teste: ob širini ≥ 1024 px sta *Nova skupina* in povezave skupin hk
 | Nastavitve (branje) | term / definition | »Naslov« / "Title", »Opis« / "Description" (prazen: »Brez opisa« / "No description"), »Barva« / "Color" z imenom barve (»Mah« / "Moss") | podatki brez obrazca | FR-002-10 |
 | Nastavitve (obrazec) | form | »Podatki skupine« / "Group details" | obrazec za lastnika in admina nearhivirane skupine | FR-002-11 |
 | Nastavitve (obrazec) | button | »Shrani spremembe« / "Save changes" | shrani | FR-002-11, FR-002-12 |
-| Nastavitve (obrazec) | alert | »Skupino je medtem spremenil(a) ‹ime› ob ‹čas›.« / "The group was changed in the meantime by ‹name› at ‹time›." (izvajalec brez računa: »izbrisan uporabnik« / "deleted user") | konflikt verzij (design.md 8.14) | FR-002-12 |
+| Nastavitve (obrazec) | alert | »Skupino je medtem spremenil(a) ‹ime› ob ‹čas›.« / "The group was changed in the meantime by ‹name› at ‹time›." (izvajalec brez računa: »izbrisan uporabnik« / "deleted user"; ime `null` → e-naslov; ‹čas› = ura in minuta v zapisu jezika, pred njo datum, če sprememba ni bila danes; oblikuje `conflictMessage.ts`) | konflikt verzij (design.md 8.14) | FR-002-12 |
 | Nastavitve (konflikt) | button | »Prikaži razlike« / "Show differences" (`aria-expanded`) | razkrije tabelo razlik | FR-002-12 |
 | Nastavitve (konflikt) | button | »Uporabi trenutno različico« / "Use current version" | zavrže vnose, naloži trenutno stanje | FR-002-12 |
 | Nastavitve (konflikt) | button | »Shrani moje spremembe« / "Save my changes" | ponovno pošlje vnose s trenutno verzijo | FR-002-12 |
 | Nastavitve (konflikt) | table | »Razlike med tvojimi in trenutnimi vrednostmi« / "Differences between your values and the current ones"; stolpci »Polje« / "Field", »Tvoja vrednost« / "Your value", »Trenutna vrednost« / "Current value" | samo polja, ki se razlikujejo | FR-002-12 |
 | Nastavitve (obrazec) | alert | »Sprememb ni bilo mogoče shraniti. Poskusi znova.« / "Your changes could not be saved. Please try again."; »Skupina je medtem postala arhivirana, zato je ni več mogoče urejati.« / "The group has been archived in the meantime and can no longer be edited."; »Za to dejanje nimaš več pravic.« / "You no longer have permission to do this."; »Ni povezave. Preveri povezavo in poskusi znova.« / "You're offline. Check your connection and try again." | napaka akcije (brez kod) | FR-002-13 |
-| Ogrodje | status | »Skupina je ustvarjena.« / "Group created."; »Podatki skupine so shranjeni.« / "Group details saved." | obvestilo o uspehu (Sonner, 5 s) | FR-002-03, FR-002-11 |
-| Ogrodje | button | »Zapri obvestilo« / "Close notification" | zapre obvestilo | FR-002-03, FR-002-11 |
+| Ogrodje | region | »Obvestila« / "Notifications" (Sonner `customAriaLabel`; `aria-live="polite"`, `aria-relevant="additions text"`) | regija obvestil; vsebuje besedilo »Skupina je ustvarjena.« / "Group created." ali »Podatki skupine so shranjeni.« / "Group details saved." (Sonner, 5 s; posamezno obvestilo nima lastne vloge – research R-11) | FR-002-03, FR-002-11 |
+| Ogrodje | button | »Zapri obvestilo« / "Close notification" (Sonner `toastOptions.closeButtonAriaLabel`) | zapre obvestilo | FR-002-03, FR-002-11 |
 
 - Uspeh `PUT` takoj osveži glavo, stranski pas, meni preklopa in naslov strani; naslov strani »Nastavitve – ‹naslov› – Kontakti«.
 - Ob `404` na kateremkoli zahtevku skupine (izguba članstva, izbris) vmesnik namesto vsebine izriše `NotFoundPage`.
@@ -182,8 +183,12 @@ Opomba za teste: ob širini ≥ 1024 px sta *Nova skupina* in povezave skupin hk
 | FR-002-09 | – | – | `GroupsPage.test`, `GroupLayout.test` | `skupine.spec` |
 | FR-002-10 | – | `GroupReadIT` | `GroupDetailsSection.test` | `skupine.spec` |
 | FR-002-11 | – | `GroupUpdateIT`, `GroupIsolationMatrixIT` | `GroupDetailsSection.test` | `skupine.spec` |
-| FR-002-12 | – | `GroupUpdateIT`, `GroupConcurrencyIT` | `GroupDetailsSection.test` | `skupine.spec` |
-| FR-002-13 | – | – | `NewGroupDialog.test`, `GroupDetailsSection.test`, `GroupsPage.test` | `skupine.spec` (zaledje ni dosegljivo) |
+| FR-002-12 | – | `GroupUpdateIT`, `GroupConcurrencyIT` | `client.test`, `conflictMessage.test`, `GroupDetailsSection.test` | `skupine.spec` |
+| FR-002-13 | – | – | `client.test`, `NewGroupDialog.test`, `GroupDetailsSection.test`, `GroupsPage.test` | `skupine.spec` (zaledje ni dosegljivo) |
+
+Merljiva merila: SC-002 – `skupine.spec` (100 skupin, < 2 s v brskalniku) in `GroupListIT` (največ 100 na razdelek); SC-003 –
+`GroupReadIT`, `GroupIsolationMatrixIT`; SC-004 – `GroupConcurrencyIT`; SC-005 – ročni preizkus (quickstart #11); SC-006 – axe v vseh FE
+funkcionalnih testih in E2E v sl in en.
 
 ## Project Structure
 
@@ -236,7 +241,7 @@ frontend/
     │   ├── GroupsPage.tsx, GroupSection.tsx, SectionPagination.tsx
     │   ├── NewGroupDialog.tsx, GroupFormFields.tsx, ColorPicker.tsx
     │   ├── GroupLayout.tsx, GroupHeader.tsx
-    │   ├── SettingsPage.tsx, GroupDetailsSection.tsx, ConflictAlert.tsx
+    │   ├── SettingsPage.tsx, GroupDetailsSection.tsx, ConflictAlert.tsx, conflictMessage.ts
     │   └── *.test.ts(x)
     ├── shared/layout/{Sidebar, GroupSwitcher}.tsx  # AppShell dobi stranski pas in preklop (+ testi)
     ├── shared/lib/useMediaQuery.ts

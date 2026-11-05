@@ -10,7 +10,9 @@ Različica `sonner` je preverjena v registru npm na dan plana (2.0.8). Odločitv
 ## R-01 Identifikator skupine v API-ju (D-28)
 
 - **Decision:** `contact_group.id` je `uuid` (`DEFAULT uuidv7()`, PostgreSQL 18); v poteh `/api/groups/{groupId}` in v URL-jih
-  vmesnika nastopa ta uuid. Neveljaven zapis uuid v poti → `404` (enako kot neobstoječa skupina, FR-002-08).
+  vmesnika nastopa ta uuid. Neveljaven zapis uuid v poti → `404` (enako kot neobstoječa skupina, FR-002-08). Kontroler sprejme
+  `groupId` kot niz, razčleni ga `GroupAccess` (neuspeh → `NotFoundException`); splošne preslikave `MethodArgumentTypeMismatchException`
+  ni, da se odgovori drugih endpointov ne spremenijo.
 - **Rationale:** konstitucija III zahteva, da nečlan ne izve ničesar o tuji skupini; zaporedne številke bi omogočile
   naštevanje skupin in sklepanje o njihovem številu. `uuidv7()` je vgrajen v PostgreSQL 18 in je časovno urejen (dober za indeks).
 - **Alternatives:** `bigint identity` (naštevanje); `gen_random_uuid()` (v redu, a slabša lokalnost indeksa).
@@ -122,13 +124,18 @@ Različica `sonner` je preverjena v registru npm na dan plana (2.0.8). Odločitv
 - **Decision:** *Nova skupina* = shadcn *Dialog* (D-15) nad `radix-ui` (že nameščen): `DialogTitle` je `h2`, fokus se ob odprtju premakne
   na *Naslov*, ob zaprtju vrne na sprožilec; zapiranje z *Esc* in *Prekliči*; klik ob dialog ne zapre obrazca z vnosi. Obvestila uspeha =
   shadcn *Sonner* (D-15): `closeButton`, 5000 ms, spodaj desno / spodaj na sredini pod `md`, brez `richColors`; angleški privzeti nizi
-  (`Notifications`, `Close toast`) se prek `containerAriaLabel` in `closeButton` besedila nadomestijo z i18n (13.4, točka 5).
+  (`Notifications`, `Close toast`) se prek `customAriaLabel` in `toastOptions.closeButtonAriaLabel` nadomestijo z i18n (13.4, točka 5).
   Polja obrazca (`GroupFormFields`, `ColorPicker`) uporabljata skupno komponento v dialogu in v *Podatkih skupine*; barvni izbirnik
   je nativna skupina `radio` v `fieldset` (D-15, *Radio Group* nativni).
 - **Rationale:** D-15 že določa shadcn za *Dialog* in *Sonner*; komponenti doda funkcionalnost, ki ju prva potrebuje (D-15).
   Dostopnost dialoga (ujetost fokusa, `aria-modal`) zagotovi Radix.
-- **Preverjanje med implementacijo:** ali `sonner` 2.0.8 izpostavi `role="status"`/`aria-live` in ali je njegova oznaka regije
-  nastavljiva; če ne, obvestilo ostane vidno besedilo, test pa išče po besedilu in gumbu »Zapri obvestilo«.
+- **Dostopnost Sonner 2.0.8 (preverjeno v izvorni kodi paketa, `dist/index.mjs` in `index.d.ts`, 2026-11-05):** `Toaster` izriše
+  `<section aria-label=… aria-live="polite" aria-relevant="additions text" aria-atomic="false" tabIndex=-1>` (dostopna vloga
+  `region`); posamezno obvestilo (`li`) **nima** vloge `status`. Ime regije je privzeto »Notifications ‹bližnjica›« in se v celoti
+  nadomesti s `customAriaLabel`; gumb za zapiranje ima privzeto »Close toast« in se nastavi s `toastOptions.closeButtonAriaLabel`.
+  **Odločitev:** `customAriaLabel` = i18n »Obvestila« / "Notifications", `closeButtonAriaLabel` = »Zapri obvestilo« / "Close
+  notification"; regija `aria-live="polite"` zadošča za objavo (design.md 8.13 dovoljuje Sonner namesto `role="status"`). Testi
+  obvestilo iščejo kot besedilo znotraj `region` »Obvestila« in gumb »Zapri obvestilo«; vloge `status` ne pričakujejo.
 
 ## R-12 Zapisane odločitve (`DECISIONS.md`)
 
