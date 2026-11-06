@@ -25,7 +25,7 @@ Pravila beleženja: `docs/ai-development-log.md` (v zgodovini Gita, commit `b71c
 - **Agent / model:** Claude Code v T3 Code; `claude-sonnet-5-5` (#1–#4: preverjanje okolja, clarify, plan; #14: PR), `claude-opus-5-5`
   (#5–#7: pregled plana, uskladitev odločitev, commiti, tasks, analyze, implement – testi, pregled testov in koda; converge; model zamenjal razvijalec z `/model`). Oba modela potrjuje lokalni
   dnevnik seje. Podagenti: 3 × `pregled-testov` (#11b–#11d, model podagenta: ni podatka).
-- **Veja / commiti:** `skupine` – `f7689fe` (clarify), `b1ecc5c` (D-25 … D-28), `8cbf543` (plan), `990d77b` (tasks in analyze), `690c920` (`test(002)`), `80e002e` (`feat(002)`), `f4dce28` (`fix(002)` converge), commiti dnevnika; brez `git push`
+- **Veja / commiti:** `skupine` – `f7689fe` (clarify), `b1ecc5c` (D-25 … D-28), `8cbf543` (plan), `990d77b` (tasks in analyze), `690c920` (`test(002)`), `80e002e` (`feat(002)`), `f4dce28` (`fix(002)` converge), `ab9ee00` (`fix(000)` D-33), `9a27a20` (PR #4: tasks.md, dnevnik), commiti dnevnika; brez `git push`
 - **Poraba žetonov:** ni podatka (`token-report-ismar.md` še ni izpolnjen)
 
 | # | Vrsta | Točen prompt / odgovor | Faza SDD | Rezultat / spremenjene datoteke | Preverjanje | Težava (kategorija) | Status |
@@ -67,6 +67,9 @@ Pravila beleženja: `docs/ai-development-log.md` (v zgodovini Gita, commit `b71c
 | 14b | agent | objava | PR | `git push -u origin skupine`; PR #4 https://github.com/ismarM/contact-manager-sdd/pull/4 (opis: US1–US4, SDD postopek in commiti, pregled testov SPREJETO v 3. krogu, converge, 564/0, D-25, D-26, D-27, D-29, D-32, ročna preverjanja dostopnosti); PR povezan z nitjo T3 Code | – | none | accepted |
 | 14c | agent | CI za PR (1. zagon) | PR | `verify` PADLO po 2 min v koraku »orodja«: testa FR-000-07 in FR-000-06; prenesen artefakt `verify-log`: `EEXIST: symlink '/bin/grub-ntldr-img'` v `pathWithout` (000). Vzrok: CI je prvič tekel na Ubuntu 26.04 (PR #3 je 4. 11. uspel na prejšnji sliki); pokvarjena povezava v združenih mapah `PATH` + `existsSync` | napako sem ponovil lokalno (podvojena pokvarjena povezava v `PATH` → `EEXIST`); po popravku 73/73 testov orodij uspe | tool-or-environment (sprememba CI okolja, ne kode 002); agent: najprej napačna domneva, da je vzrok moj `verify.sh` – ovrženo z logom artefakta | accepted |
 | 14d | agent | popravek | PR | `try`/`catch` za `EEXIST` v `pathWithout` (asercije nespremenjene), D-33 (`sprememba-testa`, skupno orodje 000 – za Patrika), commit `ab9ee00` `fix(000): …`; `tasks.md` T049 `[X]` | testi orodij 73/73 | – | accepted |
+| 15 | sporočilo | »Oba GitHub Actions zagona za PR #4 sta uspešna in PR ima stanje CLEAN. Pred združitvijo v main želim zaključiti dokumentacijo in T050 … Ne izvajaj merge v main, dokler ne zaključiva preverjanj.« (2026-11-06) | PR | – | – | – | accepted |
+| 15a | agent | zapis izidov CI za PR #4 | PR | **Neuspeh (commit `eb7f82c`):** `pull_request` 42192231610 (job `verify` 2 min 7 s) in `push` 42192215613 (1 min 50 s) – padla sta FR-000-07 in FR-000-06 v koraku »orodja« (`EEXIST` v `pathWithout`, Ubuntu 26.04); popravek D-33, commit `ab9ee00`. **Uspeh (commit `9a27a20`):** `pull_request` 42192883899 (job `verify` **14 min 27 s**, 09:09:27–09:23:54 UTC) in `push` 42192878343 (job `verify` **15 min 23 s**, 09:09:25–09:24:48 UTC); `gh pr checks 4` oba `pass`, `mergeStateStatus` `CLEAN` | `./verify.sh full` v CI zelen v obeh zagonih; lokalno (pred PR) 564 uspešnih, 0 neuspešnih | tool-or-environment (nova slika `ubuntu-latest`), popravljeno | accepted |
+| 15b | agent | pregled pravil za merge in T050 | PR | **T050 je odprt – noben ročni preizkus ni izveden.** Pravila: `workflow.md` §4.2 točka 4 (»združita samo onadva«, razvijalca opravita ročni preizkus dostopnosti, design.md §10), konstitucija *Governance* (design.md in feature-map.md spreminjata samo oba razvijalca skupaj, z vnosom v DECISIONS.md), D-18 (zaščite veje GitHub v zasebnem repozitoriju na brezplačnem načrtu ne podpira – merge ni tehnično blokiran, velja procesno pravilo: samo prek PR z zelenim `verify`). Stanje PR: brez pregledov (`reviewDecision` prazen), brez zahtevanih pregledovalcev; Patrik (`PAKO25`) je sodelavec z pravico pisanja. Potrditev drugega razvijalca za D-25, D-26, D-27, D-29, D-32 in D-33 še ni zapisana. Agent ni zahteval pregleda in ni izvedel merge | – | none | accepted |
 
 **Potrjene odločitve razvijalca (#5)**
 
@@ -84,13 +87,13 @@ D-25, D-26 in D-27 spreminjajo skupne dokumente ali vplivajo na druge funkcional
 
 | Metrika | Rezultat |
 |---|---|
-| Sporočila razvijalca / odgovori v dialogu / gumbi / ukazi | 7 / 1 / 0 / 6 (+ 2 × `/model`) |
+| Sporočila razvijalca / odgovori v dialogu / gumbi / ukazi | 8 / 1 / 0 / 6 (+ 2 × `/model`) |
 | Interakcije uspešne brez dodatnega poziva | #1, #2, #2a, #4, #7, #8 |
 | Dodatni pozivi ali popravki navodil | #5 (potrditev odločitev in uskladitev), #9 (odprava ugotovitev analyze), #11 (popravek okolja Docker), #12 (prekinjeno in ponovno poslano navodilo za kodo) |
 | Potrjene napake agenta | 14 (#2b dnevnik; #3 ime testa, trditev o ICU, sklic na konstitucijo, nejasna priprava E2E – popravljene v #6; #10b `@SuppressWarnings` v testu, neobstoječa metoda, test nalaganja; #11a neločena spremenljivka v zsh; #12b dve napaki ESLint in podvojeno obvestilo; #12c spregledana neobravnavana napaka Vitest; #13b delno vneseno urejanje, skupni zagon Vitest) – vse popravljene |
 | Nejasne ali spremenjene zahteve | 1 (verzija pri nespremenjenem shranjevanju, #2a) |
 | Napake, odkrite z drugim agentom | 8 (pregled testov: 6 v krogu 1, 2 v krogu 2) |
-| Preverjanje s testi | do analyze ni izvedeno; implement (testi): `verify.sh quick` zelen pred spremembami; novi testi 002 padejo iz pravega razloga (BE unit, FE unit, FE funkcionalni), testi 000/001 zeleni; integracijski, varnostni in E2E sprva zaradi Dockerja niso tekli, po popravku okolja (#11) potrjeni padci iz pravega razloga; pregled testov SPREJETO v 3. krogu; po implementaciji in po converge `./verify.sh full` zelen (564 testov, 0 padcev) |
+| Preverjanje s testi | CI za PR #4 po popravku D-33 zelen v obeh zagonih (14 min 27 s in 15 min 23 s); T050 (ročni preizkus dostopnosti) ni izveden; do analyze ni izvedeno; implement (testi): `verify.sh quick` zelen pred spremembami; novi testi 002 padejo iz pravega razloga (BE unit, FE unit, FE funkcionalni), testi 000/001 zeleni; integracijski, varnostni in E2E sprva zaradi Dockerja niso tekli, po popravku okolja (#11) potrjeni padci iz pravega razloga; pregled testov SPREJETO v 3. krogu; po implementaciji in po converge `./verify.sh full` zelen (564 testov, 0 padcev) |
 
 ### Priloga A – prompt #4
 
