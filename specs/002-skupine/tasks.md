@@ -143,7 +143,7 @@ neodvisnega agenta `pregled-testov` (workflow.md §4.2).
 - [X] T046 — `/speckit-converge` do »Converged«; `./verify.sh quick` zelen (vključno z vsemi testi 000 in 001)
 - [X] T047 — Posodobi specs/002-skupine/traceability.md (vsak FR-ID → testi → stanje; matrika izolacije za `GET`/`PUT /api/groups/{groupId}`)
 - [X] T048 — `./verify.sh full` zelen (integracijski z ICU na `postgres:18-alpine`, varnostni, E2E pri treh širinah); če ICU ne deluje, ustavi se in odpri D-28 z novim vnosom
-- [ ] T049 — Potisni vejo `skupine` in odpri PR v `main` (predpostavke, izid pregleda testov, commit `test(002)`; v opisu označi D-25, D-26, D-27 in spremembo `verify.sh` za pregled drugega razvijalca)
+- [X] T049 — Potisni vejo `skupine` in odpri PR v `main` (predpostavke, izid pregleda testov, commit `test(002)`; v opisu označi D-25, D-26, D-27 in spremembo `verify.sh` za pregled drugega razvijalca)
 - [ ] T050 — Razvijalca: pregled PR, potrditev D-25 … D-27 in ročni preizkus s tipkovnico in bralnikom zaslona (design.md §10, quickstart #11); združitev (agent pusti neoznačeno)
 
 ---
@@ -183,3 +183,8 @@ neodvisnega agenta `pregled-testov` (workflow.md §4.2).
 **Izid converge (2026-11-06):** 1. krog – 3 ugotovitve (F1 MEDIUM, F2 in F3 LOW, vse *partial*), dodane kot T051–T053 in odpravljene;
 2. krog – **Converged** (0 ugotovitev). Testi po `test(002)` nespremenjeni (razen podpore D-32). `./verify.sh full` po converge zelen
 (216 s): BE unit 53, integracijski 81, varnostni 88, FE unit 73, funkcionalni 137, E2E 132 – 564 uspe, 0 pade.
+
+**PR (2026-11-06):** veja `skupine` potisnjena, PR #4 odprt proti `main` (T049). Prvi CI je padel v koraku »orodja« zaradi nove slike
+Ubuntu 26.04 (pomožna funkcija `pathWithout` v testih orodij 000, D-33, commit `ab9ee00`); koda 002 in `verify.sh` nista vzrok.
+T050 (pregled PR, ročna preverjanja dostopnosti, potrditev D-25 … D-27, D-29, D-32, D-33 in združitev z *Create a merge commit*)
+ostaja razvijalcema.

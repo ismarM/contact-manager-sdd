@@ -7,7 +7,7 @@ Pravila beleženja: `docs/ai-development-log.md` (v zgodovini Gita, commit `b71c
 
 | Seja (`token-report-ismar.md`) | Seja Claude Code | Datum, čas | Funkcionalnost | Opomba |
 |---|---|---|---|---|
-| 1 | `00793e9d` (T3 Code, Claude Code) | 2026-11-05 od 20:37 do 2026-11-06 (CET) | `002-skupine` – clarify, plan, pregled plana, uskladitev odločitev, tasks, analyze, implement (testi, pregled testov, koda US1–US4), converge | menjava modela med sejo (Sonnet 5.5 → Opus 5.5); 3 podagenti `pregled-testov` |
+| 1 | `00793e9d` (T3 Code, Claude Code) | 2026-11-05 od 20:37 do 2026-11-06 (CET) | `002-skupine` – clarify, plan, pregled plana, uskladitev odločitev, tasks, analyze, implement (testi, pregled testov, koda US1–US4), converge, PR | menjava modela med sejo (Sonnet 5.5 → Opus 5.5); 3 podagenti `pregled-testov` |
 
 **Stolpci tabel interakcij**
 
@@ -22,7 +22,7 @@ Pravila beleženja: `docs/ai-development-log.md` (v zgodovini Gita, commit `b71c
 
 - **Datum:** 2026-11-05, od 20:37 (CET; konec seje ob pisanju še ni znan)
 - **Razvijalec:** Ismar
-- **Agent / model:** Claude Code v T3 Code; `claude-sonnet-5-5` (#1–#4: preverjanje okolja, clarify, plan), `claude-opus-5-5`
+- **Agent / model:** Claude Code v T3 Code; `claude-sonnet-5-5` (#1–#4: preverjanje okolja, clarify, plan; #14: PR), `claude-opus-5-5`
   (#5–#7: pregled plana, uskladitev odločitev, commiti, tasks, analyze, implement – testi, pregled testov in koda; converge; model zamenjal razvijalec z `/model`). Oba modela potrjuje lokalni
   dnevnik seje. Podagenti: 3 × `pregled-testov` (#11b–#11d, model podagenta: ni podatka).
 - **Veja / commiti:** `skupine` – `f7689fe` (clarify), `b1ecc5c` (D-25 … D-28), `8cbf543` (plan), `990d77b` (tasks in analyze), `690c920` (`test(002)`), `80e002e` (`feat(002)`), `f4dce28` (`fix(002)` converge), commiti dnevnika; brez `git push`
@@ -62,6 +62,11 @@ Pravila beleženja: `docs/ai-development-log.md` (v zgodovini Gita, commit `b71c
 | 13a | agent | ocena (krog 1) | converge | 13 FR, 5 SC, 30 scenarijev, 8 robnih primerov, 13 odločitev plana, 7 načel konstitucije; `git diff 690c920 HEAD` testov: samo D-32; ugotovitve: F1 MEDIUM (napaka povzetka skupin ni vidna – konstitucija IV, FR-002-06), F2 LOW (enotno stanje nalaganja seznamov – design.md 8.15), F3 LOW (nalaganje skupine brez statusa) → dodane kot Phase 9: T051–T053 | – | none | accepted |
 | 13b | agent | odprava T051–T053 in krog 2 | converge | `Sidebar.tsx`, `GroupSwitcher.tsx` (napaka s »Poskusi znova«), `GroupsPage.tsx`, `GroupSection.tsx` (`aria-busy`, zamaknjen »Nalagam…«), `GroupLayout.tsx` (status med nalaganjem); krog 2: **Converged** | FE unit 73, funkcionalni 137 uspe; `./verify.sh full` zelen (216 s): 564 uspe, 0 pade | agent-error (popravljeno): urejanje s skripto je bilo vneseno le delno (Prettier je prej prelomil vrstico) – napaka tipov; skupni zagon obeh projektov Vitest v enem ukazu je dal 2 padca zaradi časovne omejitve – ločeno (kot v `verify.sh`) vse uspe | accepted |
 | 13c | agent | dokumenti in commit | converge | `tasks.md` T046–T048 in T051–T053 `[X]` (T049 PR in T050 pregled razvijalcev odprta), `traceability.md` (preslikava FR → implementacijske datoteke, converge, verify); commit `f4dce28` `fix(002): …`; brez `git push`, brez PR | gitleaks brez najdb | – | accepted |
+| 14 | sporočilo | »Funkcionalnost `002-skupine` je uspešno zaključila Converge … pripravi in objavi Pull Request iz veje `skupine` v `main` … Ne izvajaj merge ali squash … Na koncu mi pokaži povezavo do PR, rezultat GitHub Actions in morebitne odprte naloge.« (2026-11-06; model zamenjan na Sonnet 5.5 z `/model`) | PR | – | – | – | accepted |
+| 14a | agent | preverjanje Gita | PR | delovna kopija čista; `skupine` 12 commitov pred `origin/main`, 0 za njim (`6c19bd1`), brez konfliktov; zunaj pričakovanih map (backend, frontend, e2e, specs/002, ai-log, skupni dokumenti, `verify.sh`) ni sprememb; obstoječega PR ni | – | none | accepted |
+| 14b | agent | objava | PR | `git push -u origin skupine`; PR #4 https://github.com/ismarM/contact-manager-sdd/pull/4 (opis: US1–US4, SDD postopek in commiti, pregled testov SPREJETO v 3. krogu, converge, 564/0, D-25, D-26, D-27, D-29, D-32, ročna preverjanja dostopnosti); PR povezan z nitjo T3 Code | – | none | accepted |
+| 14c | agent | CI za PR (1. zagon) | PR | `verify` PADLO po 2 min v koraku »orodja«: testa FR-000-07 in FR-000-06; prenesen artefakt `verify-log`: `EEXIST: symlink '/bin/grub-ntldr-img'` v `pathWithout` (000). Vzrok: CI je prvič tekel na Ubuntu 26.04 (PR #3 je 4. 11. uspel na prejšnji sliki); pokvarjena povezava v združenih mapah `PATH` + `existsSync` | napako sem ponovil lokalno (podvojena pokvarjena povezava v `PATH` → `EEXIST`); po popravku 73/73 testov orodij uspe | tool-or-environment (sprememba CI okolja, ne kode 002); agent: najprej napačna domneva, da je vzrok moj `verify.sh` – ovrženo z logom artefakta | accepted |
+| 14d | agent | popravek | PR | `try`/`catch` za `EEXIST` v `pathWithout` (asercije nespremenjene), D-33 (`sprememba-testa`, skupno orodje 000 – za Patrika), commit `ab9ee00` `fix(000): …`; `tasks.md` T049 `[X]` | testi orodij 73/73 | – | accepted |
 
 **Potrjene odločitve razvijalca (#5)**
 
@@ -79,7 +84,7 @@ D-25, D-26 in D-27 spreminjajo skupne dokumente ali vplivajo na druge funkcional
 
 | Metrika | Rezultat |
 |---|---|
-| Sporočila razvijalca / odgovori v dialogu / gumbi / ukazi | 6 / 1 / 0 / 6 (+ `/model`) |
+| Sporočila razvijalca / odgovori v dialogu / gumbi / ukazi | 7 / 1 / 0 / 6 (+ 2 × `/model`) |
 | Interakcije uspešne brez dodatnega poziva | #1, #2, #2a, #4, #7, #8 |
 | Dodatni pozivi ali popravki navodil | #5 (potrditev odločitev in uskladitev), #9 (odprava ugotovitev analyze), #11 (popravek okolja Docker), #12 (prekinjeno in ponovno poslano navodilo za kodo) |
 | Potrjene napake agenta | 14 (#2b dnevnik; #3 ime testa, trditev o ICU, sklic na konstitucijo, nejasna priprava E2E – popravljene v #6; #10b `@SuppressWarnings` v testu, neobstoječa metoda, test nalaganja; #11a neločena spremenljivka v zsh; #12b dve napaki ESLint in podvojeno obvestilo; #12c spregledana neobravnavana napaka Vitest; #13b delno vneseno urejanje, skupni zagon Vitest) – vse popravljene |
