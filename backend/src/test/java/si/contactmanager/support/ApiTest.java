@@ -55,6 +55,27 @@ public abstract class ApiTest {
         return Http.send("PUT", url(path), headers, jsonBody);
     }
 
+    protected HttpResponse<String> get(String path, String token) throws IOException, InterruptedException {
+        Map<String, String> headers = token == null ? Map.of() : Http.bearer(token);
+        return Http.send("GET", url(path), headers);
+    }
+
+    protected HttpResponse<String> post(String path, String token, String jsonBody)
+            throws IOException, InterruptedException {
+        Map<String, String> headers = token == null ? Map.of() : Http.bearer(token);
+        return Http.send("POST", url(path), headers, jsonBody);
+    }
+
+    /** Nov Googlov račun, ki se je že prijavil v aplikacijo ({@code PUT /api/me} – profil obstaja). */
+    protected SignedIn registeredUser(String name) throws IOException, InterruptedException {
+        SignedIn user = newGoogleUser(name);
+        int status = put("/api/me", user.idToken(), null).statusCode();
+        if (status != 201) {
+            throw new IllegalStateException("PUT /api/me vrnil " + status);
+        }
+        return user;
+    }
+
     protected String url(String path) {
         return "http://localhost:" + port + path;
     }

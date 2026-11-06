@@ -15,6 +15,30 @@ class ApiExceptionHandler {
         return ResponseEntity.badRequest().body(ValidationError.of(exception.errors()));
     }
 
+    /** Nečlan ali neobstoječ vir: 404 s praznim telesom, enako kot neobstoječa pot (feature-map §2.2, 002 R-01). */
+    @ExceptionHandler(NotFoundException.class)
+    ResponseEntity<Void> notMember() {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    }
+
+    /** Vloga pod najnižjo dovoljeno (D-25). */
+    @ExceptionHandler(ForbiddenException.class)
+    ResponseEntity<ErrorResponse> forbidden() {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse("FORBIDDEN"));
+    }
+
+    /** Pisanje v arhivirani skupini (feature-map §2.4). */
+    @ExceptionHandler(GroupArchivedException.class)
+    ResponseEntity<ErrorResponse> groupArchived() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("GROUP_ARCHIVED"));
+    }
+
+    /** Optimistično zaklepanje (feature-map §2.3): trenutno stanje za razrešitev v vmesniku. */
+    @ExceptionHandler(VersionConflictException.class)
+    ResponseEntity<VersionConflict> versionConflict(VersionConflictException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(VersionConflict.of(exception.current()));
+    }
+
     /** Neobstoječa pot z veljavnim žetonom: 404 s praznim telesom (research R-10). */
     @ExceptionHandler(NoResourceFoundException.class)
     ResponseEntity<Void> notFound() {

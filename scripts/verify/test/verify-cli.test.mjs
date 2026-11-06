@@ -23,8 +23,14 @@ function pathWithout(excluded) {
   for (const dir of (process.env.PATH ?? '').split(path.delimiter)) {
     if (!dir || !existsSync(dir)) continue;
     for (const name of readdirSync(dir)) {
-      if (excluded.includes(name) || existsSync(path.join(bin, name))) continue;
-      symlinkSync(path.join(dir, name), path.join(bin, name));
+      if (excluded.includes(name)) continue;
+      try {
+        symlinkSync(path.join(dir, name), path.join(bin, name));
+      } catch (error) {
+        // Prvi vnos v PATH zmaga. `existsSync` bi pokvarjeno povezavo (npr. /bin/grub-ntldr-img na Ubuntu 26.04, kjer
+        // so /bin, /usr/bin in /sbin ista mapa) štel kot neobstoječo in ponovni poskus bi padel z EEXIST (D-33).
+        if (error.code !== 'EEXIST') throw error;
+      }
     }
   }
   return bin;
