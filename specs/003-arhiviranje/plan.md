@@ -95,7 +95,7 @@ Opomba za teste: ob širini ≥ 1024 px je povezava *Arhivirane skupine* hkrati 
 | Skupine (`main`), stranski pas | link | »Arhivirane skupine« / "Archived groups" | odpre `/groups/archived` (vedno prikazana) | FR-003-02, FR-003-07 |
 | Meni preklopa | menuitem | »Arhivirane skupine« / "Archived groups" | odpre `/groups/archived` | FR-003-07 |
 | Arhivirane skupine | heading (level 1) | »Arhivirane skupine« / "Archived groups" | naslov zaslona | FR-003-07 |
-| Arhivirane skupine | list / listitem | – | vrstica: povezava z naslovom skupine, skrajšan opis, »12 kontaktov« / "12 contacts" | FR-003-07 |
+| Arhivirane skupine | list / listitem | – (barvni jeziček je `aria-hidden`, kot v 002; zato brez testa; D-35) | vrstica: povezava z naslovom skupine, skrajšan opis, »12 kontaktov« / "12 contacts" | FR-003-07 |
 | Arhivirane skupine | link | naslov skupine | odpre `/groups/:groupId` | FR-003-07 |
 | Arhivirane skupine | text | »Vloga: Urednik« / "Role: Editor" (predpona vizualno skrita), »Arhivirano« / "Archived" | oznaki vloge in stanja (design.md 8.5) | FR-003-07 |
 | Arhivirane skupine | text | »lastnik: izbrisan uporabnik« / "owner: deleted user" | opomba trajno arhivirane skupine | FR-003-08 |
@@ -107,7 +107,7 @@ Opomba za teste: ob širini ≥ 1024 px je povezava *Arhivirane skupine* hkrati 
 | Pasica | text | »Skupina je arhivirana – na voljo so pregled, iskanje in izvoz.« / "This group is archived – you can browse, search and export." | besedilo pasice | FR-003-05 |
 | Pasica | text | »Skupina je trajno arhivirana, ker lastnik nima več računa.« / "This group is permanently archived because its owner no longer has an account." | pasica trajno arhivirane skupine (brez akcije) | FR-003-05, FR-003-08 |
 | Pasica | button | »Odarhiviraj skupino« / "Unarchive group" | samo lastnik nepermanentne; brez potrditve | FR-003-05, FR-003-06 |
-| Nastavitve | heading (level 2) | »Upravljanje skupine« / "Group management" | razdelek; lastnik, pri trajno arhivirani skupini vsi člani | FR-003-01, FR-003-10 |
+| Nastavitve | region + heading (level 2) | »Upravljanje skupine« / "Group management" | razdelek (`section` z `aria-labelledby` = `region`, naslov `h2`); lastnik, pri trajno arhivirani skupini vsi člani | FR-003-01, FR-003-10 |
 | Upravljanje | button | »Arhiviraj skupino« / "Archive group" | odpre potrditveni dialog (lastnik nearhivirane) | FR-003-01 |
 | Upravljanje | button | »Odarhiviraj skupino« / "Unarchive group" | odarhivira (lastnik arhivirane nepermanentne) | FR-003-06 |
 | Upravljanje | button | »Izbriši skupino« / "Delete group" | odpre dialog; samo ob `canDelete` | FR-003-10 |
@@ -140,7 +140,7 @@ Opomba za teste: ob širini ≥ 1024 px je povezava *Arhivirane skupine* hkrati 
 | FR-003-06 | `GroupUnarchiveIT`, `ArchiveIsolationMatrixSecurityIT` | `ArchivedBanner.test`, `GroupManagementSection.test` | `arhiviranje.spec` |
 | FR-003-07 | `ArchivedGroupListIT` | `ArchivedGroupsPage.test`, `ArchivedNavigation.test` | `arhiviranje.spec` |
 | FR-003-08 | `GroupUnarchiveIT`, `GroupDeleteIT`, `ArchivedGroupListIT` | `ArchivedBanner.test`, `ArchivedGroupsPage.test` | `arhiviranje.spec` |
-| FR-003-09 | `GroupDeleteIT`, `GroupArchiveConcurrencyIT`, `ArchiveIsolationMatrixSecurityIT` | `GroupManagementSection.test` | `arhiviranje.spec` |
+| FR-003-09 | `GroupDeleteIT`, `ArchiveIsolationMatrixSecurityIT` | `GroupManagementSection.test` | `arhiviranje.spec` |
 | FR-003-10 | `GroupDeleteIT` (`canDelete`) | `GroupManagementSection.test` | `arhiviranje.spec` |
 | FR-003-11 | `GroupDeleteIT` | `GroupManagementSection.test` (povezava → »Te strani ni«) | `arhiviranje.spec` |
 

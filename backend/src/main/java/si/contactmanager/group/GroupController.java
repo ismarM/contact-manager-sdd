@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import si.contactmanager.account.UserDirectory;
 import si.contactmanager.group.GroupAccess.Membership;
 import si.contactmanager.group.GroupInputParser.Parsed;
@@ -95,6 +97,38 @@ class GroupController {
         Parsed parsed = parser.parseUpdate(body);
         Membership membership = access.require(jwt, groupId, Role.ADMIN, true);
         return service.update(membership, parsed);
+    }
+
+    /** Seznam arhiviranih skupin (FR-003-07, FR-003-08). */
+    @GetMapping("/archived")
+    ArchivedGroups archived(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) String page,
+            @RequestParam(required = false) String size,
+            @RequestParam(required = false) String lang) {
+        throw notImplemented();
+    }
+
+    /** Arhiviranje skupine (FR-003-01). */
+    @PostMapping("/{groupId}/archive")
+    GroupDetail archive(@AuthenticationPrincipal Jwt jwt, @PathVariable String groupId) {
+        throw notImplemented();
+    }
+
+    /** Odarhiviranje skupine (FR-003-06). */
+    @PostMapping("/{groupId}/unarchive")
+    GroupDetail unarchive(@AuthenticationPrincipal Jwt jwt, @PathVariable String groupId) {
+        throw notImplemented();
+    }
+
+    /** Izbris skupine (FR-003-09, FR-003-11). */
+    @DeleteMapping("/{groupId}")
+    ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable String groupId) {
+        throw notImplemented();
+    }
+
+    private static ResponseStatusException notImplemented() {
+        return new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED);
     }
 
     private static Role parseRole(String value, List<FieldError> errors) {

@@ -33,6 +33,18 @@ class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("GROUP_ARCHIVED"));
     }
 
+    /** Odarhiviranje nearhivirane skupine (feature-map §2.10). */
+    @ExceptionHandler(GroupNotArchivedException.class)
+    ResponseEntity<ErrorResponse> groupNotArchived() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("GROUP_NOT_ARCHIVED"));
+    }
+
+    /** Izbris skupine z drugimi člani (feature-map §2.10). */
+    @ExceptionHandler(GroupHasOtherMembersException.class)
+    ResponseEntity<ErrorResponse> groupHasOtherMembers() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("GROUP_HAS_OTHER_MEMBERS"));
+    }
+
     /** Optimistično zaklepanje (feature-map §2.3): trenutno stanje za razrešitev v vmesniku. */
     @ExceptionHandler(VersionConflictException.class)
     ResponseEntity<VersionConflict> versionConflict(VersionConflictException exception) {

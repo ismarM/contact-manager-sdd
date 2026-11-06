@@ -1,13 +1,20 @@
 {
-  "app": { "name": "Contacts" },
+  "app": {
+    "name": "Contacts"
+  },
   "title": {
     "login": "Sign in – Contacts",
     "account": "My account – Contacts",
     "notFound": "Page not found – Contacts",
     "groups": "Groups – Contacts",
-    "groupScreen": "{{screen}} – {{group}} – Contacts"
+    "groupScreen": "{{screen}} – {{group}} – Contacts",
+    "archived": "Archived groups – Contacts"
   },
-  "language": { "label": "Language", "sl": "Slovenščina", "en": "English" },
+  "language": {
+    "label": "Language",
+    "sl": "Slovenščina",
+    "en": "English"
+  },
   "login": {
     "tagline": "Contacts for your projects and companies, in one place.",
     "signIn": "Sign in with Google",
@@ -54,7 +61,10 @@
     "grafit": "Graphite",
     "rja": "Rust"
   },
-  "toast": { "region": "Notifications", "close": "Close notification" },
+  "toast": {
+    "region": "Notifications",
+    "close": "Close notification"
+  },
   "groups": {
     "heading": "Groups",
     "newGroup": "New group",
@@ -119,6 +129,49 @@
       "field": "Field",
       "yours": "Your value",
       "current": "Current value"
+    },
+    "archivedList": {
+      "heading": "Archived groups",
+      "link": "Archived groups",
+      "empty": "You have no archived groups.",
+      "back": "Back to groups",
+      "ownerDeleted": "owner: deleted user",
+      "pagination": "Archived groups"
+    },
+    "banner": {
+      "region": "Group status",
+      "archived": "This group is archived – you can browse, search and export.",
+      "permanent": "This group is permanently archived because its owner no longer has an account.",
+      "unarchive": "Unarchive group"
+    },
+    "manage": {
+      "heading": "Group management",
+      "archive": "Archive group",
+      "archiveInfo": "Members keep access; the group becomes read-only.",
+      "unarchive": "Unarchive group",
+      "unarchiveInfo": "The group will work as before it was archived.",
+      "delete": "Delete group",
+      "deleteInfo": "You delete the group with all its data. This cannot be undone.",
+      "deleteUnavailable": "You can delete the group once you are its only member.",
+      "archiveFailed": "The group could not be archived. Please try again.",
+      "unarchiveFailed": "The group could not be unarchived. Please try again.",
+      "deleteFailed": "The group could not be deleted. Please try again."
+    },
+    "archiveDialog": {
+      "title": "Archive group {{title}}?",
+      "text": "Members keep access and the group becomes read-only. Only the owner can unarchive it."
+    },
+    "deleteDialog": {
+      "title": "Delete group {{title}}?",
+      "text": "All contacts, the audit trail and pending invitations of the group will be deleted. This cannot be undone.",
+      "confirmLabel": "Type the group title to confirm",
+      "mismatch": "The text does not match the group title.",
+      "hasMembers": "The group cannot be deleted because it has other members."
+    },
+    "toast": {
+      "archived": "Group archived.",
+      "unarchived": "Group unarchived.",
+      "deleted": "Group deleted."
     }
   },
   "notFound": {

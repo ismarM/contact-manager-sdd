@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from 'react-router';
 import { AccountPage } from '../features/account/AccountPage';
 import type { AuthGateway } from '../features/auth/AuthGateway';
 import { AuthProvider } from '../features/auth/AuthProvider';
+import { ArchivedGroupsPage } from '../features/groups/ArchivedGroupsPage';
 import { GroupLayout } from '../features/groups/GroupLayout';
 import { GroupsPage } from '../features/groups/GroupsPage';
 import { LoginPage } from '../features/auth/LoginPage';
@@ -25,6 +26,7 @@ export function App({ gateway }: { gateway: AuthGateway }) {
             }
           >
             <Route index element={<GroupsPage />} />
+            <Route path="groups/archived" element={<ArchivedGroupsPage />} />
             <Route path="groups/:groupId/*" element={<GroupLayout />} />
             <Route path="account" element={<AccountPage />} />
             <Route path="*" element={<NotFoundPage />} />

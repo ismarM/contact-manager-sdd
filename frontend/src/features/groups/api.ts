@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { AuthFetch } from '../../shared/api/authFetch';
 import { ApiError } from '../../shared/api/client';
 import { useAuth } from '../auth/authContext';
-import type { GroupDetail, GroupInput, GroupSections, Role } from './types';
+import type { ArchivedGroups, GroupDetail, GroupInput, GroupSections, Role } from './types';
 
 // Odjemalec API skupin (plan.md – REST endpoints, contracts/openapi.yaml).
 
@@ -36,6 +36,25 @@ export function createGroupsApi(authFetch: AuthFetch) {
         headers: JSON_HEADERS,
         body: JSON.stringify(input),
       });
+    },
+    listArchived({ page, size, lang }: ListParams): Promise<ArchivedGroups> {
+      void page;
+      void size;
+      void lang;
+      void authFetch;
+      return Promise.reject(new Error('not implemented'));
+    },
+    archiveGroup(groupId: string): Promise<GroupDetail> {
+      void groupId;
+      return Promise.reject(new Error('not implemented'));
+    },
+    unarchiveGroup(groupId: string): Promise<GroupDetail> {
+      void groupId;
+      return Promise.reject(new Error('not implemented'));
+    },
+    deleteGroup(groupId: string): Promise<void> {
+      void groupId;
+      return Promise.reject(new Error('not implemented'));
     },
     updateGroup(groupId: string, input: GroupInput & { version: number }): Promise<GroupDetail> {
       return authFetch<GroupDetail>(`/groups/${encodeURIComponent(groupId)}`, {

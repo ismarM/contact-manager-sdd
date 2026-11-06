@@ -147,6 +147,8 @@ class GroupRepository {
                 rs.getString("color"),
                 Role.valueOf(rs.getString("role")),
                 rs.getBoolean("archived"),
+                false,
+                false,
                 rs.getLong("version"),
                 updatedAt.toInstant(),
                 email == null ? null : new UserRef(rs.getString("updated_by_name"), email));

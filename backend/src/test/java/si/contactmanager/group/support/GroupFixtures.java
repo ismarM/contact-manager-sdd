@@ -56,6 +56,23 @@ public final class GroupFixtures {
         jdbc.update("update contact_group set archived_at = now() where id = ?", groupId);
     }
 
+    /** Trajno arhivirana skupina (nastane z izbrisom računa lastnika, 012): arhivirana in brez člana OWNER. */
+    public void makePermanentlyArchived(UUID groupId) {
+        archive(groupId);
+        jdbc.update("delete from group_member where group_id = ? and role = 'OWNER'", groupId);
+    }
+
+    public boolean exists(UUID groupId) {
+        Integer count = jdbc.queryForObject("select count(*) from contact_group where id = ?", Integer.class, groupId);
+        return count != null && count > 0;
+    }
+
+    /** Čas arhiviranja ({@code null} = nearhivirana). */
+    public Object archivedAt(UUID groupId) {
+        return jdbc.queryForMap("select archived_at from contact_group where id = ?", groupId)
+                .get("archived_at");
+    }
+
     public void setUpdatedBy(UUID groupId, long userId) {
         jdbc.update("update contact_group set updated_by = ? where id = ?", userId, groupId);
     }
