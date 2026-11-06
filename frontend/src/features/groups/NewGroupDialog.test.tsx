@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 
 import { i18n } from '../../i18n';
-import { groupDetail, groupId, renderGroupsApp } from '../../test/groupsApi';
+import { groupDetail, groupId, listReply, renderGroupsApp, summary } from '../../test/groupsApi';
 import { currentLocation } from '../../test/renderApp';
 
 // Dialog *Nova skupina* na zaslonu *Skupine* (FR-002-01, -02, -03, -13; plan.md – Key elements, design.md 8.10, 8.13).
@@ -200,6 +200,37 @@ describe('NewGroupDialog', () => {
     await waitFor(() =>
       expect(within(notifications).queryByText('Skupina je ustvarjena.')).not.toBeInTheDocument(),
     );
+  });
+
+  it('FR-002-03: zakasnjeno nalaganje nove skupine ne ukrade fokusa, ki ga je uporabnik medtem premaknil', async () => {
+    let release: () => void = () => undefined;
+    const loaded = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const { user } = renderGroupsScreen({
+      list: listReply({ OWNER: [summary(1)] }),
+      get: async (id) => {
+        await loaded;
+        return {
+          status: 200,
+          body: groupDetail({ id, title: 'Projekt FERI', role: 'OWNER', version: 0 }),
+        };
+      },
+    });
+    const dialog = await openDialog(user);
+    await user.type(within(dialog).getByRole('textbox', { name: 'Naslov' }), 'Projekt FERI');
+    await user.click(within(dialog).getByRole('button', { name: 'Ustvari skupino' }));
+    await waitFor(() => expect(currentLocation()).toBe(`/groups/${CREATED}/settings`));
+
+    // Skupina se še nalaga; uporabnik s tipkovnico fokusira gumb za preklop skupine (design.md 7.1).
+    const switcher = await screen.findByRole('button', { name: 'Preklopi skupino' });
+    switcher.focus();
+    expect(switcher).toHaveFocus();
+    release();
+
+    const heading = await screen.findByRole('heading', { level: 1, name: 'Projekt FERI' });
+    expect(heading).not.toHaveFocus();
+    expect(switcher).toHaveFocus();
   });
 
   it('FR-002-03: brez izbire barve je v zahtevku privzeta tinta', async () => {

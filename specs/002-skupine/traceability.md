@@ -73,7 +73,9 @@ dan« v imenih testov conflictMessage.
 |---|---|---|---|
 | 2026-11-06 | frontend/src/test/setup.ts (podpora testom) | jsdom nadomestek `Element.setPointerCapture` brez vedenja – Sonner ga kliče ob zapiranju obvestila; brez njega je Vitest javil neobravnavano napako, čeprav so asercije uspele | D-32 |
 
-Testne datoteke in asercije po commitu `test(002)` niso spremenjene.
+| 2026-11-06 | frontend/src/features/groups/NewGroupDialog.test.tsx | dodan primer »FR-002-03: zakasnjeno nalaganje nove skupine ne ukrade fokusa, ki ga je uporabnik medtem premaknil« (regresijski test za napako, najdeno v CI; pred popravkom padel, ker je imel `h1` fokus); obstoječe asercije nespremenjene | D-34 |
+
+Obstoječe asercije testov po commitu `test(002)` niso spremenjene.
 
 ## Preverjanje
 
@@ -90,3 +92,5 @@ Testne datoteke in asercije po commitu `test(002)` niso spremenjene.
 | 2026-11-06 | `./verify.sh full` | 1. zagon PADLO (funkcionalni FE: neobravnavana napaka `setPointerCapture` v jsdom); po D-32 **zelen** (227 s): E2E 132 (99 iz 000/001, 33 iz 002, tudi SC-002 < 2 s) |
 | 2026-11-06 | `/speckit-converge` | krog 1: F1 (napaka povzetka ni vidna v stranskem pasu/meniju – konstitucija IV), F2 (enotno stanje nalaganja seznamov), F3 (nalaganje skupine brez statusa) → T051–T053 odpravljene; krog 2: Converged; testi po `test(002)` nespremenjeni razen D-32 |
 | 2026-11-06 | `./verify.sh full` po converge | **zelen** (216 s): BE unit 53, integracijski 81, varnostni 88, FE unit 73, funkcionalni 137, E2E 132 – 564 uspe, 0 pade |
+| 2026-11-06 | CI za PR #4, commit `d16a61e` | zagon `push` uspel, `pull_request` padel: E2E »upravljanje s tipkovnico« pri 360 px (nestabilnost: `GroupHeader` je ob zakasnjenem nalaganju skupine ukradel fokus gumbu »Preklopi skupino«); vzrok v aplikaciji, ne v CI; popravek in regresijski test: D-34 |
+| 2026-11-06 | `./verify.sh full` po D-34 | **zelen** (187 s): BE unit 53, integracijski 81, varnostni 88 · FE unit 73, funkcionalni 138 · E2E 132 – 565 uspe, 0 pade; popravljeni E2E test dodatno 20/20 (360 in 768 px, 10 ponovitev) |

@@ -17,7 +17,10 @@ export function GroupHeader({ group, focusTitle }: { group: GroupDetail; focusTi
   const title = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
-    if (focusTitle) title.current?.focus();
+    // Po ustvaritvi skupine fokus na naslov (FR-002-03), a samo če ga uporabnik medtem ni premaknil drugam: skupina se
+    // lahko naloži šele, ko je uporabnik že fokusiral npr. gumb za preklop skupine (WCAG 3.2.1; D-34).
+    const active = document.activeElement;
+    if (focusTitle && (active === null || active === document.body)) title.current?.focus();
   }, [focusTitle]);
 
   return (

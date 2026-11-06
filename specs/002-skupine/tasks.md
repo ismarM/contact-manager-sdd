@@ -188,3 +188,8 @@ neodvisnega agenta `pregled-testov` (workflow.md §4.2).
 Ubuntu 26.04 (pomožna funkcija `pathWithout` v testih orodij 000, D-33, commit `ab9ee00`); koda 002 in `verify.sh` nista vzrok.
 T050 (pregled PR, ročna preverjanja dostopnosti, potrditev D-25 … D-27, D-29, D-32, D-33 in združitev z *Create a merge commit*)
 ostaja razvijalcema.
+
+**Popravek po CI (2026-11-06, D-34):** zagon `pull_request` za `d16a61e` je padel na E2E »upravljanje s tipkovnico« (360 px). Vzrok v
+aplikaciji: `GroupHeader` je ob zakasnjenem nalaganju skupine brezpogojno fokusiral naslov in ukradel fokus gumbu »Preklopi skupino«.
+Popravek: naslov se fokusira samo, če fokus še ni na nobenem elementu; dodan regresijski FE test. `./verify.sh full` zelen (565 uspe,
+0 pade). T050 (ročni preizkus dostopnosti) in pregled Patrika (D-25, D-26, D-27, D-29, D-32, D-33, D-34) **nista opravljena**.
