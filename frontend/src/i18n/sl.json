@@ -1,10 +1,11 @@
 {
   "app": { "name": "Kontakti" },
-  "start": { "ready": "Ogrodje aplikacije je pripravljeno." },
   "title": {
     "login": "Prijava – Kontakti",
     "account": "Moj račun – Kontakti",
-    "notFound": "Te strani ni – Kontakti"
+    "notFound": "Te strani ni – Kontakti",
+    "groups": "Skupine – Kontakti",
+    "groupScreen": "{{screen}} – {{group}} – Kontakti"
   },
   "language": { "label": "Jezik", "sl": "Slovenščina", "en": "English" },
   "login": {
@@ -36,6 +37,89 @@
     "themeSystem": "Sistemska",
     "themeLight": "Svetla",
     "themeDark": "Temna"
+  },
+  "roles": {
+    "OWNER": "Lastnik",
+    "ADMIN": "Admin",
+    "EDITOR": "Urednik",
+    "VIEWER": "Bralec"
+  },
+  "colors": {
+    "tinta": "Tinta",
+    "mah": "Mah",
+    "opeka": "Opeka",
+    "oker": "Oker",
+    "sliva": "Sliva",
+    "morje": "Morje",
+    "grafit": "Grafit",
+    "rja": "Rja"
+  },
+  "toast": { "region": "Obvestila", "close": "Zapri obvestilo" },
+  "groups": {
+    "heading": "Skupine",
+    "newGroup": "Nova skupina",
+    "sectionHeading": "{{role}} ({{total}})",
+    "contactCount_one": "{{count}} kontakt",
+    "contactCount_two": "{{count}} kontakta",
+    "contactCount_few": "{{count}} kontakti",
+    "contactCount_other": "{{count}} kontaktov",
+    "empty": "Nimaš še nobene skupine.",
+    "loading": "Nalagam…",
+    "loadFailed": "Skupin ni bilo mogoče naložiti. Poskusi znova.",
+    "retry": "Poskusi znova",
+    "myGroups": "Moje skupine",
+    "allGroups": "Vse skupine",
+    "switchGroup": "Preklopi skupino",
+    "created": "Skupina je ustvarjena.",
+    "createFailed": "Skupine ni bilo mogoče ustvariti. Poskusi znova.",
+    "offline": "Ni povezave. Preveri povezavo in poskusi znova.",
+    "pagination": {
+      "label": "Strani rezultatov: {{list}}",
+      "range": "{{from}}–{{to}} od {{total}}",
+      "page": "Stran {{page}} od {{pages}}",
+      "previous": "Prejšnja",
+      "next": "Naslednja",
+      "pageSize": "Velikost strani"
+    },
+    "form": {
+      "title": "Naslov",
+      "description": "Opis",
+      "color": "Barva",
+      "cancel": "Prekliči",
+      "create": "Ustvari skupino",
+      "save": "Shrani spremembe",
+      "errors": {
+        "titleRequired": "Vpiši naslov.",
+        "titleTooLong": "Naslov je lahko dolg največ 100 znakov.",
+        "descriptionTooLong": "Opis je lahko dolg največ 1000 znakov.",
+        "colorInvalid": "Izberi eno od ponujenih barv."
+      }
+    },
+    "header": {
+      "rolePrefix": "Vloga: ",
+      "archived": "Arhivirano",
+      "sections": "Razdelki skupine",
+      "settings": "Nastavitve"
+    },
+    "details": {
+      "heading": "Podatki skupine",
+      "noDescription": "Brez opisa",
+      "saved": "Podatki skupine so shranjeni.",
+      "saveFailed": "Sprememb ni bilo mogoče shraniti. Poskusi znova.",
+      "archived": "Skupina je medtem postala arhivirana, zato je ni več mogoče urejati.",
+      "forbidden": "Za to dejanje nimaš več pravic."
+    },
+    "conflict": {
+      "message": "Skupino je medtem spremenil(a) {{who}} ob {{time}}.",
+      "deletedUser": "izbrisan uporabnik",
+      "showDiff": "Prikaži razlike",
+      "useCurrent": "Uporabi trenutno različico",
+      "saveMine": "Shrani moje spremembe",
+      "diffTable": "Razlike med tvojimi in trenutnimi vrednostmi",
+      "field": "Polje",
+      "yours": "Tvoja vrednost",
+      "current": "Trenutna vrednost"
+    }
   },
   "notFound": {
     "heading": "Te strani ni",

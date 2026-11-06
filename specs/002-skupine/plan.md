@@ -45,7 +45,7 @@ o uspehu. Odločitve so v [research.md](research.md).
 | Principle (constitution) | How this plan complies |
 |---|---|
 | I. Specification is the contract | Pokriti vsi FR-002-01 … FR-002-13 (tabela pokritosti spodaj). *Public Interfaces* določajo endpointe, poti in dostopna imena, na katere se sklicujejo testi. Vsi negativni scenariji iz spec so v testih. |
-| II. Test-first | BE: unit (`GroupInputParserTest`, `GroupColorTest`), integracijski (`GroupCreateIT`, `GroupListIT`, `GroupReadIT`, `GroupUpdateIT`, `GroupConcurrencyIT`), varnostni (`GroupIsolationMatrixIT`). FE: unit (`groupValidation` – pravila podatkov, `conflictMessage` – izvajalec in čas v opozorilu o konfliktu, `ApiError.body`), funkcionalni z MSW in `vitest-axe` (zaslon, stranski pas, meni, dialog, glava, nastavitve, konflikt). E2E `skupine.spec.ts` pri 360/768/1280 px, vključno z merjenjem SC-002 v brskalniku. Pregled testov opravi agent `pregled-testov` pred kodo. |
+| II. Test-first | BE: unit (`GroupInputParserTest`, `GroupColorTest`), integracijski (`GroupCreateIT`, `GroupListIT`, `GroupReadIT`, `GroupUpdateIT`, `GroupConcurrencyIT`), varnostni (`GroupIsolationMatrixSecurityIT`). FE: unit (`groupValidation` – pravila podatkov, `conflictMessage` – izvajalec in čas v opozorilu o konfliktu, `ApiError.body`), funkcionalni z MSW in `vitest-axe` (zaslon, stranski pas, meni, dialog, glava, nastavitve, konflikt). E2E `skupine.spec.ts` pri 360/768/1280 px, vključno z merjenjem SC-002 v brskalniku. Pregled testov opravi agent `pregled-testov` pred kodo. |
 | III. Group isolation and roles | Vsak endpoint skupine je v matriki izolacije (401/404/403/2xx, arhivirana 409): `GET /api/groups/{id}` (VIEWER), `PUT /api/groups/{id}` (ADMIN). `POST /api/groups` in `GET /api/groups` sta vezana na uporabnika (—): 401, seznam vsebuje samo lastne nearhivirane skupine. Preverjanje je v skupnem `GroupAccess`, ne v kontrolerjih (D-27). Vmesnik skrije obrazec nižjim vlogam (udobje); zaščita je na zaledju. |
 | IV. Accessible, bilingual, responsive UI | design.md 4.2, 7.1, 7.2, 8.5, 8.9, 8.10, 8.12–8.16, 9.2, 9.7, 9.10; vsa besedila in dostopna imena v sl/en (spodaj); axe v FE testih in E2E na vseh straneh in stanjih 002 v slovenščini **in** angleščini (SC-006); 320 px brez vodoravnega drsenja; prilagoditve shadcn po 13.4 (točke 1–8). |
 | V. Data integrity | Optimistično zaklepanje podatkov skupine (`version`, `UPDATE … WHERE version = :v` v transakciji z zaklepom vrstice); ustvarjanje skupine in članstva `OWNER` je ena transakcija; delni unikatni indeks zagotavlja največ enega lastnika; vsi seznami paginirani (največ 100). Revizijska sled ne beleži sprememb skupine (spec, Assumptions). |
@@ -178,16 +178,16 @@ Opomba za teste: ob širini ≥ 1024 px sta *Nova skupina* in povezave skupin hk
 | FR-002-04 | – | `GroupListIT` | `GroupsPage.test`, `GroupSection.test` | `skupine.spec` |
 | FR-002-05 | – | `GroupListIT` | `GroupsPage.test` | `skupine.spec` |
 | FR-002-06 | – | `GroupListIT` | `Sidebar.test`, `GroupSwitcher.test` | `skupine.spec` (360/1280 px) |
-| FR-002-07 | – | `GroupReadIT`, `GroupIsolationMatrixIT` | `GroupLayout.test` | `skupine.spec` |
-| FR-002-08 | – | `GroupReadIT`, `GroupIsolationMatrixIT` | `GroupLayout.test` | `skupine.spec` |
+| FR-002-07 | – | `GroupReadIT`, `GroupIsolationMatrixSecurityIT` | `GroupLayout.test` | `skupine.spec` |
+| FR-002-08 | – | `GroupReadIT`, `GroupIsolationMatrixSecurityIT` | `GroupLayout.test` | `skupine.spec` |
 | FR-002-09 | – | – | `GroupsPage.test`, `GroupLayout.test` | `skupine.spec` |
 | FR-002-10 | – | `GroupReadIT` | `GroupDetailsSection.test` | `skupine.spec` |
-| FR-002-11 | – | `GroupUpdateIT`, `GroupIsolationMatrixIT` | `GroupDetailsSection.test` | `skupine.spec` |
+| FR-002-11 | – | `GroupUpdateIT`, `GroupIsolationMatrixSecurityIT` | `GroupDetailsSection.test` | `skupine.spec` |
 | FR-002-12 | – | `GroupUpdateIT`, `GroupConcurrencyIT` | `client.test`, `conflictMessage.test`, `GroupDetailsSection.test` | `skupine.spec` |
 | FR-002-13 | – | – | `client.test`, `NewGroupDialog.test`, `GroupDetailsSection.test`, `GroupsPage.test` | `skupine.spec` (zaledje ni dosegljivo) |
 
 Merljiva merila: SC-002 – `skupine.spec` (100 skupin, < 2 s v brskalniku) in `GroupListIT` (največ 100 na razdelek); SC-003 –
-`GroupReadIT`, `GroupIsolationMatrixIT`; SC-004 – `GroupConcurrencyIT`; SC-005 – ročni preizkus (quickstart #11); SC-006 – axe v vseh FE
+`GroupReadIT`, `GroupIsolationMatrixSecurityIT`; SC-004 – `GroupConcurrencyIT`; SC-005 – ročni preizkus (quickstart #11); SC-006 – axe v vseh FE
 funkcionalnih testih in E2E v sl in en.
 
 ## Project Structure
@@ -228,7 +228,7 @@ backend/
 └── src/test/java/si/contactmanager/group/
     ├── {GroupInputParserTest, GroupColorTest}.java        # unit
     ├── {GroupCreateIT, GroupListIT, GroupReadIT, GroupUpdateIT, GroupConcurrencyIT}.java  # GroupListIT preveri tudi ICU red (D-28)
-    ├── GroupIsolationMatrixIT.java                         # varnostni: matrika 401/404/403/2xx/409
+    ├── GroupIsolationMatrixSecurityIT.java                 # varnostni (ime *SecurityIT → korak »varnostni BE«): matrika 401/404/403/2xx/409
     └── support/GroupFixtures.java                          # ustvarjanje skupin, članov, arhiviranja prek JDBC (003 še ne obstaja; D-27)
 
 frontend/

@@ -114,7 +114,10 @@ system_up() {
 run_e2e() {
   local address
   address="$("${COMPOSE[@]}" port frontend 80)" || return 1
-  BASE_URL="http://$address" npx playwright test
+  # E2E 002 pripravi vloge in arhiviranje s SQL v bazi istega projekta Compose (D-27, D-29); korak teče v e2e/.
+  BASE_URL="http://$address" \
+    E2E_COMPOSE_ARGS='-p contact-manager-verify -f ../compose.yaml -f ../compose.verify.yaml' \
+    npx playwright test
 }
 
 if [[ $LEVEL == full ]]; then

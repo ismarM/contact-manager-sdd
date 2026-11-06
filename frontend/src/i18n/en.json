@@ -1,10 +1,11 @@
 {
   "app": { "name": "Contacts" },
-  "start": { "ready": "The application scaffold is ready." },
   "title": {
     "login": "Sign in – Contacts",
     "account": "My account – Contacts",
-    "notFound": "Page not found – Contacts"
+    "notFound": "Page not found – Contacts",
+    "groups": "Groups – Contacts",
+    "groupScreen": "{{screen}} – {{group}} – Contacts"
   },
   "language": { "label": "Language", "sl": "Slovenščina", "en": "English" },
   "login": {
@@ -36,6 +37,89 @@
     "themeSystem": "System",
     "themeLight": "Light",
     "themeDark": "Dark"
+  },
+  "roles": {
+    "OWNER": "Owner",
+    "ADMIN": "Admin",
+    "EDITOR": "Editor",
+    "VIEWER": "Viewer"
+  },
+  "colors": {
+    "tinta": "Ink",
+    "mah": "Moss",
+    "opeka": "Brick",
+    "oker": "Ochre",
+    "sliva": "Plum",
+    "morje": "Sea",
+    "grafit": "Graphite",
+    "rja": "Rust"
+  },
+  "toast": { "region": "Notifications", "close": "Close notification" },
+  "groups": {
+    "heading": "Groups",
+    "newGroup": "New group",
+    "sectionHeading": "{{role}} ({{total}})",
+    "contactCount_one": "{{count}} contact",
+    "contactCount_two": "{{count}} contacts",
+    "contactCount_few": "{{count}} contacts",
+    "contactCount_other": "{{count}} contacts",
+    "empty": "You don't have any groups yet.",
+    "loading": "Loading…",
+    "loadFailed": "Groups could not be loaded. Please try again.",
+    "retry": "Try again",
+    "myGroups": "My groups",
+    "allGroups": "All groups",
+    "switchGroup": "Switch group",
+    "created": "Group created.",
+    "createFailed": "The group could not be created. Please try again.",
+    "offline": "You're offline. Check your connection and try again.",
+    "pagination": {
+      "label": "Result pages: {{list}}",
+      "range": "{{from}}–{{to}} of {{total}}",
+      "page": "Page {{page}} of {{pages}}",
+      "previous": "Previous",
+      "next": "Next",
+      "pageSize": "Page size"
+    },
+    "form": {
+      "title": "Title",
+      "description": "Description",
+      "color": "Color",
+      "cancel": "Cancel",
+      "create": "Create group",
+      "save": "Save changes",
+      "errors": {
+        "titleRequired": "Enter a title.",
+        "titleTooLong": "The title can be at most 100 characters.",
+        "descriptionTooLong": "The description can be at most 1,000 characters.",
+        "colorInvalid": "Choose one of the offered colors."
+      }
+    },
+    "header": {
+      "rolePrefix": "Role: ",
+      "archived": "Archived",
+      "sections": "Group sections",
+      "settings": "Settings"
+    },
+    "details": {
+      "heading": "Group details",
+      "noDescription": "No description",
+      "saved": "Group details saved.",
+      "saveFailed": "Your changes could not be saved. Please try again.",
+      "archived": "The group has been archived in the meantime and can no longer be edited.",
+      "forbidden": "You no longer have permission to do this."
+    },
+    "conflict": {
+      "message": "The group was changed in the meantime by {{who}} at {{time}}.",
+      "deletedUser": "deleted user",
+      "showDiff": "Show differences",
+      "useCurrent": "Use current version",
+      "saveMine": "Save my changes",
+      "diffTable": "Differences between your values and the current ones",
+      "field": "Field",
+      "yours": "Your value",
+      "current": "Current value"
+    }
   },
   "notFound": {
     "heading": "Page not found",
