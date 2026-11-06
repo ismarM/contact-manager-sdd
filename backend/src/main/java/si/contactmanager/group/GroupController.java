@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 import si.contactmanager.account.UserDirectory;
 import si.contactmanager.group.GroupAccess.Membership;
 import si.contactmanager.group.GroupInputParser.Parsed;
@@ -106,29 +105,35 @@ class GroupController {
             @RequestParam(required = false) String page,
             @RequestParam(required = false) String size,
             @RequestParam(required = false) String lang) {
-        throw notImplemented();
+        List<FieldError> errors = new ArrayList<>();
+        Integer pageNumber = parseInt(page, 0, 0, Integer.MAX_VALUE, "page", errors);
+        Integer pageSize = parseInt(size, DEFAULT_SIZE, 1, MAX_SIZE, "size", errors);
+        Collation collation = parseLang(lang, errors);
+        if (!errors.isEmpty()) {
+            throw new ValidationException(errors);
+        }
+        return users.find(jwt)
+                .map(user -> service.listArchived(user, pageNumber, pageSize, collation))
+                .orElseGet(() -> new ArchivedGroups(0, pageNumber, pageSize, List.of()));
     }
 
-    /** Arhiviranje skupine (FR-003-01). */
+    /** Arhiviranje skupine (FR-003-01): samo lastnik. */
     @PostMapping("/{groupId}/archive")
     GroupDetail archive(@AuthenticationPrincipal Jwt jwt, @PathVariable String groupId) {
-        throw notImplemented();
+        return service.archive(access.require(jwt, groupId, Role.OWNER, true));
     }
 
-    /** Odarhiviranje skupine (FR-003-06). */
+    /** Odarhiviranje skupine (FR-003-06, FR-003-08): samo lastnik; trajno arhivirana skupina lastnika nima → 403. */
     @PostMapping("/{groupId}/unarchive")
     GroupDetail unarchive(@AuthenticationPrincipal Jwt jwt, @PathVariable String groupId) {
-        throw notImplemented();
+        return service.unarchive(access.require(jwt, groupId, Role.OWNER, false));
     }
 
-    /** Izbris skupine (FR-003-09, FR-003-11). */
+    /** Izbris skupine (FR-003-09, FR-003-11): pravila po vlogi in številu članov preveri {@link GroupService}. */
     @DeleteMapping("/{groupId}")
     ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable String groupId) {
-        throw notImplemented();
-    }
-
-    private static ResponseStatusException notImplemented() {
-        return new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED);
+        service.delete(access.require(jwt, groupId, Role.VIEWER, false));
+        return ResponseEntity.noContent().build();
     }
 
     private static Role parseRole(String value, List<FieldError> errors) {

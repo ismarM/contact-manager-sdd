@@ -16,7 +16,7 @@ import si.contactmanager.shared.error.NotFoundException;
 public class GroupAccess {
 
     /** Dostop prijavljenega uporabnika do skupine. */
-    public record Membership(UUID groupId, long userId, Role role, boolean archived) {}
+    public record Membership(UUID groupId, long userId, Role role, boolean archived, boolean permanentlyArchived) {}
 
     private final UserDirectory users;
     private final GroupRepository groups;
@@ -41,7 +41,7 @@ public class GroupAccess {
         if (write && state.archived()) {
             throw new GroupArchivedException();
         }
-        return new Membership(id, user, state.role(), state.archived());
+        return new Membership(id, user, state.role(), state.archived(), state.permanentlyArchived());
     }
 
     private static UUID parse(String groupId) {

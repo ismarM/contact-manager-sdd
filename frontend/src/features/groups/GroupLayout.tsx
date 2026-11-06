@@ -1,5 +1,5 @@
 import { IconAlertTriangle } from '@tabler/icons-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useLocation, useParams } from 'react-router';
 
@@ -7,6 +7,7 @@ import { ApiError } from '../../shared/api/client';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
 import { errorAlert } from '../../shared/ui/styles';
 import { useGroupsApi } from './api';
+import { ArchivedBanner } from './ArchivedBanner';
 import { GroupContext, type GroupContextValue } from './groupContext';
 import { GroupHeader } from './GroupHeader';
 import { SettingsPage } from './SettingsPage';
@@ -73,6 +74,17 @@ function GroupScreen({ groupId }: { groupId: string }) {
     };
   }, [api, groupId]);
 
+  const reload = useCallback(
+    () =>
+      api.getGroup(groupId).then(
+        (group) => setState({ kind: 'ready', group }),
+        (error: unknown) => {
+          if (error instanceof ApiError && error.status === 404) setState({ kind: 'notFound' });
+        },
+      ),
+    [api, groupId],
+  );
+
   const context = useMemo<GroupContextValue | null>(
     () =>
       state.kind === 'ready'
@@ -80,9 +92,10 @@ function GroupScreen({ groupId }: { groupId: string }) {
             group: state.group,
             setGroup: (group) => setState({ kind: 'ready', group }),
             markNotFound: () => setState({ kind: 'notFound' }),
+            reload,
           }
         : null,
-    [state],
+    [state, reload],
   );
 
   if (state.kind === 'notFound') return <NotFoundPage />;
@@ -107,6 +120,7 @@ function GroupScreen({ groupId }: { groupId: string }) {
   return (
     <GroupContext.Provider value={context}>
       <GroupHeader group={context.group} focusTitle={focusTitle} />
+      <ArchivedBanner />
       <SettingsPage />
     </GroupContext.Provider>
   );

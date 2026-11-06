@@ -1,9 +1,10 @@
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
-import { errorAlert, secondaryButton } from '../../shared/ui/styles';
+import { errorAlert, focusRing, secondaryButton } from '../../shared/ui/styles';
 import { useGroupsApi, useListLanguage } from './api';
 import { GroupSection } from './GroupSection';
 import { NewGroupDialog } from './NewGroupDialog';
@@ -55,6 +56,14 @@ export function GroupsPage() {
         <h1 className="text-2xl font-bold">{t('groups.heading')}</h1>
         {sections && sections.length > 0 && <NewGroupDialog />}
       </div>
+      <p>
+        <Link
+          to="/groups/archived"
+          className={`font-bold text-primary underline underline-offset-4 ${focusRing}`}
+        >
+          {t('groups.archivedList.link')}
+        </Link>
+      </p>
       {showLoader && <p role="status">{t('groups.loading')}</p>}
       {loading && !sections && (
         <ul aria-busy="true" className="flex flex-col gap-2">

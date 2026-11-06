@@ -76,30 +76,30 @@ neodvisnega agenta `pregled-testov` (workflow.md §4.2).
 
 ### US1 + US2 – arhiviranje in samo za branje (P1)
 
-- [ ] T021 [US1] FR-003-01 FR-003-03 backend `GroupRepository` (`MemberState.permanentlyArchived`, `setArchived`, `lockState`, DETAIL s `permanentlyArchived`, `canDelete`), `GroupAccess.Membership.permanentlyArchived`, `GroupService.archive` (zaklep vrstice, ponovni pregled → `GroupArchivedException`) in `GroupController` `POST …/archive`; `GroupService.update` po zaklepu ponovno preveri arhiviranost
-- [ ] T022 [US1] [US2] FR-003-01 FR-003-04 FR-003-05 frontend: `api.archiveGroup`, `ArchiveGroupDialog`, `ArchivedBanner` v `GroupLayout` (pod glavo), `GroupManagementSection` v `SettingsPage`, 409 `GROUP_ARCHIVED` v `GroupDetailsSection` (ponovno branje + sporočilo v nadrejeni komponenti)
+- [X] T021 [US1] FR-003-01 FR-003-03 backend `GroupRepository` (`MemberState.permanentlyArchived`, `setArchived`, `lockState`, DETAIL s `permanentlyArchived`, `canDelete`), `GroupAccess.Membership.permanentlyArchived`, `GroupService.archive` (zaklep vrstice, ponovni pregled → `GroupArchivedException`) in `GroupController` `POST …/archive`; `GroupService.update` po zaklepu ponovno preveri arhiviranost
+- [X] T022 [US1] [US2] FR-003-01 FR-003-04 FR-003-05 frontend: `api.archiveGroup`, `ArchiveGroupDialog`, `ArchivedBanner` v `GroupLayout` (pod glavo), `GroupManagementSection` v `SettingsPage`, 409 `GROUP_ARCHIVED` v `GroupDetailsSection` (ponovno branje + sporočilo v nadrejeni komponenti)
 
 ### US3 – odarhiviranje (P2)
 
-- [ ] T023 [US3] FR-003-06 FR-003-08 backend `GroupService.unarchive` (`GroupNotArchivedException`), `POST …/unarchive`
-- [ ] T024 [US3] FR-003-06 frontend `api.unarchiveGroup`, gumb v pasici in v `GroupManagementSection` (brez potrditve, obvestilo, osvežitev povzetka)
+- [X] T023 [US3] FR-003-06 FR-003-08 backend `GroupService.unarchive` (`GroupNotArchivedException`), `POST …/unarchive`
+- [X] T024 [US3] FR-003-06 frontend `api.unarchiveGroup`, gumb v pasici in v `GroupManagementSection` (brez potrditve, obvestilo, osvežitev povzetka)
 
 ### US4 + US5 – seznam arhiviranih in trajno arhivirana (P2/P3)
 
-- [ ] T025 [US4] [US5] FR-003-02 FR-003-07 FR-003-08 backend `GroupRepository.archivedPage/archivedCount`, `GET /api/groups/archived` (ista razčlenitev parametrov kot `list`)
-- [ ] T026 [US4] [US5] FR-003-07 FR-003-08 frontend `api.listArchived`, `ArchivedGroupsPage`, povezave v `GroupsPage`, `Sidebar`, `GroupSwitcher`
+- [X] T025 [US4] [US5] FR-003-02 FR-003-07 FR-003-08 backend `GroupRepository.archivedPage/archivedCount`, `GET /api/groups/archived` (ista razčlenitev parametrov kot `list`)
+- [X] T026 [US4] [US5] FR-003-07 FR-003-08 frontend `api.listArchived`, `ArchivedGroupsPage`, povezave v `GroupsPage`, `Sidebar`, `GroupSwitcher`
 
 ### US6 – izbris skupine (P2)
 
-- [ ] T027 [US6] FR-003-09 FR-003-11 backend `GroupService.delete` (zaklep, vloga po stanju, število članov, `GroupHasOtherMembersException`), `DELETE /api/groups/{groupId}`
-- [ ] T028 [US6] FR-003-09 FR-003-10 FR-003-11 frontend `api.deleteGroup`, `DeleteGroupDialog` (vpis naslova), preusmeritev, obvestilo
+- [X] T027 [US6] FR-003-09 FR-003-11 backend `GroupService.delete` (zaklep, vloga po stanju, število članov, `GroupHasOtherMembersException`), `DELETE /api/groups/{groupId}`
+- [X] T028 [US6] FR-003-09 FR-003-10 FR-003-11 frontend `api.deleteGroup`, `DeleteGroupDialog` (vpis naslova), preusmeritev, obvestilo
 
 ---
 
 ## Phase 6: Polish
 
-- [ ] T029 `./verify.sh quick`, nato `./verify.sh full` zeleno; `traceability.md` (sledljivost FR-ID → testi, implementacija); README/CLAUDE.md po potrebi; AI dnevnik
-- [ ] T030 `/speckit-converge` do »Converged«; PR v `main`
+- [X] T029 `./verify.sh quick`, nato `./verify.sh full` zeleno; `traceability.md` (sledljivost FR-ID → testi, implementacija); README/CLAUDE.md po potrebi; AI dnevnik
+- [X] T030 `/speckit-converge` do »Converged«; PR v `main`
 
 ## Dependencies
 

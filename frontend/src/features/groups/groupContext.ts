@@ -9,6 +9,8 @@ export interface GroupContextValue {
   setGroup: (group: GroupDetail) => void;
   /** Zahtevek je vrnil 404 (izguba članstva, izbris): namesto vsebine »Te strani ni« (FR-002-08). */
   markNotFound: () => void;
+  /** Ponovno prebere skupino (stanje se je medtem spremenilo: arhivirana, odarhivirana; FR-003-04). */
+  reload: () => Promise<void>;
 }
 
 export const GroupContext = createContext<GroupContextValue | null>(null);

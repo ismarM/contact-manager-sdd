@@ -41,7 +41,17 @@ class GroupReadIT extends ApiTest {
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(json(response.body()))
                 .containsOnlyKeys(
-                        "id", "title", "description", "color", "role", "archived", "version", "updatedAt", "updatedBy")
+                        "id",
+                        "title",
+                        "description",
+                        "color",
+                        "role",
+                        "archived",
+                        "permanentlyArchived",
+                        "canDelete",
+                        "version",
+                        "updatedAt",
+                        "updatedBy")
                 .containsEntry("id", group.toString())
                 .containsEntry("title", "Projekt FERI")
                 .containsEntry("description", "Opis")

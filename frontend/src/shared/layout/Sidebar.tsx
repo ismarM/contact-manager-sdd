@@ -64,6 +64,12 @@ export function Sidebar() {
           </button>
         </div>
       )}
+      <Link
+        to="/groups/archived"
+        className={`rounded-md px-2 py-1 font-bold text-primary underline underline-offset-4 ${focusRing}`}
+      >
+        {t('groups.archivedList.link')}
+      </Link>
       <NewGroupDialog className={`${secondaryButton} w-full`} />
     </nav>
   );

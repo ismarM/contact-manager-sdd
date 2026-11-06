@@ -119,3 +119,7 @@ spawn a general-purpose subagent and tell it to read .claude/agents/pregled-test
 
 now that you are up to date with the new rules continue with the next steps and run them all by yourself, specifically `/speckit-plan` → `/speckit-tasks` → `/speckit-analyze` → `/speckit-implement` → `/speckit-converge`. once you are done commit the changes, push to remote and merge into main.
 ```
+
+## 2026-11-06 – 003 arhiviranje in izbris skupine
+- Plan, tasks, analyze, testi (pregled testov: ZAVRNJENO, ZAVRNJENO, SPREJETO v 3. krogu), implementacija; `./verify.sh full` OK.
+- Spremembi testov: D-36 (GroupManagementSection.test, regija med odprtim dialogom), D-37 (002: GroupDetail dobi 2 polji).

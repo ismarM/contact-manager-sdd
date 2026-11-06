@@ -26,8 +26,9 @@ const formState = (group: GroupDetail): GroupFormState => ({
  */
 export function GroupDetailsSection() {
   const { t } = useTranslation();
-  const { group } = useGroup();
+  const { group, reload } = useGroup();
   const headingId = useId();
+  const [archivedMeanwhile, setArchivedMeanwhile] = useState(false);
   const canEdit = (group.role === 'OWNER' || group.role === 'ADMIN') && !group.archived;
 
   return (
@@ -35,8 +36,21 @@ export function GroupDetailsSection() {
       <h2 id={headingId} className="text-xl font-bold">
         {t('groups.details.heading')}
       </h2>
+      {archivedMeanwhile && (
+        <div role="alert" className={errorAlert}>
+          <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
+          <span>{t('groups.details.archived')}</span>
+        </div>
+      )}
       {canEdit ? (
-        <DetailsForm key={group.id} labelledBy={headingId} />
+        <DetailsForm
+          key={group.id}
+          labelledBy={headingId}
+          onArchived={() => {
+            setArchivedMeanwhile(true);
+            void reload();
+          }}
+        />
       ) : (
         <dl className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-[max-content_1fr]">
           <dt className="text-muted-foreground">{t('groups.form.title')}</dt>
@@ -63,7 +77,7 @@ export function GroupDetailsSection() {
   );
 }
 
-function DetailsForm({ labelledBy }: { labelledBy: string }) {
+function DetailsForm({ labelledBy, onArchived }: { labelledBy: string; onArchived: () => void }) {
   const { t } = useTranslation();
   const api = useGroupsApi();
   const { group, setGroup, markNotFound } = useGroup();
@@ -96,6 +110,12 @@ function DetailsForm({ labelledBy }: { labelledBy: string }) {
         setConflict(current);
       } else if (error instanceof ApiError && error.status === 404) {
         markNotFound();
+      } else if (
+        error instanceof ApiError &&
+        error.status === 409 &&
+        error.code === 'GROUP_ARCHIVED'
+      ) {
+        onArchived();
       } else {
         const fields = fieldErrors(error)
           .map(({ field, code }) => serverFieldError(field, code))

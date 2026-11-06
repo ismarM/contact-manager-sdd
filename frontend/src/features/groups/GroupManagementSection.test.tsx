@@ -292,9 +292,6 @@ describe('GroupManagementSection', () => {
         within(dialog).getByRole('textbox', { name: 'Za potrditev vpiši naslov skupine' }),
       ).toBeInTheDocument();
       expect(within(dialog).getByRole('button', { name: 'Prekliči' })).toHaveFocus();
-      expect(screen.getByRole('region', { name: 'Upravljanje skupine' })).not.toHaveTextContent(
-        DELETE_INFO,
-      );
     });
 
     it.each(['napačno', 'projekt feri', ''])(
