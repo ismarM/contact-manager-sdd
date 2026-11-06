@@ -104,3 +104,27 @@ neodvisnega agenta `pregled-testov` (workflow.md §4.2).
 ## Dependencies
 
 Setup → Foundational → Tests → T020 → Implementacija (T021 → T022; T023 → T024; T025 → T026; T027 → T028) → Polish. Backend in vmesnik posamezne zgodbe sta neodvisna po T021/T023/T025/T027.
+
+## Parallel execution
+
+- Setup T001–T004 so vsi `[P]` (različne datoteke). Foundational: T005 (BE) in T006 (FE) sta neodvisna.
+- Testi T007–T013 (BE) in T014–T018 (FE) so `[P]`; E2E T019 po FE testih (isti pomočniki).
+- Implementacija: BE in FE posamezne zgodbe tečeta vzporedno po T021/T023/T025/T027; naloge, ki spreminjajo isto datoteko
+  (`GroupService`, `GroupRepository`, `GroupController`, `GroupManagementSection`), tečejo zaporedno.
+
+## Implementation strategy
+
+1. MVP = US1 + US2 (arhiviranje, pasica, samo za branje): T021–T022.
+2. Nato US3 (odarhiviranje), US4/US5 (seznam, trajno arhivirana), US6 (izbris); po vsaki zgodbi `./verify.sh quick`.
+3. Na koncu `./verify.sh full`, `/speckit-converge`, PR.
+
+## Analysis (`/speckit-analyze`, 2026-11-06, samo branje)
+
+Vseh 11 FR in 6 SC ima vsaj eno nalogo in test (tabela pokritosti v plan.md). Ugotovitve in odločitve:
+
+- **MEDIUM – nedoločen prikaz *Upravljanja skupine* za člane brez lastništva:** spec ne določa, kdo vidi razdelek. Odločitev v planu
+  (research R-08): lastnik vedno; pri trajno arhivirani skupini vsi člani; drugi člani nearhivirane skupine ga ne vidijo
+  (*Zapusti skupino* doda 007). Test T017 to preverja.
+- **LOW – `Status: Draft` v spec.md:** ostane do sprejema PR.
+- **LOW – kaskada za tabele 004–006:** zapisana kot obveza v data-model.md; preveri jo vsaka od teh funkcionalnosti.
+Konstitucijskih navzkrižij ni.
