@@ -29,6 +29,26 @@ Merila uspeha: SC-002 – skupine.spec.ts › SC-002 (100 skupin, < 2 s v brskal
 SC-003 – GroupReadIT, GroupIsolationMatrixSecurityIT; SC-004 – GroupConcurrencyIT; SC-005 – ročni preizkus (quickstart #11,
 T050); SC-006 – axe v vseh funkcionalnih testih FE in v E2E v sl in en.
 
+## Implementacija
+
+| FR-ID | Zaledje (`backend/src/main/java/si/contactmanager/`) | Vmesnik (`frontend/src/`) |
+|---|---|---|
+| FR-002-01 | group/GroupController (`POST`), GroupService.create, account/UserDirectory.ensure | features/groups/NewGroupDialog, GroupFormFields, ColorPicker; shared/ui/dialog; shared/layout/Sidebar |
+| FR-002-02 | group/GroupInputParser; shared/error/ValidationException → ApiExceptionHandler | features/groups/groupValidation, api (`fieldErrors`), GroupFormFields |
+| FR-002-03 | GroupService.create (OWNER), GroupColor (privzeta tinta) | NewGroupDialog (obvestilo, odprtje, fokus), shared/ui/sonner |
+| FR-002-04 | GroupController (`GET /api/groups`), GroupService.list, GroupRepository (countByRole, pageByRole, ICU `title_sl`/`title_en`) | features/groups/GroupsPage, GroupSection, SectionPagination, useDelayed |
+| FR-002-05 | GroupController.list (`sections: []`) | GroupsPage (prazno stanje) |
+| FR-002-06 | GroupController.list (`size=10`) | features/groups/GroupsProvider; shared/layout/Sidebar, GroupSwitcher, AppShell; shared/lib/useMediaQuery |
+| FR-002-07 | GroupController (`GET /{groupId}`), GroupRepository.findDetail | features/groups/GroupLayout, GroupHeader |
+| FR-002-08 | group/GroupAccess (neveljaven uuid, nečlan → NotFoundException), ApiExceptionHandler (404 prazno telo) | GroupLayout (`NotFoundPage`), GroupDetailsSection (`markNotFound`) |
+| FR-002-09 | – | GroupsPage, SettingsPage (`useDocumentTitle`), i18n `title.*` |
+| FR-002-10 | GroupController.get (VIEWER) | features/groups/GroupDetailsSection (branje) |
+| FR-002-11 | GroupAccess (ADMIN, `write`), GroupService.update, GroupRepository.update; ForbiddenException, GroupArchivedException | GroupDetailsSection (obrazec), groupContext, GroupsProvider.refresh |
+| FR-002-12 | GroupService.update (`SELECT … FOR UPDATE`, verzija, nespremenjeno), VersionConflictException, VersionConflict | ConflictAlert, conflictMessage, shared/api/client (`ApiError.body`) |
+| FR-002-13 | – | api (`failureKey`), NewGroupDialog, GroupDetailsSection, GroupsPage, GroupSection, Sidebar, GroupSwitcher |
+
+Migracija: `backend/src/main/resources/db/migration/V3__skupine.sql` (FR-002-02, -03, -04, -12).
+
 ## Pregled testov
 
 Neodvisen podagent `pregled-testov` (`.claude/agents/pregled-testov.md`), vsak krog nov primerek; dobil je mapo
@@ -68,3 +88,5 @@ Testne datoteke in asercije po commitu `test(002)` niso spremenjene.
 | 2026-11-06 | BE po implementaciji US1–US4 | unit 53, integracijski 81, varnostni 88 – vse uspe (prvi zagon brez popravkov kode zaledja) |
 | 2026-11-06 | FE po implementaciji | unit 73, funkcionalni 137 – vse uspe; popravljeno v implementaciji: podvojeno obvestilo (Sonner predvaja aktivna obvestila novemu Toasterju → `toast.dismiss()` ob odstranitvi ogrodja) |
 | 2026-11-06 | `./verify.sh full` | 1. zagon PADLO (funkcionalni FE: neobravnavana napaka `setPointerCapture` v jsdom); po D-32 **zelen** (227 s): E2E 132 (99 iz 000/001, 33 iz 002, tudi SC-002 < 2 s) |
+| 2026-11-06 | `/speckit-converge` | krog 1: F1 (napaka povzetka ni vidna v stranskem pasu/meniju – konstitucija IV), F2 (enotno stanje nalaganja seznamov), F3 (nalaganje skupine brez statusa) → T051–T053 odpravljene; krog 2: Converged; testi po `test(002)` nespremenjeni razen D-32 |
+| 2026-11-06 | `./verify.sh full` po converge | **zelen** (216 s): BE unit 53, integracijski 81, varnostni 88, FE unit 73, funkcionalni 137, E2E 132 – 564 uspe, 0 pade |

@@ -11,6 +11,7 @@ import { GroupContext, type GroupContextValue } from './groupContext';
 import { GroupHeader } from './GroupHeader';
 import { SettingsPage } from './SettingsPage';
 import type { GroupDetail } from './types';
+import { useDelayed } from './useDelayed';
 
 /** Razdelki skupine (plan.md – Pages and routes): do 004 samo *Nastavitve*, ki so tudi prvi razdelek. */
 const SECTIONS = ['settings'] as const;
@@ -50,6 +51,7 @@ function GroupScreen({ groupId }: { groupId: string }) {
   const location = useLocation();
   const [state, setState] = useState<State>({ kind: 'loading' });
   const focusTitle = (location.state as { focusTitle?: boolean } | null)?.focusTitle === true;
+  const showLoader = useDelayed(state.kind === 'loading');
 
   useEffect(() => {
     let active = true;
@@ -94,7 +96,13 @@ function GroupScreen({ groupId }: { groupId: string }) {
       </div>
     );
   }
-  if (!context) return null;
+  if (!context) {
+    return showLoader ? (
+      <p role="status" className="px-4 py-8">
+        {t('groups.loading')}
+      </p>
+    ) : null;
+  }
 
   return (
     <GroupContext.Provider value={context}>

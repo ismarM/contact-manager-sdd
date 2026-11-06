@@ -79,7 +79,11 @@ export function GroupsPage() {
         </section>
       )}
       {sections?.map((section) => (
-        <GroupSection key={`${section.role}:${loaded?.key ?? ''}`} initial={section} />
+        <GroupSection
+          key={`${section.role}:${loaded?.key ?? ''}`}
+          initial={section}
+          reloading={loading}
+        />
       ))}
     </div>
   );

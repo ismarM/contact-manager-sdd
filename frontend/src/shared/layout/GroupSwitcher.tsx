@@ -22,7 +22,7 @@ import { focusRing } from '../ui/styles';
  */
 export function GroupSwitcher() {
   const { t } = useTranslation();
-  const { sections } = useGroups();
+  const { sections, error, refresh } = useGroups();
   const current = useMatch('/groups/:groupId/*')?.params.groupId;
   const trigger = useRef<HTMLButtonElement>(null);
 
@@ -69,6 +69,12 @@ export function GroupSwitcher() {
             </DropdownMenuGroup>
           </Fragment>
         ))}
+        {error && (
+          <>
+            <DropdownMenuLabel>{t('groups.loadFailed')}</DropdownMenuLabel>
+            <DropdownMenuItem onSelect={refresh}>{t('groups.retry')}</DropdownMenuItem>
+          </>
+        )}
         {sections.some((section) => section.total > section.items.length) && (
           <>
             <DropdownMenuSeparator />

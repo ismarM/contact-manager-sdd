@@ -5,7 +5,7 @@ import { COLOR_SWATCH } from '../../features/groups/colors';
 import { useGroups } from '../../features/groups/groupsContext';
 import { NewGroupDialog } from '../../features/groups/NewGroupDialog';
 import { cn } from '../lib/cn';
-import { focusRing, secondaryButton } from '../ui/styles';
+import { errorAlert, focusRing, secondaryButton } from '../ui/styles';
 
 /**
  * Stranski pas od 1024 px (design.md 7.1; FR-002-06): moje skupine po vlogah (brez praznih razdelkov), največ 10 na
@@ -13,7 +13,7 @@ import { focusRing, secondaryButton } from '../ui/styles';
  */
 export function Sidebar() {
   const { t } = useTranslation();
-  const { sections } = useGroups();
+  const { sections, error, refresh } = useGroups();
   const current = useMatch('/groups/:groupId/*')?.params.groupId;
 
   return (
@@ -56,6 +56,14 @@ export function Sidebar() {
           )}
         </section>
       ))}
+      {error && (
+        <div role="alert" className={`${errorAlert} flex-col`}>
+          <span>{t('groups.loadFailed')}</span>
+          <button type="button" className={secondaryButton} onClick={refresh}>
+            {t('groups.retry')}
+          </button>
+        </div>
+      )}
       <NewGroupDialog className={`${secondaryButton} w-full`} />
     </nav>
   );

@@ -8,12 +8,19 @@ import { useGroupsApi, useListLanguage } from './api';
 import { COLOR_SWATCH } from './colors';
 import { PAGE_SIZES, SectionPagination } from './SectionPagination';
 import type { GroupSection as Section } from './types';
+import { useDelayed } from './useDelayed';
 
 /**
  * Razdelek zaslona *Skupine* (design.md 9.2, 8.9; FR-002-04): naslov ravni 2 s številom, vrstice z jezičkom, naslovom,
  * skrajšanim opisom in številom kontaktov, lastna paginacija (25/50/100), vidna, ko je skupin več kot 25.
  */
-export function GroupSection({ initial }: { initial: Section }) {
+export function GroupSection({
+  initial,
+  reloading = false,
+}: {
+  initial: Section;
+  reloading?: boolean;
+}) {
   const { t } = useTranslation();
   const api = useGroupsApi();
   const lang = useListLanguage();
@@ -23,6 +30,8 @@ export function GroupSection({ initial }: { initial: Section }) {
   const heading = useRef<HTMLHeadingElement>(null);
   const headingId = useId();
   const roleName = t(`roles.${section.role}`);
+  // Menjava strani obdrži prejšnjo vsebino z oznako »Nalagam…« (design.md 8.15).
+  const showLoader = useDelayed(busy);
 
   const load = async (page: number, size: number, focus: boolean) => {
     setBusy(true);
@@ -57,8 +66,9 @@ export function GroupSection({ initial }: { initial: Section }) {
           </button>
         </div>
       )}
+      {showLoader && <p role="status">{t('groups.loading')}</p>}
       <ul
-        aria-busy={busy}
+        aria-busy={busy || reloading}
         className="flex flex-col divide-y divide-border rounded-lg border border-border bg-card"
       >
         {section.items.map((group) => (

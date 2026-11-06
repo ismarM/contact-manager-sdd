@@ -140,9 +140,9 @@ neodvisnega agenta `pregled-testov` (workflow.md §4.2).
 
 ## Phase N: Polish & Cross-Cutting Concerns
 
-- [ ] T046 — `/speckit-converge` do »Converged«; `./verify.sh quick` zelen (vključno z vsemi testi 000 in 001)
-- [ ] T047 — Posodobi specs/002-skupine/traceability.md (vsak FR-ID → testi → stanje; matrika izolacije za `GET`/`PUT /api/groups/{groupId}`)
-- [ ] T048 — `./verify.sh full` zelen (integracijski z ICU na `postgres:18-alpine`, varnostni, E2E pri treh širinah); če ICU ne deluje, ustavi se in odpri D-28 z novim vnosom
+- [X] T046 — `/speckit-converge` do »Converged«; `./verify.sh quick` zelen (vključno z vsemi testi 000 in 001)
+- [X] T047 — Posodobi specs/002-skupine/traceability.md (vsak FR-ID → testi → stanje; matrika izolacije za `GET`/`PUT /api/groups/{groupId}`)
+- [X] T048 — `./verify.sh full` zelen (integracijski z ICU na `postgres:18-alpine`, varnostni, E2E pri treh širinah); če ICU ne deluje, ustavi se in odpri D-28 z novim vnosom
 - [ ] T049 — Potisni vejo `skupine` in odpri PR v `main` (predpostavke, izid pregleda testov, commit `test(002)`; v opisu označi D-25, D-26, D-27 in spremembo `verify.sh` za pregled drugega razvijalca)
 - [ ] T050 — Razvijalca: pregled PR, potrditev D-25 … D-27 in ročni preizkus s tipkovnico in bralnikom zaslona (design.md §10, quickstart #11); združitev (agent pusti neoznačeno)
 
@@ -173,3 +173,13 @@ neodvisnega agenta `pregled-testov` (workflow.md §4.2).
 - Testi se po pregledu spreminjajo samo zaradi specifikacije (DECISIONS.md).
 - Brez utišanj brez D-NN; barve samo iz žetonov (`bg-group-*`, design.md 4.2 in 13.2).
 - `GroupAccess` je skupni temelj za 003–011 (D-27); kontrolerji vlog ne preverjajo sami.
+
+## Phase 9: Convergence
+
+- [X] T051 Prikaži neuspelo nalaganje povzetka skupin (`GroupsContext.error`) v stranskem pasu in meniju preklopa kot razumljivo sporočilo »Skupin ni bilo mogoče naložiti. Poskusi znova.« z gumbom »Poskusi znova« (`refresh()`) v frontend/src/shared/layout/Sidebar.tsx in GroupSwitcher.tsx per Constitution IV, FR-002-06 (partial)
+- [X] T052 Enotno stanje nalaganja seznamov (design.md 8.15): ob ponovnem nalaganju zaslona *Skupine* (menjava jezika) in ob menjavi strani ali velikosti razdelka obdrži prejšnjo vsebino, označi seznam z `aria-busy="true"` in po 300 ms prikaži »Nalagam…« v frontend/src/features/groups/GroupsPage.tsx in GroupSection.tsx per FR-002-04 (partial)
+- [X] T053 Med nalaganjem skupine po 300 ms prikaži status »Nalagam…« (design.md 8.15) v frontend/src/features/groups/GroupLayout.tsx per FR-002-07 (partial)
+
+**Izid converge (2026-11-06):** 1. krog – 3 ugotovitve (F1 MEDIUM, F2 in F3 LOW, vse *partial*), dodane kot T051–T053 in odpravljene;
+2. krog – **Converged** (0 ugotovitev). Testi po `test(002)` nespremenjeni (razen podpore D-32). `./verify.sh full` po converge zelen
+(216 s): BE unit 53, integracijski 81, varnostni 88, FE unit 73, funkcionalni 137, E2E 132 – 564 uspe, 0 pade.
