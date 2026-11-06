@@ -7,7 +7,7 @@ Pravila beleženja: `docs/ai-development-log.md` (v zgodovini Gita, commit `b71c
 
 | Seja (`token-report-ismar.md`) | Seja Claude Code | Datum, čas | Funkcionalnost | Opomba |
 |---|---|---|---|---|
-| 1 | `00793e9d` (T3 Code, Claude Code) | 2026-11-05 od 20:37 do 2026-11-06 (CET) | `002-skupine` – clarify, plan, pregled plana, uskladitev odločitev, tasks, analyze, implement (testi, pregled testov, koda US1–US4) | menjava modela med sejo (Sonnet 5.5 → Opus 5.5); 3 podagenti `pregled-testov` |
+| 1 | `00793e9d` (T3 Code, Claude Code) | 2026-11-05 od 20:37 do 2026-11-06 (CET) | `002-skupine` – clarify, plan, pregled plana, uskladitev odločitev, tasks, analyze, implement (testi, pregled testov, koda US1–US4), converge | menjava modela med sejo (Sonnet 5.5 → Opus 5.5); 3 podagenti `pregled-testov` |
 
 **Stolpci tabel interakcij**
 
@@ -23,9 +23,9 @@ Pravila beleženja: `docs/ai-development-log.md` (v zgodovini Gita, commit `b71c
 - **Datum:** 2026-11-05, od 20:37 (CET; konec seje ob pisanju še ni znan)
 - **Razvijalec:** Ismar
 - **Agent / model:** Claude Code v T3 Code; `claude-sonnet-5-5` (#1–#4: preverjanje okolja, clarify, plan), `claude-opus-5-5`
-  (#5–#7: pregled plana, uskladitev odločitev, commiti, tasks, analyze, implement – testi, pregled testov in koda; model zamenjal razvijalec z `/model`). Oba modela potrjuje lokalni
+  (#5–#7: pregled plana, uskladitev odločitev, commiti, tasks, analyze, implement – testi, pregled testov in koda; converge; model zamenjal razvijalec z `/model`). Oba modela potrjuje lokalni
   dnevnik seje. Podagenti: 3 × `pregled-testov` (#11b–#11d, model podagenta: ni podatka).
-- **Veja / commiti:** `skupine` – `f7689fe` (clarify), `b1ecc5c` (D-25 … D-28), `8cbf543` (plan), `990d77b` (tasks in analyze), `690c920` (`test(002)`), `80e002e` (`feat(002)`), commiti dnevnika; brez `git push`
+- **Veja / commiti:** `skupine` – `f7689fe` (clarify), `b1ecc5c` (D-25 … D-28), `8cbf543` (plan), `990d77b` (tasks in analyze), `690c920` (`test(002)`), `80e002e` (`feat(002)`), `f4dce28` (`fix(002)` converge), commiti dnevnika; brez `git push`
 - **Poraba žetonov:** ni podatka (`token-report-ismar.md` še ni izpolnjen)
 
 | # | Vrsta | Točen prompt / odgovor | Faza SDD | Rezultat / spremenjene datoteke | Preverjanje | Težava (kategorija) | Status |
@@ -58,6 +58,10 @@ Pravila beleženja: `docs/ai-development-log.md` (v zgodovini Gita, commit `b71c
 | 12b | agent | vmesnik US1–US4 (T032–T034, T036–T039, T042, T044, T045) | implement | `ApiError.body`, `useMediaQuery`, validacija, `conflictMessage`, API skupin, shadcn *Dialog* in *Sonner*, izbira barve in polja, `NewGroupDialog`, `GroupsProvider`, stranski pas, meni preklopa, `GroupsPage`/`GroupSection`/`SectionPagination`, `GroupLayout`/`GroupHeader`/`SettingsPage`, `GroupDetailsSection`, `ConflictAlert` | FE unit 73, funkcionalni 137 – vse uspe | agent-error (popravljeno v implementaciji): 2 napaki ESLint (ime funkcije `useCurrent` je kršilo pravilo kavljev, `any` iz `location.state`); podvojeno obvestilo – Sonner predvaja aktivna obvestila novemu `Toaster` → `toast.dismiss()` ob odstranitvi ogrodja | accepted |
 | 12c | agent | `./verify.sh full` | implement | 1. zagon PADLO na »funkcionalni FE«: neobravnavana napaka `setPointerCapture is not a function` (Sonner v jsdom) ob vseh uspelih asercijah – agent jo je v ročnem zagonu spregledal (gledal le število testov); dodan nadomestek brez vedenja v `test/setup.ts` (D-32, `sprememba-testa`, podpora testom) | 2. zagon **zelen** (227 s): BE unit 53, integracijski 81, varnostni 88, FE unit 73, funkcionalni 137, E2E 132 (vključno s SC-002 < 2 s) – 0 padcev; regresija 000/001 ni | agent-error (spregledana neobravnavana napaka) | accepted |
 | 12d | agent | dokumenti in commit | implement | `tasks.md` T029–T045 `[X]` (T046–T050 odprte), `traceability.md` (vsi FR zeleni, *Spremembe po pregledu testov*: D-32), `DECISIONS.md` D-32; commit `80e002e` `feat(002): …`; brez `git push`, brez PR, brez `/speckit-converge` | gitleaks brez najdb | – | accepted |
+| 13 | ukaz | `/speckit-converge` z navodilom »Začenjava zaključno preverjanje funkcionalnosti `002-skupine` … Odpravi ugotovljena neskladja skladno z `workflow.md`, brez prilagajanja testov … Ne izvajaj `git push` in ne odpiraj PR.« | converge | – | – | – | accepted |
+| 13a | agent | ocena (krog 1) | converge | 13 FR, 5 SC, 30 scenarijev, 8 robnih primerov, 13 odločitev plana, 7 načel konstitucije; `git diff 690c920 HEAD` testov: samo D-32; ugotovitve: F1 MEDIUM (napaka povzetka skupin ni vidna – konstitucija IV, FR-002-06), F2 LOW (enotno stanje nalaganja seznamov – design.md 8.15), F3 LOW (nalaganje skupine brez statusa) → dodane kot Phase 9: T051–T053 | – | none | accepted |
+| 13b | agent | odprava T051–T053 in krog 2 | converge | `Sidebar.tsx`, `GroupSwitcher.tsx` (napaka s »Poskusi znova«), `GroupsPage.tsx`, `GroupSection.tsx` (`aria-busy`, zamaknjen »Nalagam…«), `GroupLayout.tsx` (status med nalaganjem); krog 2: **Converged** | FE unit 73, funkcionalni 137 uspe; `./verify.sh full` zelen (216 s): 564 uspe, 0 pade | agent-error (popravljeno): urejanje s skripto je bilo vneseno le delno (Prettier je prej prelomil vrstico) – napaka tipov; skupni zagon obeh projektov Vitest v enem ukazu je dal 2 padca zaradi časovne omejitve – ločeno (kot v `verify.sh`) vse uspe | accepted |
+| 13c | agent | dokumenti in commit | converge | `tasks.md` T046–T048 in T051–T053 `[X]` (T049 PR in T050 pregled razvijalcev odprta), `traceability.md` (preslikava FR → implementacijske datoteke, converge, verify); commit `f4dce28` `fix(002): …`; brez `git push`, brez PR | gitleaks brez najdb | – | accepted |
 
 **Potrjene odločitve razvijalca (#5)**
 
@@ -75,13 +79,13 @@ D-25, D-26 in D-27 spreminjajo skupne dokumente ali vplivajo na druge funkcional
 
 | Metrika | Rezultat |
 |---|---|
-| Sporočila razvijalca / odgovori v dialogu / gumbi / ukazi | 6 / 1 / 0 / 5 (+ `/model`) |
+| Sporočila razvijalca / odgovori v dialogu / gumbi / ukazi | 6 / 1 / 0 / 6 (+ `/model`) |
 | Interakcije uspešne brez dodatnega poziva | #1, #2, #2a, #4, #7, #8 |
 | Dodatni pozivi ali popravki navodil | #5 (potrditev odločitev in uskladitev), #9 (odprava ugotovitev analyze), #11 (popravek okolja Docker), #12 (prekinjeno in ponovno poslano navodilo za kodo) |
-| Potrjene napake agenta | 12 (#2b dnevnik; #3 ime testa, trditev o ICU, sklic na konstitucijo, nejasna priprava E2E – popravljene v #6; #10b `@SuppressWarnings` v testu, neobstoječa metoda, test nalaganja; #11a neločena spremenljivka v zsh; #12b dve napaki ESLint in podvojeno obvestilo; #12c spregledana neobravnavana napaka Vitest) – vse popravljene |
+| Potrjene napake agenta | 14 (#2b dnevnik; #3 ime testa, trditev o ICU, sklic na konstitucijo, nejasna priprava E2E – popravljene v #6; #10b `@SuppressWarnings` v testu, neobstoječa metoda, test nalaganja; #11a neločena spremenljivka v zsh; #12b dve napaki ESLint in podvojeno obvestilo; #12c spregledana neobravnavana napaka Vitest; #13b delno vneseno urejanje, skupni zagon Vitest) – vse popravljene |
 | Nejasne ali spremenjene zahteve | 1 (verzija pri nespremenjenem shranjevanju, #2a) |
 | Napake, odkrite z drugim agentom | 8 (pregled testov: 6 v krogu 1, 2 v krogu 2) |
-| Preverjanje s testi | do analyze ni izvedeno; implement (testi): `verify.sh quick` zelen pred spremembami; novi testi 002 padejo iz pravega razloga (BE unit, FE unit, FE funkcionalni), testi 000/001 zeleni; integracijski, varnostni in E2E sprva zaradi Dockerja niso tekli, po popravku okolja (#11) potrjeni padci iz pravega razloga; pregled testov SPREJETO v 3. krogu; po implementaciji `./verify.sh full` zelen (564 testov, 0 padcev) |
+| Preverjanje s testi | do analyze ni izvedeno; implement (testi): `verify.sh quick` zelen pred spremembami; novi testi 002 padejo iz pravega razloga (BE unit, FE unit, FE funkcionalni), testi 000/001 zeleni; integracijski, varnostni in E2E sprva zaradi Dockerja niso tekli, po popravku okolja (#11) potrjeni padci iz pravega razloga; pregled testov SPREJETO v 3. krogu; po implementaciji in po converge `./verify.sh full` zelen (564 testov, 0 padcev) |
 
 ### Priloga A – prompt #4
 
