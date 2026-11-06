@@ -7,21 +7,21 @@ proti Docker Compose pri 360/768/1280 px).
 
 | FR-ID | Scenarij | Testi (datoteka › test) | Stanje |
 |---|---|---|---|
-| FR-002-01 | dialog *Nova skupina*, ustvarjanje, 401 | GroupCreateIT › creatorBecomesTheOnlyMemberWithRoleOwner, userWithoutPriorProfileSyncCanCreateAGroup, titlesAreNotUnique; GroupIsolationMatrixSecurityIT › userEndpointsRequireSignIn; NewGroupDialog.test.tsx › FR-002-01 (×4); Sidebar.test.tsx › FR-002-01; skupine.spec.ts › FR-002-01 … (×2) | rdeč (pričakovano); 401 zelen |
-| FR-002-02 | pravila naslova, opisa, barve pri ustvarjanju in urejanju | GroupInputParserTest (×14); GroupCreateIT › invalidDataIsRejectedAndNothingIsCreated (×5), titleIsStoredTrimmed; GroupUpdateIT › invalidDataIsRejectedAndNothingChanges (×5); groupValidation.test.ts (×8); NewGroupDialog.test.tsx › FR-002-02 (×4); GroupDetailsSection.test.tsx › FR-002-02 (×3); skupine.spec.ts › FR-002-02 | rdeč (pričakovano) |
-| FR-002-03 | ustvarjalec edini OWNER, privzeta tinta, obvestilo, odprta skupina | GroupColorTest (×3); GroupInputParserTest › createWithoutColorOrDescriptionUsesDefaults; GroupCreateIT › creatorBecomesTheOnlyMemberWithRoleOwner, groupWithoutColorGetsTinta; NewGroupDialog.test.tsx › FR-002-03 (×2); skupine.spec.ts › FR-002-01 FR-002-03 … | rdeč (pričakovano)¹ |
-| FR-002-04 | razdelki po vlogi, vrstica, paginacija, ICU red, brez arhiviranih in tujih | GroupListIT (×14 primerov); GroupsPage.test.tsx › FR-002-04 (×4 + axe); GroupSection.test.tsx (×4 + axe); skupine.spec.ts › FR-002-04 …, SC-002 | rdeč (pričakovano) |
-| FR-002-05 | prazno stanje | GroupListIT › userWithoutGroupsGetsNoSections, userWithoutProfileGetsNoSections; GroupsPage.test.tsx › FR-002-05; skupine.spec.ts › FR-002-01 … FR-002-05 | rdeč (pričakovano) |
-| FR-002-06 | stranski pas ≥ 1024 px, meni preklopa < 1024 px, največ 10, trenutna skupina | GroupListIT › groupsAreGroupedByRole…, eachSectionIsPaginatedSeparately (`size=10`); Sidebar.test.tsx (×6 + axe); GroupSwitcher.test.tsx (×4 + axe); skupine.spec.ts › FR-002-06 | rdeč (pričakovano) |
-| FR-002-07 | glava (vloga »Vloga: …«, *Arhivirano*), navigacija razdelkov (povezave, ne zavihki) | GroupReadIT › memberReadsTheGroupWithOwnRole, archivedGroupCanStillBeRead; GroupIsolationMatrixSecurityIT (`GET`); GroupLayout.test.tsx › FR-002-07 (×5 + axe); skupine.spec.ts › FR-002-04 …, FR-002-07 FR-002-04 (320 px) | rdeč (pričakovano) |
-| FR-002-08 | 404 za nečlana, neobstoječo in neveljavno skupino; »Te strani ni« | GroupReadIT › nonMemberAndMissingGroupGetTheSameEmpty404; GroupUpdateIT › missingOrMalformedGroupIs404WithEmptyBodyBeforeValidation; GroupIsolationMatrixSecurityIT (nečlan); GroupLayout.test.tsx › FR-002-08 (×3); skupine.spec.ts › FR-002-04 … FR-002-08 | rdeč (pričakovano) |
-| FR-002-09 | naslovi strani sl/en | GroupsPage.test.tsx › FR-002-09; GroupLayout.test.tsx › FR-002-09; skupine.spec.ts › FR-002-09 SC-006, FR-002-09 FR-002-11 | rdeč (pričakovano) |
-| FR-002-10 | podatki skupine za vse člane, brez obrazca za nižje vloge | GroupReadIT › memberReadsTheGroupWithOwnRole, lastEditorWhoDeletedTheAccountIsReportedAsNull, creatorWithoutNameIsReportedWithNullName; GroupIsolationMatrixSecurityIT (`GET`); GroupDetailsSection.test.tsx › FR-002-10 (×3); skupine.spec.ts › FR-002-04 … FR-002-10 | rdeč (pričakovano) |
-| FR-002-11 | urejanje za ADMIN/OWNER nearhivirane; 403/409 GROUP_ARCHIVED | GroupUpdateIT › adminChangesTitleAndColor…, ownerClearsTheDescription, archivedIsCheckedBeforeVersion…; GroupIsolationMatrixSecurityIT (`PUT`); GroupDetailsSection.test.tsx › FR-002-11 (×4); skupine.spec.ts › FR-002-09 FR-002-11 | rdeč (pričakovano) |
-| FR-002-12 | verzija, nespremenjeno shranjevanje, konflikt in razrešitev | GroupUpdateIT › savingUnchangedData…, staleVersionIsAConflict… (×2); GroupConcurrencyIT (×10); client.test.ts › FR-002-12 (×2); conflictMessage.test.ts (×5); GroupDetailsSection.test.tsx › FR-002-12 (×5); skupine.spec.ts › FR-002-12 | rdeč (pričakovano) |
-| FR-002-13 | sporočila neuspeha brez kod, vnosi ostanejo | client.test.ts › FR-002-13; NewGroupDialog.test.tsx › FR-002-13 (×2); GroupsPage.test.tsx › FR-002-13; GroupDetailsSection.test.tsx › FR-002-13 (×5); skupine.spec.ts › FR-002-13 | rdeč (pričakovano) |
+| FR-002-01 | dialog *Nova skupina*, ustvarjanje, 401 | GroupCreateIT › creatorBecomesTheOnlyMemberWithRoleOwner, userWithoutPriorProfileSyncCanCreateAGroup, titlesAreNotUnique; GroupIsolationMatrixSecurityIT › userEndpointsRequireSignIn; NewGroupDialog.test.tsx › FR-002-01 (×4); Sidebar.test.tsx › FR-002-01; skupine.spec.ts › FR-002-01 … (×2) | zelen |
+| FR-002-02 | pravila naslova, opisa, barve pri ustvarjanju in urejanju | GroupInputParserTest (×14); GroupCreateIT › invalidDataIsRejectedAndNothingIsCreated (×5), titleIsStoredTrimmed; GroupUpdateIT › invalidDataIsRejectedAndNothingChanges (×5); groupValidation.test.ts (×8); NewGroupDialog.test.tsx › FR-002-02 (×4); GroupDetailsSection.test.tsx › FR-002-02 (×3); skupine.spec.ts › FR-002-02 | zelen |
+| FR-002-03 | ustvarjalec edini OWNER, privzeta tinta, obvestilo, odprta skupina | GroupColorTest (×3); GroupInputParserTest › createWithoutColorOrDescriptionUsesDefaults; GroupCreateIT › creatorBecomesTheOnlyMemberWithRoleOwner, groupWithoutColorGetsTinta; NewGroupDialog.test.tsx › FR-002-03 (×2); skupine.spec.ts › FR-002-01 FR-002-03 … | zelen |
+| FR-002-04 | razdelki po vlogi, vrstica, paginacija, ICU red, brez arhiviranih in tujih | GroupListIT (×14 primerov); GroupsPage.test.tsx › FR-002-04 (×4 + axe); GroupSection.test.tsx (×4 + axe); skupine.spec.ts › FR-002-04 …, SC-002 | zelen |
+| FR-002-05 | prazno stanje | GroupListIT › userWithoutGroupsGetsNoSections, userWithoutProfileGetsNoSections; GroupsPage.test.tsx › FR-002-05; skupine.spec.ts › FR-002-01 … FR-002-05 | zelen |
+| FR-002-06 | stranski pas ≥ 1024 px, meni preklopa < 1024 px, največ 10, trenutna skupina | GroupListIT › groupsAreGroupedByRole…, eachSectionIsPaginatedSeparately (`size=10`); Sidebar.test.tsx (×6 + axe); GroupSwitcher.test.tsx (×4 + axe); skupine.spec.ts › FR-002-06 | zelen |
+| FR-002-07 | glava (vloga »Vloga: …«, *Arhivirano*), navigacija razdelkov (povezave, ne zavihki) | GroupReadIT › memberReadsTheGroupWithOwnRole, archivedGroupCanStillBeRead; GroupIsolationMatrixSecurityIT (`GET`); GroupLayout.test.tsx › FR-002-07 (×5 + axe); skupine.spec.ts › FR-002-04 …, FR-002-07 FR-002-04 (320 px) | zelen |
+| FR-002-08 | 404 za nečlana, neobstoječo in neveljavno skupino; »Te strani ni« | GroupReadIT › nonMemberAndMissingGroupGetTheSameEmpty404; GroupUpdateIT › missingOrMalformedGroupIs404WithEmptyBodyBeforeValidation; GroupIsolationMatrixSecurityIT (nečlan); GroupLayout.test.tsx › FR-002-08 (×3); skupine.spec.ts › FR-002-04 … FR-002-08 | zelen |
+| FR-002-09 | naslovi strani sl/en | GroupsPage.test.tsx › FR-002-09; GroupLayout.test.tsx › FR-002-09; skupine.spec.ts › FR-002-09 SC-006, FR-002-09 FR-002-11 | zelen |
+| FR-002-10 | podatki skupine za vse člane, brez obrazca za nižje vloge | GroupReadIT › memberReadsTheGroupWithOwnRole, lastEditorWhoDeletedTheAccountIsReportedAsNull, creatorWithoutNameIsReportedWithNullName; GroupIsolationMatrixSecurityIT (`GET`); GroupDetailsSection.test.tsx › FR-002-10 (×3); skupine.spec.ts › FR-002-04 … FR-002-10 | zelen |
+| FR-002-11 | urejanje za ADMIN/OWNER nearhivirane; 403/409 GROUP_ARCHIVED | GroupUpdateIT › adminChangesTitleAndColor…, ownerClearsTheDescription, archivedIsCheckedBeforeVersion…; GroupIsolationMatrixSecurityIT (`PUT`); GroupDetailsSection.test.tsx › FR-002-11 (×4); skupine.spec.ts › FR-002-09 FR-002-11 | zelen |
+| FR-002-12 | verzija, nespremenjeno shranjevanje, konflikt in razrešitev | GroupUpdateIT › savingUnchangedData…, staleVersionIsAConflict… (×2); GroupConcurrencyIT (×10); client.test.ts › FR-002-12 (×2); conflictMessage.test.ts (×5); GroupDetailsSection.test.tsx › FR-002-12 (×5); skupine.spec.ts › FR-002-12 | zelen |
+| FR-002-13 | sporočila neuspeha brez kod, vnosi ostanejo | client.test.ts › FR-002-13; NewGroupDialog.test.tsx › FR-002-13 (×2); GroupsPage.test.tsx › FR-002-13; GroupDetailsSection.test.tsx › FR-002-13 (×5); skupine.spec.ts › FR-002-13 | zelen |
 
-¹ `GroupColorTest` › `unknownOrWrongCaseNameIsNotAColor` in `defaultColorIsTinta` uspeta že na ogrodju (`fromCode` vrne
+Pred implementacijo (commit `test(002)`) so bili vsi testi 002 rdeči iz pravega razloga; izjemi: `GroupColorTest` › `unknownOrWrongCaseNameIsNotAColor` in `defaultColorIsTinta` sta uspela že na ogrodju (`fromCode` vrne
 prazno, `DEFAULT = TINTA` je del ogrodja T007); pozitivni primeri istega razreda padejo, zato vedenje ni predčasno
 zadovoljeno. V matriki izolacije uspe 18 vrstic `401`, ki jih zagotavlja varnostni sloj iz 001.
 
@@ -49,7 +49,11 @@ dan« v imenih testov conflictMessage.
 
 ## Spremembe po pregledu testov
 
-Ni (stanje ob commitu `test(002)`).
+| Datum | Datoteka | Sprememba | DECISIONS |
+|---|---|---|---|
+| 2026-11-06 | frontend/src/test/setup.ts (podpora testom) | jsdom nadomestek `Element.setPointerCapture` brez vedenja – Sonner ga kliče ob zapiranju obvestila; brez njega je Vitest javil neobravnavano napako, čeprav so asercije uspele | D-32 |
+
+Testne datoteke in asercije po commitu `test(002)` niso spremenjene.
 
 ## Preverjanje
 
@@ -61,3 +65,6 @@ Ni (stanje ob commitu `test(002)`).
 | 2026-11-06 | BE varnostni (`failsafe@security`) | matrika 002: 20 pade s `501`, 18 (`401`) zelenih; 50 testov 000/001 zelenih |
 | 2026-11-06 | FE unit in funkcionalni (Vitest) | 16 + 87 padcev v 002 (`not implemented`, manjkajoči elementi); 57 + 50 testov 000/001 zelenih |
 | 2026-11-06 | E2E (Compose `contact-manager-verify`, 3 širine) | 33 padcev v 002 (manjkajoči elementi); 99 testov 000/001 zelenih |
+| 2026-11-06 | BE po implementaciji US1–US4 | unit 53, integracijski 81, varnostni 88 – vse uspe (prvi zagon brez popravkov kode zaledja) |
+| 2026-11-06 | FE po implementaciji | unit 73, funkcionalni 137 – vse uspe; popravljeno v implementaciji: podvojeno obvestilo (Sonner predvaja aktivna obvestila novemu Toasterju → `toast.dismiss()` ob odstranitvi ogrodja) |
+| 2026-11-06 | `./verify.sh full` | 1. zagon PADLO (funkcionalni FE: neobravnavana napaka `setPointerCapture` v jsdom); po D-32 **zelen** (227 s): E2E 132 (99 iz 000/001, 33 iz 002, tudi SC-002 < 2 s) |

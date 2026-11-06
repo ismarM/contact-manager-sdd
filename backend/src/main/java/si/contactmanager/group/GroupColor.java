@@ -26,8 +26,13 @@ public enum GroupColor {
         return code;
     }
 
-    /** Barva za ime v API-ju; neznano ime → prazno. Ogrodje (T007): implementacija v T029. */
+    /** Barva za ime v API-ju (samo male črke); neznano ime → prazno. */
     public static Optional<GroupColor> fromCode(String code) {
+        for (GroupColor color : values()) {
+            if (color.code.equals(code)) {
+                return Optional.of(color);
+            }
+        }
         return Optional.empty();
     }
 }

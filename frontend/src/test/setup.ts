@@ -16,6 +16,8 @@ if (!('ResizeObserver' in globalThis)) {
 const missing: [keyof Element, unknown][] = [
   ['scrollIntoView', () => undefined],
   ['hasPointerCapture', () => false],
+  // 002: Sonner ob pritisku na obvestilo (zapiranje) zajame kazalec.
+  ['setPointerCapture', () => undefined],
   ['releasePointerCapture', () => undefined],
 ];
 for (const [name, value] of missing) {

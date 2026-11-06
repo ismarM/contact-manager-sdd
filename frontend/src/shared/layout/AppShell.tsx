@@ -4,18 +4,33 @@ import { useTranslation } from 'react-i18next';
 import { Link, Outlet } from 'react-router';
 
 import { useAuth } from '../../features/auth/authContext';
+import { GroupsProvider } from '../../features/groups/GroupsProvider';
+import { useMediaQuery, WIDE } from '../lib/useMediaQuery';
+import { Toaster } from '../ui/sonner';
 import { AccountMenu } from './AccountMenu';
+import { GroupSwitcher } from './GroupSwitcher';
+import { Sidebar } from './Sidebar';
 
 const focusRing =
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring';
 
 /**
- * Ogrodje aplikacije (design.md 7.1, FR-001-11): »Preskoči na vsebino« kot prvi element fokusa, zgornja vrstica
- * (56 px) z besednim znakom in menijem računa, sporočilo o neuspelem shranjevanju izbire (FR-001-19) in glavna vsebina.
+ * Ogrodje aplikacije (design.md 7.1, FR-001-11, FR-002-06): »Preskoči na vsebino« kot prvi element fokusa, zgornja
+ * vrstica (56 px) z besednim znakom, preklopom skupine (pod 1024 px) in menijem računa, sporočilo o neuspelem
+ * shranjevanju izbire (FR-001-19), stranski pas (od 1024 px), glavna vsebina in obvestila (Sonner).
  */
 export function AppShell() {
+  return (
+    <GroupsProvider>
+      <Shell />
+    </GroupsProvider>
+  );
+}
+
+function Shell() {
   const { t } = useTranslation();
   const { saveFailed, dismissSaveFailed } = useAuth();
+  const wide = useMediaQuery(WIDE);
   const main = useRef<HTMLElement>(null);
 
   return (
@@ -41,7 +56,10 @@ export function AppShell() {
           />
           <span className="truncate">{t('app.name')}</span>
         </Link>
-        <AccountMenu />
+        <div className="flex items-center gap-2">
+          {!wide && <GroupSwitcher />}
+          <AccountMenu />
+        </div>
       </header>
       {saveFailed && (
         <div
@@ -60,9 +78,13 @@ export function AppShell() {
           </button>
         </div>
       )}
-      <main id="main" ref={main} tabIndex={-1} className="flex-1 outline-none">
-        <Outlet />
-      </main>
+      <div className="flex flex-1">
+        {wide && <Sidebar />}
+        <main id="main" ref={main} tabIndex={-1} className="min-w-0 flex-1 outline-none">
+          <Outlet />
+        </main>
+      </div>
+      <Toaster />
     </div>
   );
 }

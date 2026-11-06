@@ -10,6 +10,7 @@ import { cn } from '../lib/cn';
 export const DropdownMenu = Primitive.Root;
 export const DropdownMenuTrigger = Primitive.Trigger;
 export const DropdownMenuRadioGroup = Primitive.RadioGroup;
+export const DropdownMenuGroup = Primitive.Group;
 
 const item =
   'flex h-11 w-full cursor-default items-center gap-2 rounded-md px-3 text-base outline-none select-none data-[highlighted]:bg-muted data-[highlighted]:outline-2 data-[highlighted]:outline-offset-[-2px] data-[highlighted]:outline-ring pointer-coarse:h-12 forced-colors:data-[highlighted]:outline-[Highlight]';
