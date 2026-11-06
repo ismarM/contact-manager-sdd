@@ -10,6 +10,8 @@ export const primaryButton = `${button} bg-primary text-primary-foreground hover
 
 export const secondaryButton = `${button} border border-border bg-card text-foreground hover:bg-muted ${focusRing}`;
 
+export const dangerButton = `${button} bg-destructive text-primary-foreground hover:opacity-90 ${focusRing}`;
+
 export const textInput = `w-full rounded-md border border-input bg-card px-3 py-2 text-base text-foreground aria-[invalid=true]:border-destructive ${focusRing}`;
 
 export const fieldError = 'text-destructive';

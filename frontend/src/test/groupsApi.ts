@@ -1,6 +1,8 @@
 import { http, HttpResponse, type JsonBodyType } from 'msw';
 
 import {
+  type ArchivedGroups,
+  type ArchivedGroupSummary,
   type GroupDetail,
   type GroupSection,
   type GroupSummary,
@@ -28,6 +30,8 @@ export function groupDetail(overrides: Partial<GroupDetail> = {}): GroupDetail {
     color: 'mah',
     role: 'OWNER',
     archived: false,
+    permanentlyArchived: false,
+    canDelete: false,
     version: 3,
     updatedAt: '2026-11-05T12:32:00Z',
     updatedBy: { name: 'Ana Novak', email: 'ana@primer.si' },
@@ -49,6 +53,37 @@ export function summary(n: number, overrides: Partial<GroupSummary> = {}): Group
 /** `count` skupin z naslovi »Skupina 001« … (že po abecedi). */
 export function summaries(count: number, start = 1): GroupSummary[] {
   return Array.from({ length: count }, (_, i) => summary(start + i));
+}
+
+export function archivedSummary(
+  n: number,
+  overrides: Partial<ArchivedGroupSummary> = {},
+): ArchivedGroupSummary {
+  return {
+    id: groupId(n),
+    title: `Arhiv ${n.toString().padStart(3, '0')}`,
+    description: null,
+    color: 'tinta',
+    contactCount: 0,
+    role: 'OWNER',
+    permanentlyArchived: false,
+    ...overrides,
+  };
+}
+
+/** Strežnik seznama arhiviranih skupin po pogodbi: `page` in `size` režeta dani seznam. */
+export function archivedReply(all: ArchivedGroupSummary[]) {
+  return (url: URL): Reply => {
+    const size = Number(url.searchParams.get('size') ?? 25);
+    const page = Number(url.searchParams.get('page') ?? 0);
+    const body: ArchivedGroups = {
+      total: all.length,
+      page,
+      size,
+      items: all.slice(page * size, page * size + size),
+    };
+    return { status: 200, body: body as unknown as JsonBodyType };
+  };
 }
 
 export type Reply = { status: number; body?: JsonBodyType } | 'network-error';
@@ -97,6 +132,10 @@ export function mockGroupsApi(
     get?: (id: string) => Reply | Promise<Reply>;
     create?: (body: unknown) => Reply | Promise<Reply>;
     update?: (id: string, body: unknown) => Reply | Promise<Reply>;
+    listArchived?: (url: URL) => Reply | Promise<Reply>;
+    archive?: (id: string) => Reply | Promise<Reply>;
+    unarchive?: (id: string) => Reply | Promise<Reply>;
+    remove?: (id: string) => Reply | Promise<Reply>;
   } = {},
 ) {
   const requests: RecordedGroupRequest[] = [];
@@ -141,6 +180,36 @@ export function mockGroupsApi(
           version: 0,
         }) as unknown as JsonBodyType,
       });
+    }),
+    http.get('/api/groups/archived', async ({ request }) => {
+      await record(request);
+      const url = new URL(request.url);
+      return respond(
+        handlers.listArchived ? await handlers.listArchived(url) : archivedReply([])(url),
+      );
+    }),
+    http.post('/api/groups/:groupId/archive', async ({ request, params }) => {
+      await record(request);
+      const id = String(params.groupId);
+      return respond(
+        handlers.archive
+          ? await handlers.archive(id)
+          : { status: 200, body: groupDetail({ id, archived: true }) as unknown as JsonBodyType },
+      );
+    }),
+    http.post('/api/groups/:groupId/unarchive', async ({ request, params }) => {
+      await record(request);
+      const id = String(params.groupId);
+      return respond(
+        handlers.unarchive
+          ? await handlers.unarchive(id)
+          : { status: 200, body: groupDetail({ id }) as unknown as JsonBodyType },
+      );
+    }),
+    http.delete('/api/groups/:groupId', async ({ request, params }) => {
+      await record(request);
+      const id = String(params.groupId);
+      return respond(handlers.remove ? await handlers.remove(id) : { status: 204 });
     }),
     http.get('/api/groups/:groupId', async ({ request, params }) => {
       await record(request);

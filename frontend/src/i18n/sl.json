@@ -1,13 +1,20 @@
 {
-  "app": { "name": "Kontakti" },
+  "app": {
+    "name": "Kontakti"
+  },
   "title": {
     "login": "Prijava – Kontakti",
     "account": "Moj račun – Kontakti",
     "notFound": "Te strani ni – Kontakti",
     "groups": "Skupine – Kontakti",
-    "groupScreen": "{{screen}} – {{group}} – Kontakti"
+    "groupScreen": "{{screen}} – {{group}} – Kontakti",
+    "archived": "Arhivirane skupine – Kontakti"
   },
-  "language": { "label": "Jezik", "sl": "Slovenščina", "en": "English" },
+  "language": {
+    "label": "Jezik",
+    "sl": "Slovenščina",
+    "en": "English"
+  },
   "login": {
     "tagline": "Kontakti tvojih projektov in podjetij, na enem mestu.",
     "signIn": "Prijava z Googlom",
@@ -54,7 +61,10 @@
     "grafit": "Grafit",
     "rja": "Rja"
   },
-  "toast": { "region": "Obvestila", "close": "Zapri obvestilo" },
+  "toast": {
+    "region": "Obvestila",
+    "close": "Zapri obvestilo"
+  },
   "groups": {
     "heading": "Skupine",
     "newGroup": "Nova skupina",
@@ -119,6 +129,49 @@
       "field": "Polje",
       "yours": "Tvoja vrednost",
       "current": "Trenutna vrednost"
+    },
+    "archivedList": {
+      "heading": "Arhivirane skupine",
+      "link": "Arhivirane skupine",
+      "empty": "Nimaš arhiviranih skupin.",
+      "back": "Na seznam skupin",
+      "ownerDeleted": "lastnik: izbrisan uporabnik",
+      "pagination": "Arhivirane skupine"
+    },
+    "banner": {
+      "region": "Stanje skupine",
+      "archived": "Skupina je arhivirana – na voljo so pregled, iskanje in izvoz.",
+      "permanent": "Skupina je trajno arhivirana, ker lastnik nima več računa.",
+      "unarchive": "Odarhiviraj skupino"
+    },
+    "manage": {
+      "heading": "Upravljanje skupine",
+      "archive": "Arhiviraj skupino",
+      "archiveInfo": "Člani ohranijo dostop, skupina pa postane samo za branje.",
+      "unarchive": "Odarhiviraj skupino",
+      "unarchiveInfo": "Skupina bo spet delovala kot pred arhiviranjem.",
+      "delete": "Izbriši skupino",
+      "deleteInfo": "Izbrišeš skupino skupaj z vsemi podatki. Izbrisa ni mogoče razveljaviti.",
+      "deleteUnavailable": "Skupino lahko izbrišeš, ko si njen edini član.",
+      "archiveFailed": "Skupine ni bilo mogoče arhivirati. Poskusi znova.",
+      "unarchiveFailed": "Skupine ni bilo mogoče odarhivirati. Poskusi znova.",
+      "deleteFailed": "Skupine ni bilo mogoče izbrisati. Poskusi znova."
+    },
+    "archiveDialog": {
+      "title": "Arhiviram skupino {{title}}?",
+      "text": "Člani ohranijo dostop, skupina pa bo samo za branje. Odarhivirati jo lahko samo lastnik."
+    },
+    "deleteDialog": {
+      "title": "Izbrišem skupino {{title}}?",
+      "text": "Izbrisani bodo vsi kontakti, revizijska sled in čakajoča povabila skupine. Izbrisa ni mogoče razveljaviti.",
+      "confirmLabel": "Za potrditev vpiši naslov skupine",
+      "mismatch": "Vpisano besedilo se ne ujema z naslovom skupine.",
+      "hasMembers": "Skupine ni mogoče izbrisati, ker ima še druge člane."
+    },
+    "toast": {
+      "archived": "Skupina je arhivirana.",
+      "unarchived": "Skupina je odarhivirana.",
+      "deleted": "Skupina je izbrisana."
     }
   },
   "notFound": {

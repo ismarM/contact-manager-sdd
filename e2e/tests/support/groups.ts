@@ -50,9 +50,27 @@ export function setRole(groupId: string, email: string, role: Role): void {
   );
 }
 
-/** Arhivirana skupina (do 003 samo za teste). */
+/** Arhivirana skupina (pripravi stanje neposredno v bazi). */
 export function archive(groupId: string): void {
   sql(`update contact_group set archived_at = now() where id = ${literal(groupId)}::uuid`);
+}
+
+/** Trajno arhivirana skupina (nastane z izbrisom računa lastnika, 012): arhivirana in brez člana OWNER. */
+export function makePermanentlyArchived(groupId: string): void {
+  archive(groupId);
+  sql(`delete from group_member where group_id = ${literal(groupId)}::uuid and role = 'OWNER'`);
+}
+
+/** Ali skupina še obstaja v bazi. */
+export function groupExists(groupId: string): boolean {
+  return sql(`select count(*) from contact_group where id = ${literal(groupId)}::uuid`) === '1';
+}
+
+/** Število članov skupine. */
+export function memberCount(groupId: string): number {
+  return Number(
+    sql(`select count(*) from group_member where group_id = ${literal(groupId)}::uuid`),
+  );
 }
 
 /** Uporabniku ustvari `count` skupin »Skupina 001« … z vlogo `role` (SC-002). */

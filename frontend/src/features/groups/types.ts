@@ -27,6 +27,10 @@ export interface GroupDetail {
   color: GroupColor;
   role: Role;
   archived: boolean;
+  /** Arhivirana in brez lastnika (izbris računa lastnika, 012). */
+  permanentlyArchived: boolean;
+  /** Klicatelj sme izbrisati skupino (FR-003-09): edini član in lastnik ali trajno arhivirana skupina. */
+  canDelete: boolean;
   version: number;
   updatedAt: string;
   /** `null` = izbrisan uporabnik (feature-map §2.5). */
@@ -58,4 +62,21 @@ export interface GroupInput {
   title: string;
   description: string | null;
   color: GroupColor;
+}
+
+export interface ArchivedGroupSummary {
+  id: string;
+  title: string;
+  description: string | null;
+  color: GroupColor;
+  contactCount: number;
+  role: Role;
+  permanentlyArchived: boolean;
+}
+
+export interface ArchivedGroups {
+  total: number;
+  page: number;
+  size: number;
+  items: ArchivedGroupSummary[];
 }

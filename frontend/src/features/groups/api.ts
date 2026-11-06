@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { AuthFetch } from '../../shared/api/authFetch';
 import { ApiError } from '../../shared/api/client';
 import { useAuth } from '../auth/authContext';
-import type { GroupDetail, GroupInput, GroupSections, Role } from './types';
+import type { ArchivedGroups, GroupDetail, GroupInput, GroupSections, Role } from './types';
 
 // Odjemalec API skupin (plan.md – REST endpoints, contracts/openapi.yaml).
 
@@ -36,6 +36,26 @@ export function createGroupsApi(authFetch: AuthFetch) {
         headers: JSON_HEADERS,
         body: JSON.stringify(input),
       });
+    },
+    listArchived({ page, size, lang }: ListParams): Promise<ArchivedGroups> {
+      const query = new URLSearchParams();
+      if (page !== undefined) query.set('page', String(page));
+      query.set('size', String(size));
+      query.set('lang', lang);
+      return authFetch<ArchivedGroups>(`/groups/archived?${query.toString()}`);
+    },
+    archiveGroup(groupId: string): Promise<GroupDetail> {
+      return authFetch<GroupDetail>(`/groups/${encodeURIComponent(groupId)}/archive`, {
+        method: 'POST',
+      });
+    },
+    unarchiveGroup(groupId: string): Promise<GroupDetail> {
+      return authFetch<GroupDetail>(`/groups/${encodeURIComponent(groupId)}/unarchive`, {
+        method: 'POST',
+      });
+    },
+    deleteGroup(groupId: string): Promise<void> {
+      return authFetch<void>(`/groups/${encodeURIComponent(groupId)}`, { method: 'DELETE' });
     },
     updateGroup(groupId: string, input: GroupInput & { version: number }): Promise<GroupDetail> {
       return authFetch<GroupDetail>(`/groups/${encodeURIComponent(groupId)}`, {
@@ -91,5 +111,23 @@ export function failureKey(
   if (!(error instanceof ApiError)) return 'groups.offline';
   if (error.status === 409 && error.code === 'GROUP_ARCHIVED') return 'groups.details.archived';
   if (error.status === 403) return 'groups.details.forbidden';
+  return fallback;
+}
+
+/** Ključ sporočila neuspeha dejanja upravljanja (design.md 8.13): brez kod; omrežna napaka = brez povezave. */
+export function manageFailureKey(
+  error: unknown,
+  fallback:
+    'groups.manage.archiveFailed' | 'groups.manage.unarchiveFailed' | 'groups.manage.deleteFailed',
+):
+  | 'groups.offline'
+  | 'groups.details.forbidden'
+  | 'groups.deleteDialog.hasMembers'
+  | typeof fallback {
+  if (!(error instanceof ApiError)) return 'groups.offline';
+  if (error.status === 403) return 'groups.details.forbidden';
+  if (error.status === 409 && error.code === 'GROUP_HAS_OTHER_MEMBERS') {
+    return 'groups.deleteDialog.hasMembers';
+  }
   return fallback;
 }

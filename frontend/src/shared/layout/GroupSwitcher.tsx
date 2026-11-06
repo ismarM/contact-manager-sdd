@@ -75,6 +75,10 @@ export function GroupSwitcher() {
             <DropdownMenuItem onSelect={refresh}>{t('groups.retry')}</DropdownMenuItem>
           </>
         )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/groups/archived">{t('groups.archivedList.link')}</Link>
+        </DropdownMenuItem>
         {sections.some((section) => section.total > section.items.length) && (
           <>
             <DropdownMenuSeparator />

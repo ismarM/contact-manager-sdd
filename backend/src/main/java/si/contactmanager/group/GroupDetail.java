@@ -11,6 +11,8 @@ public record GroupDetail(
         String color,
         Role role,
         boolean archived,
+        boolean permanentlyArchived,
+        boolean canDelete,
         long version,
         Instant updatedAt,
         UserRef updatedBy) {}

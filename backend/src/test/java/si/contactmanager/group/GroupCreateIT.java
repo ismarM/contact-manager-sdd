@@ -42,7 +42,17 @@ class GroupCreateIT extends ApiTest {
         Map<String, Object> body = json(response.body());
         assertThat(body)
                 .containsOnlyKeys(
-                        "id", "title", "description", "color", "role", "archived", "version", "updatedAt", "updatedBy")
+                        "id",
+                        "title",
+                        "description",
+                        "color",
+                        "role",
+                        "archived",
+                        "permanentlyArchived",
+                        "canDelete",
+                        "version",
+                        "updatedAt",
+                        "updatedBy")
                 .containsEntry("title", "Projekt FERI")
                 .containsEntry("description", "Kontakti projekta")
                 .containsEntry("color", "mah")
