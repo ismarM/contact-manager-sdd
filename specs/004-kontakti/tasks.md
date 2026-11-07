@@ -112,7 +112,7 @@ neodvisnega agenta `pregled-testov` (workflow.md §4.2).
 ## Phase 6: Polish
 
 - [X] T042 `./verify.sh quick`, nato `./verify.sh full` zeleno; `traceability.md` (FR-ID → testi, implementacija); README/CLAUDE.md po potrebi; AI dnevnik
-- [ ] T043 `/speckit-converge` do »Converged«; PR v `main`
+- [X] T043 `/speckit-converge` do »Converged«; PR v `main`
 
 ## Dependencies
 
