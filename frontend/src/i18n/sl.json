@@ -109,7 +109,8 @@
       "rolePrefix": "Vloga: ",
       "archived": "Arhivirano",
       "sections": "Razdelki skupine",
-      "settings": "Nastavitve"
+      "settings": "Nastavitve",
+      "contacts": "Kontakti"
     },
     "details": {
       "heading": "Podatki skupine",
@@ -178,5 +179,122 @@
     "heading": "Te strani ni",
     "text": "Povezava je napačna ali pa stran ni več na voljo.",
     "back": "Na seznam skupin"
+  },
+  "contacts": {
+    "heading": "Kontakti",
+    "newContact": "Nov kontakt",
+    "list": {
+      "caption": "Kontakti skupine {{group}}",
+      "name": "Ime in priimek",
+      "email": "E-naslov",
+      "phone": "Telefon",
+      "tags": "Značke",
+      "actions": "Dejanja",
+      "rowActions": "Dejanja za {{name}}",
+      "moreTags": "+{{count}}",
+      "empty": "Ta skupina še nima kontaktov.",
+      "loading": "Nalagam…",
+      "loadFailed": "Kontaktov ni bilo mogoče naložiti. Poskusi znova.",
+      "retry": "Poskusi znova"
+    },
+    "pagination": {
+      "label": "Strani rezultatov"
+    },
+    "view": {
+      "panel": "Podrobnosti kontakta",
+      "address": "Naslov",
+      "email": "E-naslov",
+      "phone": "Telefon",
+      "attributes": "Dodatni atributi",
+      "tags": "Značke",
+      "edit": "Uredi kontakt",
+      "delete": "Izbriši kontakt",
+      "back": "Nazaj na seznam kontaktov",
+      "close": "Zapri podrobnosti",
+      "loadFailed": "Kontakta ni bilo mogoče naložiti. Poskusi znova."
+    },
+    "gone": "Tega kontakta ni več – medtem ga je nekdo izbrisal.",
+    "form": {
+      "newHeading": "Nov kontakt",
+      "editHeading": "Uredi kontakt",
+      "basic": "Osnovni podatki",
+      "attributesLegend": "Dodatni atributi",
+      "tagsLegend": "Značke",
+      "firstName": "Ime",
+      "lastName": "Priimek",
+      "address": "Naslov",
+      "email": "E-naslov",
+      "phone": "Telefon",
+      "key": "Ključ",
+      "value": "Vrednost",
+      "addAttribute": "Dodaj atribut",
+      "removeAttribute": "Odstrani atribut {{key}}",
+      "removeAttributeEmpty": "Odstrani atribut",
+      "addTag": "Dodaj značko",
+      "addedTags": "Dodane značke",
+      "removeTag": "Odstrani značko {{tag}}",
+      "save": "Shrani kontakt",
+      "cancel": "Prekliči",
+      "summary": "Obrazec vsebuje napake.",
+      "saveFailed": "Kontakta ni bilo mogoče shraniti. Poskusi znova.",
+      "retry": "Poskusi znova"
+    },
+    "errors": {
+      "nameRequired": "Vpiši vsaj ime ali priimek.",
+      "emailInvalid": "Vpiši veljaven e-naslov.",
+      "phoneInvalid": "Telefon sme vsebovati samo števke, presledke in znake + - ( ) /.",
+      "firstNameTooLong": "Ime je predolgo (največ 100 znakov).",
+      "lastNameTooLong": "Priimek je predolg (največ 100 znakov).",
+      "addressTooLong": "Naslov je predolg (največ 300 znakov).",
+      "emailTooLong": "E-naslov je predolg (največ 254 znakov).",
+      "phoneTooLong": "Telefon je predolg (največ 30 znakov).",
+      "keyRequired": "Vpiši ključ.",
+      "valueRequired": "Vpiši vrednost.",
+      "keyTooLong": "Ključ je predolg (največ 50 znakov).",
+      "valueTooLong": "Vrednost je predolga (največ 500 znakov).",
+      "keyDuplicate": "Ključ že obstaja v tem kontaktu.",
+      "keyReserved": "Ključ je rezerviran za predefinirano polje.",
+      "tooManyAttributes": "Dodaš lahko največ 50 atributov.",
+      "tagSpaces": "Značka ne sme vsebovati presledkov.",
+      "tagDuplicate": "Ta značka je že dodana.",
+      "tooManyTags": "Dodaš lahko največ 30 značk.",
+      "tagTooLong": "Značka je predolga (največ 50 znakov)."
+    },
+    "conflict": {
+      "message": "Kontakt je medtem spremenil(a) {{who}} ob {{time}}.",
+      "deletedUser": "izbrisan uporabnik",
+      "showDiff": "Prikaži razlike",
+      "useCurrent": "Uporabi trenutno različico",
+      "saveMine": "Shrani moje spremembe",
+      "diffTable": "Razlike med tvojimi in trenutnimi vrednostmi",
+      "field": "Polje",
+      "yours": "Tvoja vrednost",
+      "current": "Trenutna vrednost",
+      "empty": "(prazno)"
+    },
+    "delete": {
+      "title": "Izbrišem kontakt {{name}}?",
+      "text": "Kontakt bo odstranjen iz skupine {{group}}.",
+      "cancel": "Prekliči",
+      "confirm": "Izbriši kontakt",
+      "failed": "Kontakta ni bilo mogoče izbrisati. Poskusi znova."
+    },
+    "discard": {
+      "title": "Zavržem spremembe?",
+      "keep": "Nadaljuj z urejanjem",
+      "discard": "Zavrzi spremembe"
+    },
+    "toast": {
+      "saved": "Kontakt {{name}} je shranjen.",
+      "deleted": "Kontakt {{name}} je izbrisan."
+    },
+    "noEditRole": "Za urejanje kontaktov potrebuješ vlogo urednik ali višjo.",
+    "archived": "Skupina je arhivirana – kontaktov ni mogoče spreminjati.",
+    "forbidden": "Za to dejanje nimaš več pravic.",
+    "screen": {
+      "list": "Kontakti",
+      "new": "Nov kontakt",
+      "edit": "Uredi kontakt"
+    }
   }
 }

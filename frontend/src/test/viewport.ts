@@ -2,14 +2,18 @@
 // širino. Privzeto ozko (< 1024 px); vsak test, ki potrebuje stranski pas, pokliče setViewport('wide').
 
 const WIDE_QUERY = '(min-width: 1024px)';
+const PANEL_QUERY = '(min-width: 1280px)';
 
 type Listener = (event: MediaQueryListEvent) => void;
 
-let wide = false;
+let level: 'narrow' | 'wide' | 'panel' = 'narrow';
 const lists = new Set<{ media: string; listeners: Set<Listener>; list: MediaQueryList }>();
 
 function matches(media: string): boolean {
-  return media.replace(/\s+/g, '') === WIDE_QUERY.replace(/\s+/g, '') ? wide : false;
+  const query = media.replace(/\s+/g, '');
+  if (query === WIDE_QUERY.replace(/\s+/g, '')) return level !== 'narrow';
+  if (query === PANEL_QUERY.replace(/\s+/g, '')) return level === 'panel';
+  return false;
 }
 
 function createList(media: string): MediaQueryList {
@@ -38,11 +42,13 @@ export function installMatchMedia(): void {
   });
 }
 
-/** Širina zaslona za teste: `wide` ≥ 1024 px (stranski pas), `narrow` < 1024 px (gumb za preklop skupine). */
-export function setViewport(width: 'wide' | 'narrow'): void {
-  const next = width === 'wide';
-  if (next === wide) return;
-  wide = next;
+/**
+ * Širina zaslona za teste: `panel` ≥ 1280 px (stranski pas in panel podrobnosti kontakta), `wide` ≥ 1024 px (stranski
+ * pas), `narrow` < 1024 px (gumb za preklop skupine).
+ */
+export function setViewport(width: 'panel' | 'wide' | 'narrow'): void {
+  if (width === level) return;
+  level = width;
   for (const { media, listeners, list } of lists) {
     const event = { matches: matches(media), media } as MediaQueryListEvent;
     for (const listener of listeners) listener.call(list, event);
@@ -50,6 +56,6 @@ export function setViewport(width: 'wide' | 'narrow'): void {
 }
 
 export function resetViewport(): void {
-  wide = false;
+  level = 'narrow';
   lists.clear();
 }

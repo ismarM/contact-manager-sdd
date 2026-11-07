@@ -109,7 +109,8 @@
       "rolePrefix": "Role: ",
       "archived": "Archived",
       "sections": "Group sections",
-      "settings": "Settings"
+      "settings": "Settings",
+      "contacts": "Contacts"
     },
     "details": {
       "heading": "Group details",
@@ -178,5 +179,122 @@
     "heading": "Page not found",
     "text": "The link is wrong or the page is no longer available.",
     "back": "Back to groups"
+  },
+  "contacts": {
+    "heading": "Contacts",
+    "newContact": "New contact",
+    "list": {
+      "caption": "Contacts of group {{group}}",
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "tags": "Tags",
+      "actions": "Actions",
+      "rowActions": "Actions for {{name}}",
+      "moreTags": "+{{count}}",
+      "empty": "This group has no contacts yet.",
+      "loading": "Loading…",
+      "loadFailed": "Contacts could not be loaded. Please try again.",
+      "retry": "Try again"
+    },
+    "pagination": {
+      "label": "Result pages"
+    },
+    "view": {
+      "panel": "Contact details",
+      "address": "Address",
+      "email": "Email",
+      "phone": "Phone",
+      "attributes": "Additional attributes",
+      "tags": "Tags",
+      "edit": "Edit contact",
+      "delete": "Delete contact",
+      "back": "Back to contacts",
+      "close": "Close details",
+      "loadFailed": "The contact could not be loaded. Please try again."
+    },
+    "gone": "This contact no longer exists – someone deleted it in the meantime.",
+    "form": {
+      "newHeading": "New contact",
+      "editHeading": "Edit contact",
+      "basic": "Basic details",
+      "attributesLegend": "Additional attributes",
+      "tagsLegend": "Tags",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "address": "Address",
+      "email": "Email",
+      "phone": "Phone",
+      "key": "Key",
+      "value": "Value",
+      "addAttribute": "Add attribute",
+      "removeAttribute": "Remove attribute {{key}}",
+      "removeAttributeEmpty": "Remove attribute",
+      "addTag": "Add tag",
+      "addedTags": "Added tags",
+      "removeTag": "Remove tag {{tag}}",
+      "save": "Save contact",
+      "cancel": "Cancel",
+      "summary": "The form contains errors.",
+      "saveFailed": "The contact could not be saved. Please try again.",
+      "retry": "Try again"
+    },
+    "errors": {
+      "nameRequired": "Enter at least a first or last name.",
+      "emailInvalid": "Enter a valid email address.",
+      "phoneInvalid": "Phone may contain only digits, spaces and + - ( ) / characters.",
+      "firstNameTooLong": "The first name is too long (at most 100 characters).",
+      "lastNameTooLong": "The last name is too long (at most 100 characters).",
+      "addressTooLong": "The address is too long (at most 300 characters).",
+      "emailTooLong": "The email is too long (at most 254 characters).",
+      "phoneTooLong": "The phone is too long (at most 30 characters).",
+      "keyRequired": "Enter a key.",
+      "valueRequired": "Enter a value.",
+      "keyTooLong": "The key is too long (at most 50 characters).",
+      "valueTooLong": "The value is too long (at most 500 characters).",
+      "keyDuplicate": "This key already exists in this contact.",
+      "keyReserved": "This key is reserved for a predefined field.",
+      "tooManyAttributes": "You can add at most 50 attributes.",
+      "tagSpaces": "A tag must not contain spaces.",
+      "tagDuplicate": "This tag is already added.",
+      "tooManyTags": "You can add at most 30 tags.",
+      "tagTooLong": "The tag is too long (at most 50 characters)."
+    },
+    "conflict": {
+      "message": "The contact was changed by {{who}} at {{time}} in the meantime.",
+      "deletedUser": "deleted user",
+      "showDiff": "Show differences",
+      "useCurrent": "Use current version",
+      "saveMine": "Save my changes",
+      "diffTable": "Differences between your and the current values",
+      "field": "Field",
+      "yours": "Your value",
+      "current": "Current value",
+      "empty": "(empty)"
+    },
+    "delete": {
+      "title": "Delete contact {{name}}?",
+      "text": "The contact will be removed from the group {{group}}.",
+      "cancel": "Cancel",
+      "confirm": "Delete contact",
+      "failed": "The contact could not be deleted. Please try again."
+    },
+    "discard": {
+      "title": "Discard changes?",
+      "keep": "Keep editing",
+      "discard": "Discard changes"
+    },
+    "toast": {
+      "saved": "Contact {{name}} saved.",
+      "deleted": "Contact {{name}} deleted."
+    },
+    "noEditRole": "You need the editor role or higher to edit contacts.",
+    "archived": "The group is archived – contacts cannot be changed.",
+    "forbidden": "You no longer have permission for this action.",
+    "screen": {
+      "list": "Contacts",
+      "new": "New contact",
+      "edit": "Edit contact"
+    }
   }
 }

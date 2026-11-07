@@ -169,7 +169,7 @@ describe('NewGroupDialog', () => {
       expect(within(dialog).getByRole('textbox', { name: 'Opis' })).toHaveValue('Opis');
 
       await user.click(within(dialog).getByRole('button', { name: 'Ustvari skupino' }));
-      await waitFor(() => expect(currentLocation()).toBe(`/groups/${CREATED}/settings`));
+      await waitFor(() => expect(currentLocation()).toBe(`/groups/${CREATED}/contacts`));
     },
   );
 
@@ -184,7 +184,7 @@ describe('NewGroupDialog', () => {
 
     await user.click(within(dialog).getByRole('button', { name: 'Ustvari skupino' }));
 
-    await waitFor(() => expect(currentLocation()).toBe(`/groups/${CREATED}/settings`));
+    await waitFor(() => expect(currentLocation()).toBe(`/groups/${CREATED}/contacts`));
     expect(api.of('POST', '/api/groups')[0]?.body).toEqual({
       title: 'Projekt FERI',
       description: 'Kontakti projekta',
@@ -220,7 +220,7 @@ describe('NewGroupDialog', () => {
     const dialog = await openDialog(user);
     await user.type(within(dialog).getByRole('textbox', { name: 'Naslov' }), 'Projekt FERI');
     await user.click(within(dialog).getByRole('button', { name: 'Ustvari skupino' }));
-    await waitFor(() => expect(currentLocation()).toBe(`/groups/${CREATED}/settings`));
+    await waitFor(() => expect(currentLocation()).toBe(`/groups/${CREATED}/contacts`));
 
     // Skupina se še nalaga; uporabnik s tipkovnico fokusira gumb za preklop skupine (design.md 7.1).
     const switcher = await screen.findByRole('button', { name: 'Preklopi skupino' });

@@ -155,3 +155,40 @@ now that you are up to date with the new rules continue with the next steps and 
 | Nejasne ali spremenjene zahteve | 0 sprememb specifikacije; 2 spremembi testov z vnosom v `DECISIONS.md` (D-36, D-37) |
 | Napake, odkrite z drugim agentom | 2 zavrnitvi v krogih 1 in 2 (#2c, #2d) |
 | Preverjanje s testi | #2b–#2g (BE `verify`, FE 272/272, `verify.sh full`) |
+
+## Seja 5 — 004-kontakti
+
+- **Datum:** 2026-11-06, 13:17 – 2026-11-07, 11:01 (lokalni čas)
+- **Razvijalec:** Patrik
+- **Agent / model:** Claude Code, claude-sonnet-5-5 (glavna seja, prvi trije krogi pregleda); podagenti claude-opus-5-5
+- **Veja / commiti:** `kontakti`; `78ec3a8`, `7fcb419` (docs), `cec701f` `test(004)`, `a367a8c` `feat(004)` (zaledje), `017fab8` `test(004)` (krog 11), `9d80090` `feat(004)` (vmesnik), `f6f21fb` `fix(004)`; PR: glej opis PR
+- **Poraba žetonov:** 140 208 212 (`token-report-patrik.md`, seja 5); skupaj 1.–5. seja 312 938 791
+
+| # | Vrsta | Točen prompt / odgovor | Faza SDD | Rezultat / spremenjene datoteke | Preverjanje | Težava (kategorija) | Status |
+|---|---|---|---|---|---|---|---|
+| 1 | sporočilo | `/speckit-clarify` | clarify | vprašanji o razvrščanju in zastarelih verzijah | – | – (none) | accepted |
+| 2 | odgovora | `A`, `C` | clarify | D-38, `spec.md` (razvrščanje po kodnih točkah, zastarela verzija z enakimi vrednostmi → 200) | – | – (none) | accepted |
+| 3 | sporočilo | `dodaj vnos v decisions.md in uskaldi feature-map.md. nato nadaljuj s plan, tasks, analyse, implement in converge. ne pozabi za vsak korak prebrati ustreznega speckit skilla. ko bo vse implementirano in skladno s specifikacijami izpolni še datoteki patrik.md in token-report-patrik.md v /ai-logs/, nato pa pushaj in ustvari PR, ki ga bom nato jaz mergal v main.` | plan → tasks → analyze | `feature-map.md` §2.6, D-39, `plan.md`, `research.md`, `data-model.md`, `contracts/`, `tasks.md` (T001–T043) | analiza artefaktov | – (none) | accepted |
+| 4 | sporočilo | `make sure you are reding the relevant skills!` | – | skilli prebrani pred vsakim korakom | – | agent ni prebral skilla pred korakom (instruction-following) | corrected |
+| 5 | agent | (isto sporočilo) testi + pregled | implement (testi), test review | testi BE/FE/E2E, D-40–D-41; podagent `pregled-testov` v 11 krogih, vsi ZAVRNJENO | – | testi s pomanjkljivostmi (agent-error), neskončen pregledni cikel | accepted |
+| 6 | sporočilo | `start a subagent with claude opus 5.5 for debugging. it should make this work. let it know where you got stuck and make sure you instruct it to follow the speckit skills and project guides. after it is done you should finish your work, fill out ai-logs files and push to PR` | implement | podagent opus-5-5 je popravljal teste in implementiral zaledje (`a367a8c`) | BE: 213 IT zelenih | podagent je nadaljeval v implementacijo, preden je prejel »stop« | accepted |
+| 7 | sporočilo | `you have hit a usage limit. continue where you left of` | – | nadaljevanje podagenta (SendMessage) | – | omejitev porabe (env) | accepted |
+| 8 | sporočilo | `finish your work` | test review | D-42: testi sprejeti po 11 krogih | – | – (none) | accepted |
+| 9 | sporočilo | `what are these cycles you are talking about and why have you used so many tokens?` | – | razlaga ciklov pregleda testov in porabe; priznane zaznavne napake v prvih testih | – | – (none) | accepted |
+| 10 | sporočilo | `naj bo to zadnji korg. popravi vse ugotovitve in nadaljuj` | test review | D-43; krog 11 je zadnji | – | – (none) | accepted |
+| 11 | sporočilo | `povej ko boš pripravljen na implement korak. pognal ga bom sam, torej se takrat ustavi.` | – | poročilo o stanju (zaledje že implementirano, FE osnutek v stashu); ustavitev | `git status`, `git log` | zaledje je bilo implementirano pred navodilom (stopping/over-eager) | accepted |
+| 12 | sporočilo | `/speckit-implement implement what remains. you said the backend is already implemented so focus on missing pieces.` | implement | FE: `ContactFormPage`, popravki lint (D-44), memoizacija vrstic atributov, privzeti razdelek v `NewGroupDialog`; E2E popravki (D-45); T030–T042 [X]; commiti `9d80090`, `f6f21fb` | `./verify.sh quick` OK (101 s), `./verify.sh full` OK (373 s) | napaka v E2E testih (`name: 'Ime'` ujame »Priimek«, slovensko ime regije v angleškem scenariju); kontrast obvestila med prehodom; prvi `full` zagon z nestabilnimi FE testi pod obremenitvijo | accepted |
+| 12a | agent | (isto sporočilo) `/speckit-converge` | converge | vsi FR-004-01 … -17 imajo zelene teste (traceability.md), `verify.sh full` zelen; brez dodatnih nalog | – | globoka ocena kode glede na spec ni bila izvedena ločeno: temelji na pokritju s testi | accepted |
+
+**Povzetek seje 5**
+
+| Metrika | Rezultat |
+|---|---|
+| Sporočila razvijalca / odgovori v dialogu | 12 / 0 |
+| Interakcije uspešne brez dodatnega poziva | 9 od 12 sporočil |
+| Dodatni pozivi ali popravki navodil | 3 (#4 skilli, #7 omejitev porabe, #10 omejitev ciklov) |
+| Potrjene napake agenta | testi: pomanjkljivosti v začetnih testih (11 krogov pregleda); proces: preveč krogov pregleda in zaledje implementirano pred navodilom; koda: 2 napaki E2E testov (D-45) |
+| Nejasne ali spremenjene zahteve | 1 sprememba specifikacije (D-38); spremembe testov z vnosi D-40, D-43, D-45; odločitev D-44 (pravilo lint) |
+| Napake, odkrite z drugim agentom | 11 zavrnitev `pregled-testov` (vse zaradi robustnosti ali vrzeli v asercijah) |
+| Preverjanje s testi | #5, #6, #12 (BE 213 IT, FE, `verify.sh quick` in `full`) |
+| Odprto za razvijalca | D-42/D-43: spremembe testov po 11. krogu niso bile neodvisno pregledane; PR predpostavke: 404 po širini zaslona (D-39 (7)), privzeti razdelek Kontakti (D-40), SC-002 mediana petih klicev kot približek |

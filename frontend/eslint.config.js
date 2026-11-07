@@ -53,6 +53,8 @@ export default tseslint.config(
     },
     rules: {
       ...jsxA11y.flatConfigs.recommended.rules,
+      // D-44: drsna regija preglednice mora biti dosegljiva s tipkovnico (WCAG 2.1.1, axe scrollable-region-focusable).
+      'jsx-a11y/no-noninteractive-tabindex': ['error', { roles: ['tabpanel', 'region'] }],
       'better-tailwindcss/no-unknown-classes': 'error',
       'better-tailwindcss/no-restricted-classes': [
         'error',

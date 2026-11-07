@@ -69,7 +69,7 @@ describe('GroupSwitcher', () => {
     );
     await user.click(within(menu).getByRole('menuitem', { name: 'Cvet' }));
 
-    await waitFor(() => expect(currentLocation()).toBe(`/groups/${groupId(3)}/settings`));
+    await waitFor(() => expect(currentLocation()).toBe(`/groups/${groupId(3)}/contacts`));
     expect(await screen.findByRole('heading', { level: 1, name: 'Cvet' })).toBeInTheDocument();
   });
 

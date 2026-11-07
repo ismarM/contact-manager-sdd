@@ -6,6 +6,7 @@ import { Navigate, useLocation, useParams } from 'react-router';
 import { ApiError } from '../../shared/api/client';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
 import { errorAlert } from '../../shared/ui/styles';
+import { ContactsPage } from '../contacts/ContactsPage';
 import { useGroupsApi } from './api';
 import { ArchivedBanner } from './ArchivedBanner';
 import { GroupContext, type GroupContextValue } from './groupContext';
@@ -14,8 +15,8 @@ import { SettingsPage } from './SettingsPage';
 import type { GroupDetail } from './types';
 import { useDelayed } from './useDelayed';
 
-/** Razdelki skupine (plan.md – Pages and routes): do 004 samo *Nastavitve*, ki so tudi prvi razdelek. */
-const SECTIONS = ['settings'] as const;
+/** Razdelki skupine (plan.md 004 – Pages and routes): *Kontakti* (privzeti, s podpotmi) in *Nastavitve*. */
+const SECTIONS = ['contacts', 'settings'] as const;
 
 /**
  * Okvir skupine `/groups/:groupId/*` (FR-002-07, -08): `/groups/:id` odpre prvi razdelek, neznan razdelek in skupina, za
@@ -36,8 +37,12 @@ export function GroupLayout() {
       />
     );
   }
-  if (!(SECTIONS as readonly string[]).includes(section)) return <NotFoundPage />;
-  return <GroupScreen key={groupId} groupId={groupId} />;
+  // Podpoti kontaktov (`contacts/new`, `contacts/:id`, `contacts/:id/edit`) razreši ContactsPage.
+  const first = section.split('/')[0] ?? '';
+  if (section !== 'settings' && first !== 'contacts') {
+    return <NotFoundPage />;
+  }
+  return <GroupScreen key={groupId} groupId={groupId} contacts={first === 'contacts'} />;
 }
 
 type State =
@@ -46,7 +51,7 @@ type State =
   | { kind: 'failed' }
   | { kind: 'ready'; group: GroupDetail };
 
-function GroupScreen({ groupId }: { groupId: string }) {
+function GroupScreen({ groupId, contacts }: { groupId: string; contacts: boolean }) {
   const { t } = useTranslation();
   const api = useGroupsApi();
   const location = useLocation();
@@ -121,7 +126,7 @@ function GroupScreen({ groupId }: { groupId: string }) {
     <GroupContext.Provider value={context}>
       <GroupHeader group={context.group} focusTitle={focusTitle} />
       <ArchivedBanner />
-      <SettingsPage />
+      {contacts ? <ContactsPage /> : <SettingsPage />}
     </GroupContext.Provider>
   );
 }

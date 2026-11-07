@@ -50,6 +50,7 @@ test('FR-003-01 FR-003-02 FR-003-04 FR-003-05 FR-003-07 SC-002 SC-003: lastnik a
 }) => {
   await signedIn(page);
   const id = await createGroup(page, { title: 'Projekt FERI', description: 'Kontakti projekta' });
+  await page.goto(`/groups/${id}/settings`);
   const started = Date.now();
 
   await management(page).getByRole('button', { name: 'Arhiviraj skupino' }).click();
@@ -86,7 +87,7 @@ test('FR-003-01 FR-003-02 FR-003-04 FR-003-05 FR-003-07 SC-002 SC-003: lastnik a
   await expect(row).toContainText('Arhivirano');
   await expectNoAxeViolations(page);
   await row.getByRole('link', { name: 'Projekt FERI' }).click();
-  await expect(page).toHaveURL(new RegExp(`/groups/${id}/settings$`));
+  await expect(page).toHaveURL(new RegExp(`/groups/${id}/contacts$`));
 });
 
 test('FR-003-05 FR-003-06: urednik vidi pasico brez odarhiviranja, lastnik odarhivira in skupina se vrne', async ({
@@ -109,7 +110,7 @@ test('FR-003-05 FR-003-06: urednik vidi pasico brez odarhiviranja, lastnik odarh
     eva.page.getByRole('main').getByRole('link', { name: 'Konferenca 2025' }),
   ).toHaveCount(0);
 
-  await page.reload();
+  await page.goto(`/groups/${id}/settings`);
   await banner(page).getByRole('button', { name: 'Odarhiviraj skupino' }).click();
   await expect(toast(page)).toContainText('Skupina je odarhivirana.');
   await expect(banner(page)).toHaveCount(0);
@@ -130,7 +131,7 @@ test('FR-003-08 FR-003-09 FR-003-07: trajno arhivirana skupina – pasica, opomb
   const dialog = page.getByRole('dialog', { name: 'Nova skupina' });
   await dialog.getByRole('textbox', { name: 'Naslov' }).fill('Brez lastnika');
   await dialog.getByRole('button', { name: 'Ustvari skupino' }).click();
-  await expect(page).toHaveURL(/\/groups\/[0-9a-f-]{36}\/settings$/);
+  await expect(page).toHaveURL(/\/groups\/[0-9a-f-]{36}\/contacts$/);
   const id = /\/groups\/([0-9a-f-]{36})\//.exec(page.url())?.[1] ?? '';
   // Eva je edina članica: postane bralka, skupina pa trajno arhivirana (stanje, ki ga povzroči 012).
   setRole(id, user.email, 'VIEWER');
@@ -165,6 +166,7 @@ test('FR-003-09 FR-003-10 FR-003-11: izbris z vpisom naslova; povezava nato vodi
 }) => {
   await signedIn(page);
   const id = await createGroup(page, { title: 'Projekt FERI' });
+  await page.goto(`/groups/${id}/settings`);
 
   await management(page).getByRole('button', { name: 'Izbriši skupino' }).click();
   const dialog = page.getByRole('dialog', { name: 'Izbrišem skupino Projekt FERI?' });
@@ -199,7 +201,8 @@ test('FR-003-09 FR-003-10: lastnik z drugim članom nima gumba Izbriši skupino,
   const bojan = await otherUser(browser, page, 'Bojan Kos');
   setRole(id, bojan.user.email, 'VIEWER');
 
-  await page.reload();
+  await page.goto(`/groups/${id}/settings`);
+  await expect(management(page)).toBeVisible();
   await expect(management(page).getByRole('button', { name: 'Izbriši skupino' })).toHaveCount(0);
   await expect(management(page)).toContainText('Skupino lahko izbrišeš, ko si njen edini član.');
   await expectNoAxeViolations(page);
@@ -211,6 +214,7 @@ test('FR-003-01 FR-003-06 FR-003-10 SC-006: angleški vmesnik – pasica, dialog
 }) => {
   await signedIn(page);
   const id = await createGroup(page, { title: 'Project' });
+  await page.goto(`/groups/${id}/settings`);
   await page.getByRole('button', { name: 'Meni računa' }).click();
   await page.getByRole('menuitemradio', { name: 'English' }).click();
   await page.keyboard.press('Escape');

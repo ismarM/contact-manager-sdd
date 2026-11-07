@@ -86,7 +86,7 @@ export function createGroupsBulk(email: string, count: number, role: Role): void
 
 /**
  * Ustvari skupino prek dialoga *Nova skupina* na zaslonu *Skupine* (imena iz plan.md, slovenščina) in vrne id iz
- * naslova strani `/groups/<id>/settings`.
+ * naslova strani `/groups/<id>/contacts`.
  */
 export async function createGroup(
   page: Page,
@@ -103,8 +103,8 @@ export async function createGroup(
     await dialog.getByRole('radio', { name: group.color }).check();
   }
   await dialog.getByRole('button', { name: 'Ustvari skupino' }).click();
-  await expect(page).toHaveURL(/\/groups\/[0-9a-f-]{36}\/settings$/);
-  const match = /\/groups\/([0-9a-f-]{36})\/settings$/.exec(new URL(page.url()).pathname);
+  await expect(page).toHaveURL(/\/groups\/[0-9a-f-]{36}\/contacts$/);
+  const match = /\/groups\/([0-9a-f-]{36})\/contacts$/.exec(new URL(page.url()).pathname);
   if (!match?.[1]) throw new Error(`ni id skupine v ${page.url()}`);
   return match[1];
 }

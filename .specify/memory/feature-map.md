@@ -127,7 +127,7 @@ Povsod, kjer bi bilo prikazano ime ali e-naslov uporabnika, ki je izbrisal raču
 | Dodatni atribut | ključ 1–50 znakov, edinstven v kontaktu (ne glede na velikost črk) in različen od imen predefiniranih atributov; vrednost 1–500 znakov; največ 50 atributov na kontakt |
 | Značka | 1–50 znakov, brez presledkov; edinstvena v kontaktu (ne glede na velikost črk); največ 30 značk na kontakt |
 | Paginacija | privzeto 25 na stran, izbira 25 / 50 / 100, največ 100 |
-| Privzeto razvrščanje kontaktov | priimek, nato ime, naraščajoče (abecedno po pravilih jezika vmesnika) |
+| Privzeto razvrščanje kontaktov | priimek, nato ime, naraščajoče; po vrstnem redu kodnih točk Unicode, ne glede na velikost črk in neodvisno od jezika vmesnika (D-38) |
 
 ### 2.7 Revizijska sled
 

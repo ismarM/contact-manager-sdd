@@ -191,3 +191,52 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* 8.6 Preglednica kontaktov: pod 640 px vsebnika se vrstice zložijo v kartice (vsebniška poizvedba, ne širina zaslona;
+   ista komponenta je lahko v panelu ali čez cel zaslon). Semantika preglednice ostane v DOM. */
+@utility contacts-list {
+  container-type: inline-size;
+}
+
+@container (max-width: 40rem) {
+  .contacts-list thead {
+    display: none;
+  }
+  .contacts-list table,
+  .contacts-list tbody {
+    display: block;
+  }
+  .contacts-list tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.25rem 0.75rem;
+    margin-bottom: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-card);
+  }
+  .contacts-list th[scope='row'] {
+    grid-column: 1;
+    grid-row: 1;
+    padding: 0;
+  }
+  .contacts-list td {
+    grid-column: 1 / -1;
+    padding: 0;
+  }
+  .contacts-list td[data-label]:not(:empty)::before {
+    content: attr(data-label) ': ';
+    color: var(--color-muted-foreground);
+  }
+  .contacts-list td[data-actions] {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
+/* 8.13 Obvestila: brez pojemanja prosojnosti – med prehodom bi bilo besedilo kratek čas pod kontrastom 4,5 : 1
+   (axe color-contrast, WCAG 1.4.3); premik ostane. */
+[data-sonner-toast] {
+  transition-property: transform, height, box-shadow !important;
+}

@@ -77,7 +77,7 @@ test('FR-002-01 FR-002-03 FR-002-05 FR-002-07: nov uporabnik ustvari prvo skupin
   await dialog.getByRole('radio', { name: 'Mah' }).check();
   await dialog.getByRole('button', { name: 'Ustvari skupino' }).click();
 
-  await expect(page).toHaveURL(/\/groups\/[0-9a-f-]{36}\/settings$/);
+  await expect(page).toHaveURL(/\/groups\/[0-9a-f-]{36}\/contacts$/);
   const header = page.getByRole('region', { name: 'Projekt FERI' });
   await expect(header.getByRole('heading', { level: 1, name: 'Projekt FERI' })).toBeFocused();
   await expect(header).toContainText('Lastnik');
@@ -126,7 +126,7 @@ test('FR-002-06: stranski pas (≥ 1024 px) ali meni preklopa (< 1024 px) prika�
       : groups.getByRole('menuitem', { name: 'Beta' })
   ).click();
 
-  await expect(page).toHaveURL(new RegExp(`/groups/${second}/settings$`));
+  await expect(page).toHaveURL(new RegExp(`/groups/${second}/contacts$`));
   await expect(page.getByRole('heading', { level: 1, name: 'Beta' })).toBeVisible();
   if (!isWide(page)) {
     await expect(page.getByRole('navigation', { name: 'Moje skupine' })).toHaveCount(0);
@@ -192,6 +192,7 @@ test('FR-002-09 FR-002-11: admin spremeni naslov in barvo – glava, seznam in n
 }) => {
   await signedIn(page);
   const id = await createGroup(page, { title: 'Projekt FERI' });
+  await page.goto(`/groups/${id}/settings`);
   const form = page.getByRole('form', { name: 'Podatki skupine' });
   await expect(page).toHaveTitle('Nastavitve – Projekt FERI – Kontakti');
   await expectNoAxeViolations(page);
@@ -226,6 +227,7 @@ test('FR-002-12: sočasna sprememba – opozorilo o konfliktu, razlike in »Shra
   const id = await createGroup(page, { title: 'Skupna' });
   const bojan = await otherUser(browser, page, 'Bojan Kos');
   setRole(id, bojan.user.email, 'ADMIN');
+  await page.goto(`/groups/${id}/settings`);
   await bojan.page.goto(`/groups/${id}/settings`);
   const ownerForm = page.getByRole('form', { name: 'Podatki skupine' });
   const adminForm = bojan.page.getByRole('form', { name: 'Podatki skupine' });
@@ -300,7 +302,9 @@ test('FR-002-09 SC-006: naslovi strani in axe v slovenščini in angleščini', 
   await expectNoAxeViolations(page);
   await page.keyboard.press('Escape');
   await switchLanguage(page, 'sl');
-  await createGroup(page, { title: 'Dvojezična' });
+  const id = await createGroup(page, { title: 'Dvojezična' });
+  await expect(page).toHaveTitle('Kontakti – Dvojezična – Kontakti');
+  await page.goto(`/groups/${id}/settings`);
   await expect(page).toHaveTitle('Nastavitve – Dvojezična – Kontakti');
 
   await switchLanguage(page, 'en');
@@ -378,7 +382,8 @@ test('FR-002-01 FR-002-06 FR-002-07: upravljanje s tipkovnico – dialog, meni p
   await expect(trigger).toBeFocused();
 
   await createGroup(page, { title: 'Prva' });
-  await createGroup(page, { title: 'Druga' });
+  const second = await createGroup(page, { title: 'Druga' });
+  await page.goto(`/groups/${second}/settings`);
   if (!isWide(page)) {
     const button = page.getByRole('button', { name: 'Preklopi skupino' });
     await button.focus();
