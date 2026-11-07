@@ -81,26 +81,26 @@ neodvisnega agenta `pregled-testov` (workflow.md §4.2).
 
 ### US1 – pregled kontaktov (P1)
 
-- [ ] T029 [US1] FR-004-06 FR-004-08 FR-004-14 backend `ContactRepository` (`page` z `ORDER BY sort_last NULLS LAST, sort_first NULLS LAST, created_at, id`, `count`, `find` z `group_id`, značke strani z `contact_id = ANY(:ids)`, atributi in značke kontakta po `position`, `updated_by` → `UserRef`/`null`), `ContactService` (branje), `ContactController` `GET …/contacts` (razčlenitev `page`/`size` kot pri skupinah, `size` ∈ {25, 50, 100}) in `GET …/contacts/{id}` z `GroupAccess.require(…, VIEWER, false)`; `GroupRepository` `contactCount` (R-12)
+- [X] T029 [US1] FR-004-06 FR-004-08 FR-004-14 backend `ContactRepository` (`page` z `ORDER BY sort_last NULLS LAST, sort_first NULLS LAST, created_at, id`, `count`, `find` z `group_id`, značke strani z `contact_id = ANY(:ids)`, atributi in značke kontakta po `position`, `updated_by` → `UserRef`/`null`), `ContactService` (branje), `ContactController` `GET …/contacts` (razčlenitev `page`/`size` kot pri skupinah, `size` ∈ {25, 50, 100}) in `GET …/contacts/{id}` z `GroupAccess.require(…, VIEWER, false)`; `GroupRepository` `contactCount` (R-12)
 - [ ] T030 [US1] FR-004-06 FR-004-07 FR-004-09 frontend `api.listContacts`, `api.getContact`, `ContactsPage` + `ContactTable` (preglednica ↔ kartice z `@container`, značke »+N«), `SectionPagination` z URL stanjem (1-osna stran, privzete vrednosti brez zapisa, preusmeritev ob strani onkraj zadnje, fokus na naslov), prazno stanje, nalaganje (zakasnjeno 300 ms), napaka; `GroupHeader` povezava »Kontakti«, `GroupLayout` razdelek `contacts/*` in privzeti razdelek `contacts`
 - [ ] T031 [US1] FR-004-08 FR-004-09 FR-004-14 frontend `ContactView` (`dl` s `mailto:`/`tel:`, atributi, značke, povezava nazaj z ohranjeno poizvedbo), `ContactPanel` (≥ 1280 px, `useMediaQuery(PANEL)`), `404` → `NotFoundPage` oziroma sporočilo v panelu (R-08), `ContactsRoutes` z `contacts`, `contacts/new`, `contacts/:id`, `contacts/:id/edit`
 
 ### US2 – ustvarjanje (P1)
 
-- [ ] T032 [US2] FR-004-01 FR-004-02 backend `ContactInputParser` po R-06 (razčlenitev, obrez, normalizacija, napake po poljih), `ContactRepository.insert` (+ atributi, značke, `sort_*`, `key_norm`, `tag_norm`), `ContactService.create` (transakcija), `POST …/contacts` z `GroupAccess.require(…, EDITOR, true)` → `201`
-- [ ] T033 [US2] FR-004-04 backend `ContactRepository.tagSuggestions`, `GET /api/groups/{groupId}/tags?q=` (`EDITOR`, `write = false`)
+- [X] T032 [US2] FR-004-01 FR-004-02 backend `ContactInputParser` po R-06 (razčlenitev, obrez, normalizacija, napake po poljih), `ContactRepository.insert` (+ atributi, značke, `sort_*`, `key_norm`, `tag_norm`), `ContactService.create` (transakcija), `POST …/contacts` z `GroupAccess.require(…, EDITOR, true)` → `201`
+- [X] T033 [US2] FR-004-04 backend `ContactRepository.tagSuggestions`, `GET /api/groups/{groupId}/tags?q=` (`EDITOR`, `write = false`)
 - [ ] T034 [US2] FR-004-01 FR-004-02 FR-004-03 FR-004-16 frontend `api.createContact`, `validation.ts` (isti pravili kot strežnik), `ContactForm` (trije `fieldset`, preverjanje ob `blur`, povzetek napak s fokusom, napake strežnika po poljih), `AttributeRows` (dodaj/odstrani, fokus), `ContactFormPage` (nov), trajna napaka z *Poskusi znova*, obvestilo in preusmeritev na pogled
 - [ ] T035 [US2] FR-004-04 frontend `TagInput` (combobox po ARIA 1.2, predlogi iz `api.suggestTags`, *Enter*/vejica, odstranjevanje, napake)
 - [ ] T036 [US2] FR-004-05 frontend `App.tsx` na `createBrowserRouter` (R-09), `DiscardDialog`, `useBlocker` + `beforeunload` v `ContactForm`
 
 ### US3 – urejanje in konflikt (P2)
 
-- [ ] T037 [US3] FR-004-10 FR-004-11 FR-004-13 backend `ContactRepository.lock`, `update` (zamenjava atributov in značk, `version + 1`, `updated_by`, `updated_at`), `ContactService.update` (R-05: zaklep skupine `FOR SHARE`, zaklep kontakta, primerjava vrednosti, `VersionConflictException(current)`), `PUT …/contacts/{id}`
+- [X] T037 [US3] FR-004-10 FR-004-11 FR-004-13 backend `ContactRepository.lock`, `update` (zamenjava atributov in značk, `version + 1`, `updated_by`, `updated_at`), `ContactService.update` (R-05: zaklep skupine `FOR SHARE`, zaklep kontakta, primerjava vrednosti, `VersionConflictException(current)`), `PUT …/contacts/{id}`
 - [ ] T038 [US3] FR-004-10 FR-004-11 FR-004-13 FR-004-16 frontend `api.updateContact`, urejanje v `ContactFormPage`, `ConflictAlert` (opozorilo, razlike, tri možnosti), `404` in `GROUP_ARCHIVED` ob shranjevanju
 
 ### US4 – izbris (P2)
 
-- [ ] T039 [US4] FR-004-12 FR-004-13 backend `ContactService.delete` (zaklepi, `version` iz poizvedbe, `409`/`404`), `DELETE …/contacts/{id}`
+- [X] T039 [US4] FR-004-12 FR-004-13 backend `ContactService.delete` (zaklepi, `version` iz poizvedbe, `409`/`404`), `DELETE …/contacts/{id}`
 - [ ] T040 [US4] FR-004-12 FR-004-13 FR-004-16 frontend `api.deleteContact`, `DeleteContactDialog`, `RowActions` (meni dejanj vrstice), izbris iz pogleda in vrstice, obravnava `409`/`404`, obvestilo
 
 ### US5 – pravice v vmesniku (P3)

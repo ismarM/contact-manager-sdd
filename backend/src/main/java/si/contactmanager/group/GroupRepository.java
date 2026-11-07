@@ -137,7 +137,8 @@ class GroupRepository {
     /** Stran arhiviranih skupin uporabnika, urejena po naslovu po pravilih jezika, nato po id (FR-003-07). */
     List<ArchivedGroupSummary> pageArchived(long user, Collation collation, int size, int page) {
         return jdbc.sql("SELECT g.id, g.title, g.description, g.color, m.role,"
-                        + " (" + NO_OWNER + ") AS permanent"
+                        + " (" + NO_OWNER + ") AS permanent,"
+                        + " (SELECT count(*) FROM contact k WHERE k.group_id = g.id) AS contacts"
                         + " FROM group_member m JOIN contact_group g ON g.id = m.group_id"
                         + " WHERE m.user_id = :user AND g.archived_at IS NOT NULL"
                         + " ORDER BY g.title COLLATE " + collation.sqlName() + ", g.id"
@@ -145,13 +146,13 @@ class GroupRepository {
                 .param("user", user)
                 .param("size", size)
                 .param("offset", (long) page * size)
-                // Število kontaktov vodi 004; do takrat 0 (spec, Assumptions).
+                // Število kontaktov skupine (004, research R-12).
                 .query((rs, row) -> new ArchivedGroupSummary(
                         rs.getObject("id", UUID.class),
                         rs.getString("title"),
                         rs.getString("description"),
                         rs.getString("color"),
-                        0,
+                        rs.getInt("contacts"),
                         Role.valueOf(rs.getString("role")),
                         rs.getBoolean("permanent")))
                 .list();
@@ -190,7 +191,8 @@ class GroupRepository {
      * stabilno paginacijo pri enakih naslovih.
      */
     List<GroupSummary> pageByRole(long user, Role role, Collation collation, int size, int page) {
-        return jdbc.sql("SELECT g.id, g.title, g.description, g.color FROM group_member m"
+        return jdbc.sql("SELECT g.id, g.title, g.description, g.color,"
+                        + " (SELECT count(*) FROM contact k WHERE k.group_id = g.id) AS contacts FROM group_member m"
                         + " JOIN contact_group g ON g.id = m.group_id"
                         + " WHERE m.user_id = :user AND m.role = :role AND g.archived_at IS NULL"
                         + " ORDER BY g.title COLLATE " + collation.sqlName() + ", g.id"
@@ -199,13 +201,13 @@ class GroupRepository {
                 .param("role", role.name())
                 .param("size", size)
                 .param("offset", (long) page * size)
-                // Število kontaktov vodi 004; do takrat 0 (spec, Assumptions).
+                // Število kontaktov skupine (004, research R-12).
                 .query((rs, row) -> new GroupSummary(
                         rs.getObject("id", UUID.class),
                         rs.getString("title"),
                         rs.getString("description"),
                         rs.getString("color"),
-                        0))
+                        rs.getInt("contacts")))
                 .list();
     }
 
