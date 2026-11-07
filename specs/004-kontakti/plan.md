@@ -64,9 +64,9 @@ potrditveni dialog za izbris. Odločitve so v [research.md](research.md), podatk
 | GET | /api/groups (002), /api/groups/archived (003) | — | – | `contactCount` je pravo število kontaktov | FR-002-04, FR-003-07 |
 
 - `size` ∈ {25, 50, 100} (privzeto 25), `page` ≥ 0 (privzeto 0); druga vrednost ali neštevilo → `400 VALIDATION_FAILED` s poljem `size` oziroma `page`. Stran onkraj zadnje: `200` s praznim `items` in pravilnim `total`.
-- `PUT` telo: `ContactInput` + `version`; `DELETE`: `version` v poizvedbi (manjka ali ni število → `400` s poljem `version`, šele po `404` in `409`).
+- `PUT` telo: `ContactInput` + `version`; `DELETE`: `version` v poizvedbi (manjka ali ni število → `400` s poljem `version`, šele po `404`, `403` in `409 GROUP_ARCHIVED`).
 - Napake: `401 {"code":"UNAUTHENTICATED"}`; `404` prazno telo (nečlan, neobstoječa skupina ali kontakt, kontakt druge skupine, neveljaven uuid); `403 {"code":"FORBIDDEN"}`; `409 {"code":"GROUP_ARCHIVED"}`; `409 {"code":"VERSION_CONFLICT","current":ContactDetail}`; `400 {"code":"VALIDATION_FAILED","errors":[{field,code}]}`.
-- Vrstni red: 401 → 404 → 403 → `GROUP_ARCHIVED` → 404 kontakta → `VERSION_CONFLICT` → `VALIDATION_FAILED` (feature-map §2.2). Zastarela verzija z vrednostmi, enakimi trenutnim: `200` brez povečanja verzije (Clarifications 2026-11-06). Podrobnosti: [contracts/openapi.yaml](contracts/openapi.yaml).
+- Vrstni red: 401 → 404 (skupina ali kontakt v tej skupini, korak 2 §2.2) → 403 → `GROUP_ARCHIVED` → `VERSION_CONFLICT` → `VALIDATION_FAILED`; zato `PUT`/`DELETE` neobstoječega ali tujega kontakta vrneta `404` tudi bralcu in v arhivirani skupini. Zastarela verzija z vrednostmi, enakimi trenutnim: `200` brez povečanja verzije (Clarifications 2026-11-06). Podrobnosti: [contracts/openapi.yaml](contracts/openapi.yaml).
 
 ### Pages and routes
 
@@ -132,7 +132,7 @@ Opomba za teste: glava skupine ima `nav` »Razdelki skupine« z novo povezavo *K
 | Dialog izbrisa | text, button | »Kontakt bo odstranjen iz skupine Projekt FERI.« / "The contact will be removed from the group Projekt FERI."; »Prekliči« / "Cancel", »Izbriši kontakt« / "Delete contact" | posledica, gumba | FR-004-12 |
 | Dialog izbrisa | alert | »Kontakta ni bilo mogoče izbrisati. Poskusi znova.« / "The contact could not be deleted. Please try again."; »Ni povezave. Preveri povezavo in poskusi znova.«; »Za to dejanje nimaš več pravic.«; »Skupina je arhivirana – kontaktov ni mogoče spreminjati.« | napaka izbrisa v dialogu | FR-004-12, FR-004-16 |
 | Pogled | alert | »Kontakt je medtem spremenil(a) ‹ime› ob ‹čas›.« + osvežen pogled | konflikt pri izbrisu iz pogleda (dialog se zapre) | FR-004-12 |
-| Pogled | alert | »Tega kontakta ni več – medtem ga je nekdo izbrisal.« + seznam se osveži | izbris izbrisanega | FR-004-13 |
+| Pogled | alert | »Tega kontakta ni več – medtem ga je nekdo izbrisal.« + seznam se osveži | izbris izbrisanega; vmesnik se vrne na seznam (`/groups/:groupId/contacts` z ohranjeno stranjo in velikostjo) – na ločeni strani in v panelu (≥ 1280 px) | FR-004-13 |
 
 #### Obrazec (nov kontakt in urejanje)
 
@@ -155,9 +155,9 @@ Opomba za teste: glava skupine ima `nav` »Razdelki skupine« z novo povezavo *K
 | Obrazec | dialog | »Zavržem spremembe?« / "Discard changes?" | ob preklicu ali navigaciji z neshranjenimi spremembami; fokus na »Nadaljuj z urejanjem« / "Keep editing"; drugi gumb »Zavrzi spremembe« / "Discard changes" | FR-004-05 |
 | Obrazec | alert + button | »Kontakta ni bilo mogoče shraniti. Poskusi znova.« / "The contact could not be saved. Please try again."; »Ni povezave. Preveri povezavo in poskusi znova.«; »Za to dejanje nimaš več pravic.« + »Poskusi znova« / "Try again" | trajna napaka nad obrazcem | FR-004-16 |
 | Obrazec | alert | »Skupina je arhivirana – kontaktov ni mogoče spreminjati.« / "The group is archived – contacts cannot be changed." | `409 GROUP_ARCHIVED` ob oddaji; obrazec ostane | FR-004-15, FR-004-17 |
-| Obrazec (urejanje) | alert | »Kontakt je medtem spremenil(a) ‹ime› ob ‹čas›.« / "The contact was changed by ‹name› at ‹time› in the meantime." (»izbrisan uporabnik« / "deleted user") | konflikt | FR-004-11 |
+| Obrazec (urejanje) | alert | »Kontakt je medtem spremenil(a) ‹ime› ob ‹čas›.« / "The contact was changed by ‹name› at ‹time› in the meantime." (»izbrisan uporabnik« / "deleted user") | konflikt; ‹čas› kot v 002: ura in minuta v zapisu jezika, pred njo datum (`dateStyle: medium`), če sprememba ni bila danes | FR-004-11 |
 | Konflikt | button | »Prikaži razlike« / "Show differences", »Uporabi trenutno različico« / "Use current version", »Shrani moje spremembe« / "Save my changes" | razrešitev | FR-004-11 |
-| Konflikt | table (caption) + columnheader | »Razlike med tvojimi in trenutnimi vrednostmi« / "Differences between your and the current values"; »Polje« / "Field", »Tvoja vrednost« / "Your value", »Trenutna vrednost« / "Current value" | razlike samo za polja, ki se razlikujejo | FR-004-11 |
+| Konflikt | table (caption) + columnheader + rowheader | »Razlike med tvojimi in trenutnimi vrednostmi« / "Differences between your and the current values"; »Polje« / "Field", »Tvoja vrednost« / "Your value", »Trenutna vrednost« / "Current value" | razlike samo za polja, ki se razlikujejo; ime polja v vsaki vrstici je `rowheader` (npr. »Priimek«, »Dodatni atributi«, »Značke«) | FR-004-11 |
 | Obrazec (urejanje) | alert + link | »Tega kontakta ni več – medtem ga je nekdo izbrisal.« / "This contact no longer exists – someone deleted it in the meantime." + »Nazaj na seznam kontaktov« | 404 ob oddaji; obrazec ostane z vnesenimi podatki | FR-004-13 |
 | Pot obrazca (bralec) | text + link | »Za urejanje kontaktov potrebuješ vlogo urednik ali višjo.« / "You need the editor role or higher to edit contacts." + »Nazaj na seznam kontaktov« | namesto obrazca | FR-004-17 |
 | Pot obrazca (arhivirana skupina) | text + link | »Skupina je arhivirana – kontaktov ni mogoče spreminjati.« + »Nazaj na seznam kontaktov« | namesto obrazca | FR-004-17 |

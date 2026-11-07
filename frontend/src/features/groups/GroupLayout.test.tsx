@@ -19,10 +19,10 @@ describe('GroupLayout', () => {
     await i18n.changeLanguage('sl');
   });
 
-  it('FR-002-07: odprtje skupine prikaže prvi razdelek (Nastavitve)', async () => {
+  it('FR-002-07: odprtje skupine prikaže privzeti razdelek (Kontakti)', async () => {
     renderGroupsApp(`/groups/${GROUP_ID}`, { get: () => asEditor() });
 
-    await waitFor(() => expect(currentLocation()).toBe(`/groups/${GROUP_ID}/settings`));
+    await waitFor(() => expect(currentLocation()).toBe(`/groups/${GROUP_ID}/contacts`));
   });
 
   it('FR-002-07: glava z naslovom, vlogo (»Vloga: Urednik«) in navigacijo z Nastavitvami kot trenutno stranjo', async () => {

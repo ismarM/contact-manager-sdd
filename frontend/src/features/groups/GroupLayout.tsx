@@ -6,6 +6,7 @@ import { Navigate, useLocation, useParams } from 'react-router';
 import { ApiError } from '../../shared/api/client';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
 import { errorAlert } from '../../shared/ui/styles';
+import { ContactsPage } from '../contacts/ContactsPage';
 import { useGroupsApi } from './api';
 import { ArchivedBanner } from './ArchivedBanner';
 import { GroupContext, type GroupContextValue } from './groupContext';
@@ -36,8 +37,12 @@ export function GroupLayout() {
       />
     );
   }
-  if (!(SECTIONS as readonly string[]).includes(section)) return <NotFoundPage />;
-  return <GroupScreen key={groupId} groupId={groupId} />;
+  // OGRODJE (004, T006): pot `contacts/…` je znana, vsebino prinese implementacija.
+  const first = section.split('/')[0] ?? '';
+  if (!(SECTIONS as readonly string[]).includes(section) && first !== 'contacts') {
+    return <NotFoundPage />;
+  }
+  return <GroupScreen key={groupId} groupId={groupId} contacts={first === 'contacts'} />;
 }
 
 type State =
@@ -46,7 +51,7 @@ type State =
   | { kind: 'failed' }
   | { kind: 'ready'; group: GroupDetail };
 
-function GroupScreen({ groupId }: { groupId: string }) {
+function GroupScreen({ groupId, contacts }: { groupId: string; contacts: boolean }) {
   const { t } = useTranslation();
   const api = useGroupsApi();
   const location = useLocation();
@@ -121,7 +126,7 @@ function GroupScreen({ groupId }: { groupId: string }) {
     <GroupContext.Provider value={context}>
       <GroupHeader group={context.group} focusTitle={focusTitle} />
       <ArchivedBanner />
-      <SettingsPage />
+      {contacts ? <ContactsPage /> : <SettingsPage />}
     </GroupContext.Provider>
   );
 }
