@@ -62,7 +62,8 @@ async function addContact(
   fields: { first?: string; last?: string; email?: string; tags?: string[] },
 ) {
   await page.goto(`/groups/${groupId}/contacts/new`);
-  if (fields.first) await page.getByRole('textbox', { name: 'Ime' }).fill(fields.first);
+  if (fields.first)
+    await page.getByRole('textbox', { name: 'Ime', exact: true }).fill(fields.first);
   if (fields.last) await page.getByRole('textbox', { name: 'Priimek' }).fill(fields.last);
   if (fields.email) await page.getByRole('textbox', { name: 'E-naslov' }).fill(fields.email);
   for (const tag of fields.tags ?? []) {
@@ -92,7 +93,7 @@ test('FR-004-01 FR-004-03 FR-004-08 FR-004-09 SC-001: urednik ustvari kontakt z 
 
   await page.getByRole('main').getByRole('link', { name: 'Nov kontakt' }).first().click();
   await expect(page).toHaveURL(new RegExp(`/groups/${id}/contacts/new$`));
-  await page.getByRole('textbox', { name: 'Ime' }).fill('Janez');
+  await page.getByRole('textbox', { name: 'Ime', exact: true }).fill('Janez');
   await page.getByRole('textbox', { name: 'Priimek' }).fill('Novak');
   await page.getByRole('textbox', { name: 'E-naslov' }).fill('janez@primer.si');
   await page.getByRole('button', { name: 'Dodaj atribut' }).click();
@@ -176,7 +177,7 @@ test('FR-004-10 FR-004-05: urednik uredi kontakt; neshranjene spremembe zahtevaj
   await expect(page.getByRole('heading', { level: 2, name: 'Janez Novak' })).toBeVisible();
 
   await page.getByRole('link', { name: 'Uredi kontakt' }).click();
-  await expect(page.getByRole('textbox', { name: 'Ime' })).toHaveValue('Janez');
+  await expect(page.getByRole('textbox', { name: 'Ime', exact: true })).toHaveValue('Janez');
   await page.getByRole('textbox', { name: 'Telefon' }).fill('040 111 222');
   await page.getByRole('button', { name: 'Prekliči' }).click();
   const dialog = page.getByRole('dialog', { name: 'Zavržem spremembe?' });
@@ -207,9 +208,9 @@ test('FR-004-11: konflikt – drugi urednik je medtem spremenil kontakt; razlike
 
   // Anin obrazec je naložen z verzijo pred Bojanovo spremembo.
   await page.goto(`${url}/edit`);
-  await expect(page.getByRole('textbox', { name: 'Ime' })).toHaveValue('Janez');
+  await expect(page.getByRole('textbox', { name: 'Ime', exact: true })).toHaveValue('Janez');
   await bojan.page.goto(`${url}/edit`);
-  await expect(bojan.page.getByRole('textbox', { name: 'Ime' })).toHaveValue('Janez');
+  await expect(bojan.page.getByRole('textbox', { name: 'Ime', exact: true })).toHaveValue('Janez');
   await expectNoAxeViolations(bojan.page);
   await bojan.page.getByRole('textbox', { name: 'Telefon' }).fill('031 999 888');
   await bojan.page.getByRole('button', { name: 'Shrani kontakt' }).click();
@@ -298,14 +299,14 @@ test('FR-004-13: kontakt, ki ga je medtem izbrisal drug član – izbris iz vrst
 
   // Shranjevanje v obrazcu: obrazec ostane z vnesenimi podatki in povezavo na seznam; kontakt se ne ustvari znova.
   await page.goto(`/groups/${id}/contacts/${janez}/edit`);
-  await expect(page.getByRole('textbox', { name: 'Ime' })).toHaveValue('Janez');
+  await expect(page.getByRole('textbox', { name: 'Ime', exact: true })).toHaveValue('Janez');
   deleteContactInDb(janez);
   await page.getByRole('textbox', { name: 'Telefon' }).fill('040 111 222');
   await page.getByRole('button', { name: 'Shrani kontakt' }).click();
   const alert = page.getByRole('alert');
   await expect(alert).toContainText(gone);
   await expect(page.getByRole('textbox', { name: 'Telefon' })).toHaveValue('040 111 222');
-  await expect(page.getByRole('textbox', { name: 'Ime' })).toHaveValue('Janez');
+  await expect(page.getByRole('textbox', { name: 'Ime', exact: true })).toHaveValue('Janez');
   await expectNoAxeViolations(page);
   expect(contactExists(janez)).toBe(false);
   expect(contactCount(id)).toBe(0);
@@ -409,7 +410,7 @@ test('FR-004-02 FR-004-03: validacija – povzetek napak, napaka ob zapustitvi p
   ).toBeVisible();
   await expectNoAxeViolations(page);
   await summary.getByRole('link', { name: 'Vpiši vsaj ime ali priimek.' }).first().click();
-  await expect(page.getByRole('textbox', { name: 'Ime' })).toBeFocused();
+  await expect(page.getByRole('textbox', { name: 'Ime', exact: true })).toBeFocused();
 
   const email = page.getByRole('textbox', { name: 'E-naslov' });
   await email.fill('janez@');
@@ -445,7 +446,7 @@ test('FR-004-11 SC-004: konflikt – Uporabi trenutno različico naloži vrednos
   const id = await createGroup(page, { title: 'Projekt FERI' });
   const contact = createContact(id, { first: 'Janez', last: 'Novak' });
   await page.goto(`/groups/${id}/contacts/${contact}/edit`);
-  await expect(page.getByRole('textbox', { name: 'Ime' })).toHaveValue('Janez');
+  await expect(page.getByRole('textbox', { name: 'Ime', exact: true })).toHaveValue('Janez');
   setContactField(contact, 'phone', '031 999 888');
   await page.getByRole('textbox', { name: 'Priimek' }).fill('Horvat');
   await page.getByRole('button', { name: 'Shrani kontakt' }).click();
@@ -502,13 +503,13 @@ test('FR-004-16: brez povezave – trajno sporočilo, obrazec ostane, Poskusi zn
   await signedIn(page);
   const id = await createGroup(page, { title: 'Projekt FERI' });
   await page.goto(`/groups/${id}/contacts/new`);
-  await page.getByRole('textbox', { name: 'Ime' }).fill('Janez');
+  await page.getByRole('textbox', { name: 'Ime', exact: true }).fill('Janez');
 
   await context.setOffline(true);
   await page.getByRole('button', { name: 'Shrani kontakt' }).click();
   const alert = page.getByRole('alert');
   await expect(alert).toContainText('Ni povezave. Preveri povezavo in poskusi znova.');
-  await expect(page.getByRole('textbox', { name: 'Ime' })).toHaveValue('Janez');
+  await expect(page.getByRole('textbox', { name: 'Ime', exact: true })).toHaveValue('Janez');
   await expectNoAxeViolations(page);
   await context.setOffline(false);
   await alert.getByRole('button', { name: 'Poskusi znova' }).click();
@@ -575,8 +576,9 @@ test('FR-004-01 FR-004-04 SC-001 SC-006: angleški vmesnik – kontakt z dvema a
   expect(Date.now() - started).toBeLessThan(90_000);
   await expect(page.getByRole('heading', { level: 2, name: 'Janez Novak' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Edit contact' })).toBeVisible();
-  await expect(
-    details(page).getByRole('listitem').filter({ hasText: 'konferenca2025' }),
-  ).toBeVisible();
+  const english = hasPanel(page)
+    ? page.getByRole('region', { name: 'Contact details' })
+    : page.getByRole('main');
+  await expect(english.getByRole('listitem').filter({ hasText: 'konferenca2025' })).toBeVisible();
   await expectNoAxeViolations(page);
 });
