@@ -99,10 +99,8 @@ describe('ContactsPage', () => {
 
     const table = await findTable();
     const rows = within(table).getAllByRole('row').slice(1);
-    expect(rows[0]).toHaveTextContent('a1');
-    expect(rows[0]).toHaveTextContent('b2');
-    expect(rows[0]).toHaveTextContent('c3');
-    expect(rows[0]).toHaveTextContent('+2');
+    // Prve tri značke v vrstnem redu vnosa (FR-004-06), nato »+2«.
+    expect(rows[0]?.textContent).toMatch(/a1.*b2.*c3.*\+2/);
     expect(rows[0]).not.toHaveTextContent('d4');
     expect(rows[0]).not.toHaveTextContent('e5');
     expect(rows[1]).toHaveTextContent('x1');

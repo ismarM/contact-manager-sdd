@@ -210,6 +210,7 @@ test('FR-004-11: konflikt – drugi urednik je medtem spremenil kontakt; razlike
   await expect(page.getByRole('textbox', { name: 'Ime' })).toHaveValue('Janez');
   await bojan.page.goto(`${url}/edit`);
   await expect(bojan.page.getByRole('textbox', { name: 'Ime' })).toHaveValue('Janez');
+  await expectNoAxeViolations(bojan.page);
   await bojan.page.getByRole('textbox', { name: 'Telefon' }).fill('031 999 888');
   await bojan.page.getByRole('button', { name: 'Shrani kontakt' }).click();
   await expect(toast(bojan.page)).toContainText('shranjen');
@@ -249,6 +250,8 @@ test('FR-004-12: izbris iz pogleda in vrstice – dialog, fokus, obvestilo, kont
   await expectNoAxeViolations(page);
   await dialog.getByRole('button', { name: 'Izbriši kontakt' }).click();
   await expect(toast(page)).toContainText('Kontakt Metka Zupan je izbrisan.');
+  // Pozitiven znak osveženega seznama, preden preverimo, da izbrisanega kontakta ni.
+  await expect(table(page).getByRole('link', { name: 'Janez Novak' })).toBeVisible();
   await expect(table(page)).not.toContainText('Metka Zupan');
   expect(contactCount(id)).toBe(1);
 
@@ -289,6 +292,7 @@ test('FR-004-13: kontakt, ki ga je medtem izbrisal drug član – izbris iz vrst
     .getByRole('button', { name: 'Izbriši kontakt' })
     .click();
   await expect(page.getByRole('alert')).toContainText(gone);
+  await expect(table(page).getByRole('link', { name: 'Janez Novak' })).toBeVisible();
   await expect(table(page)).not.toContainText('Metka Zupan');
   await expectNoAxeViolations(page);
 
@@ -316,6 +320,7 @@ test('FR-004-13: kontakt, ki ga je medtem izbrisal drug član – izbris iz vrst
   const ana = createContact(id, { first: 'Ana', last: 'Kralj' });
   await page.goto(`/groups/${id}/contacts/${ana}`);
   await expect(page.getByRole('heading', { level: 2, name: 'Ana Kralj' })).toBeVisible();
+  await expectNoAxeViolations(page);
   deleteContactInDb(ana);
   await page.getByRole('button', { name: 'Izbriši kontakt' }).first().click();
   await page
@@ -509,6 +514,8 @@ test('FR-004-16: brez povezave – trajno sporočilo, obrazec ostane, Poskusi zn
   await alert.getByRole('button', { name: 'Poskusi znova' }).click();
 
   await expect(page).toHaveURL(new RegExp(`/groups/${id}/contacts/[0-9a-f-]{36}$`));
+  await expect(details(page).getByRole('heading', { level: 2, name: 'Janez' })).toBeVisible();
+  await expectNoAxeViolations(page);
   expect(contactCount(id)).toBe(1);
 });
 
@@ -527,7 +534,13 @@ test('FR-004-01 FR-004-04 SC-001 SC-006: angleški vmesnik – kontakt z dvema a
   await signedIn(page);
   const id = await createGroup(page, { title: 'Projekt FERI' });
   await page.goto('/account');
+  // Jezik se shrani v profil na strežniku; ponovno nalaganje počaka na odgovor, da ni dirke s profilom.
+  const saved = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/me/preferences') && response.request().method() === 'PUT',
+  );
   await page.getByRole('group', { name: 'Jezik' }).getByRole('radio', { name: 'English' }).check();
+  expect((await saved).ok()).toBe(true);
   await expect(page.getByRole('heading', { level: 1, name: 'My account' })).toBeVisible();
   await page.goto(`/groups/${id}/contacts/new`);
   await expect(page.getByRole('heading', { level: 2, name: 'New contact' })).toBeVisible();
