@@ -60,7 +60,7 @@ export function NewGroupDialog({ className = primaryButton }: { className?: stri
       setOpen(false);
       toast(t('groups.created'));
       refresh();
-      void navigate(`/groups/${group.id}/settings`, { state: { focusTitle: true } });
+      void navigate(`/groups/${group.id}/contacts`, { state: { focusTitle: true } });
     } catch (error) {
       const fields = fieldErrors(error)
         .map(({ field, code }) => serverFieldError(field, code))

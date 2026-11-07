@@ -54,6 +54,12 @@ export function GroupHeader({ group, focusTitle }: { group: GroupDetail; focusTi
       </div>
       <nav aria-label={t('groups.header.sections')} className="flex gap-4 overflow-x-auto">
         <NavLink
+          to={`/groups/${group.id}/contacts`}
+          className={`-mb-px border-b-4 border-transparent px-1 pb-2 font-bold aria-[current=page]:border-primary ${focusRing}`}
+        >
+          {t('groups.header.contacts')}
+        </NavLink>
+        <NavLink
           to={`/groups/${group.id}/settings`}
           className={`-mb-px border-b-4 border-transparent px-1 pb-2 font-bold aria-[current=page]:border-primary ${focusRing}`}
         >
