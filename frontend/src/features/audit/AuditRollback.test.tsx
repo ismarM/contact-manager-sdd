@@ -178,7 +178,9 @@ describe('AuditRollback', () => {
       'listitem',
     )[0] as HTMLElement;
     expect(first).toHaveTextContent('povrnil(a) skupino na stanje');
-    expect(screen.getByRole('heading', { level: 2, name: 'Revizijska sled' })).toHaveFocus();
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { level: 2, name: 'Revizijska sled' })).toHaveFocus(),
+    );
   });
 
   it('FR-005-14: 409 VERSION_CONFLICT zapre dialog, pokaže opozorilo in osveži seznam', async () => {
