@@ -192,3 +192,21 @@ now that you are up to date with the new rules continue with the next steps and 
 | Napake, odkrite z drugim agentom | 11 zavrnitev `pregled-testov` (vse zaradi robustnosti ali vrzeli v asercijah) |
 | Preverjanje s testi | #5, #6, #12 (BE 213 IT, FE, `verify.sh quick` in `full`) |
 | Odprto za razvijalca | D-42/D-43: spremembe testov po 11. krogu niso bile neodvisno pregledane; PR predpostavke: 404 po širini zaslona (D-39 (7)), privzeti razdelek Kontakti (D-40), SC-002 mediana petih klicev kot približek |
+
+## Seja 6 — 005-revizijska-sled
+
+- **Datum:** 2026-11-08
+- **Razvijalec:** Patrik
+- **Agent / model:** Claude Code, claude-sonnet-5-5; podagent `pregled-testov`
+- **Veja / commiti:** `revizijska-sled`; `c74738c` (docs), `5805cef` `test(005)`, `dc647ff` `feat(005)`, `37b4bc8` `test(005)`; PR: še ni odprt
+- **Poraba žetonov:** ni zabeleženo (`token-report-patrik.md` za sejo 6 še ni izpolnjen)
+
+| # | Vrsta | Točen prompt / odgovor | Faza SDD | Rezultat / spremenjene datoteke | Preverjanje | Težava (kategorija) | Status |
+|---|---|---|---|---|---|---|---|
+| 1 | sporočilo | `/speckit-clarify` (+ odgovori Q1–Q4) | clarify | konflikt rollbacka (409 `VERSION_CONFLICT`), vsebina vnosa rollback, paginacija podrobnosti, točka *Začetno stanje* | – | – (none) | accepted |
+| 2 | sporočilo | `/speckit-plan`, `/speckit-tasks`, `/speckit-analyze`, `fix everything and report when done` | plan → analyze | `plan.md`, `research.md`, `data-model.md`, `tasks.md` (T001–T047), D-46 do D-47; popravki ugotovitev analize | analiza artefaktov | – (none) | accepted |
+| 3 | sporočilo | `/speckit-implement` | implement (testi), test review | 9 BE testnih razredov, 8 FE testov, E2E `revizijska-sled.spec.ts`; `pregled-testov`: krog 1 ZAVRNJENO, krog 2 SPREJETO | – | vrzeli v asercijah (agent-error) | accepted |
+| 4 | agent | (isto sporočilo) | implement | V5 migracija, `audit/*`, `RollbackService`, vmesnik `features/audit`, oznaka *Povrnjeno* | audit IT, varnostni IT, 003/004 IT, FE 392 + 73, E2E 222 (360/768/1280 px, axe) | napake lastnih testov → D-48 do D-52 (agent-error); `-Werror`, `JdbcClient`, zastarel failsafe (tool-or-environment) | accepted |
+| 5 | sporočilo | `docker is running now aswell` | implement | nadaljevanje preverjanja z Dockerjem | E2E, IT | – (none) | accepted |
+| 6 | sporočilo | `what must i do to make verify.sh work on this machine?` | verify | vzrok: simbolične povezave (EPERM) in `JAVA_HOME` v testih skripte `orodja` | – | okolje Windows (tool-or-environment) | accepted |
+| 7 | sporočilo | `/speckit-converge`, nato `/speckit-implement T048, T049, T050` | converge | fazi 9 dodane T048–T050; T049 ta vnos, T050 predpostavki v 006 in 007 | – | – (none) | accepted |

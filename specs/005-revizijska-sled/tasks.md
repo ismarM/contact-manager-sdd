@@ -167,3 +167,9 @@ neodvisnega agenta `pregled-testov` (workflow.md §4.2).
 - Testa nikoli ne spreminjaj, da bi ustrezal kodi; vsaka sprememba testa po pregledu → vnos v DECISIONS.md.
 - Brez utišanja opozoril brez D-NN v DECISIONS.md; barve samo iz žetonov design.md.
 - `./verify.sh quick` pred zaključkom vsake naloge.
+
+## Phase 9: Convergence
+
+- [X] T048 HIGH: zaženi `./verify.sh full` do konca (na tem računalniku zahteva Developer Mode za simbolične povezave in nastavljen `JAVA_HOME`) in popravi `traceability.md` (razdelek *Preverjanje*), da navaja dejanski izid per T045 (partial)
+- [X] T049 MEDIUM: dodaj sejo za 005 v `ai-log/patrik.md` (AI dnevnik) per T045 (missing)
+- [X] T050 MEDIUM: zapiši obveznost preverjanja nespremenjenega `audit_entry` ob spremembah vlog, članstev in povabil v `specs/006-povabila/spec.md` in `specs/007-clani/spec.md` (ali v njuna `tasks.md`, ko nastaneta) per FR-005-06 (partial)

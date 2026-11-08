@@ -127,6 +127,8 @@ export function AuditPage() {
     try {
       if (target === 'initial') await api.rollbackInitial(group.id, latest);
       else await api.rollback(group.id, target.id, latest);
+      // Po uspehu fokus prevzame naslov; zaprtje dialoga ga ne sme vrniti na sprožilec.
+      opener.current = null;
       setPending(null);
       toast(
         target === 'initial'

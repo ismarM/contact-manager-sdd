@@ -189,6 +189,7 @@ Uporabnik se ne more odzvati na tuje povabilo, na že obdelano povabilo ali na p
 - **Optimistično zaklepanje** se za povabila ne uporablja: povabilo je enkratno, drugi odziv vrne 404.
 - **Osveževanje števila povabil** ob prihodu novega povabila se zgodi ob nalaganju aplikacije in ob prehodu med stranmi; sprotno potiskanje obvestil ni zahtevano.
 - Potrditveni dialog za zavrnitev zahteva feature-map §2.8 in design.md 9.8 (seznam v design.md 8.11 zavrnitve povabila ne navaja – glej poročilo).
+- **Revizijska sled (005, FR-005-06):** ustvarjanje, sprejem in zavrnitev povabil ne ustvarijo vnosa v `audit_entry`; testi te funkcionalnosti morajo preveriti, da ostane `audit_entry` skupine nespremenjen.
 
 ## Changes *(living spec – change requests)*
 
