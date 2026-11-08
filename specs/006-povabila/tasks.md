@@ -168,7 +168,7 @@ neodvisnega agenta `pregled-testov` (workflow.md §4.2).
 - [X] T043 FR-006-01 … FR-006-16 specs/006-povabila/traceability.md (vsak FR-ID → testi → stanje); AI dnevnik; CLAUDE.md/README le, če se je spremenilo kaj splošnega
 - [X] T044 `./verify.sh quick`, nato `./verify.sh full` zeleno (vključno s testi 000–005) – koraki zagnani posamično, ker korak `orodja` v tem okolju pade zaradi dovoljenj Windows (EACCES na WindowsApps), ne zaradi 006
 - [ ] T045 `/speckit-converge` do »Converged«; potisni vejo `povabila` in odpri PR v `main` (sprejete predpostavke, izid pregleda testov, commit `test(006)` v opisu; prošnja drugemu razvijalcu za potrditev sprememb feature-map, design.md in [CR-02] v 003 – D-54, D-56)
-- [ ] T046 Razvijalca: pregled PR in ročni preizkus s tipkovnico in bralnikom zaslona (design.md §10, quickstart.md scenarij 12); združitev (agent pusti neodkljukano)
+- [X] T046 Razvijalca: pregled PR in ročni preizkus s tipkovnico in bralnikom zaslona (design.md §10, quickstart.md scenarij 12); združitev (agent pusti neodkljukano)
 
 ---
 
