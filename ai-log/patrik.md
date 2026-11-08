@@ -198,8 +198,8 @@ now that you are up to date with the new rules continue with the next steps and 
 - **Datum:** 2026-11-08
 - **Razvijalec:** Patrik
 - **Agent / model:** Claude Code, claude-sonnet-5-5; podagent `pregled-testov`
-- **Veja / commiti:** `revizijska-sled`; `c74738c` (docs), `5805cef` `test(005)`, `dc647ff` `feat(005)`, `37b4bc8` `test(005)`; PR: še ni odprt
-- **Poraba žetonov:** ni zabeleženo (`token-report-patrik.md` za sejo 6 še ni izpolnjen)
+- **Veja / commiti:** `revizijska-sled`; `c74738c` (docs), `5805cef` `test(005)`, `dc647ff` `feat(005)`, `37b4bc8` `test(005)`; `7708de9` `test(005)`, `f5f6971` `fix(005)`; veja potisnjena, PR odprt ročno (`gh` ni nameščen)
+- **Poraba žetonov:** 98 884 016 do vključno zahteve za izpolnitev tega dnevnika (`token-report-patrik.md`, seja 6; skupaj 1.–6. seja 411 822 807)
 
 | # | Vrsta | Točen prompt / odgovor | Faza SDD | Rezultat / spremenjene datoteke | Preverjanje | Težava (kategorija) | Status |
 |---|---|---|---|---|---|---|---|
@@ -210,3 +210,18 @@ now that you are up to date with the new rules continue with the next steps and 
 | 5 | sporočilo | `docker is running now aswell` | implement | nadaljevanje preverjanja z Dockerjem | E2E, IT | – (none) | accepted |
 | 6 | sporočilo | `what must i do to make verify.sh work on this machine?` | verify | vzrok: simbolične povezave (EPERM) in `JAVA_HOME` v testih skripte `orodja` | – | okolje Windows (tool-or-environment) | accepted |
 | 7 | sporočilo | `/speckit-converge`, nato `/speckit-implement T048, T049, T050` | converge | fazi 9 dodane T048–T050; T049 ta vnos, T050 predpostavki v 006 in 007 | – | – (none) | accepted |
+| 8 | sporočilo | `/speckit-implement T048, T049, T050` | implement | T049 ta vnos; T050 predpostavki v `specs/006-povabila/spec.md` in `specs/007-clani/spec.md`; T048: `./verify.sh full` do konca (Developer Mode, `JAVA_HOME`, PATH brez `WindowsApps`); D-53, popravek `AuditPage.tsx`, `traceability.md` | `verify.sh full` zelen razen testa `FR-000-06`; `AuditRollback.test.tsx` 10 zagonov zaporedoma zelenih | občasen padec testa fokusa po rollbacku – dirka v kodi in čakanje v testu (agent-error); test skripte ne izključi `docker.exe` na Windows (tool-or-environment) | accepted |
+| 9 | sporočilo | `after you are done and ready make a pr and let me know to merge it` | push, PR | veja `revizijska-sled` potisnjena; PR ni odprt, ker `gh` ni nameščen; opis PR pripravljen | – | manjkajoče orodje `gh` (tool-or-environment) | partial |
+| 10 | sporočilo | `give me the description, then fill out patrik.md and token-report-patrik.md …` | docs | opis PR; ta dnevnik in `token-report-patrik.md` | števila iz dnevnikov seje | – (none) | accepted |
+
+**Povzetek seje 6**
+
+| Metrika | Rezultat |
+|---|---|
+| Sporočila razvijalca (v dnevniku) | 3 pred zahtevo za ta dnevnik, poleg ukazov `/speckit-*`, odgovorov Q1–Q4 in dveh sporočil med delom (#8, #9) |
+| Dodatni pozivi ali popravki navodil | 0 |
+| Potrjene napake agenta | testi: vrzeli v asercijah (2 kroga pregleda), napake lastnih testov D-48 do D-52, občasen test fokusa D-53; koda: dirka fokusa po rollbacku (odkrita ob ponavljanju testov) |
+| Nejasne ali spremenjene zahteve | 4 pojasnila (Q1–Q4); 0 sprememb specifikacije po implementaciji; spremembe testov z vnosi D-48 do D-53 |
+| Napake, odkrite z drugim agentom | 1 zavrnitev `pregled-testov` (krog 1) |
+| Preverjanje s testi | #4, #8 (audit IT, varnostni IT, FE 392 + 73, E2E 222, `verify.sh full`) |
+| Odprto za razvijalca | T046 (PR), T047 (ročni pregled s tipkovnico in bralnikom zaslona); test `FR-000-06` skripte `verify.sh` ne izključi `docker.exe` na Windows |
