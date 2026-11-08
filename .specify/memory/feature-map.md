@@ -18,7 +18,7 @@ Mape so oštevilčene (številka je del FR-ID `FR-NNN-XX`), **veje niso**: veja 
 | `003-arhiviranje` | `arhiviranje` | arhiviranje in odarhiviranje (lastnik), seznam arhiviranih skupin, pasica in način samo za branje, splošno pravilo zavračanja pisanja v arhivirani skupini, stanje »trajno arhivirana«, izbris skupine (edini član) | 002 |
 | `004-kontakti` | `kontakti` | ustvarjanje, ogled, urejanje in izbris kontakta (predefinirani in dodatni atributi, značke), seznam kontaktov skupine s paginacijo, optimistično zaklepanje in konflikt verzij | 002, 003 |
 | `005-revizijska-sled` | `revizijska-sled` | beleženje vseh sprememb kontaktov skupine, pregled sledi (filtri, po kontaktu), rollback na poljubno točko (admin, lastnik) | 004 |
-| `006-povabila` | `povabila` | povabilo registriranega uporabnika po e-naslovu z vlogo, nižjo od lastne (admin in višje); prikaz prejetih povabil; sprejem in zavrnitev | 002, 003 |
+| `006-povabila` | `povabila` | povabilo registriranega uporabnika po e-naslovu z vlogo, nižjo od lastne (admin in višje); prikaz prejetih povabil; sprejem in zavrnitev; pregled in umik poslanih povabil skupine (admin in višje) | 002, 003 |
 | `007-clani` | `clani` | seznam članov, sprememba vloge in odstranitev člana (le nižjim od sebe), zapuščanje skupine, prenos lastništva | 006 |
 | `008-iskanje` | `iskanje` | iskanje in filtri v skupini (predefinirani in dodatni atributi, značke), razvrščanje naraščajoče/padajoče, stanje v URL | 004 |
 | `009-mnozicno-urejanje` | `mnozicno-urejanje` | izbor kontaktov (tudi čez strani in »vsi zadetki«), akcijska vrstica izbora, množično dodajanje/odstranjevanje značk, nastavljanje/odstranjevanje atributa, množični izbris | 005, 008 |
@@ -103,9 +103,10 @@ Pri vsakem zahtevku nad podatki skupine se preverja v tem vrstnem redu; prvi neu
   - izvoz izbranih kontaktov v Excel;
   - zapuščanje skupine (pravila 007);
   - izbris skupine (pravila 003);
-  - odarhiviranje (samo lastnik, ne pri trajno arhivirani).
+  - odarhiviranje (samo lastnik, ne pri trajno arhivirani);
+  - odziv na povabilo (sprejem ali zavrnitev) in umik čakajočega povabila (pravila 006); sprejeti član ima efektivno pravice bralca.
   
-  Vse drugo (tudi povabila, spremembe vlog, odstranjevanje članov, prenos lastništva, urejanje skupine, rollback, dvojniki) → `409 GROUP_ARCHIVED`, če ima član sicer zadostno vlogo; sicer `403` (§2.2).
+  Vse drugo (tudi pošiljanje povabil, spremembe vlog, odstranjevanje članov, prenos lastništva, urejanje skupine, rollback, dvojniki) → `409 GROUP_ARCHIVED`, če ima član sicer zadostno vlogo; sicer `403` (§2.2).
 - **Trajno arhivirana skupina** nastane, ko lastnik arhivirane skupine izbriše račun (012). Nima lastnika (kot lastnik je prikazan »izbrisan uporabnik«), ne more se odarhivirati, zadnji član je ne more zapustiti, lahko jo le izbriše; izbriše jo lahko tudi član, ki ni lastnik, če je edini član.
 - Arhivirane skupine niso na seznamu skupin po vlogah, ampak na ločenem seznamu *Arhivirane skupine*.
 
@@ -135,7 +136,7 @@ Od funkcionalnosti 005 naprej **vsaka** sprememba kontaktov (ustvarjanje, urejan
 
 ### 2.8 Nevarne operacije
 
-Potrditveni dialog (design.md 8.11) je obvezen za: izbris kontakta (tudi množični), združevanje, rollback, odstranitev člana, spremembo vloge, zapuščanje skupine, arhiviranje, prenos lastništva, izbris skupine, izbris računa, zavrnitev povabila. Z vpisom naslova skupine oziroma lastnega e-naslova se potrdijo izbris skupine, izbris računa in prenos lastništva. Vsaka funkcionalnost to zapiše kot FR za svoje operacije.
+Potrditveni dialog (design.md 8.11) je obvezen za: izbris kontakta (tudi množični), združevanje, rollback, odstranitev člana, spremembo vloge, zapuščanje skupine, arhiviranje, prenos lastništva, izbris skupine, izbris računa, zavrnitev povabila, umik povabila. Z vpisom naslova skupine oziroma lastnega e-naslova se potrdijo izbris skupine, izbris računa in prenos lastništva. Vsaka funkcionalnost to zapiše kot FR za svoje operacije.
 
 ### 2.9 Jezik, čas, dostopnost
 
