@@ -262,7 +262,7 @@ Dodatni atributi
 
 ### 8.11 Potrditveni dialog za nevarne operacije
 
-Obvezen za: izbris kontakta (tudi množični), združevanje, rollback, odstranitev člana, spremembo vloge, zapuščanje skupine, arhiviranje, prenos lastništva, izbris skupine, izbris računa in zavrnitev povabila.
+Obvezen za: izbris kontakta (tudi množični), združevanje, rollback, odstranitev člana, spremembo vloge, zapuščanje skupine, arhiviranje, prenos lastništva, izbris skupine, izbris računa, zavrnitev povabila in umik povabila.
 
 ```
 ┌──────────────────────────────────────────────┐
@@ -360,7 +360,8 @@ En stolpec razdelkov, vsak s svojim naslovom `h2`:
 
 1. **Podatki skupine** – *Naslov*, *Opis*, *Barva*, *Shrani spremembe* (lastnik, admin; drugi vidijo podatke brez obrazca).
 2. **Člani** – preglednica *Član · E-naslov · Vloga · Dejanja*. Kjer ima uporabnik pravico (lastnik, admin; samo nad nižjimi od sebe), meni dejanj vsebuje *Spremeni vlogo* (dialog z izbirnimi gumbi dovoljenih vlog) in *Odstrani iz skupine*.
-3. **Povabi člana** (admin in višje) – *E-naslov* registriranega uporabnika in *Vloga* (izbirni gumbi samo vlog, nižjih od lastne), *Pošlji povabilo*. Če uporabnik ne obstaja, napaka ob polju.
+3. **Povabi člana** (admin in višje) – *E-naslov* registriranega uporabnika in *Vloga* (izbirni gumbi samo vlog, nižjih od lastne), *Pošlji povabilo*. Če uporabnik ne obstaja, napaka ob polju. V arhivirani skupini obrazca ni.
+   Pod obrazcem je podrazdelek **Čakajoča povabila** (admin in višje, tudi v arhivirani skupini) – preglednica *Povabljeni (e-naslov) · Vloga · Povabil(a) · Datum · Dejanja*; tihi gumb *Umakni povabilo* (s potrditvijo; admin samo pri povabilih z vlogo pod *Admin*). Prazno stanje: »Ni čakajočih povabil.«
 4. **Upravljanje skupine** – ločeno z zgornjim robom; vsaka akcija ima en stavek razlage:
    - *Prenesi lastništvo* (lastnik; izbira člana; ti postaneš admin);
    - *Arhiviraj skupino* / *Odarhiviraj skupino* (lastnik);
@@ -371,7 +372,7 @@ En stolpec razdelkov, vsak s svojim naslovom `h2`:
 
 ### 9.8 Povabila
 
-Seznam prejetih povabil: jeziček in naslov skupine, kdo vabi, ponujena vloga, datum. Akciji *Sprejmi povabilo* (primarna) in *Zavrni* (sekundarna, s potrditvijo). Po sprejetju obvestilo s povezavo »Odpri skupino«. Prazno stanje: »Nimaš novih povabil.«
+Seznam prejetih povabil: jeziček in naslov skupine, kdo vabi, ponujena vloga, datum. Akciji *Sprejmi povabilo* (primarna) in *Zavrni* (sekundarna, s potrditvijo). Po sprejetju obvestilo s povezavo »Odpri skupino«. Povabilo v arhivirano skupino ima oznako *Arhivirano* in razlago, obe akciji pa ostaneta. Prazno stanje: »Nimaš novih povabil.«
 
 ### 9.9 Moj račun
 

@@ -31,7 +31,7 @@
 
 ## Notes
 
-- Validacija: 1 iteracija, vse točke izpolnjene. Vsak FR (FR-006-01 … FR-006-12) ima vsaj en sprejemni scenarij z oznako FR-ID; negativni scenariji pokrivajo neprijavljenega (401), nečlana (404), VIEWER/EDITOR (403), »le nižjim od sebe« (403), arhivirano skupino (409), validacijo (400), tuje/obdelano povabilo (404).
+- Validacija: 1 iteracija, vse točke izpolnjene. Vsak FR (FR-006-01 … FR-006-16) ima vsaj en sprejemni scenarij z oznako FR-ID; negativni scenariji pokrivajo neprijavljenega (401), nečlana (404), VIEWER/EDITOR (403), »le nižjim od sebe« (403), arhivirano skupino (409), validacijo (400), tuje/obdelano povabilo (404).
 - HTTP statusne kode (401/403/404/409/400) in kode napak (`GROUP_ARCHIVED`, `VERSION_CONFLICT`, `VALIDATION_FAILED`, `CANNOT_INVITE_SELF`, `INVITEE_NOT_REGISTERED`, `ALREADY_MEMBER`, `INVITATION_ALREADY_PENDING`) so sprejet projektni dogovor (konstitucija, načelo III; feature-map §2.2) in varnostna pogodba – ne štejejo se za podrobnosti implementacije.
 - Sklici na design.md (8.5, 8.11, 8.13, 9.7, 9.8) določajo videz; vedenje, ki je samo zahteva (potrditveni dialog, fokus na *Prekliči*, obvestila, prazna stanja), je zapisano kot FR.
 - Odločitve brez [NEEDS CLARIFICATION] so zapisane v *Assumptions*.

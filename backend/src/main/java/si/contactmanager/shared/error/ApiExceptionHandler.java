@@ -54,6 +54,27 @@ class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("GROUP_HAS_OTHER_MEMBERS"));
     }
 
+    /** Povabila (006, feature-map §2.10): poslovna pravila pošiljanja in sprejema. */
+    @ExceptionHandler(CannotInviteSelfException.class)
+    ResponseEntity<ErrorResponse> cannotInviteSelf() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("CANNOT_INVITE_SELF"));
+    }
+
+    @ExceptionHandler(InviteeNotRegisteredException.class)
+    ResponseEntity<ErrorResponse> inviteeNotRegistered() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("INVITEE_NOT_REGISTERED"));
+    }
+
+    @ExceptionHandler(AlreadyMemberException.class)
+    ResponseEntity<ErrorResponse> alreadyMember() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("ALREADY_MEMBER"));
+    }
+
+    @ExceptionHandler(InvitationAlreadyPendingException.class)
+    ResponseEntity<ErrorResponse> invitationAlreadyPending() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("INVITATION_ALREADY_PENDING"));
+    }
+
     /** Optimistično zaklepanje (feature-map §2.3): trenutno stanje za razrešitev v vmesniku. */
     @ExceptionHandler(VersionConflictException.class)
     ResponseEntity<VersionConflict> versionConflict(VersionConflictException exception) {

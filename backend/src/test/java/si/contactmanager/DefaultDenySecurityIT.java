@@ -81,7 +81,13 @@ class DefaultDenySecurityIT {
 
         String requestId = response.headers().firstValue("X-Request-Id").orElse(null);
         assertThat(requestId).as("X-Request-Id").isNotNull();
+        // Vrstico zapiše RequestIdFilter šele po odgovoru: na počasnejših strojih (CI) pride odgovor prej (D-57).
+        long deadline = System.nanoTime() + 5_000_000_000L;
         String log = output.getAll();
+        while (log.lines().noneMatch(line -> line.contains("/api/anything")) && System.nanoTime() < deadline) {
+            Thread.sleep(20);
+            log = output.getAll();
+        }
         assertThat(log).doesNotContain(secret);
         assertThat(log).doesNotContain("ime@primer.si");
         List<String> requestLines =
