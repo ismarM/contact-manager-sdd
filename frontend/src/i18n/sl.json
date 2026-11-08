@@ -10,7 +10,8 @@
     "groupScreen": "{{screen}} – {{group}} – Kontakti",
     "archived": "Arhivirane skupine – Kontakti",
     "audit": "Revizijska sled",
-    "auditEntry": "Vnos revizijske sledi"
+    "auditEntry": "Vnos revizijske sledi",
+    "invitations": "Povabila – Kontakti"
   },
   "language": {
     "label": "Jezik",
@@ -412,6 +413,108 @@
     "toast": {
       "restored": "Skupina je povrnjena na stanje {{time}}.",
       "restoredInitial": "Skupina je povrnjena na začetno stanje."
+    }
+  },
+  "invitations": {
+    "link": {
+      "text": "Povabila",
+      "textWithCount": "Povabila ({{count}})",
+      "name": "Povabila",
+      "nameNew_one": "Povabila, {{count}} novo",
+      "nameNew_two": "Povabila, {{count}} novi",
+      "nameNew_few": "Povabila, {{count}} nova",
+      "nameNew_other": "Povabila, {{count}} novih"
+    },
+    "page": {
+      "heading": "Povabila",
+      "list": "Prejeta povabila",
+      "emptyTitle": "Nimaš novih povabil.",
+      "emptyText": "Ko te kdo povabi v skupino, bo povabilo tukaj.",
+      "loading": "Nalagam…",
+      "loadFailed": "Povabil ni bilo mogoče naložiti. Poskusi znova.",
+      "retry": "Poskusi znova",
+      "pagination": "Strani rezultatov: Povabila"
+    },
+    "item": {
+      "invitedBy": "Povabil(a)",
+      "deletedUser": "izbrisan uporabnik",
+      "role": "Vloga",
+      "archived": "Arhivirano",
+      "archivedNote": "Skupina je arhivirana – po sprejemu jo boš lahko le pregledoval(a).",
+      "accept": "Sprejmi povabilo",
+      "acceptName": "Sprejmi povabilo v skupino {{title}}",
+      "decline": "Zavrni",
+      "declineName": "Zavrni povabilo v skupino {{title}}"
+    },
+    "declineDialog": {
+      "title": "Zavrnem povabilo v skupino {{title}}?",
+      "text": "Ne boš postal(a) član skupine. Skupina te lahko znova povabi.",
+      "cancel": "Prekliči",
+      "confirm": "Zavrni povabilo"
+    },
+    "invite": {
+      "heading": "Povabi člana",
+      "email": "E-naslov",
+      "role": "Vloga",
+      "submit": "Pošlji povabilo",
+      "errors": {
+        "emailRequired": "Vpiši e-naslov.",
+        "emailInvalid": "Vpiši veljaven e-naslov.",
+        "emailTooLong": "E-naslov je predolg (največ 254 znakov).",
+        "notRegistered": "Uporabnik s tem e-naslovom ni registriran.",
+        "alreadyMember": "Ta uporabnik je že član skupine.",
+        "alreadyPending": "Ta uporabnik že ima povabilo v to skupino.",
+        "self": "Sebe ne moreš povabiti.",
+        "roleRequired": "Izberi vlogo."
+      },
+      "alerts": {
+        "failed": "Povabila ni bilo mogoče poslati. Poskusi znova.",
+        "forbidden": "Za to dejanje nimaš več pravic.",
+        "archived": "Skupina je medtem postala arhivirana, zato povabil ni več mogoče pošiljati.",
+        "offline": "Ni povezave. Preveri povezavo in poskusi znova."
+      }
+    },
+    "pending": {
+      "heading": "Čakajoča povabila",
+      "invitee": "Povabljeni",
+      "role": "Vloga",
+      "invitedBy": "Povabil(a)",
+      "date": "Datum",
+      "actions": "Dejanja",
+      "empty": "Ni čakajočih povabil.",
+      "deletedUser": "izbrisan uporabnik",
+      "withdraw": "Umakni povabilo",
+      "withdrawName": "Umakni povabilo za {{email}}",
+      "loading": "Nalagam…",
+      "loadFailed": "Povabil ni bilo mogoče naložiti. Poskusi znova.",
+      "retry": "Poskusi znova",
+      "pagination": "Strani rezultatov: Čakajoča povabila",
+      "alerts": {
+        "unavailable": "Povabilo ni več na voljo.",
+        "failed": "Povabila ni bilo mogoče umakniti. Poskusi znova.",
+        "forbidden": "Za to dejanje nimaš več pravic.",
+        "offline": "Ni povezave. Preveri povezavo in poskusi znova."
+      }
+    },
+    "withdrawDialog": {
+      "title": "Umaknem povabilo za {{email}}?",
+      "text": "Uporabnik povabila ne bo več videl. Lahko ga znova povabiš.",
+      "cancel": "Prekliči",
+      "confirm": "Umakni povabilo"
+    },
+    "alerts": {
+      "unavailable": "Povabilo ni več na voljo.",
+      "alreadyMember": "Že si član te skupine.",
+      "acceptFailed": "Povabila ni bilo mogoče sprejeti. Poskusi znova.",
+      "declineFailed": "Povabila ni bilo mogoče zavrniti. Poskusi znova.",
+      "offline": "Ni povezave. Preveri povezavo in poskusi znova."
+    },
+    "toast": {
+      "sent": "Povabilo je poslano.",
+      "joined": "Pridružil(a) si se skupini {{title}}.",
+      "openGroup": "Odpri skupino",
+      "declined": "Povabilo je zavrnjeno.",
+      "withdrawn": "Povabilo je umaknjeno."
     }
   }
 }

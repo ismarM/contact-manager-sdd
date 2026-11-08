@@ -5,6 +5,8 @@ import { Link, Outlet } from 'react-router';
 
 import { useAuth } from '../../features/auth/authContext';
 import { GroupsProvider } from '../../features/groups/GroupsProvider';
+import { InvitationsLink } from '../../features/invitations/InvitationsLink';
+import { InvitationsProvider } from '../../features/invitations/InvitationsProvider';
 import { useMediaQuery, WIDE } from '../lib/useMediaQuery';
 import { Toaster } from '../ui/sonner';
 import { AccountMenu } from './AccountMenu';
@@ -17,12 +19,14 @@ const focusRing =
 /**
  * Ogrodje aplikacije (design.md 7.1, FR-001-11, FR-002-06): »Preskoči na vsebino« kot prvi element fokusa, zgornja
  * vrstica (56 px) z besednim znakom, preklopom skupine (pod 1024 px) in menijem računa, sporočilo o neuspelem
- * shranjevanju izbire (FR-001-19), stranski pas (od 1024 px), glavna vsebina in obvestila (Sonner).
+ * shranjevanju izbire (FR-001-19), povezava *Povabila* s številom (006, FR-006-06), stranski pas (od 1024 px), glavna vsebina in obvestila (Sonner).
  */
 export function AppShell() {
   return (
     <GroupsProvider>
-      <Shell />
+      <InvitationsProvider>
+        <Shell />
+      </InvitationsProvider>
     </GroupsProvider>
   );
 }
@@ -58,6 +62,7 @@ function Shell() {
         </Link>
         <div className="flex items-center gap-2">
           {!wide && <GroupSwitcher />}
+          <InvitationsLink />
           <AccountMenu />
         </div>
       </header>

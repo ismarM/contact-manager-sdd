@@ -10,7 +10,8 @@
     "groupScreen": "{{screen}} – {{group}} – Contacts",
     "archived": "Archived groups – Contacts",
     "audit": "Audit trail",
-    "auditEntry": "Audit trail entry"
+    "auditEntry": "Audit trail entry",
+    "invitations": "Invitations – Contacts"
   },
   "language": {
     "label": "Language",
@@ -412,6 +413,108 @@
     "toast": {
       "restored": "The group was restored to the state of {{time}}.",
       "restoredInitial": "The group was restored to the initial state."
+    }
+  },
+  "invitations": {
+    "link": {
+      "text": "Invitations",
+      "textWithCount": "Invitations ({{count}})",
+      "name": "Invitations",
+      "nameNew_one": "Invitations, {{count}} new",
+      "nameNew_two": "Invitations, {{count}} new",
+      "nameNew_few": "Invitations, {{count}} new",
+      "nameNew_other": "Invitations, {{count}} new"
+    },
+    "page": {
+      "heading": "Invitations",
+      "list": "Received invitations",
+      "emptyTitle": "You have no new invitations.",
+      "emptyText": "When someone invites you to a group, the invitation will appear here.",
+      "loading": "Loading…",
+      "loadFailed": "Invitations could not be loaded. Please try again.",
+      "retry": "Try again",
+      "pagination": "Result pages: Invitations"
+    },
+    "item": {
+      "invitedBy": "Invited by",
+      "deletedUser": "deleted user",
+      "role": "Role",
+      "archived": "Archived",
+      "archivedNote": "This group is archived – after accepting you will only be able to view it.",
+      "accept": "Accept invitation",
+      "acceptName": "Accept invitation to {{title}}",
+      "decline": "Decline",
+      "declineName": "Decline invitation to {{title}}"
+    },
+    "declineDialog": {
+      "title": "Decline the invitation to {{title}}?",
+      "text": "You will not join the group. The group can invite you again.",
+      "cancel": "Cancel",
+      "confirm": "Decline invitation"
+    },
+    "invite": {
+      "heading": "Invite a member",
+      "email": "Email",
+      "role": "Role",
+      "submit": "Send invitation",
+      "errors": {
+        "emailRequired": "Enter an email address.",
+        "emailInvalid": "Enter a valid email address.",
+        "emailTooLong": "The email address is too long (at most 254 characters).",
+        "notRegistered": "No registered user has this email address.",
+        "alreadyMember": "This user is already a member of the group.",
+        "alreadyPending": "This user already has an invitation to this group.",
+        "self": "You cannot invite yourself.",
+        "roleRequired": "Choose a role."
+      },
+      "alerts": {
+        "failed": "The invitation could not be sent. Please try again.",
+        "forbidden": "You no longer have permission for this action.",
+        "archived": "The group has been archived in the meantime, so invitations can no longer be sent.",
+        "offline": "You're offline. Check your connection and try again."
+      }
+    },
+    "pending": {
+      "heading": "Pending invitations",
+      "invitee": "Invitee",
+      "role": "Role",
+      "invitedBy": "Invited by",
+      "date": "Date",
+      "actions": "Actions",
+      "empty": "No pending invitations.",
+      "deletedUser": "deleted user",
+      "withdraw": "Withdraw invitation",
+      "withdrawName": "Withdraw invitation for {{email}}",
+      "loading": "Loading…",
+      "loadFailed": "Invitations could not be loaded. Please try again.",
+      "retry": "Try again",
+      "pagination": "Result pages: Pending invitations",
+      "alerts": {
+        "unavailable": "This invitation is no longer available.",
+        "failed": "The invitation could not be withdrawn. Please try again.",
+        "forbidden": "You no longer have permission for this action.",
+        "offline": "You're offline. Check your connection and try again."
+      }
+    },
+    "withdrawDialog": {
+      "title": "Withdraw the invitation for {{email}}?",
+      "text": "The user will no longer see the invitation. You can invite them again.",
+      "cancel": "Cancel",
+      "confirm": "Withdraw invitation"
+    },
+    "alerts": {
+      "unavailable": "This invitation is no longer available.",
+      "alreadyMember": "You are already a member of this group.",
+      "acceptFailed": "The invitation could not be accepted. Please try again.",
+      "declineFailed": "The invitation could not be declined. Please try again.",
+      "offline": "You're offline. Check your connection and try again."
+    },
+    "toast": {
+      "sent": "Invitation sent.",
+      "joined": "You joined {{title}}.",
+      "openGroup": "Open group",
+      "declined": "Invitation declined.",
+      "withdrawn": "Invitation withdrawn."
     }
   }
 }

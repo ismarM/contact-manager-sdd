@@ -7,6 +7,7 @@ import { AuthProvider } from '../features/auth/AuthProvider';
 import { ArchivedGroupsPage } from '../features/groups/ArchivedGroupsPage';
 import { GroupLayout } from '../features/groups/GroupLayout';
 import { GroupsPage } from '../features/groups/GroupsPage';
+import { InvitationsPage } from '../features/invitations/InvitationsPage';
 import { LoginPage } from '../features/auth/LoginPage';
 import { RequireAuth } from '../features/auth/RequireAuth';
 import { AppShell } from '../shared/layout/AppShell';
@@ -38,6 +39,7 @@ function AppRoutes({ gateway }: { gateway: AuthGateway }) {
           <Route index element={<GroupsPage />} />
           <Route path="groups/archived" element={<ArchivedGroupsPage />} />
           <Route path="groups/:groupId/*" element={<GroupLayout />} />
+          <Route path="invitations" element={<InvitationsPage />} />
           <Route path="account" element={<AccountPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
