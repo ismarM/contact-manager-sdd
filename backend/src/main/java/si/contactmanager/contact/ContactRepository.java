@@ -113,7 +113,8 @@ class ContactRepository {
                             rs.getString("email"),
                             rs.getString("phone"),
                             List.of(),
-                            rs.getLong("version"));
+                            rs.getLong("version"),
+                            false);
                 })
                 .list();
         if (rows.isEmpty()) {
@@ -130,7 +131,8 @@ class ContactRepository {
                         c.email(),
                         c.phone(),
                         tags.getOrDefault(c.id(), List.of()),
-                        c.version()))
+                        c.version(),
+                        c.reverted()))
                 .toList();
     }
 
@@ -263,7 +265,8 @@ class ContactRepository {
                 c.version(),
                 c.createdAt(),
                 c.updatedAt(),
-                c.updatedBy());
+                c.updatedBy(),
+                c.reverted());
     }
 
     private static ContactDetail detail(ResultSet rs, int row) throws SQLException {
@@ -283,6 +286,7 @@ class ContactRepository {
                 rs.getLong("version"),
                 rs.getTimestamp("created_at").toInstant(),
                 rs.getTimestamp("updated_at").toInstant(),
-                email == null ? null : new UserRef(rs.getString("updated_by_name"), email));
+                email == null ? null : new UserRef(rs.getString("updated_by_name"), email),
+                null);
     }
 }

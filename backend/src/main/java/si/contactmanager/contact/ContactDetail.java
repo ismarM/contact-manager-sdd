@@ -19,4 +19,5 @@ public record ContactDetail(
         long version,
         Instant createdAt,
         Instant updatedAt,
-        UserRef updatedBy) {}
+        UserRef updatedBy,
+        RevertInfo reverted) {}

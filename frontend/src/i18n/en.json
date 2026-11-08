@@ -8,7 +8,9 @@
     "notFound": "Page not found – Contacts",
     "groups": "Groups – Contacts",
     "groupScreen": "{{screen}} – {{group}} – Contacts",
-    "archived": "Archived groups – Contacts"
+    "archived": "Archived groups – Contacts",
+    "audit": "Audit trail",
+    "auditEntry": "Audit trail entry"
   },
   "language": {
     "label": "Language",
@@ -110,7 +112,8 @@
       "archived": "Archived",
       "sections": "Group sections",
       "settings": "Settings",
-      "contacts": "Contacts"
+      "contacts": "Contacts",
+      "audit": "Audit trail"
     },
     "details": {
       "heading": "Group details",
@@ -211,7 +214,8 @@
       "delete": "Delete contact",
       "back": "Back to contacts",
       "close": "Close details",
-      "loadFailed": "The contact could not be loaded. Please try again."
+      "loadFailed": "The contact could not be loaded. Please try again.",
+      "auditLink": "Changes to this contact in the audit trail"
     },
     "gone": "This contact no longer exists – someone deleted it in the meantime.",
     "form": {
@@ -295,6 +299,119 @@
       "list": "Contacts",
       "new": "New contact",
       "edit": "Edit contact"
+    },
+    "reverted": {
+      "badge": "Restored",
+      "toState": "Restored to the state of {{time}}",
+      "toInitial": "Restored to the initial state",
+      "openEntry": "Open the restore entry",
+      "by": "Restored by: {{name}}"
+    }
+  },
+  "audit": {
+    "list": {
+      "heading": "Audit trail",
+      "entries": "Audit trail entries",
+      "loading": "Loading…",
+      "loadFailed": "The audit trail could not be loaded. Please try again.",
+      "retry": "Try again",
+      "empty": "There are no entries in the audit trail yet.",
+      "emptyFiltered": "No entries match the filters.",
+      "clearFilters": "Clear filters",
+      "deletedUser": "deleted user",
+      "rollbackButton": "Restore the group to this point"
+    },
+    "entry": {
+      "heading": "Audit trail entry",
+      "back": "Back to the audit trail",
+      "loadFailed": "The entry could not be loaded. Please try again."
+    },
+    "sentence": {
+      "CREATE_named": "added contact {{name}}",
+      "CREATE_count_one": "added {{count}} contact",
+      "CREATE_count_other": "added {{count}} contacts",
+      "UPDATE_named": "edited contact {{name}}",
+      "UPDATE_count_one": "edited {{count}} contact",
+      "UPDATE_count_other": "edited {{count}} contacts",
+      "DELETE_named": "deleted contact {{name}}",
+      "DELETE_count_one": "deleted {{count}} contact",
+      "DELETE_count_other": "deleted {{count}} contacts",
+      "MERGE_count_one": "merged {{count}} contact",
+      "MERGE_count_other": "merged {{count}} contacts",
+      "ROLLBACK_target": "restored the group to the state of",
+      "ROLLBACK_initial": "restored the group to the initial state",
+      "CREATE_count_two": "added {{count}} contacts",
+      "CREATE_count_few": "added {{count}} contacts",
+      "UPDATE_count_two": "edited {{count}} contacts",
+      "UPDATE_count_few": "edited {{count}} contacts",
+      "DELETE_count_two": "deleted {{count}} contacts",
+      "DELETE_count_few": "deleted {{count}} contacts",
+      "MERGE_count_two": "merged {{count}} contacts",
+      "MERGE_count_few": "merged {{count}} contacts"
+    },
+    "filters": {
+      "toggle": "Filters",
+      "toggleCount": "Filters ({{count}})",
+      "actionLegend": "Action type",
+      "apply": "Apply filters",
+      "clear": "Clear filters",
+      "action": {
+        "CREATE": "added",
+        "UPDATE": "edited",
+        "DELETE": "deleted",
+        "MERGE": "merged",
+        "ROLLBACK": "rollback"
+      },
+      "removeAction": "Remove filter Action: {{action}}",
+      "removeContact": "Remove filter Contact: {{name}}",
+      "chipAction": "Action: {{action}}",
+      "chipContact": "Contact: {{name}}",
+      "unknownContact": "unknown contact"
+    },
+    "details": {
+      "summary": "Details",
+      "affected": "Affected contacts",
+      "caption": "Changes to contact {{name}}",
+      "field": "Field",
+      "before": "Before",
+      "after": "After",
+      "empty": "empty",
+      "loading": "Loading…",
+      "loadFailed": "The details could not be loaded. Please try again.",
+      "retry": "Try again",
+      "pagination": "Result pages: Affected contacts",
+      "fields": {
+        "FIRST_NAME": "First name",
+        "LAST_NAME": "Last name",
+        "ADDRESS": "Address",
+        "EMAIL": "Email",
+        "PHONE": "Phone",
+        "TAGS": "Tags"
+      }
+    },
+    "rollback": {
+      "title": "Restore the group to the state of {{time}}?",
+      "text": "The group's contacts will be returned to their state as of {{time}}. Changes after this point stay recorded in the audit trail, and the rollback will be recorded as a new entry.",
+      "cancel": "Cancel",
+      "confirm": "Restore group"
+    },
+    "initial": {
+      "heading": "Initial state",
+      "description": "The contacts as they were before the first audit trail entry.",
+      "title": "Restore the group to the initial state?",
+      "text": "The group's contacts will be returned to their state before the first audit trail entry. Changes after this point stay recorded in the audit trail, and the rollback will be recorded as a new entry."
+    },
+    "errors": {
+      "failed": "The group could not be restored. Please try again.",
+      "retry": "Try again",
+      "stale": "The audit trail has changed in the meantime.",
+      "noChanges": "The group is already in this state – the rollback would change nothing.",
+      "archived": "The group is archived – it cannot be restored.",
+      "forbidden": "You no longer have permission for this action."
+    },
+    "toast": {
+      "restored": "The group was restored to the state of {{time}}.",
+      "restoredInitial": "The group was restored to the initial state."
     }
   }
 }
