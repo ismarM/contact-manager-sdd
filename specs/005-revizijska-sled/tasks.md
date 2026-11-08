@@ -132,7 +132,7 @@ neodvisnega agenta `pregled-testov` (workflow.md §4.2).
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T045 `./verify.sh quick`, nato `./verify.sh full` zeleno; specs/005-revizijska-sled/traceability.md (vsak FR-005-01 … FR-005-20 in SC-001 … SC-006 → testi → implementacija → stanje); README/CLAUDE.md po potrebi; AI dnevnik v ai-log/
+- [X] T045 `./verify.sh quick`, nato `./verify.sh full` zeleno; specs/005-revizijska-sled/traceability.md (vsak FR-005-01 … FR-005-20 in SC-001 … SC-006 → testi → implementacija → stanje); README/CLAUDE.md po potrebi; AI dnevnik v ai-log/
 - [ ] T046 `/speckit-converge` do »Converged«; push veje `revizijska-sled` in PR v `main` (predpostavke: stran vnosa `/audit/:entryId`, oznaka *Povrnjeno* izgine ob naslednji spremembi kontakta, ki ni rollback, kontakti izpred beleženja kot izhodišče *Začetnega stanja*; izid pregleda testov; commit `test(005)`)
 - [ ] T047 Razvijalca: pregled PR in ročni preizkus s tipkovnico in bralnikom zaslona (design.md §10) na sledi, podrobnostih, filtrih, dialogu rollbacka in oznaki *Povrnjeno*; združitev (agent pusti neodkljukano)
 

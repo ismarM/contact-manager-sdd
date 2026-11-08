@@ -46,7 +46,15 @@ const details = (page: Page) =>
     : page.getByRole('main');
 const toast = (page: Page) => page.getByRole('region', { name: 'Obvestila' });
 const trail = (page: Page) => page.getByRole('list', { name: 'Vnosi revizijske sledi' });
-const entries = (page: Page) => trail(page).getByRole('listitem');
+/** Vnosi sledi brez točke *Začetno stanje*. */
+const entries = (page: Page) =>
+  trail(page)
+    .getByRole('listitem')
+    .filter({ hasNotText: /Začetno stanje/ });
+const initialPoint = (page: Page) =>
+  trail(page)
+    .getByRole('listitem')
+    .filter({ hasText: /Začetno stanje/ });
 const BUTTON = 'Povrni skupino na to točko';
 
 async function openAudit(page: Page, groupId: string) {
@@ -310,7 +318,7 @@ test('FR-005-20: Začetno stanje na zadnji strani – rollback odstrani kontakte
   await createContactViaApi(page, groupId, { firstName: 'Ana', lastName: 'Prva' });
   await openAudit(page, groupId);
 
-  const initial = entries(page).last();
+  const initial = initialPoint(page);
   await expect(initial).toContainText('Začetno stanje');
   await expect(initial).toContainText('Stanje kontaktov pred prvim vnosom v revizijski sledi.');
   await expectNoAxeViolations(page);
@@ -337,14 +345,14 @@ test('FR-005-17: bralec in arhivirana skupina – sled je berljiva, brez gumbov 
   setRole(groupId, viewer.user.email, 'VIEWER');
 
   await openAudit(viewer.page, groupId);
-  await expect(entries(viewer.page)).toHaveCount(3);
+  await expect(entries(viewer.page)).toHaveCount(2);
   await expect(viewer.page.getByRole('button', { name: BUTTON })).toHaveCount(0);
   await expectNoAxeViolations(viewer.page);
   await viewer.context.close();
 
   archive(groupId);
   await openAudit(page, groupId);
-  await expect(entries(page)).toHaveCount(3);
+  await expect(entries(page)).toHaveCount(2);
   await expect(page.getByRole('button', { name: BUTTON })).toHaveCount(0);
   await expectNoAxeViolations(page);
 });
