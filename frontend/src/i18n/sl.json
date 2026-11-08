@@ -302,7 +302,7 @@
     },
     "reverted": {
       "badge": "Povrnjeno",
-      "toState": "Povrnjeno na stanje {{time}}",
+      "toState": "Povrnjeno na stanje",
       "toInitial": "Povrnjeno na začetno stanje",
       "openEntry": "Odpri vnos povrnitve",
       "by": "Povrnil(a): {{name}}"

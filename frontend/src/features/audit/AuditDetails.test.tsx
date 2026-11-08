@@ -60,8 +60,9 @@ async function reveal(
   user: ReturnType<typeof renderDetails>['user'],
   item: HTMLElement,
   name: string,
+  listName = 'Prizadeti kontakti',
 ) {
-  const affected = await within(item).findByRole('list', { name: 'Prizadeti kontakti' });
+  const affected = await within(item).findByRole('list', { name: listName });
   await user.click(summaryOf(within(affected).getByRole('group', { name })));
 }
 
@@ -232,7 +233,7 @@ describe('AuditDetails', () => {
       await screen.findByRole('list', { name: 'Audit trail entries' }),
     ).getAllByRole('listitem')[0] as HTMLElement;
     await user.click(summaryOf(within(item).getByRole('group', { name: 'Details' })));
-    await reveal(user, item, 'Janez Novak');
+    await reveal(user, item, 'Janez Novak', 'Affected contacts');
 
     const table = within(item).getByRole('table', { name: 'Changes to contact Janez Novak' });
     expect(

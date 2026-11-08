@@ -129,13 +129,13 @@ describe('AuditRollback', () => {
     await user.click(trigger);
     await user.click(await screen.findByRole('button', { name: 'Prekliči' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    expect(trigger).toHaveFocus();
+    await waitFor(() => expect(trigger).toHaveFocus());
     await user.click(trigger);
     await screen.findByRole('dialog');
     await user.keyboard('{Escape}');
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    expect(trigger).toHaveFocus();
+    await waitFor(() => expect(trigger).toHaveFocus());
     expect(api.requests.filter((r) => r.method === 'POST')).toHaveLength(0);
   });
 

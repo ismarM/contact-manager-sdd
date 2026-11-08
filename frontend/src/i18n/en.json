@@ -302,7 +302,7 @@
     },
     "reverted": {
       "badge": "Restored",
-      "toState": "Restored to the state of {{time}}",
+      "toState": "Restored to the state of",
       "toInitial": "Restored to the initial state",
       "openEntry": "Open the restore entry",
       "by": "Restored by: {{name}}"

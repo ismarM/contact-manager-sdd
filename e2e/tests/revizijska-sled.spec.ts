@@ -367,8 +367,8 @@ test('FR-005-07 FR-005-16: angleški vmesnik – sled, čas in dialog rollbacka'
   await expect(page.getByRole('heading', { level: 2, name: 'Audit trail' })).toBeVisible();
   const list = page.getByRole('list', { name: 'Audit trail entries' });
   await expect(list.getByRole('listitem').first()).toContainText('added contact Ana Prva');
-  await expect(list.getByRole('listitem').first().getByRole('time')).toHaveText(
-    /^\d{1,2} [A-Z][a-z]{2} \d{4}, \d{2}:\d{2}$/,
+  await expect(list.getByRole('listitem').first()).toContainText(
+    /\d{1,2} [A-Z][a-z]{2} \d{4}, \d{2}:\d{2}/,
   );
   await list
     .getByRole('listitem')

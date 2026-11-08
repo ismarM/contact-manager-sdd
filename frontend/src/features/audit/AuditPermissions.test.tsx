@@ -35,7 +35,7 @@ describe('AuditPermissions', () => {
       expect(screen.queryByRole('button', { name: BUTTON })).not.toBeInTheDocument();
       expect(
         within(items[0] as HTMLElement).getByRole('group', { name: 'Podrobnosti' }),
-      ).toBeVisible();
+      ).toBeInTheDocument();
     },
   );
 

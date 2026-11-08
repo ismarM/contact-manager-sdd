@@ -20,6 +20,7 @@ import { useConflictMessage } from './conflictMessage';
 import { canEditContacts } from './contactRouting';
 import type { ListNavigationState } from './ContactList';
 import { DeleteContactDialog } from './DeleteContactDialog';
+import { RevertedBadge } from './RevertedBadge';
 import type { ContactDetail } from './types';
 
 type State =
@@ -129,6 +130,12 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
       <h2 id={`contact-${contact.id}`} className="text-2xl font-bold break-words">
         {contact.displayName}
       </h2>
+
+      {contact.reverted && <RevertedBadge info={contact.reverted} />}
+
+      <Link to={`/groups/${group.id}/audit?contact=${contact.id}`} className={`self-start ${link}`}>
+        {t('contacts.view.auditLink')}
+      </Link>
 
       {conflict && (
         <div role="alert" className={warningAlert}>

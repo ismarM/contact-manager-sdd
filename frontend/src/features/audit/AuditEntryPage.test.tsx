@@ -50,6 +50,7 @@ describe('AuditEntryPage', () => {
       await screen.findByRole('heading', { level: 2, name: 'Vnos revizijske sledi' }),
     ).toBeInTheDocument();
     expect(document.title).toBe('Vnos revizijske sledi – Projekt FERI – Kontakti');
+    await screen.findByRole('group', { name: 'Podrobnosti' });
     const content = screen.getByRole('main');
     expect(content).toHaveTextContent('12. 10. 2026, 14.32');
     expect(content).toHaveTextContent('Ana Novak');

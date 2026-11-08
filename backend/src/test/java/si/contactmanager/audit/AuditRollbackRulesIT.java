@@ -152,6 +152,11 @@ class AuditRollbackRulesIT extends AuditApiTest {
                 Arguments.of(Who.VIEWER, 403, "FORBIDDEN"));
     }
 
+    /** Trajno arhivirana skupina nima lastnika (012), zato vrstice OWNER ni. */
+    static Stream<Arguments> permanentlyArchivedRoles() {
+        return archivedRoles().filter(arguments -> arguments.get()[0] != Who.OWNER);
+    }
+
     @ParameterizedTest(name = "arhivirana skupina, {0}")
     @MethodSource("archivedRoles")
     @Tag("FR-005-17")
@@ -174,7 +179,7 @@ class AuditRollbackRulesIT extends AuditApiTest {
     }
 
     @ParameterizedTest(name = "trajno arhivirana skupina, {0}")
-    @MethodSource("archivedRoles")
+    @MethodSource("permanentlyArchivedRoles")
     @Tag("FR-005-17")
     void rollbackInAPermanentlyArchivedGroupIsRejected(Who who, int status, String code) throws Exception {
         Scenario s = scenario();

@@ -207,7 +207,8 @@ class ContactReadIT extends ContactApiTest {
 
         Map<String, Object> item = items(response.body()).getFirst();
         assertThat(item)
-                .containsOnlyKeys("id", "firstName", "lastName", "displayName", "email", "phone", "tags", "version")
+                .containsOnlyKeys(
+                        "id", "firstName", "lastName", "displayName", "email", "phone", "tags", "version", "reverted")
                 .containsEntry("id", id.toString())
                 .containsEntry("firstName", "Janez")
                 .containsEntry("lastName", "Novak")

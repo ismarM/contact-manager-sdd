@@ -25,8 +25,14 @@ class ContactRepository {
     static final int SUGGESTIONS = 20;
 
     private static final String DETAIL = "SELECT c.id, c.first_name, c.last_name, c.address, c.email, c.phone,"
-            + " c.version, c.created_at, c.updated_at, u.name AS updated_by_name, u.email AS updated_by_email"
+            + " c.version, c.created_at, c.updated_at, u.name AS updated_by_name, u.email AS updated_by_email,"
+            + " r.id AS rollback_id, r.created_at AS rollback_at, ru.name AS rollback_by_name,"
+            + " ru.email AS rollback_by_email, r.target_initial AS rollback_initial, rt.id AS target_id,"
+            + " rt.created_at AS target_at"
             + " FROM contact c LEFT JOIN app_user u ON u.id = c.updated_by"
+            + " LEFT JOIN audit_entry r ON r.id = c.reverted_entry_id"
+            + " LEFT JOIN app_user ru ON ru.id = r.actor_id"
+            + " LEFT JOIN audit_entry rt ON rt.id = r.target_entry_id"
             + " WHERE c.group_id = :group AND c.id = :id";
 
     private final JdbcClient jdbc;
@@ -95,10 +101,11 @@ class ContactRepository {
 
     /** Stran kontaktov po priimku, nato imenu (kodne točke, prazno na koncu), nato po času nastanka in id (D-38). */
     List<ContactSummary> page(UUID group, int size, int page) {
-        List<ContactSummary> rows = jdbc.sql("SELECT id, first_name, last_name, email, phone, version FROM contact"
-                        + " WHERE group_id = :group"
-                        + " ORDER BY sort_last NULLS LAST, sort_first NULLS LAST, created_at, id"
-                        + " LIMIT :size OFFSET :offset")
+        List<ContactSummary> rows = jdbc.sql(
+                        "SELECT id, first_name, last_name, email, phone, version, reverted_entry_id IS NOT NULL AS reverted FROM contact"
+                                + " WHERE group_id = :group"
+                                + " ORDER BY sort_last NULLS LAST, sort_first NULLS LAST, created_at, id"
+                                + " LIMIT :size OFFSET :offset")
                 .param("group", group)
                 .param("size", size)
                 .param("offset", (long) page * size)
@@ -114,7 +121,7 @@ class ContactRepository {
                             rs.getString("phone"),
                             List.of(),
                             rs.getLong("version"),
-                            false);
+                            rs.getBoolean("reverted"));
                 })
                 .list();
         if (rows.isEmpty()) {
@@ -160,7 +167,8 @@ class ContactRepository {
     void update(UUID group, UUID id, ContactInput input, long user) {
         jdbc.sql("UPDATE contact SET first_name = :first, last_name = :last, address = :address, email = :email,"
                         + " phone = :phone, sort_last = :sortLast, sort_first = :sortFirst, version = version + 1,"
-                        + " updated_by = :user, updated_at = now() WHERE group_id = :group AND id = :id")
+                        + " updated_by = :user, updated_at = now(), reverted_entry_id = NULL"
+                        + " WHERE group_id = :group AND id = :id")
                 .param("group", group)
                 .param("id", id)
                 .param("first", input.firstName())
@@ -269,6 +277,22 @@ class ContactRepository {
                 c.reverted());
     }
 
+    private static RevertInfo revert(ResultSet rs) throws SQLException {
+        UUID rollback = rs.getObject("rollback_id", UUID.class);
+        if (rollback == null) {
+            return null;
+        }
+        String by = rs.getString("rollback_by_email");
+        UUID target = rs.getObject("target_id", UUID.class);
+        return new RevertInfo(
+                rollback,
+                rs.getTimestamp("rollback_at").toInstant(),
+                by == null ? null : new UserRef(rs.getString("rollback_by_name"), by),
+                target,
+                target == null ? null : rs.getTimestamp("target_at").toInstant(),
+                rs.getBoolean("rollback_initial"));
+    }
+
     private static ContactDetail detail(ResultSet rs, int row) throws SQLException {
         String first = rs.getString("first_name");
         String last = rs.getString("last_name");
@@ -287,6 +311,6 @@ class ContactRepository {
                 rs.getTimestamp("created_at").toInstant(),
                 rs.getTimestamp("updated_at").toInstant(),
                 email == null ? null : new UserRef(rs.getString("updated_by_name"), email),
-                null);
+                revert(rs));
     }
 }
