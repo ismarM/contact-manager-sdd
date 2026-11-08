@@ -88,7 +88,7 @@ test('FR-004-01 FR-004-03 FR-004-08 FR-004-09 SC-001: urednik ustvari kontakt z 
   ).toBeVisible();
   await expect(
     page.getByRole('navigation', { name: 'Razdelki skupine' }).getByRole('link'),
-  ).toHaveText(['Kontakti', 'Nastavitve']);
+  ).toHaveText(['Kontakti', 'Revizijska sled', 'Nastavitve']);
   await expectNoAxeViolations(page);
 
   await page.getByRole('main').getByRole('link', { name: 'Nov kontakt' }).first().click();

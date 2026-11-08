@@ -1,7 +1,10 @@
 package si.contactmanager.shared.error;
 
+import java.util.Set;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -33,6 +36,12 @@ class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("GROUP_ARCHIVED"));
     }
 
+    /** Rollback bi bil brez učinka (feature-map §2.10). */
+    @ExceptionHandler(RollbackNoChangesException.class)
+    ResponseEntity<ErrorResponse> rollbackNoChanges() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("ROLLBACK_NO_CHANGES"));
+    }
+
     /** Odarhiviranje nearhivirane skupine (feature-map §2.10). */
     @ExceptionHandler(GroupNotArchivedException.class)
     ResponseEntity<ErrorResponse> groupNotArchived() {
@@ -49,6 +58,17 @@ class ApiExceptionHandler {
     @ExceptionHandler(VersionConflictException.class)
     ResponseEntity<VersionConflict> versionConflict(VersionConflictException exception) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(VersionConflict.of(exception.current()));
+    }
+
+    /** Metoda za pot ne obstaja (npr. PUT/PATCH/DELETE vnosa sledi, FR-005-05): 405 s praznim telesom in glavo Allow. */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    ResponseEntity<Void> methodNotAllowed(HttpRequestMethodNotSupportedException exception) {
+        Set<HttpMethod> allowed = exception.getSupportedHttpMethods();
+        ResponseEntity.BodyBuilder response = ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED);
+        if (allowed != null && !allowed.isEmpty()) {
+            response.allow(allowed.toArray(new HttpMethod[0]));
+        }
+        return response.build();
     }
 
     /** Neobstoječa pot z veljavnim žetonom: 404 s praznim telesom (research R-10). */

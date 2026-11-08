@@ -234,6 +234,11 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
                       >
                         {contact.displayName}
                       </Link>
+                      {contact.reverted && (
+                        <span className="ml-2 rounded-md border border-border px-2 py-0.5 text-sm text-muted-foreground">
+                          {t('contacts.reverted.badge')}
+                        </span>
+                      )}
                     </th>
                     <td data-label={t('contacts.list.email')} className="p-2 break-all">
                       {contact.email}

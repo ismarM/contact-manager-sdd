@@ -6,6 +6,8 @@ import { Navigate, useLocation, useParams } from 'react-router';
 import { ApiError } from '../../shared/api/client';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
 import { errorAlert } from '../../shared/ui/styles';
+import { AuditEntryPage } from '../audit/AuditEntryPage';
+import { AuditPage } from '../audit/AuditPage';
 import { ContactsPage } from '../contacts/ContactsPage';
 import { useGroupsApi } from './api';
 import { ArchivedBanner } from './ArchivedBanner';
@@ -15,8 +17,8 @@ import { SettingsPage } from './SettingsPage';
 import type { GroupDetail } from './types';
 import { useDelayed } from './useDelayed';
 
-/** Razdelki skupine (plan.md 004 – Pages and routes): *Kontakti* (privzeti, s podpotmi) in *Nastavitve*. */
-const SECTIONS = ['contacts', 'settings'] as const;
+/** Razdelki skupine (plan.md 004, 005 – Pages and routes): *Kontakti* (privzeti, s podpotmi), *Revizijska sled* in *Nastavitve*. */
+const SECTIONS = ['contacts', 'audit', 'settings'] as const;
 
 /**
  * Okvir skupine `/groups/:groupId/*` (FR-002-07, -08): `/groups/:id` odpre prvi razdelek, neznan razdelek in skupina, za
@@ -39,10 +41,22 @@ export function GroupLayout() {
   }
   // Podpoti kontaktov (`contacts/new`, `contacts/:id`, `contacts/:id/edit`) razreši ContactsPage.
   const first = section.split('/')[0] ?? '';
-  if (section !== 'settings' && first !== 'contacts') {
+  const rest = section.split('/').slice(1);
+  if (
+    first === 'audit'
+      ? rest.length > 1 || rest[0] === ''
+      : section !== 'settings' && first !== 'contacts'
+  ) {
     return <NotFoundPage />;
   }
-  return <GroupScreen key={groupId} groupId={groupId} contacts={first === 'contacts'} />;
+  return (
+    <GroupScreen
+      key={groupId}
+      groupId={groupId}
+      screen={first === 'contacts' ? 'contacts' : first === 'audit' ? 'audit' : 'settings'}
+      entryId={first === 'audit' ? rest[0] : undefined}
+    />
+  );
 }
 
 type State =
@@ -51,7 +65,15 @@ type State =
   | { kind: 'failed' }
   | { kind: 'ready'; group: GroupDetail };
 
-function GroupScreen({ groupId, contacts }: { groupId: string; contacts: boolean }) {
+function GroupScreen({
+  groupId,
+  screen,
+  entryId,
+}: {
+  groupId: string;
+  screen: 'contacts' | 'audit' | 'settings';
+  entryId: string | undefined;
+}) {
   const { t } = useTranslation();
   const api = useGroupsApi();
   const location = useLocation();
@@ -126,7 +148,17 @@ function GroupScreen({ groupId, contacts }: { groupId: string; contacts: boolean
     <GroupContext.Provider value={context}>
       <GroupHeader group={context.group} focusTitle={focusTitle} />
       <ArchivedBanner />
-      {contacts ? <ContactsPage /> : <SettingsPage />}
+      {screen === 'contacts' ? (
+        <ContactsPage />
+      ) : screen === 'audit' ? (
+        entryId === undefined ? (
+          <AuditPage />
+        ) : (
+          <AuditEntryPage entryId={entryId} />
+        )
+      ) : (
+        <SettingsPage />
+      )}
     </GroupContext.Provider>
   );
 }

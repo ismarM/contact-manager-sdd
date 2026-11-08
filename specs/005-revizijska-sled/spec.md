@@ -8,6 +8,15 @@
 
 **Input**: User description: "Verzioniranje sprememb kontaktov znotraj skupine – vsaka skupina ima svojo revizijsko sled, ki beleži vse (dodajanje, odstranjevanje, urejanje, združevanje, rollback); pregled revizijske sledi (bralec in višje); rollback na poljubno točko revizijske sledi (admin in lastnik), ki vrne stanje skupine na mesto, ki ga točka opisuje."
 
+## Clarifications
+
+### Session 2026-11-08
+
+- Q: Ob čem se preveri, ali se je sled medtem spremenila, kadar admin izvede rollback iz filtriranega pogleda sledi? → A: Ob najnovejšem vnosu celotne sledi ne glede na filtre; kateri koli novejši vnos (tudi skrit s filtrom) pomeni zavrnitev s sporočilom in osvežitev seznama.
+- Q: Kdo in kdaj je prikazan kot zadnja sprememba kontakta, ki ga je rollback spremenil ali obnovil? → A: Izvajalec in čas zadnje spremembe iz točke T; kontakt dobi oznako, da je bil povrnjen, podrobnosti rollbacka (vnos T, nov vnos rollback, admin) pa so vidne šele ob razkritju podrobnosti.
+- Q: Kako naj *Podrobnosti* prikažejo vnos z veliko prizadetimi kontakti (npr. 1.000)? → A: Paginiran seznam prizadetih kontaktov (25 privzeto, 50, 100); preglednica *Polje · Prej · Potem* posameznega kontakta se razkrije na zahtevo.
+- Q: Ali je mogoče razveljaviti tudi prvi vnos v sledi? → A: Da – na dnu sledi je točka *Začetno stanje* (stanje kontaktov pred prvim vnosom), na katero lahko admin izvede rollback.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Beleženje sprememb kontaktov (Priority: P1)
@@ -43,11 +52,12 @@ Vsaka uspešna sprememba kontaktov skupine – ustvarjanje, urejanje in izbris i
 
 1. **[FR-005-07]** **Given** skupina s 40 vnosi in član z vlogo bralec, **When** odpre zavihek *Revizijska sled*, **Then** vidi 25 najnovejših vnosov, najnovejši zgoraj, vsakega s časom v zapisu jezika vmesnika, izvajalcem in dejanjem kot stavkom (npr. »dodal(a) kontakt Janez Novak«), ter paginacijo z izbiro 25, 50 ali 100.
 2. **[FR-005-07]** **Given** arhivirana skupina, **When** jo član odpre, **Then** je sled na voljo za branje enako kot v nearhivirani skupini.
-3. **[FR-005-08]** **Given** vnos vrste *urejanje*, **When** član razkrije *Podrobnosti*, **Then** vidi preglednico *Polje · Prej · Potem* za vsak prizadeti kontakt; pri *dodajanju* je stolpec *Prej* prazen, pri *odstranjevanju* stolpec *Potem*.
-4. **[FR-005-09]** **Given** sled z vnosi vseh vrst, **When** član izbere filter po vrsti dejanja *odstranjevanje*, **Then** vidi samo vnose te vrste; filter je v naslovu poti in ostane ob osvežitvi.
-5. **[FR-005-09]** **Given** pogled kontakta Janez Novak (004), **When** član izbere povezavo »Spremembe tega kontakta v revizijski sledi«, **Then** se odpre sled, filtrirana po tem kontaktu, z vsemi vnosi, v katerih je kontakt med prizadetimi (tudi združevanje in rollback); filter po kontaktu deluje tudi za kontakt, ki je bil medtem izbrisan.
-6. **[FR-005-10]** **Given** skupina brez vnosov, **When** član odpre sled, **Then** vidi »V revizijski sledi še ni vnosov.«; **Given** filtri brez zadetkov, **Then** vidi »Ni vnosov, ki ustrezajo filtrom.« in *Počisti filtre*.
-7. **[FR-005-09]** **Given** filter po identifikatorju kontakta iz druge skupine, **When** član odpre sled, **Then** je seznam prazen enako kot za kontakt brez vnosov in podatki druge skupine niso razkriti.
+3. **[FR-005-08]** **Given** vnos vrste *urejanje*, **When** član razkrije *Podrobnosti*, **Then** vidi seznam prizadetih kontaktov, in ko pri kontaktu razkrije spremembe, preglednico *Polje · Prej · Potem*; pri *dodajanju* je stolpec *Prej* prazen, pri *odstranjevanju* stolpec *Potem*.
+4. **[FR-005-08]** **Given** vnos *rollback*, ki je spremenil 1.000 kontaktov, **When** član razkrije *Podrobnosti*, **Then** vidi prvih 25 prizadetih kontaktov s paginacijo (25, 50, 100), nobena preglednica ni razkrita, dokler je član ne razkrije pri posameznem kontaktu.
+5. **[FR-005-09]** **Given** sled z vnosi vseh vrst, **When** član izbere filter po vrsti dejanja *odstranjevanje*, **Then** vidi samo vnose te vrste; filter je v naslovu poti in ostane ob osvežitvi.
+6. **[FR-005-09]** **Given** pogled kontakta Janez Novak (004), **When** član izbere povezavo »Spremembe tega kontakta v revizijski sledi«, **Then** se odpre sled, filtrirana po tem kontaktu, z vsemi vnosi, v katerih je kontakt med prizadetimi (tudi združevanje in rollback); filter po kontaktu deluje tudi za kontakt, ki je bil medtem izbrisan.
+7. **[FR-005-10]** **Given** skupina brez vnosov, **When** član odpre sled, **Then** vidi »V revizijski sledi še ni vnosov.«; **Given** filtri brez zadetkov, **Then** vidi »Ni vnosov, ki ustrezajo filtrom.« in *Počisti filtre*.
+8. **[FR-005-09]** **Given** filter po identifikatorju kontakta iz druge skupine, **When** član odpre sled, **Then** je seznam prazen enako kot za kontakt brez vnosov in podatki druge skupine niso razkriti.
 
 ---
 
@@ -70,7 +80,9 @@ Admin ali lastnik izbere vnos v sledi in povrne vse kontakte skupine v stanje ta
 7. **[FR-005-15]** **Given** najnovejši vnos v sledi, **When** admin pošlje rollback nanj (ali na kateri koli vnos, pri katerem rollback ne bi spremenil nobenega kontakta), **Then** strežnik vrne `409 ROLLBACK_NO_CHANGES`, nič se ne spremeni in ne nastane vnos; gumb za rollback pri najnovejšem vnosu ni izrisan.
 8. **[FR-005-16]** **Given** admin pri vnosu z dne 12. 10. 2026, 14.32 izbere »Povrni skupino na to točko«, **When** se odpre potrditveni dialog, **Then** naslov je »Povrnem skupino na stanje 12. 10. 2026, 14.32?«, besedilo pove posledico iz design.md 9.6, fokus je na *Prekliči*; **When** potrdi z *Povrni skupino*, **Then** se prikaže obvestilo »Skupina je povrnjena na stanje 12. 10. 2026, 14.32.«; **When** izbere *Prekliči* ali *Esc*, **Then** se nič ne zgodi.
 9. **[FR-005-17]** **Given** urednik ali bralec nearhivirane skupine ali kateri koli član arhivirane skupine, **When** odpre sled, **Then** gumb »Povrni skupino na to točko« ni izrisan pri nobenem vnosu.
-10. **[FR-005-18]** **Given** rollback ne uspe (npr. strežnik ni dosegljiv), **When** admin potrdi dialog, **Then** je napaka vidna kot trajno sporočilo nad sledjo z gumbom *Poskusi znova*, brez tehničnih kod.
+10. **[FR-005-19]** **Given** kontakt A je ob vnosu T nazadnje uredil U1, po T pa ga je uredil U2, **When** admin izvede rollback na T, **Then** pogled kontakta A kot zadnjo spremembo kaže U1 in čas iz T ter oznako *Povrnjeno*; **When** član razkrije podrobnosti oznake, **Then** vidi »povrnjeno na stanje ‹čas T›« s povezavama na vnos T in na vnos *rollback* ter izvajalca rollbacka; **When** urednik kontakt A nato uspešno uredi, **Then** oznaka *Povrnjeno* izgine.
+11. **[FR-005-20]** **Given** skupina s kontaktoma X in Y, ustvarjenima pred začetkom beleženja, in prvi vnos v sledi je množični izbris obeh, **When** admin na dnu sledi pri točki *Začetno stanje* potrdi »Povrnem skupino na začetno stanje?«, **Then** sta X in Y obnovljena z istima identifikatorjema in podatki pred izbrisom, nastane vnos *rollback* »povrnil(a) skupino na začetno stanje«; v prazni sledi točka *Začetno stanje* ni prikazana.
+12. **[FR-005-18]** **Given** rollback ne uspe (npr. strežnik ni dosegljiv), **When** admin potrdi dialog, **Then** je napaka vidna kot trajno sporočilo nad sledjo z gumbom *Poskusi znova*, brez tehničnih kod.
 
 ### Negative Scenarios *(mandatory when the feature touches group data)*
 
@@ -79,7 +91,7 @@ Admin ali lastnik izbere vnos v sledi in povrne vse kontakte skupine v stanje ta
 | FR-005-07, FR-005-08, FR-005-09, FR-005-10 | unauthenticated (no/invalid/expired token) | ogled revizijske sledi ali podrobnosti vnosa | 401, podatki niso vrnjeni |
 | FR-005-07, FR-005-08, FR-005-09, FR-005-10 | authenticated non-member | ogled revizijske sledi ali podrobnosti vnosa | 404, obstoj skupine ni razkrit; vmesnik pokaže »Te strani ni« |
 | FR-005-08 | član skupine A (katera koli vloga) | zahteva podrobnosti vnosa skupine B prek skupine A | 404, enako kot za neobstoječ vnos |
-| FR-005-07, FR-005-09 | member (VIEWER+) | velikost strani, ki ni 25, 50 ali 100, ali neznana vrsta dejanja v filtru | 400 VALIDATION_FAILED |
+| FR-005-07, FR-005-08, FR-005-09 | member (VIEWER+) | velikost strani (sledi ali seznama kontaktov v podrobnostih), ki ni 25, 50 ali 100, ali neznana vrsta dejanja v filtru | 400 VALIDATION_FAILED |
 | FR-005-07 | member of an archived group (VIEWER+) | ogled revizijske sledi | 200 – branje je dovoljeno |
 | FR-005-05 | member with any role (VIEWER … OWNER) | sprememba ali izbris vnosa | zavrnjeno (operacija ne obstaja), vnos ostane nespremenjen |
 | FR-005-01, FR-005-04 | EDITOR+ | operacija nad kontakti, ki je zavrnjena (401, 403, 404, 409, 400) | v sledi ne nastane vnos |
@@ -95,14 +107,15 @@ Admin ali lastnik izbere vnos v sledi in povrne vse kontakte skupine v stanje ta
 
 ### Edge Cases
 
-- Rollback na točko pred ustvarjanjem vseh kontaktov (prvi vnos *dodajanje*): ostane samo kontakt iz tega vnosa, vsi kasneje ustvarjeni so odstranjeni.
+- Rollback na prvi vnos *dodajanje*: ostane kontakt iz tega vnosa in kontakti, ki so obstajali pred začetkom beleženja (v stanju pred prvo zabeleženo spremembo), vsi kasneje ustvarjeni so odstranjeni; rollback na *Začetno stanje* odstrani tudi kontakt iz prvega vnosa.
 - Rollback na točko, po kateri je bil kontakt večkrat urejen in nato izbrisan: kontakt je obnovljen s stanjem takoj po točki, ne z zadnjim stanjem pred izbrisom.
 - Rollback na vnos, ki je sam *rollback*: stanje je enako stanju takoj po tem rollbacku.
 - Rollback na vnos *združevanje* (011): združeni kontakt ima stanje takoj po združitvi, odstranjeni kontakti iz združitve ostanejo odstranjeni; rollback na vnos pred združitvijo jih obnovi.
-- Rollback, ki spremeni veliko kontaktov (npr. 1.000): je en vnos z vsemi prizadetimi kontakti; podrobnosti se prikažejo po kontaktih, preglednica pa ostane berljiva (prikazani so le spremenjeni atributi).
+- Rollback, ki spremeni veliko kontaktov (npr. 1.000): je en vnos z vsemi prizadetimi kontakti; *Podrobnosti* pokažejo paginiran seznam kontaktov, preglednica posameznega kontakta se razkrije na zahtevo (prikazani so le spremenjeni atributi).
 - Vnos, katerega izvajalec je izbrisal račun, je še vedno lahko točka rollbacka; rollback izvajalca ne spremeni.
 - Kontakt je v vnosu imenovan s prikaznim imenom ob času vnosa; poznejše preimenovanje ali izbris kontakta ne spremeni starih vnosov.
 - Dva admina hkrati potrdita rollback: uspe samo prvi; drugi dobi `409 VERSION_CONFLICT`, ker se je sled medtem spremenila.
+- Admin ima sled filtrirano po kontaktu A, medtem pa drug član uredi kontakt B (vnos ni viden v filtriranem seznamu): rollback se zavrne z `409 VERSION_CONFLICT` in seznam se osveži, ker se preverja najnovejši vnos celotne sledi.
 - Vnos s spremembo dodatnega atributa, katerega ključ je spremenil samo velikost črk: prikazan kot odstranitev starega in dodajanje novega ključa.
 
 ## Requirements *(mandatory)*
@@ -116,22 +129,26 @@ Admin ali lastnik izbere vnos v sledi in povrne vse kontakte skupine v stanje ta
 - **FR-005-05**: Sistem MORA vnose hraniti nespremenljive: noben član (tudi lastnik) jih ne more spremeniti ali izbrisati; hranijo se, dokler obstaja skupina, in se izbrišejo samo skupaj s skupino (003). *(najnižja vloga: —, nihče)*
 - **FR-005-06**: Sistem MORA v revizijsko sled beležiti samo spremembe kontaktov; spremembe članstev, vlog, povabil in podatkov skupine se v njej ne beležijo. *(najnižja vloga: —)*
 - **FR-005-07**: Sistem MORA prikazati revizijsko sled skupine kot kronološki seznam, najnovejši vnos zgoraj (design.md 9.6), paginiran po skupnem slovarju (25 privzeto, 50, 100); vnos pokaže čas v zapisu izbranega jezika, izvajalca (ali »izbrisan uporabnik«) in dejanje kot stavek (npr. »dodal(a) kontakt Janez Novak«, »uredil(a) 12 kontaktov«, »združil(a) 2 kontakta«, »povrnil(a) skupino na stanje ‹čas›«); sled se lahko bere tudi v arhivirani skupini. *(najnižja vloga: VIEWER)*
-- **FR-005-08**: Sistem MORA ob razkritju *Podrobnosti* vnosa prikazati za vsak prizadeti kontakt preglednico *Polje · Prej · Potem* s spremenjenimi polji (pri dodajanju vsa izpolnjena polja s praznim *Prej*, pri odstranjevanju s praznim *Potem*). *(najnižja vloga: VIEWER)*
+- **FR-005-08**: Sistem MORA ob razkritju *Podrobnosti* vnosa prikazati paginiran seznam prizadetih kontaktov (prikazno ime ob času vnosa; velikosti strani iz skupnega slovarja: 25 privzeto, 50, 100), pri katerem se za vsak kontakt na zahtevo razkrije preglednica *Polje · Prej · Potem* s spremenjenimi polji (pri dodajanju vsa izpolnjena polja s praznim *Prej*, pri odstranjevanju s praznim *Potem*); preglednice niso razkrite privzeto. *(najnižja vloga: VIEWER)*
 - **FR-005-09**: Sistem MORA omogočiti filtriranje sledi po vrsti dejanja (ena ali več vrst) in po kontaktu (vnosi, v katerih je kontakt med prizadetimi, tudi za izbrisan kontakt); filtri in stran so v naslovu poti; pogled kontakta (004) vsebuje povezavo »Spremembe tega kontakta v revizijski sledi«, ki odpre sled, filtrirano po tem kontaktu; filter po kontaktu, ki ne pripada skupini, vrne prazen seznam. *(najnižja vloga: VIEWER)*
 - **FR-005-10**: Sistem MORA prikazati prazno stanje (design.md 8.15): »V revizijski sledi še ni vnosov.« za sled brez vnosov in »Ni vnosov, ki ustrezajo filtrom.« s *Počisti filtre* za filtre brez zadetkov. *(najnižja vloga: VIEWER)*
-- **FR-005-11**: Sistem MORA omogočiti rollback na kateri koli vnos T sledi skupine, ki atomarno vrne **vse** kontakte skupine v stanje takoj po uveljavitvi T: kontakti, ustvarjeni po T, se odstranijo; kontakti, izbrisani po T, se obnovijo z istim identifikatorjem in podatki takoj po T; urejeni kontakti dobijo vrednosti takoj po T; kontakti, ki jih po T ni spremenila nobena operacija, ostanejo nespremenjeni. Ob kateri koli napaki se nič ne spremeni. *(najnižja vloga: ADMIN)*
+- **FR-005-11**: Sistem MORA omogočiti rollback na kateri koli vnos T sledi skupine ali na točko *Začetno stanje* (stanje pred prvim vnosom: vsak kontakt, ki ga je spremenil kateri koli vnos, v stanju *prej* iz svojega prvega vnosa – kontakti, ustvarjeni v sledi, ne obstajajo), ki atomarno vrne **vse** kontakte skupine v stanje takoj po uveljavitvi T: kontakti, ustvarjeni po T, se odstranijo; kontakti, izbrisani po T, se obnovijo z istim identifikatorjem in podatki takoj po T; urejeni kontakti dobijo vrednosti takoj po T; kontakti, ki jih po T ni spremenila nobena operacija, ostanejo nespremenjeni. Ob kateri koli napaki se nič ne spremeni. *(najnižja vloga: ADMIN)*
 - **FR-005-12**: Sistem MORA uspešen rollback zapisati kot nov vnos vrste *rollback*, ki se sklicuje na ciljni vnos T (čas in povezava na vnos) in vsebuje vrednosti prej/potem za vsak kontakt, ki ga je rollback spremenil; vnosi po T ostanejo v sledi; vnos *rollback* je lahko cilj nadaljnjega rollbacka, zato ga je mogoče razveljaviti z rollbackom na vnos tik pred njim. *(najnižja vloga: ADMIN)*
 - **FR-005-13**: Sistem MORA vsakemu kontaktu, ki ga rollback spremeni ali obnovi, dodeliti novo verzijo, višjo od katere koli prejšnje verzije tega kontakta, tako da se poznejše urejanje ali izbris z verzijo izpred rollbacka zavrne z `409 VERSION_CONFLICT` (FR-004-11, FR-004-12). *(najnižja vloga: ADMIN)*
-- **FR-005-14**: Sistem MORA zahtevo za rollback opremiti z najnovejšim vnosom sledi, ki ga je uporabnik videl; če je v sledi medtem nastal novejši vnos, se rollback zavrne z `409 VERSION_CONFLICT`, nič se ne spremeni, vmesnik pa pokaže »Revizijska sled se je medtem spremenila.« in osveži seznam. *(najnižja vloga: ADMIN)*
+- **FR-005-14**: Sistem MORA zahtevo za rollback opremiti z najnovejšim vnosom **celotne** sledi skupine, kot je bil znan ob nalaganju seznama (ne glede na izbrane filtre; seznam ga vrne tudi, kadar ga filtri skrijejo); če je v sledi medtem nastal novejši vnos, se rollback zavrne z `409 VERSION_CONFLICT`, nič se ne spremeni, vmesnik pa pokaže »Revizijska sled se je medtem spremenila.« in osveži seznam. *(najnižja vloga: ADMIN)*
 - **FR-005-15**: Sistem MORA rollback, ki ne bi spremenil nobenega kontakta (vedno pri najnovejšem vnosu), zavrniti z `409 ROLLBACK_NO_CHANGES`, brez spremembe in brez novega vnosa; vmesnik pri najnovejšem vnosu gumba za rollback ne izriše. *(najnižja vloga: ADMIN)*
 - **FR-005-16**: Sistem MORA pred rollbackom zahtevati potrditev v dialogu (design.md 8.11) z naslovom »Povrnem skupino na stanje ‹čas›?«, besedilom posledice iz design.md 9.6, gumboma *Prekliči* in *Povrni skupino* ter fokusom na *Prekliči* ob odprtju; uspeh prikaže obvestilo »Skupina je povrnjena na stanje ‹čas›.« *(najnižja vloga: ADMIN)*
 - **FR-005-17**: Sistem MORA gumb »Povrni skupino na to točko« izrisati samo adminu in lastniku nearhivirane skupine; rollback v arhivirani skupini se zavrne z `409 GROUP_ARCHIVED` (ADMIN, OWNER) oziroma `403` (nižje vloge). *(najnižja vloga: ADMIN)*
 - **FR-005-18**: Sistem MORA vsak neuspeh nalaganja sledi ali rollbacka prikazati kot trajno sporočilo ob mestu akcije (design.md 8.13) v sl/en brez tehničnih kod, z gumbom *Poskusi znova*, kjer je ponovitev smiselna. *(najnižja vloga: VIEWER)*
+- **FR-005-19**: Sistem MORA kontaktu, ki ga rollback spremeni ali obnovi, kot izvajalca in čas zadnje spremembe nastaviti vrednosti, ki jih je kontakt imel takoj po T (čas ustvarjanja in identifikator ostaneta prvotna; verzija se vseeno poveča po FR-005-13), in ga označiti kot *povrnjen*: v seznamu in pogledu kontakta (004) je vidna oznaka *Povrnjeno*, podrobnosti – čas T s povezavo na vnos T, povezava na vnos *rollback* in izvajalec rollbacka (ali »izbrisan uporabnik«) – pa so vidne šele ob razkritju podrobnosti oznake. Oznaka ostane do naslednje uspešne operacije nad kontaktom, ki ni rollback; nov rollback jo nadomesti s svojimi podatki. *(najnižja vloga: VIEWER za prikaz; ADMIN za rollback)*
+- **FR-005-20**: Sistem MORA v sledi z vsaj enim vnosom na koncu zadnje strani nefiltriranega seznama prikazati točko *Začetno stanje* (ni vnos in se ne šteje v paginacijo) z gumbom »Povrni skupino na to točko« za admina in lastnika nearhivirane skupine; rollback nanjo zapiše vnos *rollback* (»povrnil(a) skupino na začetno stanje«), dialog ima naslov »Povrnem skupino na začetno stanje?«, obvestilo »Skupina je povrnjena na začetno stanje.«; zanj veljajo FR-005-11 do FR-005-17 in FR-005-19. *(najnižja vloga: ADMIN)*
 
 ### Key Entities *(include if feature involves data)*
 
-- **Vnos revizijske sledi**: nespremenljiv zapis ene operacije nad kontakti v eni skupini; atributi: skupina, čas, izvajalec (sklic na uporabnika; prikaz »izbrisan uporabnik«, če ga ni več), vrsta dejanja, pri vrsti *rollback* sklic na ciljni vnos, seznam sprememb kontaktov. Vnosi skupine so popolnoma urejeni po času nastanka.
-- **Sprememba kontakta (v vnosu)**: en prizadeti kontakt v vnosu; identifikator kontakta, prikazno ime ob času vnosa, stanje prej in stanje potem (vsi atributi, dodatni atributi in značke; prazno pri dodajanju oziroma odstranjevanju), iz katerih se izpelje seznam spremenjenih polj.
+- **Vnos revizijske sledi**: nespremenljiv zapis ene operacije nad kontakti v eni skupini; atributi: skupina, čas, izvajalec (sklic na uporabnika; prikaz »izbrisan uporabnik«, če ga ni več), vrsta dejanja, pri vrsti *rollback* sklic na ciljni vnos, seznam sprememb kontaktov. Vnosi skupine so popolnoma urejeni po vrstnem redu uveljavitve operacij (zaporedje v skupini); prikazani čas je strežniški čas operacije in ni ključ urejanja.
+- **Sprememba kontakta (v vnosu)**: en prizadeti kontakt v vnosu; identifikator kontakta, prikazno ime ob času vnosa, stanje prej in stanje potem (vsi atributi, dodatni atributi, značke ter izvajalec in čas zadnje spremembe; prazno pri dodajanju oziroma odstranjevanju), iz katerih se izpelje seznam spremenjenih polj.
+- **Oznaka povrnitve (na kontaktu)**: prisotna, dokler kontakta po rollbacku ne spremeni operacija, ki ni rollback; hrani sklic na ciljni vnos T, sklic na vnos *rollback* in izvajalca rollbacka. Izvajalec in čas zadnje spremembe kontakta (004) po rollbacku ustrezata stanju takoj po T.
+- **Začetno stanje**: posebna točka pred prvim vnosom sledi (ni vnos); stanje kontaktov se izpelje iz stanj *prej* njihovih prvih vnosov.
 - **Stanje skupine v točki T**: množica vseh kontaktov skupine z vrednostmi takoj po uveljavitvi vnosa T; izpelje se iz sledi in je cilj rollbacka.
 
 ## Success Criteria *(mandatory)*

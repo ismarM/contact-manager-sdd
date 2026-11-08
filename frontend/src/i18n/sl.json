@@ -8,7 +8,9 @@
     "notFound": "Te strani ni – Kontakti",
     "groups": "Skupine – Kontakti",
     "groupScreen": "{{screen}} – {{group}} – Kontakti",
-    "archived": "Arhivirane skupine – Kontakti"
+    "archived": "Arhivirane skupine – Kontakti",
+    "audit": "Revizijska sled",
+    "auditEntry": "Vnos revizijske sledi"
   },
   "language": {
     "label": "Jezik",
@@ -110,7 +112,8 @@
       "archived": "Arhivirano",
       "sections": "Razdelki skupine",
       "settings": "Nastavitve",
-      "contacts": "Kontakti"
+      "contacts": "Kontakti",
+      "audit": "Revizijska sled"
     },
     "details": {
       "heading": "Podatki skupine",
@@ -211,7 +214,8 @@
       "delete": "Izbriši kontakt",
       "back": "Nazaj na seznam kontaktov",
       "close": "Zapri podrobnosti",
-      "loadFailed": "Kontakta ni bilo mogoče naložiti. Poskusi znova."
+      "loadFailed": "Kontakta ni bilo mogoče naložiti. Poskusi znova.",
+      "auditLink": "Spremembe tega kontakta v revizijski sledi"
     },
     "gone": "Tega kontakta ni več – medtem ga je nekdo izbrisal.",
     "form": {
@@ -295,6 +299,119 @@
       "list": "Kontakti",
       "new": "Nov kontakt",
       "edit": "Uredi kontakt"
+    },
+    "reverted": {
+      "badge": "Povrnjeno",
+      "toState": "Povrnjeno na stanje",
+      "toInitial": "Povrnjeno na začetno stanje",
+      "openEntry": "Odpri vnos povrnitve",
+      "by": "Povrnil(a): {{name}}"
+    }
+  },
+  "audit": {
+    "list": {
+      "heading": "Revizijska sled",
+      "entries": "Vnosi revizijske sledi",
+      "loading": "Nalagam…",
+      "loadFailed": "Revizijske sledi ni bilo mogoče naložiti. Poskusi znova.",
+      "retry": "Poskusi znova",
+      "empty": "V revizijski sledi še ni vnosov.",
+      "emptyFiltered": "Ni vnosov, ki ustrezajo filtrom.",
+      "clearFilters": "Počisti filtre",
+      "deletedUser": "izbrisan uporabnik",
+      "rollbackButton": "Povrni skupino na to točko"
+    },
+    "entry": {
+      "heading": "Vnos revizijske sledi",
+      "back": "Nazaj na revizijsko sled",
+      "loadFailed": "Vnosa ni bilo mogoče naložiti. Poskusi znova."
+    },
+    "sentence": {
+      "CREATE_named": "dodal(a) kontakt {{name}}",
+      "CREATE_count_one": "dodal(a) {{count}} kontakt",
+      "CREATE_count_two": "dodal(a) {{count}} kontakta",
+      "CREATE_count_few": "dodal(a) {{count}} kontakte",
+      "CREATE_count_other": "dodal(a) {{count}} kontaktov",
+      "UPDATE_named": "uredil(a) kontakt {{name}}",
+      "UPDATE_count_one": "uredil(a) {{count}} kontakt",
+      "UPDATE_count_two": "uredil(a) {{count}} kontakta",
+      "UPDATE_count_few": "uredil(a) {{count}} kontakte",
+      "UPDATE_count_other": "uredil(a) {{count}} kontaktov",
+      "DELETE_named": "izbrisal(a) kontakt {{name}}",
+      "DELETE_count_one": "izbrisal(a) {{count}} kontakt",
+      "DELETE_count_two": "izbrisal(a) {{count}} kontakta",
+      "DELETE_count_few": "izbrisal(a) {{count}} kontakte",
+      "DELETE_count_other": "izbrisal(a) {{count}} kontaktov",
+      "MERGE_count_one": "združil(a) {{count}} kontakt",
+      "MERGE_count_two": "združil(a) {{count}} kontakta",
+      "MERGE_count_few": "združil(a) {{count}} kontakte",
+      "MERGE_count_other": "združil(a) {{count}} kontaktov",
+      "ROLLBACK_target": "povrnil(a) skupino na stanje",
+      "ROLLBACK_initial": "povrnil(a) skupino na začetno stanje"
+    },
+    "filters": {
+      "toggle": "Filtri",
+      "toggleCount": "Filtri ({{count}})",
+      "actionLegend": "Vrsta dejanja",
+      "apply": "Uporabi filtre",
+      "clear": "Počisti filtre",
+      "action": {
+        "CREATE": "dodajanje",
+        "UPDATE": "urejanje",
+        "DELETE": "odstranjevanje",
+        "MERGE": "združevanje",
+        "ROLLBACK": "rollback"
+      },
+      "removeAction": "Odstrani filter Vrsta: {{action}}",
+      "removeContact": "Odstrani filter Kontakt: {{name}}",
+      "chipAction": "Vrsta: {{action}}",
+      "chipContact": "Kontakt: {{name}}",
+      "unknownContact": "neznan kontakt"
+    },
+    "details": {
+      "summary": "Podrobnosti",
+      "affected": "Prizadeti kontakti",
+      "caption": "Spremembe kontakta {{name}}",
+      "field": "Polje",
+      "before": "Prej",
+      "after": "Potem",
+      "empty": "prazno",
+      "loading": "Nalagam…",
+      "loadFailed": "Podrobnosti ni bilo mogoče naložiti. Poskusi znova.",
+      "retry": "Poskusi znova",
+      "pagination": "Strani rezultatov: Prizadeti kontakti",
+      "fields": {
+        "FIRST_NAME": "Ime",
+        "LAST_NAME": "Priimek",
+        "ADDRESS": "Naslov",
+        "EMAIL": "E-naslov",
+        "PHONE": "Telefon",
+        "TAGS": "Značke"
+      }
+    },
+    "rollback": {
+      "title": "Povrnem skupino na stanje {{time}}?",
+      "text": "Kontakti skupine bodo vrnjeni v stanje, kot je bilo {{time}}. Spremembe po tej točki ostanejo zabeležene v revizijski sledi, rollback pa bo zapisan kot nov vnos.",
+      "cancel": "Prekliči",
+      "confirm": "Povrni skupino"
+    },
+    "initial": {
+      "heading": "Začetno stanje",
+      "description": "Stanje kontaktov pred prvim vnosom v revizijski sledi.",
+      "title": "Povrnem skupino na začetno stanje?",
+      "text": "Kontakti skupine bodo vrnjeni v stanje pred prvim vnosom v revizijski sledi. Spremembe po tej točki ostanejo zabeležene v revizijski sledi, rollback pa bo zapisan kot nov vnos."
+    },
+    "errors": {
+      "failed": "Skupine ni bilo mogoče povrniti. Poskusi znova.",
+      "retry": "Poskusi znova",
+      "stale": "Revizijska sled se je medtem spremenila.",
+      "noChanges": "Skupina je že v tem stanju – rollback ne bi ničesar spremenil.",
+      "archived": "Skupina je arhivirana – rollbacka ni mogoče izvesti.",
+      "forbidden": "Za to dejanje nimaš več pravic."
+    },
+    "toast": {
+      "restored": "Skupina je povrnjena na stanje {{time}}.",
+      "restoredInitial": "Skupina je povrnjena na začetno stanje."
     }
   }
 }

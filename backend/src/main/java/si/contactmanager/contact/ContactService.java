@@ -1,9 +1,13 @@
 package si.contactmanager.contact;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import si.contactmanager.audit.AuditAction;
+import si.contactmanager.audit.AuditLog;
+import si.contactmanager.audit.ContactChange;
 import si.contactmanager.contact.ContactInputParser.Parsed;
 import si.contactmanager.group.GroupAccess.Membership;
 import si.contactmanager.group.Role;
@@ -22,9 +26,13 @@ import si.contactmanager.shared.error.VersionConflictException;
 class ContactService {
 
     private final ContactRepository contacts;
+    private final ContactSnapshots snapshots;
+    private final AuditLog audit;
 
-    ContactService(ContactRepository contacts) {
+    ContactService(ContactRepository contacts, ContactSnapshots snapshots, AuditLog audit) {
         this.contacts = contacts;
+        this.snapshots = snapshots;
+        this.audit = audit;
     }
 
     ContactPage list(Membership membership, int page, int size) {
@@ -54,6 +62,12 @@ class ContactService {
     ContactDetail create(Membership membership, ContactInput input) {
         lockWritableGroup(membership);
         UUID id = contacts.insert(membership.groupId(), input, membership.userId());
+        ContactState created = snapshots.snapshot(membership.groupId(), id);
+        audit.record(
+                membership.groupId(),
+                membership.userId(),
+                AuditAction.CREATE,
+                List.of(new ContactChange(id, name(created), null, created)));
         return read(membership, id);
     }
 
@@ -79,7 +93,14 @@ class ContactService {
         if (same) {
             return current;
         }
+        ContactState before = snapshots.snapshot(membership.groupId(), id);
         contacts.update(membership.groupId(), id, parsed.input(), membership.userId());
+        ContactState after = snapshots.snapshot(membership.groupId(), id);
+        audit.record(
+                membership.groupId(),
+                membership.userId(),
+                AuditAction.UPDATE,
+                List.of(new ContactChange(id, name(after), before, after)));
         return read(membership, id);
     }
 
@@ -91,11 +112,21 @@ class ContactService {
         if (sentVersion != version) {
             throw new VersionConflictException(read(membership, id));
         }
+        ContactState before = snapshots.snapshot(membership.groupId(), id);
         contacts.delete(membership.groupId(), id);
+        audit.record(
+                membership.groupId(),
+                membership.userId(),
+                AuditAction.DELETE,
+                List.of(new ContactChange(id, name(before), before, null)));
     }
 
     TagSuggestions suggestTags(Membership membership, String prefix) {
         return new TagSuggestions(contacts.suggestTags(membership.groupId(), prefix == null ? "" : prefix.strip()));
+    }
+
+    private static String name(ContactState state) {
+        return ContactRepository.displayName(state.firstName(), state.lastName());
     }
 
     private void lockWritableGroup(Membership membership) {

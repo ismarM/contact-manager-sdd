@@ -2,6 +2,18 @@ import type { UserRef } from '../groups/types';
 
 // Oblike odgovorov API kontaktov (specs/004-kontakti/contracts/openapi.yaml).
 
+/** Oznaka *Povrnjeno* (specs/005-revizijska-sled/contracts/openapi.yaml – RevertInfo). */
+export interface RevertInfo {
+  rollbackEntryId: string;
+  rolledBackAt: string;
+  /** `null` = izbrisan uporabnik. */
+  rolledBackBy: UserRef | null;
+  /** `null` pri *Začetnem stanju*. */
+  targetEntryId: string | null;
+  targetAt: string | null;
+  targetInitial: boolean;
+}
+
 export interface Attribute {
   key: string;
   value: string;
@@ -26,6 +38,8 @@ export interface ContactDetail extends ContactInput {
   updatedAt: string;
   /** `null` = izbrisan uporabnik (feature-map §2.5). */
   updatedBy: UserRef | null;
+  /** 005: oznaka *Povrnjeno*; neobvezno, da testni podatki 004 ostanejo nespremenjeni. */
+  reverted?: RevertInfo | null;
 }
 
 export interface ContactSummary {
@@ -37,6 +51,8 @@ export interface ContactSummary {
   phone: string | null;
   tags: string[];
   version: number;
+  /** 005: kontakt ima oznako *Povrnjeno*; neobvezno kot zgoraj. */
+  reverted?: boolean;
 }
 
 export interface ContactPage {

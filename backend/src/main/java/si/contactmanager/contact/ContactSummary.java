@@ -12,4 +12,5 @@ public record ContactSummary(
         String email,
         String phone,
         List<String> tags,
-        long version) {}
+        long version,
+        boolean reverted) {}

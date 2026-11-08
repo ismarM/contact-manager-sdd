@@ -205,7 +205,7 @@ V arhivirani skupini sprememb vlog, odstranitev in prenosa lastništva ni; zapu�
 - **Razvrščanje članov:** po vlogi (Lastnik, Admin, Urednik, Bralec), nato po imenu po pravilih jezika vmesnika; ime je prikazno ime iz Google računa.
 - **Trajno arhivirana skupina** na seznamu članov prikaže informativno vrstico »izbrisan uporabnik« z vlogo *Lastnik* (§2.4), ki ni članstvo in se ne šteje pri pravilu zadnjega člana.
 - **Obveščanje:** odstranjeni ali član s spremenjeno vlogo ni posebej obveščen; spremembo vidi ob naslednjem zahtevku.
-- **Revizijska sled** zajema samo kontakte (005); spremembe članstva niso zabeležene. Imena odstranjenih in bivših članov v revizijski sledi ostanejo; samo izbris računa (012) jih nadomesti z »izbrisan uporabnik«.
+- **Revizijska sled** zajema samo kontakte (005); spremembe članstva niso zabeležene.  Testi te funkcionalnosti morajo za spremembo vloge, odstranitev, zapustitev in prenos lastništva preveriti, da ostane `audit_entry` skupine nespremenjen (FR-005-06). Imena odstranjenih in bivših članov v revizijski sledi ostanejo; samo izbris računa (012) jih nadomesti z »izbrisan uporabnik«.
 - Seznam članov je za vse člane enak (vključno z e-naslovi): zahteve in design.md 9.7 predvidevajo e-naslov v preglednici; člani skupine si delijo kontakte in so si medsebojno znani.
 
 ## Changes *(living spec – change requests)*
