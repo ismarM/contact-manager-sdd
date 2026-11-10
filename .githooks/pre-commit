@@ -1,20 +1,50 @@
 #!/usr/bin/env bash
 # Prepreči commit skrivnosti (FR-000-19): gitleaks pregleda staged spremembe; vrednosti so v izpisu skrite.
 # Namestitev: scripts/install-hooks.sh. Izjeme samo v .gitleaks.toml z vnosom v DECISIONS.md.
+#
+# Kavelj NE sme poročati lažnega uspeha: če gitleaks ne pregleda ničesar (npr. v Git worktreeju Docker ne vidi
+# repozitorija) ali javi napako, commit odpove. Worktree in skupna mapa .git se priklopita na enaki absolutni poti.
 set -uo pipefail
 
 GITLEAKS_IMAGE='ghcr.io/gitleaks/gitleaks:v8.30.1'
 ARGS=(git --pre-commit --staged --redact --verbose --no-banner)
 
+# Število staged datotek z besedilnimi spremembami (binarne so v --numstat označene z »-«): zanje mora biti
+# pregledanih vsaj nekaj bajtov.
+TEXT_CHANGES="$(git diff --cached --numstat | awk '$1 ~ /^[0-9]+$/ && $1 > 0' | wc -l)"
+
+LOG="$(mktemp)"
+trap 'rm -f "$LOG"' EXIT
+
 if command -v gitleaks >/dev/null 2>&1; then
-  exec gitleaks "${ARGS[@]}"
-fi
-
-if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+  gitleaks "${ARGS[@]}" 2>&1 | tee "$LOG"
+  STATUS=${PIPESTATUS[0]}
+elif command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
   ROOT="$(git rev-parse --show-toplevel)"
-  exec docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp \
-    -v "$ROOT:/repo" -w /repo "$GITLEAKS_IMAGE" "${ARGS[@]}"
+  COMMON="$(cd "$(git rev-parse --git-common-dir)" && pwd)"
+  docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp \
+    -v "$ROOT:$ROOT" -v "$COMMON:$COMMON" -w "$ROOT" "$GITLEAKS_IMAGE" "${ARGS[@]}" 2>&1 | tee "$LOG"
+  STATUS=${PIPESTATUS[0]}
+else
+  echo 'pre-commit: za preverjanje skrivnosti namesti gitleaks (https://github.com/gitleaks/gitleaks) ali zaženi Docker.' >&2
+  exit 1
 fi
 
-echo 'pre-commit: za preverjanje skrivnosti namesti gitleaks (https://github.com/gitleaks/gitleaks) ali zaženi Docker.' >&2
-exit 1
+if [ "$STATUS" -ne 0 ]; then
+  exit "$STATUS"
+fi
+
+# Zaščita pred lažnim uspehom: izpis brez barvnih kod.
+PLAIN="$(sed 's/\x1b\[[0-9;]*m//g' "$LOG")"
+
+if printf '%s\n' "$PLAIN" | grep -Eq '^[0-9]{1,2}:[0-9]{2}(AM|PM) ERR '; then
+  echo 'pre-commit: gitleaks je javil napako, pregled skrivnosti ni zanesljiv – commit je zavrnjen.' >&2
+  exit 1
+fi
+
+if [ "$TEXT_CHANGES" -gt 0 ] && ! printf '%s\n' "$PLAIN" | grep -Eq 'scanned ~[1-9][0-9]* bytes'; then
+  echo 'pre-commit: gitleaks ni pregledal nobenega bajta, čeprav so v commitu besedilne spremembe – commit je zavrnjen (pregled skrivnosti se ni izvedel).' >&2
+  exit 1
+fi
+
+exit 0
