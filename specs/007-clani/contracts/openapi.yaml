@@ -1,0 +1,239 @@
+openapi: 3.1.0
+info:
+  title: Contact Manager API – člani skupine (007)
+  version: 0.1.0
+  description: >
+    Seznam članov, sprememba vloge, odstranitev, zapuščanje skupine in prenos lastništva. Vrstni red preverjanj (feature-map §2.2):
+    401, 404 (nečlan, neobstoječa skupina ali ciljno članstvo ni v tej skupini; prazno telo), 403 FORBIDDEN, 409 GROUP_ARCHIVED, 409 VERSION_CONFLICT
+    (samo sprememba vloge), 400 VALIDATION_FAILED, 409 z imenovano kodo poslovnega pravila. Zapuščanje je dovoljeno tudi v arhivirani skupini.
+    Spremembe članstva se ne zapisujejo v revizijsko sled (FR-007-12).
+servers:
+  - url: http://localhost:8080
+security:
+  - firebaseIdToken: []
+paths:
+  /api/groups/{groupId}/members:
+    get:
+      operationId: listMembers
+      summary: Paginiran seznam članov (najnižja vloga VIEWER; dovoljeno tudi v arhivirani skupini; FR-007-01, FR-007-02)
+      description: >
+        Urejeno po vlogi od najvišje, nato po imenu (e-naslov, če imena ni) po pravilih jezika `lang`, nato po `id`.
+        `canManage` = klicatelj je OWNER ali ADMIN, skupina ni arhivirana in je vloga člana strogo nižja od klicateljeve.
+      parameters:
+        - { $ref: "#/components/parameters/GroupId" }
+        - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+        - { name: lang, in: query, schema: { type: string, enum: [sl, en], default: en } }
+      responses:
+        "200":
+          description: Stran članov.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Members" }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/groups/{groupId}/members/{memberId}:
+    put:
+      operationId: changeMemberRole
+      summary: Spremeni vlogo člana (najnižja vloga ADMIN; FR-007-03, FR-007-04, FR-007-10)
+      description: >
+        Cilj mora imeti strogo nižjo vlogo od klicatelja, nova vloga mora biti strogo nižja od klicateljeve in ne OWNER; sprememba lastnega članstva → 403.
+        Verzija je verzija članstva, ki jo je uporabnik videl. Enaka, manjkajoča ali neznana vloga ali manjkajoča verzija → 400.
+      parameters:
+        - { $ref: "#/components/parameters/GroupId" }
+        - { $ref: "#/components/parameters/MemberId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChangeRole" }
+            example: { role: ADMIN, version: 0 }
+      responses:
+        "200":
+          description: Vloga je spremenjena; telo je posodobljen član.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Member" }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: Skupina je arhivirana ali verzija ni več trenutna; vloga se ne spremeni.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - { $ref: "#/components/schemas/Error" }
+                  - { $ref: "#/components/schemas/VersionConflict" }
+              examples:
+                archived: { value: { code: GROUP_ARCHIVED } }
+                conflict: { value: { code: VERSION_CONFLICT, current: { id: "0198…", name: Ana Novak, email: ana@primer.si, role: VIEWER, version: 1, self: false, canManage: true, updatedBy: { name: Pia Kos, email: pia@primer.si }, updatedAt: "2026-11-10T14:32:00Z" } } }
+    delete:
+      operationId: removeMember
+      summary: Odstrani člana iz skupine (najnižja vloga ADMIN; FR-007-05, FR-007-10)
+      description: Cilj mora imeti strogo nižjo vlogo od klicatelja; odstranitev sebe, enakovrednega ali višjega → 403. Drugič isti cilj → 404.
+      parameters:
+        - { $ref: "#/components/parameters/GroupId" }
+        - { $ref: "#/components/parameters/MemberId" }
+      responses:
+        "204": { description: Član je odstranjen, takoj izgubi dostop (naslednji zahtevek za skupino → 404). }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: Skupina je arhivirana.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { code: GROUP_ARCHIVED }
+  /api/groups/{groupId}/leave:
+    post:
+      operationId: leaveGroup
+      summary: Zapusti skupino (najnižja vloga VIEWER; tudi arhivirana; FR-007-06, FR-007-07, FR-007-08)
+      description: Brez telesa zahteve. Lastnik → 409 OWNER_CANNOT_LEAVE; zadnji član trajno arhivirane skupine → 409 LAST_MEMBER_CANNOT_LEAVE.
+      parameters: [{ $ref: "#/components/parameters/GroupId" }]
+      responses:
+        "204": { description: Klicatelj ni več član. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: Zapuščanje ni mogoče; članstvo ostane.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [code]
+                properties:
+                  code: { type: string, enum: [OWNER_CANNOT_LEAVE, LAST_MEMBER_CANNOT_LEAVE] }
+              example: { code: OWNER_CANNOT_LEAVE }
+  /api/groups/{groupId}/ownership-transfer:
+    post:
+      operationId: transferOwnership
+      summary: Prenese lastništvo na drugega člana (najnižja vloga OWNER; samo nearhivirana skupina; FR-007-09, FR-007-10)
+      description: >
+        Atomarno: cilj postane OWNER, prejšnji lastnik ADMIN. Naslov skupine zaledje ne preverja (potrdi ga vmesnik, spec *Assumptions*).
+        Manjkajoč, neveljaven ali lasten `memberId` → 400; cilj, ki ni (več) član → 409 TARGET_NOT_MEMBER.
+      parameters: [{ $ref: "#/components/parameters/GroupId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TransferOwnership" }
+      responses:
+        "200":
+          description: Lastništvo je preneseno; telo je skupina (002) z novo vlogo klicatelja ADMIN.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GroupDetail" }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: Skupina je arhivirana ali cilj ni član.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [code]
+                properties:
+                  code: { type: string, enum: [GROUP_ARCHIVED, TARGET_NOT_MEMBER] }
+              example: { code: TARGET_NOT_MEMBER }
+components:
+  securitySchemes:
+    firebaseIdToken: { type: http, scheme: bearer, bearerFormat: Firebase ID token }
+  parameters:
+    GroupId: { name: groupId, in: path, required: true, schema: { type: string, format: uuid } }
+    MemberId: { name: memberId, in: path, required: true, schema: { type: string, format: uuid }, description: "Neveljaven zapis ali član druge skupine → 404." }
+  responses:
+    Unauthenticated:
+      description: Ni žetona, neveljaven ali potekel žeton.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { code: UNAUTHENTICATED }
+    Forbidden:
+      description: Vloga pod najnižjo dovoljeno, »le nižjim od sebe«, lastno članstvo ali dodelitev OWNER/ADMIN (D-25).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { code: FORBIDDEN }
+    NotFound:
+      description: Skupina ali ciljno članstvo ne obstaja ali klicatelj ni član (prazno telo; obstoj se ne razkrije).
+    ValidationFailed:
+      description: Neveljavni podatki.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ValidationFailed" }
+  schemas:
+    Error:
+      type: object
+      required: [code]
+      properties: { code: { type: string } }
+    VersionConflict:
+      type: object
+      required: [code, current]
+      properties:
+        code: { type: string, const: VERSION_CONFLICT }
+        current: { $ref: "#/components/schemas/Member" }
+    ValidationFailed:
+      type: object
+      required: [code, errors]
+      properties:
+        code: { type: string, const: VALIDATION_FAILED }
+        errors:
+          type: array
+          items:
+            type: object
+            required: [field, code]
+            properties:
+              field: { type: string, enum: [role, version, memberId, body, page, size, lang] }
+              code: { type: string, enum: [REQUIRED, INVALID_VALUE, UNCHANGED, UNKNOWN_FIELD, MALFORMED] }
+    Role:
+      type: string
+      enum: [OWNER, ADMIN, EDITOR, VIEWER]
+    ChangeRole:
+      type: object
+      required: [role, version]
+      properties:
+        role: { type: string, description: "ADMIN, EDITOR ali VIEWER; OWNER ali vloga, ki ni strogo nižja od klicateljeve → 403; enaka trenutni (UNCHANGED) ali neznana → 400." }
+        version: { type: integer, format: int64, minimum: 0 }
+    TransferOwnership:
+      type: object
+      required: [memberId]
+      properties:
+        memberId: { type: string, format: uuid, description: "Ciljni član; lasten član ali neveljaven zapis → 400; ni član → 409 TARGET_NOT_MEMBER." }
+    UserRef:
+      description: Kot v 002; null pomeni izbrisanega uporabnika.
+      type: object
+      required: [email]
+      properties:
+        name: { type: [string, "null"] }
+        email: { type: string }
+    Member:
+      type: object
+      required: [id, name, email, role, version, self, canManage, updatedBy, updatedAt]
+      properties:
+        id: { type: string, format: uuid, description: Opaken identifikator člana (memberId). }
+        name: { type: [string, "null"] }
+        email: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        version: { type: integer, format: int64 }
+        self: { type: boolean, description: Vrstica klicatelja (»(ti)«). }
+        canManage: { type: boolean }
+        updatedBy: { oneOf: [{ $ref: "#/components/schemas/UserRef" }, { type: "null" }], description: "Kdo je zadnji spremenil vlogo; null do prve spremembe ali ob izbrisanem uporabniku." }
+        updatedAt: { type: [string, "null"], format: date-time }
+    Members:
+      type: object
+      required: [total, page, size, items, deletedOwner]
+      properties:
+        total: { type: integer, format: int64, description: Število članstev (brez vrstice »izbrisan uporabnik«). }
+        page: { type: integer }
+        size: { type: integer }
+        deletedOwner: { type: boolean, description: Trajno arhivirana skupina – vmesnik prikaže informativno vrstico lastnika »izbrisan uporabnik«. }
+        items: { type: array, items: { $ref: "#/components/schemas/Member" } }
+    GroupDetail:
+      description: Kot v 002 (contracts/openapi.yaml).
+      type: object
