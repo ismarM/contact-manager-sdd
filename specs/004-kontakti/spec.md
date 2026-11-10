@@ -13,7 +13,7 @@
 ### Session 2026-11-06
 
 - Q: Kaj naj strežnik stori pri shranjevanju z zastarelo verzijo, če so poslane vrednosti enake trenutnim? → A: `200` brez povečanja verzije; `409 VERSION_CONFLICT` le, če se vrednosti razlikujejo.
-- Q: Po pravilih katerega jezika se kontakti razvrščajo po priimku in imenu? → A: neodvisno od jezika, osnovni vrstni red Unicode (brez posebnih pravil za šumnike); velikost črk se ne upošteva.
+- Q: Po pravilih katerega jezika se kontakti razvrščajo po priimku in imenu? → A: ~~neodvisno od jezika, osnovni vrstni red Unicode (brez posebnih pravil za šumnike)~~ – nadomeščeno z D-63 (2026-11-10, `/speckit-clarify` 008): neodvisno od jezika vmesnika, vedno po slovenski abecedi (Č za C, Š za S, Ž za Z); velikost črk se ne upošteva.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -153,7 +153,7 @@ V arhivirani skupini in za bralca so kontakti samo za branje; vmesnik ne ponuja 
 - **FR-004-03**: Sistem MORA za ustvarjanje in urejanje ponuditi obrazec s tremi skupinami polj *Osnovni podatki*, *Dodatni atributi* in *Značke* (design.md 8.2–8.4, 9.4): dodajanje vrstice atributa s premikom fokusa v novo polje *Ključ*, odstranjevanje vrstice z gumbom »Odstrani atribut ‹ključ›«, preverjanje ob zapustitvi polja (ne med tipkanjem) z napako ob polju in ob neuspešni oddaji povzetek napak nad obrazcem s povezavami na polja in fokusom na povzetku. *(najnižja vloga: EDITOR)*
 - **FR-004-04**: Sistem MORA v polju za značke (kombinirano polje, design.md 8.4) predlagati samo obstoječe značke kontaktov **te** skupine, nikoli značk drugih skupin; *Enter* ali vejica doda vpisano značko, vsaka dodana značka ima gumb »Odstrani značko ‹ime›«. *(najnižja vloga: EDITOR)*
 - **FR-004-05**: Sistem MORA ob neshranjenih spremembah v obrazcu pri izbiri *Prekliči* ali pri zapuščanju strani (navigacija v aplikaciji, zapiranje ali osvežitev zavihka) vprašati »Zavržem spremembe?«; ob zavrnitvi obrazec ostane odprt z vnesenimi podatki. *(najnižja vloga: EDITOR)*
-- **FR-004-06**: Sistem MORA prikazati kontakte skupine v paginiranem seznamu (preglednica ali kartice po design.md 8.6) s stolpci *Ime in priimek* (povezava na kontakt), *E-naslov*, *Telefon* in *Značke* (največ tri značke v vrstnem redu, kot so vpisane v kontaktu, ter »+N« za preostale), privzeto razvrščen po priimku in nato imenu naraščajoče po vrstnem redu kodnih točk Unicode, ne glede na velikost črk in neodvisno od jezika vmesnika (brez posebnih pravil za šumnike), in s stalnim vrstnim redom pri enakih vrednostih; paginacija po design.md 8.9 z velikostjo strani 25 (privzeto), 50 ali 100 in skupnim številom kontaktov; stran in velikost strani sta v naslovu poti; druga velikost strani se zavrne z `400 VALIDATION_FAILED`. Arhivirana skupina se lahko bere. *(najnižja vloga: VIEWER)*
+- **FR-004-06**: Sistem MORA prikazati kontakte skupine v paginiranem seznamu (preglednica ali kartice po design.md 8.6) s stolpci *Ime in priimek* (povezava na kontakt), *E-naslov*, *Telefon* in *Značke* (največ tri značke v vrstnem redu, kot so vpisane v kontaktu, ter »+N« za preostale), privzeto razvrščen po priimku in nato imenu naraščajoče po slovenski abecedi (Č za C, Š za S, Ž za Z), ne glede na velikost črk in neodvisno od jezika vmesnika (D-63), in s stalnim vrstnim redom pri enakih vrednostih; paginacija po design.md 8.9 z velikostjo strani 25 (privzeto), 50 ali 100 in skupnim številom kontaktov; stran in velikost strani sta v naslovu poti; druga velikost strani se zavrne z `400 VALIDATION_FAILED`. Arhivirana skupina se lahko bere. *(najnižja vloga: VIEWER)*
 - **FR-004-07**: Sistem MORA za skupino brez kontaktov prikazati prazno stanje (design.md 8.15) »Ta skupina še nima kontaktov.«; urednik in višje v nearhivirani skupini dobijo tudi gumb *Nov kontakt*, bralec in člani arhivirane skupine samo razlago. *(najnižja vloga: VIEWER)*
 - **FR-004-08**: Sistem MORA prikazati pogled kontakta (design.md 9.4): naslov z imenom in priimkom, *Naslov*, *E-naslov* kot povezavo `mailto:`, *Telefon* kot povezavo `tel:`, dodatne atribute kot seznam opredelitev ključ–vrednost in vse značke; polja brez vrednosti se ne izrišejo. Arhivirana skupina se lahko bere. *(najnižja vloga: VIEWER)*
 - **FR-004-09**: Sistem MORA pri širini zaslona vsaj 1280 px prikazati podrobnosti izbranega kontakta v panelu desno od seznama, pri ožjih zaslonih pa na ločeni strani (design.md 7.2); izbrani kontakt je v naslovu poti, zato ostane izbran ob osvežitvi in deljenju povezave, vrnitev s strani podrobnosti pa ohrani stran paginacije. *(najnižja vloga: VIEWER)*
@@ -193,7 +193,7 @@ V arhivirani skupini in za bralca so kontakti samo za branje; vmesnik ne ponuja 
 - Ime predefiniranega atributa pri preverjanju ključa pomeni slovensko ali angleško ime polja (ime/first name, priimek/last name, naslov/address, e-naslov/email/e-mail, telefon/phone), primerjano ne glede na velikost črk.
 - Izbris uporablja optimistično zaklepanje enako kot urejanje (izbris zastarele verzije → `409 VERSION_CONFLICT`), da izbris ne zavrže tiho tuje spremembe, ki je uporabnik ni videl.
 - Shranjevanje brez dejanske spremembe ni sprememba: verzija se ne poveča (005 zanj ne ustvari vnosa).
-- Razvrščanje ne uporablja pravil jezika (collation): vrstni red je za vse člane enak, zato so strani paginacije in povezave pri vseh enake. To odstopa od feature-map §2.6 (»po pravilih jezika vmesnika«), ki se uskladi z vnosom v DECISIONS.md.
+- Razvrščanje uporablja eno samo, slovensko abecedno primerjavo (Č za C, Š za S, Ž za Z), ne glede na jezik vmesnika in uporabnika: vrstni red je za vse člane enak, zato so strani paginacije in povezave pri vseh enake (D-63; prvotni D-38 s kodnimi točkami je nadomeščen).
 - Pri razvrščanju se prazna vrednost uvrsti za neprazne; enake vrednosti uredi čas ustvarjanja.
 - Značke se hranijo v obliki, kot jih je vpisal uporabnik; edinstvenost in predlogi so neodvisni od velikosti črk.
 - Izbris kontakta je trajen v smislu te funkcionalnosti; obnovitev omogoča le rollback (005).
@@ -203,4 +203,4 @@ V arhivirani skupini in za bralca so kontakti samo za branje; vmesnik ne ponuja 
 
 | CR | Date | Affected FR-IDs | Summary | DECISIONS |
 |---|---|---|---|---|
-| – | – | – | Ni sprememb | – |
+| CR-004-1 | 2026-11-10 | FR-004-06 | Privzeto razvrščanje po slovenski abecedi namesto po kodnih točkah Unicode (nasprotje z 008, FR-008-07). Spremembo kode in testov 004 izvede 008 (glej D-63). | D-63 |

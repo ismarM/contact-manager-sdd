@@ -18,6 +18,8 @@ Vse točke so odločene; v tehničnem kontekstu ni ostalo nobene `NEEDS CLARIFIC
 
 ## R-03 Razvrščanje po kodnih točkah Unicode (D-38)
 
+> **Nadomeščeno z D-63** (008): razvrščanje je po slovenski abecedi, neodvisno od jezika vmesnika. Spodnji zapis je zgodovinski; stolpca `sort_last`/`sort_first` in indeks se pri 008 prilagodijo (glej D-63).
+
 - **Odločitev**: `contact.sort_last` in `contact.sort_first` (`text COLLATE "C"`) hranita `toLowerCase(Locale.ROOT)` priimka in imena, `NULL` za prazno vrednost. Poizvedba: `ORDER BY sort_last NULLS LAST, sort_first NULLS LAST, created_at, id`. Indeks `(group_id, sort_last, sort_first, created_at, id)`.
 - **Razlog**: kolacija `"C"` v UTF-8 primerja bajte, to je enako vrstnemu redu kodnih točk; velikost črk je odstranjena v ključu. Prazno se uvrsti na konec (Edge Cases in Assumptions), enaki ključi pa po času ustvarjanja in `id` (uuidv7), kar zagotovi stabilne strani. Indeks omogoča SC-002 (10.000 kontaktov).
 - **Opomba**: razvrščanje je neodvisno od jezika vmesnika, zato endpoint seznama nima parametra `lang` (razlika od 002/003).
