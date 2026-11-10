@@ -37,6 +37,7 @@ function AppRoutes({ gateway }: { gateway: AuthGateway }) {
           }
         >
           <Route index element={<GroupsPage />} />
+          <Route path="groups" element={<GroupsPage />} />
           <Route path="groups/archived" element={<ArchivedGroupsPage />} />
           <Route path="groups/:groupId/*" element={<GroupLayout />} />
           <Route path="invitations" element={<InvitationsPage />} />

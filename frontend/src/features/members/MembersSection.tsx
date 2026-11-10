@@ -3,11 +3,13 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { errorAlert, secondaryButton } from '../../shared/ui/styles';
+import { ApiError } from '../../shared/api/client';
 import { useListLanguage } from '../groups/api';
 import { useGroup } from '../groups/groupContext';
 import { PAGE_SIZES, SectionPagination } from '../groups/SectionPagination';
 import { useDelayed } from '../groups/useDelayed';
 import { useMembersApi } from './api';
+import { MemberCell } from './MemberCell';
 import { MemberRow } from './MemberRow';
 import type { Members } from './types';
 
@@ -24,7 +26,7 @@ interface Loaded {
 export function MembersSection() {
   const { t } = useTranslation();
   const api = useMembersApi();
-  const { group } = useGroup();
+  const { group, markNotFound } = useGroup();
   const lang = useListLanguage();
   const [page, setPage] = useState(0);
   const [size, setSize] = useState<number>(PAGE_SIZES[0]);
@@ -41,14 +43,17 @@ export function MembersSection() {
       (result) => {
         if (active) setLoaded({ key, result });
       },
-      () => {
-        if (active) setLoaded({ key, result: null });
+      (error: unknown) => {
+        if (!active) return;
+        // Klicatelj ni več član (odstranjen med ogledom): namesto vsebine »Te strani ni« (F1).
+        if (error instanceof ApiError && error.status === 404) markNotFound();
+        else setLoaded({ key, result: null });
       },
     );
     return () => {
       active = false;
     };
-  }, [api, group.id, page, size, lang, key]);
+  }, [api, group.id, page, size, lang, key, markNotFound]);
 
   const focusHeading = useRef(false);
   useEffect(() => {
@@ -67,8 +72,7 @@ export function MembersSection() {
   const loading = loaded?.key !== key;
   const showLoader = useDelayed(loading);
   const result = loaded?.result;
-  const cell =
-    'p-2 max-sm:flex max-sm:gap-2 max-sm:before:font-bold max-sm:before:content-[attr(data-label)]';
+  const cell = 'p-2 max-sm:flex max-sm:gap-2';
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-4">
@@ -110,14 +114,14 @@ export function MembersSection() {
           <tbody>
             {result.deletedOwner && page === 0 && (
               <tr className="border-b border-border max-sm:block max-sm:py-2">
-                <td data-label={t('members.table.member')} className={cell}>
+                <MemberCell label={t('members.table.member')} className={cell}>
                   <em className="text-muted-foreground">{t('members.table.deletedUser')}</em>
-                </td>
-                <td data-label={t('members.table.email')} className={cell} />
-                <td data-label={t('members.table.role')} className={cell}>
+                </MemberCell>
+                <MemberCell label={t('members.table.email')} className={cell} />
+                <MemberCell label={t('members.table.role')} className={cell}>
                   {t('roles.OWNER')}
-                </td>
-                <td data-label={t('members.table.actions')} className={cell} />
+                </MemberCell>
+                <MemberCell label={t('members.table.actions')} className={cell} />
               </tr>
             )}
             {result.items.map((member) => (

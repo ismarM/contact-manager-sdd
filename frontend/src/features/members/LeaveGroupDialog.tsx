@@ -51,7 +51,7 @@ export function LeaveGroupDialog() {
       setOpen(false);
       toast(t('members.toast.left', { group: group.title }));
       refresh();
-      void navigate('/', { state: { focusHeading: true } });
+      void navigate('/groups', { state: { focusHeading: true } });
     } catch (error) {
       const result = memberFailure(error, 'leave');
       setFailure(t(result.key));

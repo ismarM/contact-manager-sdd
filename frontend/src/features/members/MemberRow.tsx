@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
 import { useGroup } from '../groups/groupContext';
+import { MemberCell } from './MemberCell';
 import { MemberActionsMenu } from './MemberActionsMenu';
 import type { Member } from './types';
 
@@ -24,20 +25,20 @@ export function MemberRow({
   const name = member.name ?? member.email;
   return (
     <tr className="border-b border-border max-sm:block max-sm:py-2">
-      <td data-label={t('members.table.member')} className={`${cellClass} break-words`}>
+      <MemberCell label={t('members.table.member')} className={cellClass}>
         {member.self ? `${name} ${t('members.table.you')}` : name}
-      </td>
-      <td data-label={t('members.table.email')} className={`${cellClass} break-all`}>
+      </MemberCell>
+      <MemberCell label={t('members.table.email')} className={`${cellClass} break-all`}>
         {member.email}
-      </td>
-      <td data-label={t('members.table.role')} className={cellClass}>
+      </MemberCell>
+      <MemberCell label={t('members.table.role')} className={cellClass}>
         {t(`roles.${member.role}`)}
-      </td>
-      <td data-label={t('members.table.actions')} className={cellClass}>
+      </MemberCell>
+      <MemberCell label={t('members.table.actions')} className={cellClass}>
         {member.canManage && !group.archived && (
           <MemberActionsMenu member={member} onSucceeded={onSucceeded} onStale={onStale} />
         )}
-      </td>
+      </MemberCell>
     </tr>
   );
 }
