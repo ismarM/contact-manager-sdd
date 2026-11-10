@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import type { AuthFetch } from '../../shared/api/authFetch';
 import { useAuth } from '../auth/authContext';
+import { useListLanguage } from '../groups/api';
 import type { GroupDetail } from '../groups/types';
 import type { AssignableRole, Member, Members, MembersParams } from './types';
 
@@ -19,19 +20,35 @@ export interface MembersApi {
   transferOwnership(groupId: string, memberId: string): Promise<GroupDetail>;
 }
 
-const notImplemented = (): never => {
-  throw new Error('not implemented');
-};
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
-/** Ogrodje (007, T007): metode še niso izvedene; izvedejo jih naloge zgodb US1–US5. */
 export function createMembersApi(authFetch: AuthFetch): MembersApi {
-  void authFetch;
+  const base = (groupId: string) => `/groups/${encodeURIComponent(groupId)}`;
+  const member = (groupId: string, memberId: string) =>
+    `${base(groupId)}/members/${encodeURIComponent(memberId)}`;
   return {
-    list: notImplemented,
-    changeRole: notImplemented,
-    remove: notImplemented,
-    leave: notImplemented,
-    transferOwnership: notImplemented,
+    list: (groupId, { page, size, lang }) =>
+      authFetch<Members>(
+        `${base(groupId)}/members?${new URLSearchParams({
+          page: String(page),
+          size: String(size),
+          lang,
+        }).toString()}`,
+      ),
+    changeRole: (groupId, memberId, input) =>
+      authFetch<Member>(member(groupId, memberId), {
+        method: 'PUT',
+        headers: JSON_HEADERS,
+        body: JSON.stringify(input),
+      }),
+    remove: (groupId, memberId) => authFetch<void>(member(groupId, memberId), { method: 'DELETE' }),
+    leave: (groupId) => authFetch<void>(`${base(groupId)}/leave`, { method: 'POST' }),
+    transferOwnership: (groupId, memberId) =>
+      authFetch<GroupDetail>(`${base(groupId)}/ownership-transfer`, {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ memberId }),
+      }),
   };
 }
 
@@ -40,8 +57,25 @@ export function useMembersApi(): MembersApi {
   return useMemo(() => createMembersApi(authFetch), [authFetch]);
 }
 
-/** Število članov skupine iz `total` seznama (research R-08); `undefined`, dokler ni naloženo. Ogrodje. */
+/**
+ * Število članov skupine iz `total` seznama (research R-08, ne iz števila elementov); `undefined`, dokler ni naloženo
+ * (ali ob napaki).
+ */
 export function useMemberCount(groupId: string): number | undefined {
-  void groupId;
-  return undefined;
+  const api = useMembersApi();
+  const lang = useListLanguage();
+  const [result, setResult] = useState<{ groupId: string; total: number } | null>(null);
+  useEffect(() => {
+    let active = true;
+    api.list(groupId, { page: 0, size: 1, lang }).then(
+      (members) => {
+        if (active) setResult({ groupId, total: members.total });
+      },
+      () => undefined,
+    );
+    return () => {
+      active = false;
+    };
+  }, [api, groupId, lang]);
+  return result?.groupId === groupId ? result.total : undefined;
 }

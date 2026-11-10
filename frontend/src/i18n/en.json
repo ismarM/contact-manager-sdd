@@ -523,7 +523,7 @@
       "loading": "Loading…",
       "loadFailed": "Members could not be loaded. Please try again.",
       "retry": "Try again",
-      "pagination": "Members"
+      "pagination": "Result pages: Members"
     },
     "table": {
       "caption": "Members",

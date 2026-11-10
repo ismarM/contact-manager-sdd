@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
 import { InviteMemberSection } from '../invitations/InviteMemberSection';
 import { PendingInvitationsSection } from '../invitations/PendingInvitationsSection';
+import { MembersSection } from '../members/MembersSection';
 import { GroupDetailsSection } from './GroupDetailsSection';
 import { GroupManagementSection } from './GroupManagementSection';
 import { useGroup } from './groupContext';
@@ -25,6 +26,7 @@ export function SettingsPage() {
   return (
     <div className="mx-auto flex max-w-[70ch] flex-col gap-8 px-4 py-8">
       <GroupDetailsSection />
+      <MembersSection />
       {manages && !group.archived && <InviteMemberSection onSent={() => setSent((v) => v + 1)} />}
       {manages && <PendingInvitationsSection reloadToken={sent} />}
       <GroupManagementSection />
