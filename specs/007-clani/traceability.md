@@ -1,24 +1,22 @@
 # Sledljivost: Člani skupine (007)
 
-Vsak FR-ID → scenarij → testi (datoteka › ime testa) → stanje. Stanje po fazi Testi: testi so napisani in padejo zaradi manjkajočega vedenja
-(`501` iz ogrodja `MemberController`, prazne komponente, `not implemented`); izjeme so navedene v razdelku *Testi, ki že uspejo*.
-Stanje se posodobi po implementaciji (T045).
+Vsak FR-ID → scenarij → testi (datoteka › ime testa) → stanje. Stanje po implementaciji (T045, `./verify.sh full` zelen):
+vsi FR-007-01 … FR-007-12 imajo zelene BE, FE in E2E teste; testi 000–006 so zeleni. Razdelek *Testi, ki že uspejo* velja za fazo Testi.
 
 | FR-ID | Scenarij | Testi (BE › FE › E2E) | Stanje |
 |---|---|---|---|
-| FR-007-01 | Seznam članov po vlogi in imenu, »(ti)«, paginacija, arhivirana, trajno arhivirana | `MemberListIT`, `MemberIsolationMatrixSecurityIT` › `MembersSection.test` › `clani.spec` | pade (pričakovano) |
-| FR-007-02 | Meni dejanj samo ob strogo nižjih, lastnik/admin, nearhivirana | `MemberRulesTest`, `MemberListIT` (`canManage`) › `MembersSection.test` › `clani.spec` | pade (pričakovano) |
-| FR-007-03 | Sprememba vloge, »le nižjim od sebe«, dovoljene vloge, 400 | `MemberRoleChangeIT`, `MemberRoleMatrixSecurityIT`, `MemberRulesTest`, `MemberInputParserTest`, `MemberIsolationMatrixSecurityIT` › `ChangeRoleDialog.test` › `clani.spec` | pade (pričakovano) |
-| FR-007-04 | Optimistično zaklepanje, `VERSION_CONFLICT`, razrešitev | `MemberRoleChangeIT`, `MemberConcurrencyIT`, `MemberLockingIT`, `MemberMigrationIT` › `ChangeRoleDialog.test` › `clani.spec` | pade (pričakovano); `MemberMigrationIT` uspe (V7 je ogrodje) |
-| FR-007-05 | Odstranitev člana, izguba dostopa, 404 po odstranitvi | `MemberRemoveIT`, `MemberRoleMatrixSecurityIT`, `FormerMemberSecurityIT`, `MemberIsolationMatrixSecurityIT`, `MemberAuditIT` › `RemoveMemberDialog.test` › `clani.spec` | pade (pričakovano) |
-| FR-007-06 | Zapuščanje skupine, tudi arhivirane | `MemberLeaveIT`, `FormerMemberSecurityIT`, `MemberIsolationMatrixSecurityIT` › `LeaveGroup.test` › `clani.spec` | pade (pričakovano) |
-| FR-007-07 | Lastnik ne more zapustiti (`OWNER_CANNOT_LEAVE`) | `MemberLeaveIT`, `MemberIsolationMatrixSecurityIT` › `LeaveGroup.test` › `clani.spec` | pade (pričakovano) |
-| FR-007-08 | Zadnji član trajno arhivirane skupine (`LAST_MEMBER_CANNOT_LEAVE`), sočasnost | `MemberLeaveIT`, `MemberConcurrencyIT`, `MemberLockingIT` › `LeaveGroup.test` › `clani.spec` | pade (pričakovano) |
-| FR-007-09 | Prenos lastništva, atomarnost, `TARGET_NOT_MEMBER`, potrditev z naslovom | `OwnershipTransferIT`, `MemberConcurrencyIT`, `MemberLockingIT`, `MemberInputParserTest`, `MemberIsolationMatrixSecurityIT` › `TransferOwnership.test` › `clani.spec` | pade (pričakovano) |
-| FR-007-10 | Arhivirana skupina: `GROUP_ARCHIVED` za spremembo vloge, odstranitev, prenos; zapuščanje dovoljeno | `MemberRoleChangeIT`, `MemberRemoveIT`, `OwnershipTransferIT`, `MemberLeaveIT`, `MemberIsolationMatrixSecurityIT`, `MemberRoleMatrixSecurityIT` › `MembersSection.test`, `TransferOwnership.test` › `clani.spec` | pade (pričakovano) |
-| FR-007-11 | Sporočila uspeha in neuspeha brez tehničnih kod, sl/en | – › `MembersSection.test`, `ChangeRoleDialog.test`, `RemoveMemberDialog.test`, `LeaveGroup.test`, `TransferOwnership.test` › `clani.spec` | pade (pričakovano) |
-| FR-007-12 | Brez zapisov v revizijsko sled; imena bivših članov ostanejo | `MemberAuditIT`, `MemberRemoveIT`, `MemberLeaveIT` › – › `clani.spec` | pade (pričakovano); `MemberArchitectureTest` uspe (varovalo) |
-
+| FR-007-01 | Seznam članov po vlogi in imenu, »(ti)«, paginacija, arhivirana, trajno arhivirana | `MemberListIT`, `MemberIsolationMatrixSecurityIT` › `MembersSection.test` › `clani.spec` | zelen BE/FE/E2E |
+| FR-007-02 | Meni dejanj samo ob strogo nižjih, lastnik/admin, nearhivirana | `MemberRulesTest`, `MemberListIT` (`canManage`) › `MembersSection.test` › `clani.spec` | zelen BE/FE/E2E |
+| FR-007-03 | Sprememba vloge, »le nižjim od sebe«, dovoljene vloge, 400 | `MemberRoleChangeIT`, `MemberRoleMatrixSecurityIT`, `MemberRulesTest`, `MemberInputParserTest`, `MemberIsolationMatrixSecurityIT` › `ChangeRoleDialog.test` › `clani.spec` | zelen BE/FE/E2E |
+| FR-007-04 | Optimistično zaklepanje, `VERSION_CONFLICT`, razrešitev | `MemberRoleChangeIT`, `MemberConcurrencyIT`, `MemberLockingIT`, `MemberMigrationIT` › `ChangeRoleDialog.test` › `clani.spec` | zelen BE/FE/E2E |
+| FR-007-05 | Odstranitev člana, izguba dostopa, 404 po odstranitvi | `MemberRemoveIT`, `MemberRoleMatrixSecurityIT`, `FormerMemberSecurityIT`, `MemberIsolationMatrixSecurityIT`, `MemberAuditIT` › `RemoveMemberDialog.test` › `clani.spec` | zelen BE/FE/E2E |
+| FR-007-06 | Zapuščanje skupine, tudi arhivirane | `MemberLeaveIT`, `FormerMemberSecurityIT`, `MemberIsolationMatrixSecurityIT` › `LeaveGroup.test` › `clani.spec` | zelen BE/FE/E2E |
+| FR-007-07 | Lastnik ne more zapustiti (`OWNER_CANNOT_LEAVE`) | `MemberLeaveIT`, `MemberIsolationMatrixSecurityIT` › `LeaveGroup.test` › `clani.spec` | zelen BE/FE/E2E |
+| FR-007-08 | Zadnji član trajno arhivirane skupine (`LAST_MEMBER_CANNOT_LEAVE`), sočasnost | `MemberLeaveIT`, `MemberConcurrencyIT`, `MemberLockingIT` › `LeaveGroup.test` › `clani.spec` | zelen BE/FE/E2E |
+| FR-007-09 | Prenos lastništva, atomarnost, `TARGET_NOT_MEMBER`, potrditev z naslovom | `OwnershipTransferIT`, `MemberConcurrencyIT`, `MemberLockingIT`, `MemberInputParserTest`, `MemberIsolationMatrixSecurityIT` › `TransferOwnership.test` › `clani.spec` | zelen BE/FE/E2E |
+| FR-007-10 | Arhivirana skupina: `GROUP_ARCHIVED` za spremembo vloge, odstranitev, prenos; zapuščanje dovoljeno | `MemberRoleChangeIT`, `MemberRemoveIT`, `OwnershipTransferIT`, `MemberLeaveIT`, `MemberIsolationMatrixSecurityIT`, `MemberRoleMatrixSecurityIT` › `MembersSection.test`, `TransferOwnership.test` › `clani.spec` | zelen BE/FE/E2E |
+| FR-007-11 | Sporočila uspeha in neuspeha brez tehničnih kod, sl/en | – › `MembersSection.test`, `ChangeRoleDialog.test`, `RemoveMemberDialog.test`, `LeaveGroup.test`, `TransferOwnership.test` › `clani.spec` | zelen BE/FE/E2E |
+| FR-007-12 | Brez zapisov v revizijsko sled; imena bivših članov ostanejo | `MemberAuditIT`, `MemberRemoveIT`, `MemberLeaveIT` › – › `clani.spec` | zelen BE/FE/E2E |
 Merljiva merila: SC-001 – `FormerMemberSecurityIT`; SC-002 – `MemberConcurrencyIT`, `MemberLockingIT`; SC-003 – `MemberConcurrencyIT`,
 `MemberLockingIT`, `OwnershipTransferIT`; SC-004 – `clani.spec` (sprememba vloge v štirih dejanjih); SC-005 – `MemberRulesTest`,
 `MemberRoleMatrixSecurityIT` (ročne dobesedne tabele 64/32/4 in 128/32); SC-006 – axe v vseh FE testih in E2E v sl in en pri 360/768/1280 px (in 320 px).

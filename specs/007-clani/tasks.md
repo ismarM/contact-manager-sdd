@@ -172,8 +172,8 @@ US4 zapuščanje (FR-007-06, 07, 08) · US5 prenos lastništva (FR-007-09) · US
 
 ## Phase 11: Polish & Cross-Cutting Concerns
 
-- [ ] T045 FR-007-01 … FR-007-12 specs/007-clani/traceability.md: ustvarjen v T029/T030 z razdelkom *Pregled testov*; tu se samo dopolni stanje po implementaciji (vsak FR-ID → testi → stanje: zelen BE/FE/E2E), razdelek *Pregled testov* se ne podvaja; brez AI dnevnikov in poročil o žetonih; CLAUDE.md/README le, če se je spremenilo kaj splošnega
-- [ ] T046 `./verify.sh quick`, nato `./verify.sh full` zeleno (vključno s testi 000–006: izolacija, arhiviranje, povabila, revizijska sled, E2E)
+- [X] T045 FR-007-01 … FR-007-12 specs/007-clani/traceability.md: ustvarjen v T029/T030 z razdelkom *Pregled testov*; tu se samo dopolni stanje po implementaciji (vsak FR-ID → testi → stanje: zelen BE/FE/E2E), razdelek *Pregled testov* se ne podvaja; brez AI dnevnikov in poročil o žetonih; CLAUDE.md/README le, če se je spremenilo kaj splošnega
+- [X] T046 `./verify.sh quick`, nato `./verify.sh full` zeleno (vključno s testi 000–006: izolacija, arhiviranje, povabila, revizijska sled, E2E)
 - [ ] T047 `/speckit-converge` do »Converged«; nato commit(i) implementacije ločeno od `test(007)`; **brez** `git push` in merge dokler razvijalca ne odločita; opis PR (ko bo odprt): sprejete predpostavke, izid pregleda testov, commit `test(007)`, V7 in D-58
 - [ ] T048 Razvijalca: pregled PR in ročni preizkus s tipkovnico in bralnikom zaslona (design.md §10, quickstart.md scenarij 12); združitev (agent pusti neodkljukano)
 
