@@ -307,6 +307,53 @@
       "toInitial": "Restored to the initial state",
       "openEntry": "Open the restore entry",
       "by": "Restored by: {{name}}"
+    },
+    "search": {
+      "region": "Search and filters",
+      "label": "Search contacts",
+      "count_one": "{{count}} contact found",
+      "count_two": "{{count}} contacts found",
+      "count_few": "{{count}} contacts found",
+      "count_other": "{{count}} contacts found",
+      "empty": "No contacts match the filters.",
+      "clear": "Clear filters",
+      "invalid": "The filters are not valid.",
+      "loadFailed": "Contacts could not be loaded. Please try again.",
+      "retry": "Try again"
+    },
+    "filters": {
+      "button": "Filters",
+      "buttonCount": "Filters ({{count}})",
+      "panel": "Contact filters",
+      "attribute": "Attribute {{n}}",
+      "value": "Value {{n}}",
+      "removeCondition": "Remove condition {{n}}",
+      "addCondition": "Add condition",
+      "tooManyConditions": "You can add at most 10 conditions.",
+      "tags": "Tags",
+      "findTag": "Find tag",
+      "tagsShown": "Tags: showing {{shown}} of {{total}}",
+      "tagsNarrow": "Type to narrow the list.",
+      "noTags": "This group has no tags.",
+      "optionsFailed": "Filters could not be loaded. Please try again.",
+      "apply": "Apply filters",
+      "clear": "Clear filters",
+      "applied": "Applied filters",
+      "remove": "Remove filter {{label}}",
+      "conditionLabel": "{{field}} contains {{value}}",
+      "tagLabel": "Tag: {{tag}}",
+      "fields": {
+        "firstName": "First name",
+        "lastName": "Last name",
+        "address": "Address",
+        "email": "Email",
+        "phone": "Phone"
+      }
+    },
+    "sort": {
+      "label": "Sort by",
+      "directionAsc": "Sort direction: ascending",
+      "directionDesc": "Sort direction: descending"
     }
   },
   "audit": {

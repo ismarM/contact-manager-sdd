@@ -117,6 +117,8 @@ export function mockContactsApi(
     update?: Handler<[string, unknown, string]>;
     remove?: Handler<[string, URL, string]>;
     tags?: Handler<[URL, string]>;
+    /** Možnosti filtrov (008); privzeto prazne. */
+    filters?: Handler<[string]>;
   } = {},
 ) {
   const requests: RecordedContactRequest[] = [];
@@ -193,6 +195,11 @@ export function mockContactsApi(
       const group = String(params.groupId);
       return respond(handlers.remove ? await handlers.remove(id, url, group) : { status: 204 });
     }),
+    http.get('/api/groups/:groupId/contact-filters', async ({ request, params }) => {
+      await record(request);
+      const group = String(params.groupId);
+      return respond(handlers.filters ? await handlers.filters(group) : filterOptionsReply([], []));
+    }),
     http.get('/api/groups/:groupId/tags', async ({ request, params }) => {
       await record(request);
       const url = new URL(request.url);
@@ -243,3 +250,75 @@ export function renderContactsApp(path: string, options: ContactsAppOptions = {}
 }
 
 export { GROUP_ID };
+
+// --- 008: iskanje, filtri, razvrščanje -----------------------------------------------------------------------------
+
+/** Parametri zahtevka seznama, kot jih je poslal vmesnik (nespremenjeni nizi; ponovljivi `f` in `tag` kot seznama). */
+export interface RecordedQuery {
+  q: string | null;
+  f: string[];
+  tag: string[];
+  sort: string | null;
+  dir: string | null;
+  page: string | null;
+  size: string | null;
+}
+
+export function recordedQuery(search: URLSearchParams): RecordedQuery {
+  return {
+    q: search.get('q'),
+    f: search.getAll('f'),
+    tag: search.getAll('tag'),
+    sort: search.get('sort'),
+    dir: search.get('dir'),
+    page: search.get('page'),
+    size: search.get('size'),
+  };
+}
+
+/** Zahtevki seznama kontaktov (brez posameznih kontaktov) po vrstnem redu. */
+export function listQueries(
+  api: ReturnType<typeof mockContactsApi>,
+  group = GROUP_ID,
+): RecordedQuery[] {
+  return api
+    .of('GET', `/api/groups/${group}/contacts`)
+    .map((request) => recordedQuery(request.search));
+}
+
+/** Odgovor seznama z dano vsebino in skupnim številom, ne glede na poizvedbo (zadetke podaja test, ne MSW). */
+export function resultsReply(items: ContactSummary[], total = items.length) {
+  return (url: URL): Reply => {
+    const body: ContactPage = {
+      total,
+      page: Number(url.searchParams.get('page') ?? 0),
+      size: Number(url.searchParams.get('size') ?? 25),
+      items,
+    };
+    return { status: 200, body: body as unknown as JsonBodyType };
+  };
+}
+
+/** Odgovor `contact-filters` (contracts/openapi.yaml – ContactFilterOptions). */
+export function filterOptionsReply(keys: string[], tags: string[]): Reply {
+  return { status: 200, body: { keys, tags } };
+}
+
+/** `400 VALIDATION_FAILED` z napakami po poljih. */
+export function validationFailedReply(...errors: { field: string; code: string }[]): Reply {
+  return { status: 400, body: { code: 'VALIDATION_FAILED', errors } };
+}
+
+/** Obljuba, ki jo test razreši ročno (zakasnjen odgovor za preizkus zastarelih odgovorov). */
+export function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
+/** `count` značk »znacka0001« … za preizkus velikih seznamov. */
+export function manyTags(count: number): string[] {
+  return Array.from({ length: count }, (_, i) => `znacka${String(i + 1).padStart(4, '0')}`);
+}

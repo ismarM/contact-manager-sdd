@@ -3,7 +3,13 @@ import { useMemo } from 'react';
 import type { AuthFetch } from '../../shared/api/authFetch';
 import { ApiError } from '../../shared/api/client';
 import { useAuth } from '../auth/authContext';
-import type { ContactDetail, ContactInput, ContactPage, TagSuggestions } from './types';
+import type {
+  ContactDetail,
+  ContactFilterOptions,
+  ContactInput,
+  ContactPage,
+  TagSuggestions,
+} from './types';
 
 // Odjemalec API kontaktov (plan.md – REST endpoints, contracts/openapi.yaml).
 
@@ -44,6 +50,11 @@ export function createContactsApi(authFetch: AuthFetch) {
       return authFetch<void>(`${contact(groupId, contactId)}?${query.toString()}`, {
         method: 'DELETE',
       });
+    },
+    contactFilters(groupId: string, signal?: AbortSignal): Promise<ContactFilterOptions> {
+      void groupId;
+      void signal;
+      return Promise.reject(new Error('not implemented'));
     },
     suggestTags(groupId: string, query: string, signal?: AbortSignal): Promise<TagSuggestions> {
       const params = new URLSearchParams({ q: query });

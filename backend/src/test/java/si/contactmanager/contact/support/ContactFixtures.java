@@ -79,6 +79,65 @@ public final class ContactFixtures {
         return jdbc.queryForList("select id from contact where group_id = ? order by sort_last, id", UUID.class, group);
     }
 
+    /** Dodatni atributi in značke za več kontaktov naenkrat; vrstni red parametrov = vrstni red vnosa. */
+    public void addTags(UUID contact, String... tags) {
+        for (int i = 0; i < tags.length; i++) {
+            addTag(contact, i, tags[i]);
+        }
+    }
+
+    /**
+     * {@code count} kontaktov iz <b>deterministične</b> porazdelitve (brez {@code random()}) za meritev SC-001 in
+     * paginacije: 10 imen, 17 priimkov s šumniki, e-naslovi na 3 domenah (vsak tretji na {@code feri.si}), telefon
+     * »041 NNNNNN«; vsak tretji ima atribut {@code kompetenca = web dev N}, vsak drugi značko {@code vip}, vsak peti
+     * {@code konferenca2025}. Enak čas ustvarjanja (vrstni red pri enakih ključih določa id).
+     */
+    public void insertDistribution(UUID group, long userId, int count) {
+        jdbc.update(
+                "insert into contact (group_id, first_name, last_name, email, phone, sort_first, sort_last, updated_by)"
+                        + " select ?, f, l, 'u' || n || '@' || d, '041 ' || lpad(n::text, 6, '0'), lower(f), lower(l), ?"
+                        + " from (select n,"
+                        + " (array['Ana','Bojan','Cene','Dana','Eva','Fani','Gaja','Hana','Ivan','Jure'])[1 + n % 10] f,"
+                        + " (array['Novak','Čeh','Žagar','Šuligoj','Zupančič','Kralj','Cene','Horvat','Kovač','Krajnc',"
+                        + "'Zupan','Potočnik','Mlakar','Vidmar','Golob','Turk','Božič'])[1 + n % 17] l,"
+                        + " (array['feri.si','primer.si','test.si'])[1 + n % 3] d"
+                        + " from generate_series(1, ?) n) s",
+                group, userId, count);
+        jdbc.update(
+                "insert into contact_attribute (contact_id, position, key, key_norm, value)"
+                        + " select c.id, 0, 'kompetenca', 'kompetenca', 'web dev ' || substr(c.phone, 5)"
+                        + " from contact c where c.group_id = ? and right(c.phone, 6)::int % 3 = 0",
+                group);
+        jdbc.update(
+                "insert into contact_tag (contact_id, position, tag, tag_norm)"
+                        + " select c.id, 0, 'vip', 'vip' from contact c"
+                        + " where c.group_id = ? and right(c.phone, 6)::int % 2 = 0",
+                group);
+        jdbc.update(
+                "insert into contact_tag (contact_id, position, tag, tag_norm)"
+                        + " select c.id, (select count(*) from contact_tag t where t.contact_id = c.id),"
+                        + " 'konferenca2025', 'konferenca2025' from contact c"
+                        + " where c.group_id = ? and right(c.phone, 6)::int % 5 = 0",
+                group);
+    }
+
+    /** Skupina z {@code count} različnimi značkami (»znacka0001« …) na prvem kontaktu skupine (največ 30 na kontakt). */
+    public void insertManyDistinctTags(UUID group, long userId, int count) {
+        jdbc.update(
+                "insert into contact (group_id, first_name, last_name, sort_first, sort_last, updated_by)"
+                        + " select ?, 'Ime', 'Priimek ' || lpad(n::text, 5, '0'), 'ime',"
+                        + " 'priimek ' || lpad(n::text, 5, '0'), ? from generate_series(1, ?) n",
+                group,
+                userId,
+                (count + 29) / 30);
+        List<UUID> ids =
+                jdbc.queryForList("select id from contact where group_id = ? order by sort_last", UUID.class, group);
+        for (int i = 0; i < count; i++) {
+            String tag = "znacka" + String.format("%04d", i);
+            addTag(ids.get(i / 30), i % 30, tag);
+        }
+    }
+
     public boolean exists(UUID contact) {
         Integer count = jdbc.queryForObject("select count(*) from contact where id = ?", Integer.class, contact);
         return count != null && count > 0;

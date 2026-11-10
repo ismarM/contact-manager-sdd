@@ -110,7 +110,7 @@ class ContactReadIT extends ContactApiTest {
 
     @Test
     @Tag("FR-004-06")
-    void orderIsByCodePointsIgnoringCaseWithEmptyLastNamesAtTheEndAndStableTies() throws Exception {
+    void orderIsSloveneAlphabeticalIgnoringCaseWithEmptyLastNamesAtTheEndAndStableTies() throws Exception {
         Scenario s = scenario();
         long owner = s.id(Who.OWNER);
         contacts.insert(s.group(), owner, "Ana", "Zupan");
@@ -129,11 +129,11 @@ class ContactReadIT extends ContactApiTest {
                 .containsExactly(
                         "Cene abc",
                         "Dana Bcd",
+                        "Bojan Čeh",
                         "Marko Kralj",
                         "Marko Kralj",
                         "Ana Zupan",
                         "Zupan",
-                        "Bojan Čeh",
                         "Eva",
                         "Fani");
         List<String> kralj = items(response.body()).stream()
@@ -145,7 +145,7 @@ class ContactReadIT extends ContactApiTest {
 
     @Test
     @Tag("FR-004-06")
-    void contactsCreatedAndEditedThroughTheApiAreSortedByCodePointsIgnoringCase() throws Exception {
+    void contactsCreatedAndEditedThroughTheApiAreSortedSloveneAlphabeticallyIgnoringCase() throws Exception {
         Scenario s = scenario();
         for (Map<String, Object> input : List.of(
                 input("Ana", "ZUPAN"),
@@ -161,7 +161,7 @@ class ContactReadIT extends ContactApiTest {
 
         assertThat(names(get(contactsPath(s.group()), s.token(Who.VIEWER)).body()))
                 .containsExactly(
-                        "cene abc", "Dana Bcd", "ana Kralj", "Marko kralj", "Ana ZUPAN", "Bojan Čeh", "eva", "Fani");
+                        "cene abc", "Dana Bcd", "Bojan Čeh", "ana Kralj", "Marko kralj", "Ana ZUPAN", "eva", "Fani");
 
         // Sprememba priimka prek PUT premakne kontakt na novo mesto (ključ razvrščanja se posodobi).
         Map<String, Object> dana = items(
@@ -191,7 +191,7 @@ class ContactReadIT extends ContactApiTest {
 
         assertThat(names(get(contactsPath(s.group()), s.token(Who.VIEWER)).body()))
                 .containsExactly(
-                        "ana Kralj", "Marko kralj", "Ana ZUPAN", "Dana zzz", "Bojan Čeh", "cene", "eva", "Fani");
+                        "Bojan Čeh", "ana Kralj", "Marko kralj", "Ana ZUPAN", "Dana zzz", "cene", "eva", "Fani");
     }
 
     @Test

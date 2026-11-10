@@ -112,6 +112,13 @@ class ContactController {
         return ResponseEntity.noContent().build();
     }
 
+    /** Možnosti filtrov skupine (FR-008-06): dodatni ključi in značke; ogrodje 008 vrne 501. */
+    @GetMapping("/contact-filters")
+    ResponseEntity<ContactFilterOptions> filterOptions(@AuthenticationPrincipal Jwt jwt, @PathVariable String groupId) {
+        access.require(jwt, groupId, Role.VIEWER, false);
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    }
+
     /** Predlogi značk skupine (FR-004-04): urednik ali višje, tudi v arhivirani skupini (samo branje). */
     @GetMapping("/tags")
     TagSuggestions tags(

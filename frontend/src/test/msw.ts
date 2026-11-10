@@ -42,6 +42,8 @@ export const server = setupServer(
       ],
     });
   }),
+  // Od 008 seznam kontaktov ob odprtju panela filtrov naloži možnosti filtrov (`GET …/contact-filters`); privzeto prazne.
+  http.get('/api/groups/:groupId/contact-filters', () => HttpResponse.json({ keys: [], tags: [] })),
   http.get('/api/groups/:groupId/contacts', ({ request }) => {
     const url = new URL(request.url);
     return HttpResponse.json({
