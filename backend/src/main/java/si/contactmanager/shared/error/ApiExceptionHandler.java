@@ -75,6 +75,21 @@ class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("INVITATION_ALREADY_PENDING"));
     }
 
+    @ExceptionHandler(OwnerCannotLeaveException.class)
+    ResponseEntity<ErrorResponse> ownerCannotLeave() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("OWNER_CANNOT_LEAVE"));
+    }
+
+    @ExceptionHandler(LastMemberCannotLeaveException.class)
+    ResponseEntity<ErrorResponse> lastMemberCannotLeave() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("LAST_MEMBER_CANNOT_LEAVE"));
+    }
+
+    @ExceptionHandler(TargetNotMemberException.class)
+    ResponseEntity<ErrorResponse> targetNotMember() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("TARGET_NOT_MEMBER"));
+    }
+
     /** Optimistično zaklepanje (feature-map §2.3): trenutno stanje za razrešitev v vmesniku. */
     @ExceptionHandler(VersionConflictException.class)
     ResponseEntity<VersionConflict> versionConflict(VersionConflictException exception) {
