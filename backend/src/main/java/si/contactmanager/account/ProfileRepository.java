@@ -2,6 +2,7 @@ package si.contactmanager.account;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -50,7 +51,20 @@ class ProfileRepository {
         return execute(SAVE_PREFERENCES, identity, preferences);
     }
 
+    /**
+     * Sočasni prvi prijavi istega uporabnika: drugi vstavek lahko trči ob unikatni indeks e-naslova, še preden vidi
+     * vrstico prvega ({@code ON CONFLICT} velja samo za {@code firebase_uid}); ponovni poskus vidi potrjeno vrstico in
+     * jo posodobi (FR-001-02, 007 ga je razkril pod obremenitvijo).
+     */
     private Result execute(String sql, Identity identity, Preferences preferences) {
+        try {
+            return executeOnce(sql, identity, preferences);
+        } catch (DuplicateKeyException e) {
+            return executeOnce(sql, identity, preferences);
+        }
+    }
+
+    private Result executeOnce(String sql, Identity identity, Preferences preferences) {
         return jdbc.sql(sql)
                 .param("uid", identity.uid())
                 .param("name", identity.name())

@@ -516,5 +516,91 @@
       "declined": "Invitation declined.",
       "withdrawn": "Invitation withdrawn."
     }
+  },
+  "members": {
+    "section": {
+      "heading": "Members",
+      "loading": "Loading…",
+      "loadFailed": "Members could not be loaded. Please try again.",
+      "retry": "Try again",
+      "pagination": "Result pages: Members"
+    },
+    "table": {
+      "caption": "Members",
+      "member": "Member",
+      "email": "Email",
+      "role": "Role",
+      "actions": "Actions",
+      "you": "(you)",
+      "deletedUser": "deleted user"
+    },
+    "menu": {
+      "trigger": "Actions for member {{name}}",
+      "changeRole": "Change role",
+      "remove": "Remove from group"
+    },
+    "changeRole": {
+      "title": "Change the role of {{name}}?",
+      "role": "Role",
+      "cancel": "Cancel",
+      "confirm": "Change role",
+      "unchanged": "Choose a different role.",
+      "conflict": "The member's role was changed in the meantime by {{name}} at {{time}}.",
+      "useCurrent": "Use current version",
+      "saveMine": "Save my changes",
+      "deletedUser": "a deleted user"
+    },
+    "remove": {
+      "title": "Remove {{name}} from {{group}}?",
+      "body": "{{name}} will no longer have access to the group's contacts.",
+      "cancel": "Cancel",
+      "confirm": "Remove member"
+    },
+    "leave": {
+      "button": "Leave group",
+      "title": "Leave {{group}}?",
+      "body": "You will no longer have access to the group's contacts until you are invited again.",
+      "cancel": "Cancel",
+      "confirm": "Leave group",
+      "ownerInfo": "As the owner you can leave the group only after transferring ownership to another member.",
+      "lastMemberInfo": "As the last member you cannot leave the group, you can only delete it."
+    },
+    "transfer": {
+      "button": "Transfer ownership",
+      "info": "You can transfer ownership once the group has at least one more member.",
+      "title": "Transfer ownership of {{group}}?",
+      "newOwner": "New owner",
+      "choose": "Choose a member",
+      "option": "{{name}} ({{role}})",
+      "consequence": "{{name}} will become the owner and you will become an admin.",
+      "titleField": "Type the group title to confirm",
+      "cancel": "Cancel",
+      "confirm": "Transfer ownership",
+      "errors": {
+        "memberRequired": "Choose a member.",
+        "titleMismatch": "The title you typed does not match the group title."
+      }
+    },
+    "errors": {
+      "forbidden": "You no longer have permission for this action.",
+      "cannotManage": "You can no longer manage this member.",
+      "memberGone": "This member is no longer in the group.",
+      "archived": "The group is archived, members cannot be changed now.",
+      "transferArchived": "The group is archived, ownership cannot be transferred now.",
+      "ownerCannotLeave": "As the owner you cannot leave the group. Transfer ownership first.",
+      "lastMemberCannotLeave": "As the last member you cannot leave the group, you can only delete it.",
+      "targetNotMember": "The selected user is no longer a member of the group.",
+      "changeFailed": "The member's role could not be changed. Please try again.",
+      "removeFailed": "The member could not be removed. Please try again.",
+      "leaveFailed": "The group could not be left. Please try again.",
+      "transferFailed": "Ownership could not be transferred. Please try again.",
+      "offline": "You're offline. Check your connection and try again."
+    },
+    "toast": {
+      "roleChanged": "{{name}}'s role was changed to {{role}}.",
+      "removed": "{{name}} was removed from the group.",
+      "left": "You left {{group}}.",
+      "transferred": "Ownership was transferred to {{name}}."
+    }
   }
 }

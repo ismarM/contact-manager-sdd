@@ -1,7 +1,7 @@
 import { IconAlertTriangle } from '@tabler/icons-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
 import { errorAlert, focusRing, secondaryButton } from '../../shared/ui/styles';
@@ -26,6 +26,13 @@ export function GroupsPage() {
   const api = useGroupsApi();
   const lang = useListLanguage();
   const [tick, setTick] = useState(0);
+  // Po zapustitvi skupine (007) fokus prevzame naslov strani (state `focusHeading` iz preusmeritve).
+  const location = useLocation();
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if ((location.state as { focusHeading?: boolean } | null)?.focusHeading)
+      heading.current?.focus();
+  }, [location.state]);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const key = `${lang}:${tick}`;
   useDocumentTitle(t('title.groups'));
@@ -53,7 +60,9 @@ export function GroupsPage() {
   return (
     <div className="mx-auto flex max-w-[80ch] flex-col gap-6 px-4 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">{t('groups.heading')}</h1>
+        <h1 ref={heading} tabIndex={-1} className="text-2xl font-bold outline-none">
+          {t('groups.heading')}
+        </h1>
         {sections && sections.length > 0 && <NewGroupDialog />}
       </div>
       <p>

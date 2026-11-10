@@ -516,5 +516,91 @@
       "declined": "Povabilo je zavrnjeno.",
       "withdrawn": "Povabilo je umaknjeno."
     }
+  },
+  "members": {
+    "section": {
+      "heading": "Člani",
+      "loading": "Nalagam…",
+      "loadFailed": "Članov ni bilo mogoče naložiti. Poskusi znova.",
+      "retry": "Poskusi znova",
+      "pagination": "Strani rezultatov: Člani"
+    },
+    "table": {
+      "caption": "Člani",
+      "member": "Član",
+      "email": "E-naslov",
+      "role": "Vloga",
+      "actions": "Dejanja",
+      "you": "(ti)",
+      "deletedUser": "izbrisan uporabnik"
+    },
+    "menu": {
+      "trigger": "Dejanja za člana {{name}}",
+      "changeRole": "Spremeni vlogo",
+      "remove": "Odstrani iz skupine"
+    },
+    "changeRole": {
+      "title": "Spremenim vlogo člana {{name}}?",
+      "role": "Vloga",
+      "cancel": "Prekliči",
+      "confirm": "Spremeni vlogo",
+      "unchanged": "Izberi drugo vlogo.",
+      "conflict": "Vlogo člana je medtem spremenil(a) {{name}} ob {{time}}.",
+      "useCurrent": "Uporabi trenutno različico",
+      "saveMine": "Shrani moje spremembe",
+      "deletedUser": "izbrisan uporabnik"
+    },
+    "remove": {
+      "title": "Odstranim {{name}} iz skupine {{group}}?",
+      "body": "{{name}} ne bo več imel(a) dostopa do kontaktov skupine.",
+      "cancel": "Prekliči",
+      "confirm": "Odstrani člana"
+    },
+    "leave": {
+      "button": "Zapusti skupino",
+      "title": "Zapustim skupino {{group}}?",
+      "body": "Do kontaktov skupine ne boš imel(a) več dostopa, dokler te znova ne povabijo.",
+      "cancel": "Prekliči",
+      "confirm": "Zapusti skupino",
+      "ownerInfo": "Kot lastnik lahko skupino zapustiš šele, ko preneseš lastništvo na drugega člana.",
+      "lastMemberInfo": "Kot zadnji član skupine je ne moreš zapustiti, lahko jo le izbrišeš."
+    },
+    "transfer": {
+      "button": "Prenesi lastništvo",
+      "info": "Lastništvo lahko preneseš, ko ima skupina še vsaj enega člana.",
+      "title": "Prenesem lastništvo skupine {{group}}?",
+      "newOwner": "Novi lastnik",
+      "choose": "Izberi člana",
+      "option": "{{name}} ({{role}})",
+      "consequence": "{{name}} bo postal(a) lastnik, ti pa boš admin.",
+      "titleField": "Za potrditev vpiši naslov skupine",
+      "cancel": "Prekliči",
+      "confirm": "Prenesi lastništvo",
+      "errors": {
+        "memberRequired": "Izberi člana.",
+        "titleMismatch": "Vpisani naslov se ne ujema z naslovom skupine."
+      }
+    },
+    "errors": {
+      "forbidden": "Za to dejanje nimaš več pravic.",
+      "cannotManage": "Tega člana ne moreš več upravljati.",
+      "memberGone": "Člana ni več v skupini.",
+      "archived": "Skupina je arhivirana, članov zdaj ni mogoče spreminjati.",
+      "transferArchived": "Skupina je arhivirana, lastništva zdaj ni mogoče prenesti.",
+      "ownerCannotLeave": "Kot lastnik skupine ne moreš zapustiti. Najprej prenesi lastništvo.",
+      "lastMemberCannotLeave": "Kot zadnji član skupine je ne moreš zapustiti, lahko jo le izbrišeš.",
+      "targetNotMember": "Izbrani uporabnik ni več član skupine.",
+      "changeFailed": "Vloge člana ni bilo mogoče spremeniti. Poskusi znova.",
+      "removeFailed": "Člana ni bilo mogoče odstraniti. Poskusi znova.",
+      "leaveFailed": "Skupine ni bilo mogoče zapustiti. Poskusi znova.",
+      "transferFailed": "Lastništva ni bilo mogoče prenesti. Poskusi znova.",
+      "offline": "Ni povezave. Preveri povezavo in poskusi znova."
+    },
+    "toast": {
+      "roleChanged": "Vloga člana {{name}} je spremenjena v {{role}}.",
+      "removed": "{{name}} je odstranjen(a) iz skupine.",
+      "left": "Zapustil(a) si skupino {{group}}.",
+      "transferred": "Lastništvo je preneseno na {{name}}."
+    }
   }
 }
