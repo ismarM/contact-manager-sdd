@@ -72,10 +72,24 @@ class GroupService {
         return read(membership);
     }
 
+    /**
+     * Vloga klicatelja se pod zaklepom skupine prebere znova (007, R-03): sočasni prenos lastništva lahko prejšnjemu
+     * lastniku vzame vlogo, med tem ko je zahtevek čakal na zaklep.
+     */
+    private void requireOwnerUnderLock(Membership membership) {
+        Role current = groups.memberState(membership.groupId(), membership.userId())
+                .orElseThrow(NotFoundException::new)
+                .role();
+        if (!current.atLeast(Role.OWNER)) {
+            throw new ForbiddenException();
+        }
+    }
+
     /** Arhiviranje (FR-003-01): pod zaklepom vrstice, drugi sočasni zahtevek vidi arhivirano skupino (R-03). */
     @Transactional
     GroupDetail archive(Membership membership) {
         LockState state = groups.lockState(membership.groupId()).orElseThrow(NotFoundException::new);
+        requireOwnerUnderLock(membership);
         if (state.archived()) {
             throw new GroupArchivedException();
         }
@@ -87,6 +101,7 @@ class GroupService {
     @Transactional
     GroupDetail unarchive(Membership membership) {
         LockState state = groups.lockState(membership.groupId()).orElseThrow(NotFoundException::new);
+        requireOwnerUnderLock(membership);
         if (!state.archived()) {
             throw new GroupNotArchivedException();
         }
