@@ -22,12 +22,12 @@ Nepremenljiv objekt, ki ga razčleni `ContactQueryParser` (R-06) in uporabijo `C
 | `words` | seznam besed | iz `q`: obrez, zaporedni presledki → eden, razdelitev na besede; prazen seznam = brez iskanja; `q` do 200 znakov | FR-008-01, FR-008-02, FR-008-14 |
 | `conditions` | seznam `Condition(field, value)` | največ 10; `field` = predefinirano polje ali dodatni ključ (obstaja v skupini); `value` 1–500 znakov po obrezu; primerjava »vsebuje« | FR-008-03, FR-008-14 |
 | `tags` | seznam normaliziranih značk | največ 30 različnih; 1–50 znakov; vse morajo biti pri kontaktu | FR-008-04, FR-008-14 |
-| `sort` | `SortField` | `LAST_NAME` (privzeto), `FIRST_NAME`, `ADDRESS`, `EMAIL`, `PHONE`, `ATTRIBUTE(keyNorm)` | FR-008-07 |
+| `sort` | `Field` | `Field(Kind, keyNorm)`: `Kind` ∈ `LAST_NAME` (privzeto), `FIRST_NAME`, `ADDRESS`, `EMAIL`, `PHONE`, `ATTRIBUTE` (`keyNorm` samo pri `ATTRIBUTE`) | FR-008-07 |
 | `direction` | `ASC` (privzeto), `DESC` | | FR-008-07 |
 | `page` | celo število ≥ 0 | API 0-osno, URL 1-osno | FR-008-08 |
 | `size` | 25, 50, 100 (privzeto 25) | | FR-008-08 |
 
-`Condition.field`: `FIRST_NAME`, `LAST_NAME`, `ADDRESS`, `EMAIL`, `PHONE` ali `ATTRIBUTE(keyNorm)`; `keyNorm` = `ContactInputParser.normalize(key)`.
+`Condition.field` je isti tip `Field` (`Kind` + `keyNorm`); `keyNorm` = `ContactInputParser.normalize(key)`.
 
 ## Preslikava v SQL (zaprta, brez vnosa v besedilu SQL – R-13)
 

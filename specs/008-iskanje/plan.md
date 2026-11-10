@@ -116,7 +116,7 @@ Dodatek k elementom seznama iz 004 (plan 004 – *Seznam kontaktov*). Imena 004 
 
 - Opis oznake pogoja: »‹polje› vsebuje ‹vrednost›« / "‹field› contains ‹value›"; imena predefiniranih polj kot v 004. Število v *Filtri (N)* = pogoji + značke (iskalni niz ni filter).
 - Paginacija (`nav` »Strani rezultatov« …) je nespremenjena iz 004.
-- Gumb *Počisti filtre* je lahko hkrati na več mestih (panel, oznake, prazno stanje, napaka); testi uporabijo `within(group »Filtri kontaktov«)`, `within(search »Iskanje in filtri«)` oziroma `within(main)`. Na strani so trije `status`: nalaganje, število zadetkov (v območju »Iskanje in filtri«) in paginacija (v `nav`); testi vedno uporabijo `within(…)`.
+- Gumb *Počisti filtre* je lahko hkrati na več mestih (panel, oznake, prazno stanje, napaka); testi uporabijo `within(group »Filtri kontaktov«)`, `within(search »Iskanje in filtri«)` oziroma `within(main)`. Gumb v praznem stanju oziroma opozorilu je v DOM zadnji v `main` (sledi območju »Iskanje in filtri«): testi ga izberejo z `getAllByRole(…).at(-1)` (Playwright `.last()`); gumb ob oznakah je prvi. Na strani so trije `status`: nalaganje, število zadetkov (v območju »Iskanje in filtri«) in paginacija (v `nav`); testi vedno uporabijo `within(…)`.
 - Po odstranitvi zadnje oznake filtra fokus preide na gumb *Filtri* v območju »Iskanje in filtri« (FR-008-11).
 
 ### Pokritost zahtev po ravneh testov

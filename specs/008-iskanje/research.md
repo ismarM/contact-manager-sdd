@@ -72,7 +72,7 @@ Odločitve faze Plan za 008. Povzetek je v D-64 (`DECISIONS.md`); razvrščanje 
   | `f` | `TOO_MANY` | več kot 10 pogojev |
   | `tag[i]` | `REQUIRED` / `TOO_LONG` | prazna značka / več kot 50 znakov |
   | `tag` | `TOO_MANY` | več kot 30 različnih značk |
-  | `sort` | `UNKNOWN_FIELD` | neznano polje ali ključ, ki ne obstaja v skupini |
+  | `sort` | `UNKNOWN_FIELD` | neznano ali prazno polje ali ključ, ki ne obstaja v skupini |
   | `dir` | `INVALID_VALUE` | ni `asc` ali `desc` |
   | `page`, `size` | `INVALID_VALUE` | kot 004 (D-43): ni celo število ≥ 0, `size` ni 25, 50, 100; prazna vrednost je napaka |
 
@@ -107,7 +107,7 @@ Isti parametri v API in v naslovu strani (razen `page`, glej R-06):
 
 - **Odločitev**: nov endpoint, VIEWER, dovoljen tudi v arhivirani skupini. Odgovor `{ "keys": [...], "tags": [...] }`: različni dodatni ključi in različne značke kontaktov **te** skupine (`WHERE c.group_id = :g`), vsak v obliki najstarejšega kontakta (kot predlogi značk v 004, R-07), razvrščeni po `sort_sl` na normalizirani obliki. Predefinirani atributi so konstantni v vmesniku (ne v odgovoru).
 - **Zakaj ne `GET /tags`**: ta je EDITOR in predlaga s predpono (004). Bralec mora videti značke v filtrih.
-- **Zakaj ne vgrajeno v seznam**: možnosti niso odvisne od strani/iskanja in se berejo samo ob odprtju panela *Filtri* (vmesnik jih naloži ob prvem odprtju in po neuspešnem iskanju z neznanim ključem).
+- **Zakaj ne vgrajeno v seznam**: možnosti niso odvisne od strani/iskanja; vmesnik jih naloži enkrat ob prikazu seznama (izbira *Razvrsti* ponuja dodatne ključe tudi pri zaprtem panelu) in jih uporabi tudi v panelu *Filtri*; ponovno se naložijo le ob izrecnem ponovnem poskusu po napaki.
 - **Velikost**: število različnih ključev in značk ni omejeno z modelom (največ 50 + 30 na kontakt). Strežnik vrne **vse** (omejitev bi tiho skrila značke), prikaz pa omeji vmesnik z iskalnim poljem »Poišči značko« (R-10, odločitev D-67). Meritev v ITu: 10.000 kontaktov × 3 atributi × 3 značke in skupina z 1000 različnimi značkami < 500 ms.
 - **Indeksi**: `contact_attribute_key (key_norm, contact_id)` (R-02) in obstoječi `contact_tag_norm`.
 
