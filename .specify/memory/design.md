@@ -236,7 +236,7 @@ Dodatni atributi
 - Iskalno polje (`type="search"`, oznaka »Iskanje po kontaktih«) išče po predefiniranih atributih; rezultati se osvežijo 300 ms po zadnjem pritisku tipke, število zadetkov se sporoči bralniku (»Najdenih 18 kontaktov«).
 - Gumb *Filtri (N)* odpre razkrivni panel pod orodno vrstico (ne modalno okno):
   - *Atribut* – izbira polja (ime, priimek, naslov, e-naslov, telefon ali dodatni ključ, ki obstaja v skupini) in vrednost; več pogojev je mogoče dodati;
-  - *Značke* – potrditvena polja vseh značk skupine;
+  - *Značke* – potrditvena polja značk skupine z iskalnim poljem »Poišči značko« (vsebuje, brez razlike velikosti črk in strešic; izbrane značke so vedno prikazane na vrhu, neizbranih hkrati največ 100; stanje »Značke: prikazanih N od M« se sporoči bralniku zaslona) (D-67);
   - *Uporabi filtre* in *Počisti filtre*.
 - Uporabljeni filtri so nad preglednico kot odstranljive oznake (»Značka: konferenca2025 ✕«, dostopno ime »Odstrani filter Značka: konferenca2025«).
 - *Razvrsti* je izbirni seznam polj in gumb za smer (»Naraščajoče« / »Padajoče«) – nujno na telefonu, kjer glav stolpcev ni.

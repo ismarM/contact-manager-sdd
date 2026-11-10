@@ -54,7 +54,7 @@ Izpeljano iz kontaktov 004 (ni samostojno urejano), samo za zahtevano skupino.
 | `keys` | `string[]` | različni dodatni ključi kontaktov skupine (po `key_norm`), v obliki najstarejšega kontakta; razvrščeno po `sort_sl` na `key_norm` |
 | `tags` | `string[]` | različne značke kontaktov skupine (po `tag_norm`), v obliki najstarejšega kontakta; razvrščeno po `sort_sl` na `tag_norm` |
 
-Poizvedbi: `SELECT DISTINCT ON (a.key_norm) a.key … JOIN contact c … WHERE c.group_id = :g ORDER BY a.key_norm, c.created_at, c.id` in enako za `contact_tag`; končno razvrščanje po `key_norm COLLATE sort_sl`.
+Poizvedbi (podizbira, ker mora `DISTINCT ON` ujemati začetek `ORDER BY`): notranja `SELECT DISTINCT ON (a.key_norm) a.key_norm, a.key FROM contact_attribute a JOIN contact c ON c.id = a.contact_id WHERE c.group_id = :g ORDER BY a.key_norm, c.created_at, c.id`, zunanja `SELECT key FROM (…) s ORDER BY key_norm COLLATE sort_sl`; enako za `contact_tag` (`tag_norm`, `tag`).
 
 ## Stanje v vmesniku (`ContactQuery` v TypeScript)
 
@@ -72,7 +72,7 @@ Poizvedbi: `SELECT DISTINCT ON (a.key_norm) a.key … JOIN contact c … WHERE c
 
 ## Validacija (strežnik)
 
-Napake `400 VALIDATION_FAILED` po poljih (`FieldError(field, code)`): glej tabelo v R-06. Strežnik je vir resnice; vmesnik uporablja iste meje, da ne pošlje očitno neveljavnih zahtev (npr. 11. pogoj ni mogoč).
+Napake `400 VALIDATION_FAILED` po poljih (`FieldError(field, code)`): glej tabelo v R-06. Strežnik je vir resnice; vmesnik uporablja iste meje, da ne pošlje očitno neveljavnih zahtev (npr. 11. pogoj ni mogoč). Znak U+0000 v `q`, `f` ali `tag` je `MALFORMED` (R-06).
 
 ## Prehodi stanj
 

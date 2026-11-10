@@ -12,7 +12,7 @@
 | `address` | `text` | `NULL` ali 1–300 znakov, večvrstično |
 | `email` | `text` | `NULL` ali 1–254 znakov |
 | `phone` | `text` | `NULL` ali 1–30 znakov |
-| `sort_last`, `sort_first` | `text COLLATE "C"` | `toLowerCase(Locale.ROOT)` priimka in imena; `NULL`, ko je prazno (R-03) |
+| `sort_last`, `sort_first` | `text COLLATE "C"` (od V8, 008: `COLLATE sort_sl`, D-63) | `toLowerCase(Locale.ROOT)` priimka in imena; `NULL`, ko je prazno (R-03) |
 | `version` | `bigint NOT NULL DEFAULT 0` | optimistično zaklepanje; povečanje samo ob dejanski spremembi (FR-004-10) |
 | `created_at` | `timestamptz NOT NULL DEFAULT now()` | tretji ključ razvrščanja |
 | `updated_at` | `timestamptz NOT NULL DEFAULT now()` | čas zadnje spremembe |

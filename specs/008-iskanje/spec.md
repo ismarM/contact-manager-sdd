@@ -136,6 +136,8 @@ Najnižja vloga za vse zahteve te funkcionalnosti je VIEWER, zato vrstica »vlog
 - Ključ, ki je bil v deljeni povezavi veljaven, pa ga medtem noben kontakt nima več, povzroči `400 VALIDATION_FAILED` in sporočilo s *Počisti filtre* (FR-008-14).
 - Med tipkanjem se prikaže le rezultat zadnjega iskalnega niza; počasnejši odgovor starejše zahteve ne prepiše novejšega.
 - Kontakt, ki ga drug uporabnik spremeni ali izbriše med listanjem, se na naslednji strani pokaže po novem stanju; zaradi tega se lahko kontakt na sosednjih straneh ponovi ali manjka – to je sprejemljivo.
+- Razvrščanje presledkov, ločil in števk sledi pravilom ICU za slovenščino (nepomembni za črke): npr. »Novak Kralj«, »Novak-Kralj«, »Novakk«, »O Brien«, »O'Brien«, »Ob«, »Obrien« v tem vrstnem redu; razvrščanje je deterministično in enako za vse člane.
+- Pri iskanju se poleg strešic zlijejo tudi znaki, ki jih ICU na prvi ravni šteje za različice osnovne črke: `dorde` najde »Đorđe«, `lukasz` »Łukasz«, `cosic` »Ćosić«, `muller` »Müller«; presledki in ločila ostanejo pomembni (`novakkralj` ne najde »Novak-Kralj«).
 - Prazna skupina (brez kontaktov): prikaže se prazno stanje funkcionalnosti 004, ne stanje »Ni kontaktov, ki ustrezajo filtrom.«, razen če je nastavljen vsaj en filter ali iskalni niz.
 
 ## Requirements *(mandatory)*
@@ -182,6 +184,7 @@ Najnižja vloga za vse zahteve te funkcionalnosti je VIEWER, zato vrstica »vlog
 - Odvisna od **004-kontakti** (kontakti, predefinirani in dodatni atributi, značke, seznam in preglednica kontaktov s paginacijo); 008 seznam razširi z iskanjem, filtri in razvrščanjem, sama preglednica in prazno stanje prazne skupine sta v lasti 004.
 - Odvisna od **002-skupine** (članstvo in vloge) in **003-arhiviranje** (stanje arhivirane skupine, pasica).
 - **Odločitev – diakritični znaki:** pri iskanju in pogojih se diakritični znaki ne upoštevajo (`zupancic` najde »Zupančič«, `čeh` najde »Ceh«), ker uporabniki pogosto tipkajo brez strešic. Pri **razvrščanju** pa velja slovenska abeceda (D-63), torej je »Č« za »C« za vse uporabnike, ne glede na jezik vmesnika; iskanje (brez strešic) in razvrščanje (s strešicami) sta namerno različna.
+- **Pojasnilo – »območje oznak filtrov«** (FR-008-11, scenarij 6 v US2): to je območje »Iskanje in filtri« nad preglednico; ko je odstranjena zadnja oznaka, fokus preide na gumb *Filtri* v istem območju.
 - **Odločitev – prosto iskanje** zajema samo predefinirane atribute (design.md 8.7); dodatni atributi in značke se iščejo s filtri. Besede iskalnega niza se kombinirajo z IN.
 - **Odločitev – meje:** iskalni niz do 200 znakov, do 10 pogojev atributov, do 30 značk v filtru, vrednost pogoja 1–500 znakov (najdaljša vrednost dodatnega atributa po §2.6).
 - **Odločitev – neznan ključ proti neznani znački:** pogoj ali razvrščanje nad ključem, ki ga v skupini ni, je `400 VALIDATION_FAILED` (ker gre za polje); značka, ki je v skupini ni, je veljavna vrednost in da 0 zadetkov. Odgovor je enak ne glede na to, ali ključ ali značka obstajata v drugi skupini, zato izolacija ni ogrožena.

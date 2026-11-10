@@ -127,7 +127,7 @@ components:
       description: >
         Neveljavni parametri (neznano polje ali ključ, ki ne obstaja v tej skupini – enako za ključ druge skupine; neznana
         smer; q > 200; prazna vrednost pogoja ali > 500; > 10 pogojev; > 30 značk ali značka > 50; neveljavna stran ali
-        velikost). Napake po poljih; nič ne razkrije podatkov drugih skupin.
+        velikost; znak U+0000 v q, f, tag → MALFORMED). Napake po poljih; nič ne razkrije podatkov drugih skupin.
       content:
         application/json:
           schema:

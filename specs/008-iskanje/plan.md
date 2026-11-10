@@ -22,7 +22,7 @@ Seznam kontaktov iz 004 dobi iskanje, filtre in razvrščanje. Zaledje razširi 
 
 **Project Type**: web application (backend + frontend + e2e)
 
-**Performance Goals**: SC-001 – 95 % iskanj (iskalni niz + 2 pogoja + 2 znački) v skupini z 10.000 kontakti < 1 s; izmerjeno v bazi ≈ 20 ms (R-15)
+**Performance Goals**: SC-001 – 95 % iskanj (iskalni niz + 2 pogoja + 2 znački) v skupini z 10.000 kontakti < 1 s; merjeno s 5 ogrevalnimi in 50 merjenimi zahtevi, p95 (R-15); v bazi ≈ 20 ms
 
 **Constraints**: WCAG 2.1 AA, sl/en, izolacija skupin, samo branje (brez zaklepanja, brez revizijske sledi), enak vrstni red za vse uporabnike (D-63), brez SQL injection (R-13)
 
@@ -40,7 +40,7 @@ Seznam kontaktov iz 004 dobi iskanje, filtre in razvrščanje. Zaledje razširi 
 | VI. Privacy and GDPR | Iskalni nizi in vrednosti so osebni podatki: ne beležijo se (R-12); odgovori samo za skupino iz poti. |
 | VII. One verification path | Novi testi tečejo v obstoječih korakih `verify.sh`. Odločitve: D-63, D-64. |
 
-**Rezultat (pred raziskavo):** PASS. **Ponovno preverjanje po fazi 1:** PASS. Opombe: (1) odstopanje od 002/003/007 (ICU `title_*` po jeziku vmesnika) je namerno in velja samo za kontakte (D-63); (2) zamenjava privzetega vrstnega reda 004 zahteva `sprememba-testa` pri `ContactReadIT` (R-14); (3) kavelj gitleaks v worktreeju lažno uspe (R-16) – ročno preverjeno.
+**Rezultat (pred raziskavo):** PASS. **Ponovno preverjanje po fazi 1:** PASS. Opombe: (0) panel filtrov odstopa od design.md 8.7 (»potrditvena polja vseh značk«): dodano iskalno polje »Poišči značko« in omejitev prikaza (D-67, za pregled v PR; design.md 8.7 je usklajen); (1) odstopanje od 002/003/007 (ICU `title_*` po jeziku vmesnika) je namerno in velja samo za kontakte (D-63); (2) zamenjava privzetega vrstnega reda 004 zahteva `sprememba-testa` pri `ContactReadIT` (R-14); (3) kavelj gitleaks v worktreeju je lažno uspel (R-16) – popravljen v D-66 in pokrit s testi.
 
 ## Skladnost z D-63 in obstoječimi funkcionalnostmi
 
@@ -88,15 +88,18 @@ Dodatek k elementom seznama iz 004 (plan 004 – *Seznam kontaktov*). Imena 004 
 
 | Page | ARIA role | Accessible name (sl / en) | Purpose | FR-ID |
 |---|---|---|---|---|
+| Seznam | search (landmark) | »Iskanje in filtri« / "Search and filters" | območje, ki vsebuje iskalno polje, število zadetkov, *Filtri*, panel, oznake, *Razvrsti* in smer; testi uporabijo `within(…)` (R-10) | FR-008-01, FR-008-10, FR-008-11, FR-008-07 |
 | Seznam | searchbox | »Iskanje po kontaktih« / "Search contacts" | prosto iskanje; rezultati 300 ms po zadnji tipki | FR-008-01, FR-008-02 |
-| Seznam | status | »Najdenih 18 kontaktov« / "18 contacts found" (sl: »Najden 1 kontakt«, »Najdena 2 kontakta«, »Najdeni 3 kontakti«, »Najdenih 5 kontaktov«; en: "1 contact found") | število zadetkov po vsaki osvežitvi (`aria-live`) | FR-008-10 |
+| Seznam (v območju »Iskanje in filtri«) | status | »Najdenih 18 kontaktov« / "18 contacts found" (sl: »Najden 1 kontakt«, »Najdena 2 kontakta«, »Najdeni 3 kontakti«, »Najdenih 5 kontaktov«; en: "1 contact found") | število zadetkov po vsaki osvežitvi (`aria-live`) | FR-008-10 |
 | Seznam | button | »Filtri« / "Filters"; z uporabljenimi filtri »Filtri (2)« / "Filters (2)" (`aria-expanded`, `aria-controls`) | odpre/zapre panel | FR-008-11 |
 | Panel | group | »Filtri kontaktov« / "Contact filters" | razkrivni panel (ne modalen) | FR-008-03, FR-008-04 |
-| Panel | combobox (nativni select) | »Atribut 1« / "Attribute 1" (n-ti pogoj) | polje: Ime / First name, Priimek / Last name, Naslov / Address, E-naslov / Email, Telefon / Phone in dodatni ključi skupine | FR-008-03, FR-008-06 |
+| Panel | combobox (nativni select) | »Atribut 1« / "Attribute 1" (n-ti pogoj) | polje: Ime / First name, Priimek / Last name, Naslov / Address, E-naslov / Email, Telefon / Phone in dodatni ključi skupine; ključ iz naslova, ki ga ni med možnostmi, je dodatna izbira | FR-008-03, FR-008-06 |
 | Panel | textbox | »Vrednost 1« / "Value 1" | vrednost pogoja | FR-008-03 |
 | Panel | button | »Odstrani pogoj 1« / "Remove condition 1" | odstrani vrstico osnutka | FR-008-03 |
 | Panel | button | »Dodaj pogoj« / "Add condition" | nova vrstica; pri 10 pogojih napaka »Dodaš lahko največ 10 pogojev.« / "You can add at most 10 conditions." | FR-008-03, FR-008-14 |
-| Panel | group > checkbox | »Značke« / "Tags" > ime značke (npr. »vip«) | značke skupine | FR-008-04, FR-008-06 |
+| Panel | group > checkbox | »Značke« / "Tags" > ime značke (npr. »vip«) | izbrane značke vedno na vrhu (tudi če jih ni več med možnostmi skupine), neizbranih zadetkov največ 100 hkrati | FR-008-04, FR-008-06 |
+| Panel | searchbox | »Poišči značko« / "Find tag" | zoži seznam značk (brez razlike velikosti črk in strešic); izbrane ostanejo vidne (D-67) | FR-008-04, FR-008-06 |
+| Panel | status | »Značke: prikazanih 12 od 1000« / "Tags: showing 12 of 1000" (+ »Vpiši iskanje za ožji izbor.« / "Type to narrow the list.") | število prikazanih značk, bere ga bralnik zaslona | FR-008-06 |
 | Panel | text | »V tej skupini ni značk.« / "This group has no tags." | brez značk | FR-008-06 |
 | Panel | alert + button | »Filtrov ni bilo mogoče naložiti. Poskusi znova.« / "Filters could not be loaded. Please try again." + »Poskusi znova« / "Try again" | napaka `contact-filters` | FR-008-17 |
 | Panel | button | »Uporabi filtre« / "Apply filters", »Počisti filtre« / "Clear filters" | uveljavi osnutek v naslov; počisti vse | FR-008-05, FR-008-12 |
@@ -113,7 +116,8 @@ Dodatek k elementom seznama iz 004 (plan 004 – *Seznam kontaktov*). Imena 004 
 
 - Opis oznake pogoja: »‹polje› vsebuje ‹vrednost›« / "‹field› contains ‹value›"; imena predefiniranih polj kot v 004. Število v *Filtri (N)* = pogoji + značke (iskalni niz ni filter).
 - Paginacija (`nav` »Strani rezultatov« …) je nespremenjena iz 004.
-- Gumb *Počisti filtre* je lahko hkrati na več mestih (panel, oznake, prazno stanje, napaka); testi uporabijo `within(group »Filtri kontaktov«)` oziroma `within(main)`.
+- Gumb *Počisti filtre* je lahko hkrati na več mestih (panel, oznake, prazno stanje, napaka); testi uporabijo `within(group »Filtri kontaktov«)`, `within(search »Iskanje in filtri«)` oziroma `within(main)`. Na strani so trije `status`: nalaganje, število zadetkov (v območju »Iskanje in filtri«) in paginacija (v `nav`); testi vedno uporabijo `within(…)`.
+- Po odstranitvi zadnje oznake filtra fokus preide na gumb *Filtri* v območju »Iskanje in filtri« (FR-008-11).
 
 ### Pokritost zahtev po ravneh testov
 
