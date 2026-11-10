@@ -14,7 +14,7 @@ import { UnarchiveButton } from './UnarchiveButton';
  * ali odarhiviranje, izbris pa samo, kadar je mogoč (`canDelete`), sicer razlago. Pri trajno arhivirani skupini (brez
  * lastnika) razdelek vidijo vsi člani. Od 007 vsak član (razen lastnika) vidi *Zapusti skupino*, lastnik pa *Prenesi
  * lastništvo* ali razlago; zadnji član trajno arhivirane skupine dobi razlago namesto gumba. Akcija, ki ni mogoča, ni
- * izrisana; dokler število članov ni znano, razdelek ne-lastnika ni izrisan (ne utripa).
+ * izrisana; *Prenesi lastništvo* in razlagi o številu članov se izrišejo šele, ko je `total` znan.
  */
 export function GroupManagementSection() {
   const { t } = useTranslation();
@@ -26,11 +26,11 @@ export function GroupManagementSection() {
   // Dialog prenosa ostane izrisan, dokler je odprt, tudi če se vloga klicatelja medtem spremeni (403 pri prenosu).
   const [transferOpen, setTransferOpen] = useState(false);
   const isOwner = group.role === 'OWNER';
-  if (!isOwner && count === undefined) return null;
   const canArchiveToggle = isOwner && !group.permanentlyArchived;
   const lastMember = group.permanentlyArchived && count === 1;
-  const canLeave = !isOwner && !lastMember;
-  const canTransfer = isOwner && !group.archived && (count === undefined || count > 1);
+  // Pri trajno arhivirani skupini je zadnji član znan šele po branju števila članov (R-08).
+  const canLeave = !isOwner && !lastMember && !(group.permanentlyArchived && count === undefined);
+  const canTransfer = isOwner && !group.archived && count !== undefined && count > 1;
 
   return (
     <section

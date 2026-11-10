@@ -211,3 +211,11 @@ US4 zapuščanje (FR-007-06, 07, 08) · US5 prenos lastništva (FR-007-09) · US
 - Testa nikoli ne spremeni, da bi ustrezal kodi; vsaka sprememba testa po pregledu → vnos v DECISIONS.md.
 - Brez utišanj opozoril brez odobrenega D-NN v DECISIONS.md.
 - Pred odkljukanjem naloge `./verify.sh quick`.
+
+---
+
+## Phase 12: Convergence
+
+- [X] T049 CRITICAL `GroupManagementSection` (003) ne sme skrivati razdelka *Upravljanje skupine* ne-lastniku do nalaganja števila članov (test 003 je uspel le zaradi zakasnjenega izrisa): razdelek se izriše takoj, *Zapusti skupino* takoj (pri trajno arhivirani šele po `total`), *Prenesi lastništvo* in razlagi šele po `total`; test 003 usklajen po `sprememba-testa` (D-62) per FR-007-06 (contradicts)
+- [X] T050 HIGH `GroupService.delete` (003) po zaklepu ponovno prebere vlogo klicatelja kot `archive`/`unarchive` (D-60), da bivši lastnik po sočasnem prenosu ne izbriše skupine, per FR-007-09 / SC-003 (partial)
+- [X] T051 LOW `traceability.md` in `DECISIONS.md` (D-62) uskajena s stanjem po konvergenci, per T045 (partial)

@@ -77,12 +77,15 @@ class GroupService {
      * lastniku vzame vlogo, med tem ko je zahtevek čakal na zaklep.
      */
     private void requireOwnerUnderLock(Membership membership) {
-        Role current = groups.memberState(membership.groupId(), membership.userId())
-                .orElseThrow(NotFoundException::new)
-                .role();
-        if (!current.atLeast(Role.OWNER)) {
+        if (!currentRole(membership).atLeast(Role.OWNER)) {
             throw new ForbiddenException();
         }
+    }
+
+    private Role currentRole(Membership membership) {
+        return groups.memberState(membership.groupId(), membership.userId())
+                .orElseThrow(NotFoundException::new)
+                .role();
     }
 
     /** Arhiviranje (FR-003-01): pod zaklepom vrstice, drugi sočasni zahtevek vidi arhivirano skupino (R-03). */
@@ -117,7 +120,7 @@ class GroupService {
     void delete(Membership membership) {
         LockState state = groups.lockState(membership.groupId()).orElseThrow(NotFoundException::new);
         boolean permanent = state.archived() && !state.hasOwner();
-        if (!permanent && !membership.role().atLeast(Role.OWNER)) {
+        if (!permanent && !currentRole(membership).atLeast(Role.OWNER)) {
             throw new ForbiddenException();
         }
         if (groups.memberCount(membership.groupId()) > 1) {

@@ -162,16 +162,18 @@ describe('GroupManagementSection', () => {
     });
 
     it.each(['ADMIN', 'EDITOR', 'VIEWER'] as const)(
-      'FR-003-01: %s nearhivirane skupine ne vidi razdelka Upravljanje skupine',
+      'FR-003-01 FR-007-06: %s nearhivirane skupine v razdelku Upravljanje skupine vidi samo Zapusti skupino',
       async (role) => {
         render({ role });
 
         await screen.findByRole('heading', { level: 2, name: 'Podatki skupine' });
-        expect(
-          screen.queryByRole('heading', { level: 2, name: 'Upravljanje skupine' }),
-        ).not.toBeInTheDocument();
+        expect(await management()).toBeInTheDocument();
+        expect(await screen.findByRole('button', { name: 'Zapusti skupino' })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Arhiviraj skupino' })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Izbriši skupino' })).not.toBeInTheDocument();
+        expect(
+          screen.queryByRole('button', { name: 'Prenesi lastništvo' }),
+        ).not.toBeInTheDocument();
       },
     );
   });
