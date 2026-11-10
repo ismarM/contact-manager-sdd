@@ -1,5 +1,5 @@
 import { IconDotsVertical } from '@tabler/icons-react';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -9,31 +9,26 @@ import {
   DropdownMenuTrigger,
 } from '../../shared/ui/dropdown-menu';
 import { focusRing } from '../../shared/ui/styles';
-import { ChangeRoleDialog } from './ChangeRoleDialog';
-import { RemoveMemberDialog } from './RemoveMemberDialog';
 import type { Member } from './types';
 
+export type MemberDialogKind = 'role' | 'remove';
+
 /**
- * Meni dejanj ob članu (design.md 8.6): *Spremeni vlogo* in *Odstrani iz skupine*. Dialoga sta izrisana ob meniju in
- * krmiljena od tu, zato ju zapiranje menija ne odstrani; fokus se ob preklicu vrne na sprožilec.
+ * Meni dejanj ob članu (design.md 8.6): *Spremeni vlogo* in *Odstrani iz skupine*. Dialoga izrisuje razdelek *Člani*
+ * (ne vrstica), zato ju osvežitev seznama ne odstrani, ko član izgine ali izgubi meni (404/403); meni sporoči izbrano
+ * dejanje in sprožilec, na katerega se ob preklicu vrne fokus.
  */
 export function MemberActionsMenu({
   member,
-  onSucceeded,
-  onStale,
+  onAction,
 }: {
   member: Member;
-  onSucceeded: () => void;
-  onStale: () => void;
+  onAction: (kind: MemberDialogKind, member: Member, trigger: HTMLElement | null) => void;
 }) {
   const { t } = useTranslation();
-  const [dialog, setDialog] = useState<'role' | 'remove' | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const opening = useRef(false);
   const name = member.name ?? member.email;
-
-  const close = () => setDialog(null);
-  const returnFocus = () => trigger.current?.focus();
 
   return (
     <>
@@ -57,7 +52,7 @@ export function MemberActionsMenu({
           <DropdownMenuItem
             onSelect={() => {
               opening.current = true;
-              setDialog('role');
+              onAction('role', member, trigger.current);
             }}
           >
             {t('members.menu.changeRole')}
@@ -65,29 +60,13 @@ export function MemberActionsMenu({
           <DropdownMenuItem
             onSelect={() => {
               opening.current = true;
-              setDialog('remove');
+              onAction('remove', member, trigger.current);
             }}
           >
             {t('members.menu.remove')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <ChangeRoleDialog
-        member={member}
-        open={dialog === 'role'}
-        onClose={close}
-        onCancelled={returnFocus}
-        onSucceeded={onSucceeded}
-        onStale={onStale}
-      />
-      <RemoveMemberDialog
-        member={member}
-        open={dialog === 'remove'}
-        onClose={close}
-        onCancelled={returnFocus}
-        onSucceeded={onSucceeded}
-        onStale={onStale}
-      />
     </>
   );
 }

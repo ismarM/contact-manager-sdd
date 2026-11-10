@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useGroup } from '../groups/groupContext';
 import { MemberCell } from './MemberCell';
-import { MemberActionsMenu } from './MemberActionsMenu';
+import { MemberActionsMenu, type MemberDialogKind } from './MemberActionsMenu';
 import type { Member } from './types';
 
 /**
@@ -12,13 +12,11 @@ import type { Member } from './types';
 export function MemberRow({
   member,
   cellClass,
-  onSucceeded,
-  onStale,
+  onAction,
 }: {
   member: Member;
   cellClass: string;
-  onSucceeded: () => void;
-  onStale: () => void;
+  onAction: (kind: MemberDialogKind, member: Member, trigger: HTMLElement | null) => void;
 }) {
   const { t } = useTranslation();
   const { group } = useGroup();
@@ -36,7 +34,7 @@ export function MemberRow({
       </MemberCell>
       <MemberCell label={t('members.table.actions')} className={cellClass}>
         {member.canManage && !group.archived && (
-          <MemberActionsMenu member={member} onSucceeded={onSucceeded} onStale={onStale} />
+          <MemberActionsMenu member={member} onAction={onAction} />
         )}
       </MemberCell>
     </tr>

@@ -9,9 +9,12 @@ import { useGroup } from '../groups/groupContext';
 import { PAGE_SIZES, SectionPagination } from '../groups/SectionPagination';
 import { useDelayed } from '../groups/useDelayed';
 import { useMembersApi } from './api';
+import { ChangeRoleDialog } from './ChangeRoleDialog';
+import type { MemberDialogKind } from './MemberActionsMenu';
 import { MemberCell } from './MemberCell';
 import { MemberRow } from './MemberRow';
-import type { Members } from './types';
+import { RemoveMemberDialog } from './RemoveMemberDialog';
+import type { Member, Members } from './types';
 
 interface Loaded {
   key: string;
@@ -33,6 +36,10 @@ export function MembersSection() {
   const [tick, setTick] = useState(0);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
+  // Dialoga živita tu in ne v vrstici: po 404/403 se vrstica ob osvežitvi seznama spremeni ali izgine, sporočilo v
+  // dialogu pa mora ostati vidno. `member` je posnetek ob odprtju.
+  const [dialog, setDialog] = useState<{ kind: MemberDialogKind; member: Member } | null>(null);
+  const trigger = useRef<HTMLElement | null>(null);
   const headingId = useId();
   // Vloga klicatelja je v ključu: po prenosu lastništva se seznam sam osveži.
   const key = `${page}:${size}:${tick}:${lang}:${group.role}:${group.archived}`;
@@ -64,6 +71,10 @@ export function MembersSection() {
   }, [loaded, key]);
 
   const refresh = () => setTick((value) => value + 1);
+  const returnFocus = () => {
+    if (trigger.current?.isConnected) trigger.current.focus();
+    else heading.current?.focus();
+  };
   const succeeded = () => {
     focusHeading.current = true;
     refresh();
@@ -129,8 +140,10 @@ export function MembersSection() {
                 key={member.id}
                 member={member}
                 cellClass={cell}
-                onSucceeded={succeeded}
-                onStale={refresh}
+                onAction={(kind, target, element) => {
+                  trigger.current = element;
+                  setDialog({ kind, member: target });
+                }}
               />
             ))}
           </tbody>
@@ -149,6 +162,26 @@ export function MembersSection() {
             setSize(next);
           }}
         />
+      )}
+      {dialog && (
+        <>
+          <ChangeRoleDialog
+            member={dialog.member}
+            open={dialog.kind === 'role'}
+            onClose={() => setDialog(null)}
+            onCancelled={returnFocus}
+            onSucceeded={succeeded}
+            onStale={refresh}
+          />
+          <RemoveMemberDialog
+            member={dialog.member}
+            open={dialog.kind === 'remove'}
+            onClose={() => setDialog(null)}
+            onCancelled={returnFocus}
+            onSucceeded={succeeded}
+            onStale={refresh}
+          />
+        </>
       )}
     </section>
   );
