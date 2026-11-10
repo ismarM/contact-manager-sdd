@@ -4,14 +4,29 @@ import { ApiError } from '../../shared/api/client';
 
 export type MemberAction = 'change' | 'remove' | 'leave' | 'transfer';
 
+/** Ključi sporočil v `members.errors`. */
+export type MemberErrorKey =
+  | 'members.errors.offline'
+  | 'members.errors.forbidden'
+  | 'members.errors.cannotManage'
+  | 'members.errors.memberGone'
+  | 'members.errors.archived'
+  | 'members.errors.transferArchived'
+  | 'members.errors.ownerCannotLeave'
+  | 'members.errors.lastMemberCannotLeave'
+  | 'members.errors.targetNotMember'
+  | 'members.errors.changeFailed'
+  | 'members.errors.removeFailed'
+  | 'members.errors.leaveFailed'
+  | 'members.errors.transferFailed';
+
 export interface MemberFailure {
-  /** Ključ sporočila v `members.errors`. */
-  key: string;
+  key: MemberErrorKey;
   /** Strežnik je stanje spremenil pod nami: ponovno preberi seznam članov in skupino. */
   stale: boolean;
 }
 
-const FAILED_KEY: Record<MemberAction, string> = {
+const FAILED_KEY: Record<MemberAction, MemberErrorKey> = {
   change: 'members.errors.changeFailed',
   remove: 'members.errors.removeFailed',
   leave: 'members.errors.leaveFailed',
@@ -19,7 +34,7 @@ const FAILED_KEY: Record<MemberAction, string> = {
 };
 
 /** Šifre strežniških 409 napak v ključe sporočil. */
-export const MEMBER_ERROR_KEYS: Record<string, string> = {
+export const MEMBER_ERROR_KEYS: Record<string, MemberErrorKey> = {
   OWNER_CANNOT_LEAVE: 'members.errors.ownerCannotLeave',
   LAST_MEMBER_CANNOT_LEAVE: 'members.errors.lastMemberCannotLeave',
   TARGET_NOT_MEMBER: 'members.errors.targetNotMember',
