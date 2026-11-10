@@ -56,14 +56,16 @@ Nove knjižnice niso potrebne. Odločitve so zapisane v `DECISIONS.md` D-58. Nej
 
 - **Decision:** `GroupAccess.require(jwt, groupId, Role.ADMIN, false)` (leave: `VIEWER`; seznam: `VIEWER`; prenos: `OWNER`) vedno z `write = false`; stanje
   `GROUP_ARCHIVED` presodi servis sam, ker mora cilj (404) in pravilo »le nižjim od sebe« (403) priti **pred** 409 (spec *Assumptions*, §2.2). Vrstni
-  red za spremembo vloge in odstranitev: 401 → 404 (skupina/nečlan; cilj ni član te skupine ali neveljaven `memberId`) → 403 (vloga pod ADMIN,
-  cilj ni strogo nižji, lastno članstvo, dodelitev ADMIN kot admin ali OWNER kot kdorkoli, dodeljena vloga ≥ klicateljeve) → 409 `GROUP_ARCHIVED`
+  red za spremembo vloge in odstranitev: 401 → 404 (skupina/nečlan) → 403 (vloga pod ADMIN, **tudi pri neobstoječem ali tujem `memberId`** – spec: »VIEWER ali EDITOR … kogar koli → 403«;
+  to je posledica `GroupAccess.require(ADMIN)`) → 404 (`memberId` neveljaven ali ni v tej skupini; samo ADMIN/OWNER) → 403 (cilj ni strogo nižji, lastno članstvo,
+  dodelitev ADMIN kot admin ali OWNER kot kdorkoli, dodeljena vloga ≥ klicateljeve) → 409 `GROUP_ARCHIVED`
   → 409 `VERSION_CONFLICT` (samo vloga) → 400 `VALIDATION_FAILED` → (leave/transfer) 409 poslovna pravila. Prenos: 401 → 404 → 403 (ni OWNER; tudi v trajno
   arhivirani skupini, kjer lastnika ni) → 409 `GROUP_ARCHIVED` → 400 → 409 `TARGET_NOT_MEMBER`. Telo se razčleni pred dostopom, napake pa se sporočijo
   šele na koraku 400 (kot `InvitationInputParser`, 006).
-- **Rationale:** `GroupAccess` ostane edina točka za korake 2–3 (D-27); nobenega podvajanja tabele vlog. Pravilo »le nižjim od sebe« je ena čista funkcija
+- **Rationale:** `GroupAccess` ostane edina točka za korake 2–3 (D-27); neodvisnost testov od izvedbe: matriki SC-005 (`MemberRulesTest`, `MemberRoleMatrixSecurityIT`) uporabljata **ročno napisano tabelo pričakovanj** (brez uvoza `MemberRules`) in preverjata njeno velikost (R-11); nobenega podvajanja tabele vlog. Pravilo »le nižjim od sebe« je ena čista funkcija
   `MemberRules` (unit test za matriko SC-005), ki jo kličeta spremeni-vlogo in odstrani.
-- **Alternatives:** `write = true` v `GroupAccess` (vrne 409 pred 404/403 za cilj, kar krši spec).
+- **Alternatives:** `write = true` v `GroupAccess` (vrne 409 pred 404/403 za cilj, kar krši spec); iskanje cilja pred preverjanjem vloge (kot D-41 pri kontaktih) – zavrnjeno,
+  ker spec za VIEWER/EDITOR izrecno zahteva 403 »kogar koli«; pri članih je cilj viden vsem članom, zato 403 ničesar ne razkrije.
 
 ## R-06 Sprememba vloge z optimistično verzijo (FR-007-03, 04)
 
@@ -92,7 +94,7 @@ Nove knjižnice niso potrebne. Odločitve so zapisane v `DECISIONS.md` D-58. Nej
   skupino* in *Prenesi lastništvo* z razlagami namesto njiju; število članov za pravilo »edini član« vmesnik prebere iz `total` seznama članov
   (`size=1`), zato `GroupDetail` (002) ostane nespremenjen in testi 002/003 ne potrebujejo popravkov. Opozorilo o konfliktu je nov `MemberConflictAlert`
   po vzorcu `ConflictAlert` (002) – skupna logika sporočila (kdo, kdaj) se vzame iz `conflictMessage`. Paginacija: `SectionPagination` (003).
-  Po zapustitvi `GroupsProvider` osveži seznam skupin (kot po izbrisu skupine v 003).
+  Po zapustitvi `GroupsProvider` osveži seznam skupin (kot po izbrisu skupine v 003). Pri 404 na dejanju nad članom vmesnik ponovno prebere skupino: 404 tudi tam → »Te strani ni« (`GroupLayout.markNotFound`), sicer je izginil cilj → sporočilo in osvežitev seznama (spec *Edge Cases*).
 - **Rationale:** brez podvajanja logike; obstoječi testi ostanejo veljavni (preveri se z `verify.sh quick`).
 
 ## R-09 Brez zapisov v revizijsko sled in brez obveščanja
@@ -100,6 +102,24 @@ Nove knjižnice niso potrebne. Odločitve so zapisane v `DECISIONS.md` D-58. Nej
 - **Decision:** nobena operacija 007 ne kliče `AuditService`; testi (`MemberAuditIT`) preverijo, da je `audit_entry` skupine po vsaki operaciji nespremenjen
   (FR-007-12, FR-005-06). Imena odstranjenih in bivših članov ostanejo v sledi, ker vnosi kažejo na `app_user`, ne na `group_member`. Obvestil
   (e-pošta, push) ni (spec *Assumptions*).
+
+## R-08a Javni vmesnik `GroupReader` (I1)
+
+- **Decision:** v paket `group` se doda majhen javni bean `GroupReader` z eno metodo `GroupDetail read(Membership)`, ki delegira na paketni `GroupService.read`. `member`
+  ga uporabi samo za odgovor prenosa lastništva (`200 GroupDetail`).
+- **Rationale:** `GroupService`, `GroupRepository` in `Collation` so paketni (`class GroupService`), zato `member` brez vmesnika ne bi prevedel. Vmesnik ne spremeni pogodbe 002,
+  testov 002/003 ali vedenja; `GroupDetail` ostane nespremenjen (R-08).
+- **Alternatives:** `GroupService.read` narediti `public` (razkrije celoten servis); prenos vrne `Member` in vmesnik ponovno prebere skupino (sprememba pogodbe, dodaten krog).
+
+## R-11 Preizkušanje sočasnosti in matrik
+
+- **Decision:** (1) **Deterministični sočasnostni test** (`MemberLockingIT`): test na ločeni JDBC povezavi odpre transakcijo in zadrži `SELECT … FOR UPDATE` na vrstici skupine; nato
+  asinhrono pošlje zahtevo(-i) (zapuščanje, sprememba vloge, odstranitev, prenos), preveri, da po 1 s **še niso vrnile odgovora** (in da v `pg_stat_activity` čakajo na zaklep),
+  sprosti zaklep in preveri izid (npr. dva zapustnika trajno arhivirane skupine z dvema članoma: natanko en `204` in en `409 LAST_MEMBER_CANNOT_LEAVE`). Brez zaklepa v kodi bi zahteve
+  vrnile odgovor med zadrževanjem in test pade. (2) `MemberConcurrencyIT` (10 ponovitev) ostane kot stresni dodatek. (3) Matrika »le nižjim od sebe« je v testih **dobesedna tabela**
+  (`PUT`: 4 klicatelji × 4 cilji × 4 nove vloge × 2 stanji = **128**; `DELETE`: 4 × 4 × 2 = **32**), test preveri velikost tabele; `MemberRules` v testih matrik ni uvožen.
+- **Rationale:** verjetnostni test z dirko lahko prestane tudi brez zaklepa; dokaz o zaklepu mora biti deterministična posledica zadržane vrstice. Tabela, izpeljana iz izvedbe, bi
+  potrdila njene napake.
 
 ## R-10 Posledica za 012 (izbris računa)
 

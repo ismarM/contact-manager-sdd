@@ -43,7 +43,7 @@ cilj, sprememba, po potrebi štetje); SC-004 (≤ 4 dejanja) merjen z E2E
 | Principle (constitution) | How this plan complies |
 |---|---|
 | I. Specification is the contract | Pokriti vsi FR-007-01 … FR-007-12 (tabela pokritosti spodaj); *Public Interfaces* določajo endpointe, poti in dostopna imena; negativni scenariji so v testih. Nove kode (`OWNER_CANNOT_LEAVE`, `LAST_MEMBER_CANNOT_LEAVE`, `TARGET_NOT_MEMBER`) so že v feature-map §2.10. Edina nova koda polja je `UNCHANGED` (400, enaka vloga). |
-| II. Test-first | BE: unit (`MemberRulesTest`, `MemberInputParserTest`), integracijski (`MemberListIT`, `MemberRoleChangeIT`, `MemberRemoveIT`, `MemberLeaveIT`, `OwnershipTransferIT`, `MemberConcurrencyIT`, `MemberAuditIT`), varnostni (`MemberIsolationMatrixSecurityIT`, `MemberRoleMatrixSecurityIT`, `FormerMemberSecurityIT`). FE: funkcionalni z MSW in `vitest-axe`. E2E `clani.spec.ts` (360/768/1280 px, sl in en). Pregled testov opravi agent `pregled-testov` pred kodo. |
+| II. Test-first | BE: unit (`MemberRulesTest`, `MemberInputParserTest`), integracijski (`MemberListIT`, `MemberRoleChangeIT`, `MemberRemoveIT`, `MemberLeaveIT`, `OwnershipTransferIT`, `MemberConcurrencyIT`, `MemberLockingIT` (deterministična sočasnost z zadržanim zaklepom vrstice), `MemberAuditIT`), varnostni (`MemberIsolationMatrixSecurityIT`, `MemberRoleMatrixSecurityIT`, `FormerMemberSecurityIT`). FE: funkcionalni z MSW in `vitest-axe`. E2E `clani.spec.ts` (360/768/1280 px, sl in en). Pregled testov opravi agent `pregled-testov` pred kodo. |
 | III. Group isolation and roles | Vseh pet endpointov je v matriki izolacije (401/404/403/2xx; arhivirana: 409 ali 2xx); `MemberRoleMatrixSecurityIT` preizkusi vse kombinacije vloge klicatelja, vloge cilja in dodeljene vloge (SC-005); `FormerMemberSecurityIT` preizkusi, da odstranjen/bivši član dobi 404 pri vsakem endpointu skupine 002–007 (SC-001). Pravila preverja strežnik (`MemberRules`); vmesnik akcij ne izriše (`canManage`). |
 | IV. Accessible, bilingual, responsive UI | design.md 8.6, 8.9, 8.11, 8.13, 8.14, 9.7; dialogi: fokus na *Prekliči*, Esc, vrnitev fokusa; meni dejanj z dostopnim imenom, ki vsebuje člana; sl/en; axe v FE testih in E2E; preglednica pod 640 px zložena (8.6); 320 px. |
 | V. Data integrity | Zaklep vrstice skupine + ponovno branje pod zaklepom (R-01); prenos lastništva v eni transakciji z vrstnim redom stavkov (R-03); optimistična verzija z dvojno zaščito (R-06); revizijska sled nespremenjena (R-09). Seznam paginiran. |
@@ -69,11 +69,12 @@ skupine (R-10, opomba za plan 012).
 - `GET …/members` parametri `page` (od 0), `size` (1–100, privzeto 25), `lang` (`sl`/`en`); neveljavna vrednost → `400 VALIDATION_FAILED`. Odgovor:
   `{"total","page","size","deletedOwner","items":[Member]}`; `Member` = `{"id","name","email","role","version","self","canManage","updatedBy": UserRef|null,"updatedAt"}`.
   `deletedOwner: true` samo v trajno arhivirani skupini (vrstica »izbrisan uporabnik« ni v `items` in ne v `total`).
-- `PUT …/members/{memberId}` telo `{"role": "ADMIN|EDITOR|VIEWER", "version": 0}`. Vrstni red: 401 → 404 (skupina/nečlan; `memberId` neveljaven ali ni v skupini) → 403
-  (klicatelj pod ADMIN; cilj ni strogo nižji; cilj je klicatelj; `role` = OWNER, ali znana vloga, ki ni strogo nižja od klicateljeve) → 409 `GROUP_ARCHIVED` →
+- `PUT …/members/{memberId}` telo `{"role": "ADMIN|EDITOR|VIEWER", "version": 0}`. Vrstni red: 401 → 404 (skupina/nečlan) → 403 (klicatelj pod ADMIN – **tudi pri neobstoječem ali tujem
+  `memberId`**, spec: »VIEWER ali EDITOR … kogar koli → 403«) → 404 (`memberId` neveljaven ali ni v tej skupini) → 403 (cilj ni strogo nižji; cilj je klicatelj; `role` = OWNER,
+  ali znana vloga, ki ni strogo nižja od klicateljeve) → 409 `GROUP_ARCHIVED` →
   409 `VERSION_CONFLICT` (telo `{"code","current": Member}`) → 400 `VALIDATION_FAILED` (`role`: `REQUIRED`, `INVALID_VALUE`, `UNCHANGED`; `version`: `REQUIRED`,
   `INVALID_VALUE`; neznano polje → `UNKNOWN_FIELD`; neveljaven JSON → `body: MALFORMED`).
-- `DELETE …/members/{memberId}`: 401 → 404 → 403 (klicatelj pod ADMIN; cilj ni strogo nižji; cilj je klicatelj) → 409 `GROUP_ARCHIVED`. Drugič isti cilj → 404.
+- `DELETE …/members/{memberId}`: 401 → 404 (skupina/nečlan) → 403 (klicatelj pod ADMIN, tudi pri neobstoječem `memberId`) → 404 (`memberId` neveljaven ali ni v skupini) → 403 (cilj ni strogo nižji; cilj je klicatelj) → 409 `GROUP_ARCHIVED`. Drugič isti cilj → 404.
 - `POST …/leave` (brez telesa): 401 → 404 → 409 `OWNER_CANNOT_LEAVE` → 409 `LAST_MEMBER_CANNOT_LEAVE` (trajno arhivirana skupina, število članov 1). Brez `GROUP_ARCHIVED`.
 - `POST …/ownership-transfer` telo `{"memberId": "<uuid>"}`: 401 → 404 → 403 (klicatelj ni OWNER, tudi če je lastnika sočasno prevzel drug) → 409 `GROUP_ARCHIVED` →
   400 (`memberId`: `REQUIRED`, `INVALID_VALUE`; lasten `memberId` → `INVALID_VALUE`) → 409 `TARGET_NOT_MEMBER`. Cilj je lahko član s katero koli vlogo.
@@ -122,16 +123,22 @@ Opomba za teste: vrstični gumb menija ima vidno ikono in dostopno ime s članom
 | Upravljanje skupine | button | »Prenesi lastništvo« / "Transfer ownership" | odpre dialog; samo lastnik nearhivirane skupine z več člani | FR-007-09 |
 | Upravljanje skupine | text | »Lastništvo lahko preneseš, ko ima skupina še vsaj enega člana.« / "You can transfer ownership once the group has at least one more member." | razlaga namesto gumba (edini član) | FR-007-09 |
 | Dialog prenosa | dialog | »Prenesem lastništvo skupine Projekt FERI?« / "Transfer ownership of Projekt FERI?" | potrditev; fokus na »Prekliči« | FR-007-09 |
-| Dialog prenosa | combobox (select) | »Novi lastnik« / "New owner" | izbira enega od ostalih članov (ime + vloga) | FR-007-09 |
+| Dialog prenosa | combobox (select) | »Novi lastnik« / "New owner" | izbira enega od ostalih članov; možnosti »Ana Novak (Bralec)« / "Ana Novak (Viewer)" (ime, e-naslov če imena ni, in vloga) | FR-007-09 |
 | Dialog prenosa | text | »Ana Novak bo postal(a) lastnik, ti pa boš admin.« / "Ana Novak will become the owner and you will become an admin." (po izbiri) | posledica | FR-007-09 |
 | Dialog prenosa | textbox | »Za potrditev vpiši naslov skupine« / "Type the group title to confirm" | potrditev z naslovom (enaka primerjava kot v 003) | FR-007-09 |
 | Dialog prenosa | text (`aria-describedby`, polje `aria-invalid`) | »Vpisani naslov se ne ujema z naslovom skupine.« / "The title you typed does not match the group title."; »Izberi člana.« / "Choose a member." | napaki ob polju brez pošiljanja | FR-007-09 |
 | Dialog prenosa | button, alert | »Prekliči«, »Prenesi lastništvo« (nevarni); »Izbrani uporabnik ni več član skupine.« / "The selected user is no longer a member of the group." | gumba, napaka 409 `TARGET_NOT_MEMBER` | FR-007-09, FR-007-11 |
-| Upravljanje skupine | alert | »Kot lastnik skupine ne moreš zapustiti.«; »Skupina je arhivirana, članov zdaj ni mogoče spreminjati.«; »Ni povezave. …« / sl+en pari | napake zapustitve in prenosa (409 `OWNER_CANNOT_LEAVE`, `LAST_MEMBER_CANNOT_LEAVE`, `GROUP_ARCHIVED`, 403, 404) | FR-007-11 |
+| Upravljanje skupine | alert | »Kot lastnik skupine ne moreš zapustiti. Najprej prenesi lastništvo.« / "As the owner you cannot leave the group. Transfer ownership first." (409 `OWNER_CANNOT_LEAVE`); »Kot zadnji član skupine je ne moreš zapustiti, lahko jo le izbrišeš.« / "As the last member you cannot leave the group, you can only delete it." (409 `LAST_MEMBER_CANNOT_LEAVE`); »Skupine ni bilo mogoče zapustiti. Poskusi znova.« / "The group could not be left. Please try again." (500) | napake zapustitve (dialog ostane odprt) | FR-007-06, FR-007-07, FR-007-08, FR-007-11 |
+| Upravljanje skupine | alert | »Skupina je arhivirana, lastništva zdaj ni mogoče prenesti.« / "The group is archived, ownership cannot be transferred now." (409 `GROUP_ARCHIVED`); »Lastništva ni bilo mogoče prenesti. Poskusi znova.« / "Ownership could not be transferred. Please try again." (500) | napake prenosa (dialog ostane odprt) | FR-007-09, FR-007-10, FR-007-11 |
+| Člani, dialoga vloge in odstranitve, Upravljanje skupine | alert | »Za to dejanje nimaš več pravic.« / "You no longer have permission for this action." (403 pri prenosu in zapustitvi; skupina se ponovno prebere); »Vloge člana ni bilo mogoče spremeniti. Poskusi znova.« / "The member's role could not be changed. Please try again." (500); »Člana ni bilo mogoče odstraniti. Poskusi znova.« / "The member could not be removed. Please try again." (500); »Ni povezave. Preveri povezavo in poskusi znova.« / "You're offline. Check your connection and try again." (brez povezave; enako besedilo kot v 002–006) | skupne napake akcij (design.md 8.13) | FR-007-11 |
 
 - Vrstni red v *Nastavitvah* (design.md 9.7): *Podatki skupine* → **Člani** → *Povabi člana* → *Čakajoča povabila* → *Upravljanje skupine*.
 - Po uspešni spremembi vloge ali odstranitvi se seznam ponovno naloži; fokus preide na naslov razdelka *Člani* (element s fokusom je izginil ali se je spremenil).
   Po prenosu lastništva se *Nastavitve* osvežijo (vloga ADMIN, razdelka *Povabi člana* in *Člani* po pravilih admina). Po zapustitvi: `/groups` z naslovom `h1` v fokusu.
+- **404 pri dejanju nad članom ima dva pomena** (vmesnik ju loči): po vsakem 404 vmesnik ponovno prebere skupino (`GET /api/groups/{groupId}`). Če tudi ta vrne 404, klicatelj sam nima več dostopa →
+  stran »Te strani ni« (`GroupLayout`, design.md 9.10). Če skupina obstaja, je izginil ciljni član → `alert` »Člana ni več v skupini.« in ponovno branje seznama članov.
+- Konflikt: ime v opozorilu je `current.updatedBy.name` (ali e-naslov, če imena ni); ob `updatedBy = null` »izbrisan uporabnik« / "a deleted user" (»Vlogo člana je medtem spremenil(a) izbrisan uporabnik ob 14.32.«).
+  *Shrani moje spremembe* ob enaki izbiri, kot je `current.role`, ne pošlje zahtevka: dialog se zapre in seznam se osveži (enako kot *Uporabi trenutno različico*).
 - Dialog vloge pošlje verzijo vrstice; *Shrani moje spremembe* ponovno pošlje izbiro nad `current.version`, *Uporabi trenutno različico* nastavi izbiro na `current.role`.
 
 ### Pokritost zahtev po ravneh testov
@@ -141,18 +148,18 @@ Opomba za teste: vrstični gumb menija ima vidno ikono in dostopno ime s članom
 | FR-007-01 | `MemberListIT`, `MemberIsolationMatrixSecurityIT` | `MembersSection.test` | `clani.spec` |
 | FR-007-02 | `MemberListIT` (`canManage`), `MemberRulesTest` | `MembersSection.test` | `clani.spec` |
 | FR-007-03 | `MemberRoleChangeIT`, `MemberRoleMatrixSecurityIT`, `MemberRulesTest`, `MemberInputParserTest`, `MemberIsolationMatrixSecurityIT` | `ChangeRoleDialog.test` | `clani.spec` |
-| FR-007-04 | `MemberRoleChangeIT`, `MemberConcurrencyIT` | `ChangeRoleDialog.test` | `clani.spec` |
+| FR-007-04 | `MemberRoleChangeIT`, `MemberConcurrencyIT`, `MemberLockingIT`, `MemberMigrationIT` | `ChangeRoleDialog.test` | `clani.spec` |
 | FR-007-05 | `MemberRemoveIT`, `MemberRoleMatrixSecurityIT`, `FormerMemberSecurityIT`, `MemberIsolationMatrixSecurityIT` | `RemoveMemberDialog.test` | `clani.spec` |
 | FR-007-06 | `MemberLeaveIT`, `FormerMemberSecurityIT`, `MemberIsolationMatrixSecurityIT` | `LeaveGroup.test` | `clani.spec` |
 | FR-007-07 | `MemberLeaveIT` | `LeaveGroup.test` | `clani.spec` |
-| FR-007-08 | `MemberLeaveIT`, `MemberConcurrencyIT` | `LeaveGroup.test` | – |
-| FR-007-09 | `OwnershipTransferIT`, `MemberConcurrencyIT`, `MemberIsolationMatrixSecurityIT` | `TransferOwnership.test` | `clani.spec` |
+| FR-007-08 | `MemberLeaveIT`, `MemberConcurrencyIT`, `MemberLockingIT` | `LeaveGroup.test` | – |
+| FR-007-09 | `OwnershipTransferIT`, `MemberConcurrencyIT`, `MemberLockingIT`, `MemberIsolationMatrixSecurityIT` | `TransferOwnership.test` | `clani.spec` |
 | FR-007-10 | `MemberRoleChangeIT`, `MemberRemoveIT`, `OwnershipTransferIT`, `MemberLeaveIT`, `MemberIsolationMatrixSecurityIT` | `MembersSection.test`, `TransferOwnership.test` | – |
 | FR-007-11 | – | `MembersSection.test`, `ChangeRoleDialog.test`, `RemoveMemberDialog.test`, `LeaveGroup.test`, `TransferOwnership.test` | `clani.spec` |
 | FR-007-12 | `MemberAuditIT` | – | `clani.spec` (odstranjen urednik v sledi) |
 
-Merljiva merila: SC-001 – `FormerMemberSecurityIT`; SC-002 – `MemberConcurrencyIT`; SC-003 – `MemberConcurrencyIT`, `OwnershipTransferIT`; SC-004 – `clani.spec`;
-SC-005 – `MemberRulesTest`, `MemberRoleMatrixSecurityIT`; SC-006 – axe v vseh FE testih in E2E v sl **in** en pri 360/768/1280 px (in 320 px). Obstoječe testne
+Merljiva merila: SC-001 – `FormerMemberSecurityIT`; SC-002 – `MemberConcurrencyIT`, `MemberLockingIT`; SC-003 – `MemberConcurrencyIT`, `MemberLockingIT`, `OwnershipTransferIT`; SC-004 – `clani.spec`;
+SC-005 – `MemberRulesTest`, `MemberRoleMatrixSecurityIT` (obe z ročno določenimi pričakovanji, neodvisnimi od `MemberRules`); SC-006 – axe v vseh FE testih in E2E v sl **in** en pri 360/768/1280 px (in 320 px). Obstoječe testne
 datoteke 002/003 (`SettingsPage`, `GroupManagementSection.test`) morajo ostati zelene brez sprememb; če izvedba zahteva spremembo, velja workflow §2.2 (vnos v `DECISIONS.md`).
 
 ## Project Structure
@@ -174,6 +181,7 @@ specs/007-clani/
 ```text
 backend/src/main/resources/db/migration/V7__clani.sql
 backend/src/main/java/si/contactmanager/
+├── group/GroupReader.java             # NOVO: javni vmesnik (bean) – `read(Membership)` → `GroupDetail`; delegira na paketni `GroupService.read`, brez spremembe vedenja ali pogodbe 002 (I1)
 ├── member/
 │   ├── MemberController.java          # GET/PUT/DELETE …/members, POST …/leave, POST …/ownership-transfer
 │   ├── MemberService.java             # transakcije: zaklep skupine, ponovno branje, pravila (R-01 – R-03, R-06)
@@ -183,7 +191,7 @@ backend/src/main/java/si/contactmanager/
 │   └── {Member, Members, MemberState}.java
 └── shared/error/{OwnerCannotLeave, LastMemberCannotLeave, TargetNotMember}Exception.java + ApiExceptionHandler (3 kode)
 backend/src/test/java/si/contactmanager/member/
-├── {MemberListIT, MemberRoleChangeIT, MemberRemoveIT, MemberLeaveIT, OwnershipTransferIT, MemberConcurrencyIT, MemberAuditIT}.java
+├── {MemberListIT, MemberRoleChangeIT, MemberRemoveIT, MemberLeaveIT, OwnershipTransferIT, MemberConcurrencyIT, MemberLockingIT, MemberMigrationIT, MemberAuditIT}.java
 ├── {MemberIsolationMatrixSecurityIT, MemberRoleMatrixSecurityIT, FormerMemberSecurityIT}.java
 ├── {MemberRulesTest, MemberInputParserTest}.java
 └── support/MemberFixtures.java        # addMember(group, user, role), roleOf, versionOf, count, makePermanentlyArchived; + GroupFixtures, InvitationFixtures
@@ -204,7 +212,7 @@ e2e/tests/clani.spec.ts, e2e/tests/support/members.ts (pomožni SQL: dodajanje �
 
 **Structure Decision**: obstoječa struktura iz 000–006; nov paket `member` v zaledju in `features/members` v vmesniku, ker razdelek *Člani* in dejanji
 zapuščanja/prenosa sodijo v *Nastavitve* skupine, a imajo lastna pravila in testne sklope. Dostop do skupine preko javnega `GroupAccess` iz paketa `group`;
-zaklep vrstice skupine ima `MemberRepository` sam (kot `InvitationRepository`, `ContactRepository`, `AuditRepository`).
+javni `GroupReader` (paket `group`) da `member` odgovor `GroupDetail` po prenosu lastništva, ne da bi razkril paketni `GroupService`; zaklep vrstice skupine ima `MemberRepository` sam (kot `InvitationRepository`, `ContactRepository`, `AuditRepository`).
 
 ## Complexity Tracking
 

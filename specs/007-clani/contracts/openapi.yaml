@@ -38,6 +38,7 @@ paths:
       operationId: changeMemberRole
       summary: Spremeni vlogo člana (najnižja vloga ADMIN; FR-007-03, FR-007-04, FR-007-10)
       description: >
+        Vrstni red: 401, 404 (skupina/nečlan), 403 (klicatelj pod ADMIN – tudi pri neobstoječem `memberId`), 404 (`memberId` ni v tej skupini), 403, 409 GROUP_ARCHIVED, 409 VERSION_CONFLICT, 400.
         Cilj mora imeti strogo nižjo vlogo od klicatelja, nova vloga mora biti strogo nižja od klicateljeve in ne OWNER; sprememba lastnega članstva → 403.
         Verzija je verzija članstva, ki jo je uporabnik videl. Enaka, manjkajoča ali neznana vloga ali manjkajoča verzija → 400.
       parameters:
@@ -69,11 +70,13 @@ paths:
                   - { $ref: "#/components/schemas/VersionConflict" }
               examples:
                 archived: { value: { code: GROUP_ARCHIVED } }
-                conflict: { value: { code: VERSION_CONFLICT, current: { id: "0198…", name: Ana Novak, email: ana@primer.si, role: VIEWER, version: 1, self: false, canManage: true, updatedBy: { name: Pia Kos, email: pia@primer.si }, updatedAt: "2026-11-10T14:32:00Z" } } }
+                conflict: { value: { code: VERSION_CONFLICT, current: { id: "0193c4a2-7a1f-7c3e-9b1a-3d2f4e5a6b7c", name: Ana Novak, email: ana@primer.si, role: VIEWER, version: 1, self: false, canManage: true, updatedBy: { name: Pia Kos, email: pia@primer.si }, updatedAt: "2026-11-10T14:32:00Z" } } }
     delete:
       operationId: removeMember
       summary: Odstrani člana iz skupine (najnižja vloga ADMIN; FR-007-05, FR-007-10)
-      description: Cilj mora imeti strogo nižjo vlogo od klicatelja; odstranitev sebe, enakovrednega ali višjega → 403. Drugič isti cilj → 404.
+      description: >
+        Vrstni red: 401, 404 (skupina/nečlan), 403 (klicatelj pod ADMIN – tudi pri neobstoječem `memberId`), 404 (`memberId` ni v tej skupini), 403, 409 GROUP_ARCHIVED.
+        Cilj mora imeti strogo nižjo vlogo od klicatelja; odstranitev sebe, enakovrednega ali višjega → 403. Drugič isti cilj → 404.
       parameters:
         - { $ref: "#/components/parameters/GroupId" }
         - { $ref: "#/components/parameters/MemberId" }
@@ -235,5 +238,4 @@ components:
         deletedOwner: { type: boolean, description: Trajno arhivirana skupina – vmesnik prikaže informativno vrstico lastnika »izbrisan uporabnik«. }
         items: { type: array, items: { $ref: "#/components/schemas/Member" } }
     GroupDetail:
-      description: Kot v 002 (contracts/openapi.yaml).
-      type: object
+      $ref: "../../002-skupine/contracts/openapi.yaml#/components/schemas/GroupDetail"
