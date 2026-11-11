@@ -62,25 +62,27 @@ Neodvisni agent `pregled-testov`; najpozneje 3 krogi. Izid po krogih:
 
 Vse ugotovitve kroga 1 in priporočila kroga 2 so odpravljeni brez spremembe pričakovanih vrednosti, ki jih je potrdil krog 2 (priporočila so kozmetična: oznake, zapis znaka, dokumentacija).
 
-## Stanje po implementaciji (2026-11-11)
+## Stanje po implementaciji (2026-11-11, po D-71)
 
 | Raven | Izid |
 |---|---|
 | BE unit | 306 uspešnih, 0 neuspešnih |
-| BE integracijski (iskanje, filtri, razvrščanje, V8) | zeleni, ko se poganjajo posamično in v podskupinah (`Contact*IT`, `Audit*IT`, `Member*IT` …) |
-| FE funkcionalni + unit | 764/764 zelenih (63 datotek); lint, tipi, format, utišanja, prevodi brez napak |
-| E2E | zadnji celoten tek (315 testov, vključno z `iskanje.spec.ts`) zelen pred zadnjo spremembo FE; po njej ni ponovljen |
-| `./verify.sh full` | **PADEL** v koraku *integracijski BE*: samo `ContactSearchPagingIT › searchWithTwoConditionsAndTwoTagsIsFastAtTenThousandContacts` (SC-001); naslednji koraki niso tekli. **Ni zelen.** |
+| BE integracijski | 840 uspešnih, 0 neuspešnih (vključno z 008: iskanje, filtri, razvrščanje, V8, SC-001) |
+| BE varnostni | 744 uspešnih, 0 neuspešnih (matrika izolacije vseh funkcionalnosti 000–008) |
+| FE unit + funkcionalni | 85 + 679 = 764 uspešnih, 0 neuspešnih |
+| E2E (Playwright, 315 testov, 3 širine) | 315 uspešnih (vključno z `iskanje.spec.ts`) |
+| `./verify.sh full` | **zelen** (365 s), commit `e390479`+ |
+| Pregled skrivnosti cele veje (T056) | gitleaks `main..HEAD`: 14 commitov pregledanih, »no leaks found« |
+| `V4__kontakti.sql` | brez sprememb glede na `main` |
 
 ## Meritve
 
-SC-001 (`ContactSearchPagingIT`, iskanje + 2 pogoja + 2 znački, 10.000 kontaktov, 5 ogrevalnih + 50 meritev, p95 po najbližjem rangu, prag < 1000 ms). Okolje: PostgreSQL 18.6 (`postgres:18-alpine`), JDK 21, AMD Ryzen 7 8845HS (16 niti), commit `d5728e4`.
+SC-001 (`ContactSearchPagingIT`, iskanje + 2 pogoja + 2 znački, sort `email` padajoče, 10.000 kontaktov v skupini, 5 ogrevalnih + 50 meritev, p95 po najbližjem rangu, prag < 1000 ms). Okolje: PostgreSQL 18.6 (`postgres:18-alpine`, Testcontainers), JDK 21 (amd64), AMD Ryzen 7 8845HS (16 niti), JVM do 6824 MB, commit `e390479` (zadnja meritev v `./verify.sh full`, 2026-11-11).
 
-| Pogoj | p50 | p95 | največ | Izid |
-|---|---|---|---|---|
-| Test sam ali v podskupinah (več tekov) | 33–54 ms | 35–59 ms | do 60 ms | **prag dosežen** |
-| Celoten nabor integracijskih testov (približno 4 od 9 tekov) | 41–58 ms | 1269–1442 ms | do 1784 ms | **prag presežen** (nestabilno) |
+| Stanje | Teki | p50 | p95 | največ | Izid |
+|---|---|---|---|---|---|
+| Pred popravkom, test sam | 4 | 32–54 ms | 35–59 ms | do 60 ms | dosežen |
+| Pred popravkom, celoten nabor integracijskih testov | ~9 (4 neuspeli) | 41–58 ms | 1269–1442 ms (z `auto_explain` do 2099 ms) | do 2156 ms | presežen (nestabilno) |
+| **Po popravku (D-71), celoten nabor** | 3 sonde + `verify.sh full` | 58–66 ms | **67–74 ms** (zadnji: 72 ms) | do 76 ms | **dosežen, stabilno** |
 
-Analiza (dnevnik Postgres `log_min_duration_statement=300`, en tek): počasne so posamezne izvedbe pripravljenega stavka `S_11`, tj. preverjanja obstoja ključa `SELECT EXISTS (SELECT 1 FROM contact_attribute a JOIN contact c ON c.id = a.contact_id WHERE a.key_norm = $1 AND c.group_id = $2)` (`ContactRepository.existingKeys`, T049), približno 1,25 s; ostali zahtevki trajajo ~40 ms. Zastoji se ponavljajo na ~15 zahtevkov. Sum: pri polni bazi (veliko kontaktov z istim ključem v drugih skupinah) se izbira načrta za ta stavek občasno preklopi (pgjdbc preide po 5 izvedbah na strežniški pripravljeni stavek). Poskus z drugačnim zapisom (`OFFSET 0`) težave v enem nizu tekov ni odpravil in je bil zavržen. Vzrok ni dokončno potrjen (brez `EXPLAIN` v polnem okolju), popravek ni narejen. **Obravnava v `/speckit-converge`.**
-
-Prevzem: SC-001 je v izolaciji dosežen, v polnem testnem okolju občasno nestabilen; verifikacija ni zelena.
+Vzrok in popravek: D-71. `auto_explain` je pokazal, da je počasna samo poizvedba `existingKeys` (~1,25–2 s, ~8,4 M branj bufferjev), ker planer pri zastareli statistiki (po množičnem vstavljanju, pred samodejno analizo) izbere vgnezdeno zanko; po popravku ima poizvedba stalen načrt (najslabši primer 11 ms). Prag in test nista bila spremenjena.
