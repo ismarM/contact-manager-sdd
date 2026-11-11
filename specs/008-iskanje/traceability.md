@@ -62,6 +62,25 @@ Neodvisni agent `pregled-testov`; najpozneje 3 krogi. Izid po krogih:
 
 Vse ugotovitve kroga 1 in priporočila kroga 2 so odpravljeni brez spremembe pričakovanih vrednosti, ki jih je potrdil krog 2 (priporočila so kozmetična: oznake, zapis znaka, dokumentacija).
 
+## Stanje po implementaciji (2026-11-11)
+
+| Raven | Izid |
+|---|---|
+| BE unit | 306 uspešnih, 0 neuspešnih |
+| BE integracijski (iskanje, filtri, razvrščanje, V8) | zeleni, ko se poganjajo posamično in v podskupinah (`Contact*IT`, `Audit*IT`, `Member*IT` …) |
+| FE funkcionalni + unit | 764/764 zelenih (63 datotek); lint, tipi, format, utišanja, prevodi brez napak |
+| E2E | zadnji celoten tek (315 testov, vključno z `iskanje.spec.ts`) zelen pred zadnjo spremembo FE; po njej ni ponovljen |
+| `./verify.sh full` | **PADEL** v koraku *integracijski BE*: samo `ContactSearchPagingIT › searchWithTwoConditionsAndTwoTagsIsFastAtTenThousandContacts` (SC-001); naslednji koraki niso tekli. **Ni zelen.** |
+
 ## Meritve
 
-SC-001 se izmeri šele z implementacijo (`ContactSearchPagingIT`, naloga T018/T046): p50, p95, največ, okolje in commit se zapišejo v `backend/target/sc001-measurement.txt` in sem ob zaključku (T054).
+SC-001 (`ContactSearchPagingIT`, iskanje + 2 pogoja + 2 znački, 10.000 kontaktov, 5 ogrevalnih + 50 meritev, p95 po najbližjem rangu, prag < 1000 ms). Okolje: PostgreSQL 18.6 (`postgres:18-alpine`), JDK 21, AMD Ryzen 7 8845HS (16 niti), commit `d5728e4`.
+
+| Pogoj | p50 | p95 | največ | Izid |
+|---|---|---|---|---|
+| Test sam ali v podskupinah (več tekov) | 33–54 ms | 35–59 ms | do 60 ms | **prag dosežen** |
+| Celoten nabor integracijskih testov (približno 4 od 9 tekov) | 41–58 ms | 1269–1442 ms | do 1784 ms | **prag presežen** (nestabilno) |
+
+Analiza (dnevnik Postgres `log_min_duration_statement=300`, en tek): počasne so posamezne izvedbe pripravljenega stavka `S_11`, tj. preverjanja obstoja ključa `SELECT EXISTS (SELECT 1 FROM contact_attribute a JOIN contact c ON c.id = a.contact_id WHERE a.key_norm = $1 AND c.group_id = $2)` (`ContactRepository.existingKeys`, T049), približno 1,25 s; ostali zahtevki trajajo ~40 ms. Zastoji se ponavljajo na ~15 zahtevkov. Sum: pri polni bazi (veliko kontaktov z istim ključem v drugih skupinah) se izbira načrta za ta stavek občasno preklopi (pgjdbc preide po 5 izvedbah na strežniški pripravljeni stavek). Poskus z drugačnim zapisom (`OFFSET 0`) težave v enem nizu tekov ni odpravil in je bil zavržen. Vzrok ni dokončno potrjen (brez `EXPLAIN` v polnem okolju), popravek ni narejen. **Obravnava v `/speckit-converge`.**
+
+Prevzem: SC-001 je v izolaciji dosežen, v polnem testnem okolju občasno nestabilen; verifikacija ni zelena.
