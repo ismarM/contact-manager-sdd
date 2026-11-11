@@ -158,8 +158,9 @@ class ContactSearchIT extends ContactSearchApiTest {
         add(s, "S", "Presledki", null, "041 123 456", null);
         add(s, "B", "Brez", null, "041123456", null);
 
-        assertThat(found(s, "q", "041 123")).containsExactly("S Presledki");
+        assertThat(found(s, "q", "041 123")).containsExactlyInAnyOrder("S Presledki", "B Brez");
         assertThat(found(s, "q", "041123")).containsExactly("B Brez");
+        assertThat(found(s, "f", "phone:041 123")).containsExactly("S Presledki");
     }
 
     @Test

@@ -21,7 +21,7 @@ class ContactSortCollationIT extends ApiTest {
     @Test
     void bothCollationsExistAsNondeterministicIcu() {
         List<String> rows = jdbc.queryForList(
-                "select collname || ':' || collprovider || ':' || collisdeterministic from pg_collation"
+                "select collname || ':' || collprovider::text || ':' || collisdeterministic::text from pg_collation"
                         + " where collname in ('sort_sl', 'search_fold') order by collname",
                 String.class);
 

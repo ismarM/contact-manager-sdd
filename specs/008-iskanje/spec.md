@@ -129,7 +129,7 @@ Najnižja vloga za vse zahteve te funkcionalnosti je VIEWER, zato vrstica »vlog
 
 - Iskalni niz iz samih presledkov se obravnava kot prazen (prikazani so vsi kontakti); presledki na začetku in koncu se odstranijo, zaporedni presledki štejejo kot eden.
 - Posebni znaki v iskanju (`%`, `_`, `*`, `+`, `(`) se iščejo dobesedno, nimajo posebnega pomena.
-- Iskanje telefona: `041 123` najde »041 123 456«, ne pa »041123456« (primerjava je dobesedna, brez normalizacije telefonskih številk).
+- Iskanje telefona **[CR-008-1]**: primerjava je dobesedna, brez normalizacije telefonskih številk; presledki v telefonu ostanejo pomembni. Iskalni niz se pred primerjavo razdeli na besede (FR-008-02), zato `041 123` (besedi `041` in `123`) najde »041 123 456« in tudi »041123456«, `041123` (ena beseda) pa najde samo »041123456«, ne pa »041 123 456«. Pogoj filtra (FR-008-03) vrednosti ne razdeli: `phone:041 123` najde samo »041 123 456«.
 - Pogoj nad dodatnim ključem se ujema s ključem ne glede na velikost črk (`Kompetenca` = `kompetenca`); kontakt brez tega ključa pogoju ne ustreza.
 - Več pogojev nad istim poljem se kombinira z IN (npr. *kompetenca* vsebuje `web` in *kompetenca* vsebuje `dev`).
 - Značka v filtru, ki ne obstaja (več) v skupini, ne povzroči napake, ampak 0 zadetkov in prazno stanje; oznaka filtra ostane vidna in odstranljiva.
@@ -198,4 +198,5 @@ Najnižja vloga za vse zahteve te funkcionalnosti je VIEWER, zato vrstica »vlog
 
 | CR | Date | Affected FR-IDs | Summary | DECISIONS |
 |---|---|---|---|---|
-| – | – | – | Ni sprememb (razjasnitev 2026-11-10 je v *Clarifications*) | D-63 |
+| – | – | – | Razjasnitev 2026-11-10 je v *Clarifications* | D-63 |
+| CR-008-1 | 2026-11-11 | FR-008-02 | Robni primer iskanja telefona uskljen s FR-008-02: iskalni niz se vedno razdeli na besede, zato `041 123` najde tudi »041123456«. Prejšnja navedba (ne najde) je nasprotovala pravilu o besedah. | D-68 |
