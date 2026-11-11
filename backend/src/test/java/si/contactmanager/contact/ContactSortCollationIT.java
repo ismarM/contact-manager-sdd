@@ -19,6 +19,8 @@ class ContactSortCollationIT extends ApiTest {
     }
 
     @Test
+    @Tag("FR-008-02")
+    @Tag("FR-008-07")
     void bothCollationsExistAsNondeterministicIcu() {
         List<String> rows = jdbc.queryForList(
                 "select collname || ':' || collprovider::text || ':' || collisdeterministic::text from pg_collation"

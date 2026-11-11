@@ -153,6 +153,8 @@ class ContactSearchIT extends ContactSearchApiTest {
 
     @Test
     @Tag("FR-008-01")
+    @Tag("FR-008-02")
+    @Tag("FR-008-03")
     void phoneIsComparedLiterallyWithoutNormalization() throws Exception {
         Scenario s = scenario();
         add(s, "S", "Presledki", null, "041 123 456", null);

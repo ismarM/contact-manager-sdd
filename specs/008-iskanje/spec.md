@@ -199,4 +199,4 @@ Najnižja vloga za vse zahteve te funkcionalnosti je VIEWER, zato vrstica »vlog
 | CR | Date | Affected FR-IDs | Summary | DECISIONS |
 |---|---|---|---|---|
 | – | – | – | Razjasnitev 2026-11-10 je v *Clarifications* | D-63 |
-| CR-008-1 | 2026-11-11 | FR-008-02 | Robni primer iskanja telefona uskljen s FR-008-02: iskalni niz se vedno razdeli na besede, zato `041 123` najde tudi »041123456«. Prejšnja navedba (ne najde) je nasprotovala pravilu o besedah. | D-68 |
+| CR-008-1 | 2026-11-11 | FR-008-02, FR-008-03 | Robni primer iskanja telefona usklajen s FR-008-02: iskalni niz se vedno razdeli na besede, zato `041 123` najde tudi »041123456«. Prejšnja navedba (ne najde) je nasprotovala pravilu o besedah. | D-68 |
