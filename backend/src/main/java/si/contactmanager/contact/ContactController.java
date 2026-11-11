@@ -1,8 +1,9 @@
 package si.contactmanager.contact;
 
-import java.util.ArrayList;
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,12 +35,10 @@ import tools.jackson.databind.json.JsonMapper;
 @RequestMapping("/api/groups/{groupId}")
 class ContactController {
 
-    private static final int DEFAULT_SIZE = 25;
-    private static final Set<Integer> PAGE_SIZES = Set.of(25, 50, 100);
-
     private final ContactService service;
     private final GroupAccess access;
     private final ContactInputParser parser;
+    private final ContactQueryParser queryParser = new ContactQueryParser();
 
     ContactController(ContactService service, GroupAccess access, JsonMapper json) {
         this.service = service;
@@ -47,21 +46,20 @@ class ContactController {
         this.parser = new ContactInputParser(json);
     }
 
-    /** Seznam kontaktov skupine (FR-004-06); dovoljeno vsem članom, tudi v arhivirani skupini. */
+    /**
+     * Seznam kontaktov skupine (FR-004-06) z iskanjem, filtri in razvrščanjem (FR-008-01 do FR-008-09, FR-008-14 do
+     * FR-008-16); dovoljeno vsem članom, tudi v arhivirani skupini. Vrstni red: 401 → 404 → 400.
+     */
     @GetMapping("/contacts")
-    ContactPage list(
-            @AuthenticationPrincipal Jwt jwt,
-            @PathVariable String groupId,
-            @RequestParam(required = false) String page,
-            @RequestParam(required = false) String size) {
+    ContactPage list(@AuthenticationPrincipal Jwt jwt, @PathVariable String groupId, HttpServletRequest request) {
         Membership membership = access.require(jwt, groupId, Role.VIEWER, false);
-        List<FieldError> errors = new ArrayList<>();
-        Integer pageNumber = parsePage(page, errors);
-        Integer pageSize = parseSize(size, errors);
-        if (!errors.isEmpty()) {
-            throw new ValidationException(errors);
+        Map<String, List<String>> parameters = new LinkedHashMap<>();
+        request.getParameterMap().forEach((name, values) -> parameters.put(name, List.of(values)));
+        ContactQueryParser.Parsed parsed = queryParser.parse(parameters);
+        if (!parsed.valid()) {
+            throw new ValidationException(parsed.errors());
         }
-        return service.list(membership, pageNumber, pageSize);
+        return service.list(membership, parsed.query());
     }
 
     /** Pogled kontakta (FR-004-08). */
@@ -112,6 +110,12 @@ class ContactController {
         return ResponseEntity.noContent().build();
     }
 
+    /** Možnosti filtrov skupine (FR-008-06, FR-008-15, FR-008-16): dodatni ključi in značke samo te skupine. */
+    @GetMapping("/contact-filters")
+    ContactFilterOptions filterOptions(@AuthenticationPrincipal Jwt jwt, @PathVariable String groupId) {
+        return service.filterOptions(access.require(jwt, groupId, Role.VIEWER, false));
+    }
+
     /** Predlogi značk skupine (FR-004-04): urednik ali višje, tudi v arhivirani skupini (samo branje). */
     @GetMapping("/tags")
     TagSuggestions tags(
@@ -126,38 +130,6 @@ class ContactController {
         } catch (IllegalArgumentException e) {
             throw new NotFoundException();
         }
-    }
-
-    private static Integer parsePage(String value, List<FieldError> errors) {
-        if (value == null) {
-            return 0;
-        }
-        try {
-            int number = Integer.parseInt(value);
-            if (number >= 0) {
-                return number;
-            }
-        } catch (NumberFormatException e) {
-            // obravnavano spodaj
-        }
-        errors.add(new FieldError("page", "INVALID_VALUE"));
-        return null;
-    }
-
-    private static Integer parseSize(String value, List<FieldError> errors) {
-        if (value == null) {
-            return DEFAULT_SIZE;
-        }
-        try {
-            int number = Integer.parseInt(value);
-            if (PAGE_SIZES.contains(number)) {
-                return number;
-            }
-        } catch (NumberFormatException e) {
-            // obravnavano spodaj
-        }
-        errors.add(new FieldError("size", "INVALID_VALUE"));
-        return null;
     }
 
     private static long parseVersion(String value) {

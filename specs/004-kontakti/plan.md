@@ -6,7 +6,7 @@
 
 ## Summary
 
-Zaledje dobi paket `contact` z endpointi za seznam (paginiran, razvrščen po priimku in imenu po kodnih točkah Unicode, D-38), pogled,
+Zaledje dobi paket `contact` z endpointi za seznam (paginiran, razvrščen po priimku in imenu po kodnih točkah Unicode, D-38; **od 008 po slovenski abecedi, D-63**), pogled,
 ustvarjanje, urejanje in izbris kontakta ter za predloge značk skupine; podatki so v treh novih tabelah (migracija `V4__kontakti.sql`),
 sočasnost rešujeta zaklep vrstice kontakta in verzija (zastarela verzija z enakimi vrednostmi uspe, sicer `409 VERSION_CONFLICT`).
 Pravice in izolacijo skupin preverja obstoječi `GroupAccess`; kontakt druge skupine je vedno `404`. Vmesnik dobi zavihek *Kontakti*

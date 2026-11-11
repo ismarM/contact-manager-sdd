@@ -66,3 +66,9 @@ export interface ContactPage {
 export interface TagSuggestions {
   tags: string[];
 }
+
+/** Možnosti filtrov skupine (contracts/openapi.yaml – ContactFilterOptions). */
+export interface ContactFilterOptions {
+  keys: string[];
+  tags: string[];
+}

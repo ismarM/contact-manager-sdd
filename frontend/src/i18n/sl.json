@@ -198,7 +198,6 @@
       "moreTags": "+{{count}}",
       "empty": "Ta skupina še nima kontaktov.",
       "loading": "Nalagam…",
-      "loadFailed": "Kontaktov ni bilo mogoče naložiti. Poskusi znova.",
       "retry": "Poskusi znova"
     },
     "pagination": {
@@ -307,6 +306,53 @@
       "toInitial": "Povrnjeno na začetno stanje",
       "openEntry": "Odpri vnos povrnitve",
       "by": "Povrnil(a): {{name}}"
+    },
+    "search": {
+      "region": "Iskanje in filtri",
+      "label": "Iskanje po kontaktih",
+      "count_one": "Najden {{count}} kontakt",
+      "count_two": "Najdena {{count}} kontakta",
+      "count_few": "Najdeni {{count}} kontakti",
+      "count_other": "Najdenih {{count}} kontaktov",
+      "empty": "Ni kontaktov, ki ustrezajo filtrom.",
+      "clear": "Počisti filtre",
+      "invalid": "Filtri niso veljavni.",
+      "loadFailed": "Kontaktov ni bilo mogoče naložiti. Poskusi znova.",
+      "retry": "Poskusi znova"
+    },
+    "filters": {
+      "button": "Filtri",
+      "buttonCount": "Filtri ({{count}})",
+      "panel": "Filtri kontaktov",
+      "attribute": "Atribut {{n}}",
+      "value": "Vrednost {{n}}",
+      "removeCondition": "Odstrani pogoj {{n}}",
+      "addCondition": "Dodaj pogoj",
+      "tooManyConditions": "Dodaš lahko največ 10 pogojev.",
+      "tags": "Značke",
+      "findTag": "Poišči značko",
+      "tagsShown": "Značke: prikazanih {{shown}} od {{total}}",
+      "tagsNarrow": "Vpiši iskanje za ožji izbor.",
+      "noTags": "V tej skupini ni značk.",
+      "optionsFailed": "Filtrov ni bilo mogoče naložiti. Poskusi znova.",
+      "apply": "Uporabi filtre",
+      "clear": "Počisti filtre",
+      "applied": "Uporabljeni filtri",
+      "remove": "Odstrani filter {{label}}",
+      "conditionLabel": "{{field}} vsebuje {{value}}",
+      "tagLabel": "Značka: {{tag}}",
+      "fields": {
+        "firstName": "Ime",
+        "lastName": "Priimek",
+        "address": "Naslov",
+        "email": "E-naslov",
+        "phone": "Telefon"
+      }
+    },
+    "sort": {
+      "label": "Razvrsti",
+      "directionAsc": "Smer razvrščanja: naraščajoče",
+      "directionDesc": "Smer razvrščanja: padajoče"
     }
   },
   "audit": {

@@ -8,6 +8,12 @@
 
 **Input**: User description: "Iskanje kontaktov znotraj skupine s filtri (predefinirani atributi, dodatni atributi, značke) in razvrščanjem naraščajoče/padajoče (bralec in višje)."
 
+## Clarifications
+
+### Session 2026-11-10
+
+- Q: Po pravilih katerega jezika se kontakti razvrščajo (privzeto in po izbranem polju), glede na to, da D-38 (004) določa kodne točke Unicode, ta spec pa abecedo jezika vmesnika? → A: vedno po slovenski abecedi (Č za C, Š za S, Ž za Z), neodvisno od jezika vmesnika in uporabnika; velikost črk se ne upošteva; enake vrednosti razločijo priimek, ime, čas nastanka in id, da so strani paginacije stabilne. Odločitev D-63 nadomešča D-38 (feature-map §2.6 in FR-004-06 sta usklajena).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Hitro iskanje po kontaktih skupine (Priority: P1)
@@ -59,10 +65,11 @@
 
 **Acceptance Scenarios**:
 
-1. **[FR-008-07]** **Given** prvi obisk seznama brez parametrov, **When** se seznam prikaže, **Then** je razvrščen po priimku, nato imenu, naraščajoče po abecedi jezika vmesnika (č za c, š za s, ž za z).
+1. **[FR-008-07]** **Given** prvi obisk seznama brez parametrov, **When** se seznam prikaže, **Then** je razvrščen po priimku, nato imenu, naraščajoče po slovenski abecedi, neodvisno od jezika vmesnika (č za c, š za s, ž za z), npr. »Cene«, »Čeh«, »Dana«, »Šuligoj«, »Zupan«, »Žagar«.
 2. **[FR-008-07]** **Given** kontakti z dodatnim atributom `podjetje` »Beta«, »Alfa« in kontakt brez tega atributa, **When** član izbere *Razvrsti* po `podjetje` padajoče, **Then** je vrstni red »Beta«, »Alfa«, nato kontakt brez vrednosti; pri naraščajoči smeri »Alfa«, »Beta«, nato kontakt brez vrednosti.
-3. **[FR-008-07]** **Given** dva kontakta z enakim e-naslovom domene in razvrščanje po e-naslovu, kjer imata enako vrednost, **When** se seznam prikaže, **Then** je med njima vrstni red po priimku, nato imenu (naraščajoče).
-4. **[FR-008-07]** **Given** razvrščanje po stolpcu v preglednici, **When** član ponovno aktivira gumb v glavi stolpca, **Then** se smer obrne in `aria-sort` stolpca to odraža (design.md 8.6).
+3. **[FR-008-07]** **Given** dva kontakta z enakim e-naslovom domene in razvrščanje po e-naslovu, kjer imata enako vrednost, **When** se seznam prikaže, **Then** je med njima vrstni red po priimku, nato imenu (naraščajoče), pri popolnoma enakih podatkih pa po času nastanka in id, tako da se kontakt pri listanju ne ponovi in ne manjka.
+4. **[FR-008-07]** **Given** isti kontakti z imeni »Cene«, »Čeh«, »Zupan«, »Žagar« in povezava z isto razvrstitvijo, **When** jo odpreta član s slovenskim in član z angleškim vmesnikom, **Then** oba vidita enak vrstni red (Č za C, Ž za Z).
+5. **[FR-008-07]** **Given** razvrščanje po stolpcu v preglednici, **When** član ponovno aktivira gumb v glavi stolpca, **Then** se smer obrne in `aria-sort` stolpca to odraža (design.md 8.6).
 
 ---
 
@@ -122,13 +129,15 @@ Najnižja vloga za vse zahteve te funkcionalnosti je VIEWER, zato vrstica »vlog
 
 - Iskalni niz iz samih presledkov se obravnava kot prazen (prikazani so vsi kontakti); presledki na začetku in koncu se odstranijo, zaporedni presledki štejejo kot eden.
 - Posebni znaki v iskanju (`%`, `_`, `*`, `+`, `(`) se iščejo dobesedno, nimajo posebnega pomena.
-- Iskanje telefona: `041 123` najde »041 123 456«, ne pa »041123456« (primerjava je dobesedna, brez normalizacije telefonskih številk).
+- Iskanje telefona **[CR-008-1]**: primerjava je dobesedna, brez normalizacije telefonskih številk; presledki v telefonu ostanejo pomembni. Iskalni niz se pred primerjavo razdeli na besede (FR-008-02), zato `041 123` (besedi `041` in `123`) najde »041 123 456« in tudi »041123456«, `041123` (ena beseda) pa najde samo »041123456«, ne pa »041 123 456«. Pogoj filtra (FR-008-03) vrednosti ne razdeli: `phone:041 123` najde samo »041 123 456«.
 - Pogoj nad dodatnim ključem se ujema s ključem ne glede na velikost črk (`Kompetenca` = `kompetenca`); kontakt brez tega ključa pogoju ne ustreza.
 - Več pogojev nad istim poljem se kombinira z IN (npr. *kompetenca* vsebuje `web` in *kompetenca* vsebuje `dev`).
 - Značka v filtru, ki ne obstaja (več) v skupini, ne povzroči napake, ampak 0 zadetkov in prazno stanje; oznaka filtra ostane vidna in odstranljiva.
 - Ključ, ki je bil v deljeni povezavi veljaven, pa ga medtem noben kontakt nima več, povzroči `400 VALIDATION_FAILED` in sporočilo s *Počisti filtre* (FR-008-14).
 - Med tipkanjem se prikaže le rezultat zadnjega iskalnega niza; počasnejši odgovor starejše zahteve ne prepiše novejšega.
 - Kontakt, ki ga drug uporabnik spremeni ali izbriše med listanjem, se na naslednji strani pokaže po novem stanju; zaradi tega se lahko kontakt na sosednjih straneh ponovi ali manjka – to je sprejemljivo.
+- Razvrščanje presledkov, ločil in števk sledi pravilom ICU za slovenščino (nepomembni za črke): npr. »Novak Kralj«, »Novak-Kralj«, »Novakk«, »O Brien«, »O'Brien«, »Ob«, »Obrien« v tem vrstnem redu; razvrščanje je deterministično in enako za vse člane.
+- Pri iskanju se poleg strešic zlijejo tudi znaki, ki jih ICU na prvi ravni šteje za različice osnovne črke: `dorde` najde »Đorđe«, `lukasz` »Łukasz«, `cosic` »Ćosić«, `muller` »Müller«; presledki in ločila ostanejo pomembni (`novakkralj` ne najde »Novak-Kralj«).
 - Prazna skupina (brez kontaktov): prikaže se prazno stanje funkcionalnosti 004, ne stanje »Ni kontaktov, ki ustrezajo filtrom.«, razen če je nastavljen vsaj en filter ali iskalni niz.
 
 ## Requirements *(mandatory)*
@@ -141,7 +150,7 @@ Najnižja vloga za vse zahteve te funkcionalnosti je VIEWER, zato vrstica »vlog
 - **FR-008-04**: Sistem MORA omogočiti filtriranje po značkah (največ 30), pri čemer so zadetki samo kontakti, ki imajo **vse** izbrane značke (primerjava ne upošteva velikosti črk). *(najnižja vloga: VIEWER)*
 - **FR-008-05**: Sistem MORA iskalni niz, pogoje atributov in značke kombinirati z IN. *(najnižja vloga: VIEWER)*
 - **FR-008-06**: Sistem MORA za panel *Filtri* in izbiro *Razvrsti* ponuditi predefinirane atribute in seznam dodatnih ključev, ki obstajajo v kontaktih te skupine, ter seznam značk, ki obstajajo v kontaktih te skupine; nikoli ključev ali značk drugih skupin. *(najnižja vloga: VIEWER)*
-- **FR-008-07**: Sistem MORA omogočiti razvrščanje po kateremkoli predefiniranem atributu ali dodatnem ključu te skupine, naraščajoče ali padajoče, z izbirnim seznamom *Razvrsti* in gumbom smeri ter z gumbi v glavah stolpcev (design.md 8.6, 8.7); primerjava je abecedna po pravilih jezika vmesnika; kontakti brez vrednosti so v obeh smereh na koncu; enake vrednosti se razvrstijo po priimku, nato imenu (naraščajoče); privzeto razvrščanje je po priimku, nato imenu, naraščajoče (feature-map §2.6). *(najnižja vloga: VIEWER)*
+- **FR-008-07**: Sistem MORA omogočiti razvrščanje po kateremkoli predefiniranem atributu ali dodatnem ključu te skupine, naraščajoče ali padajoče, z izbirnim seznamom *Razvrsti* in gumbom smeri ter z gumbi v glavah stolpcev (design.md 8.6, 8.7); primerjava je abecedna po slovenski abecedi (Č za C, Š za S, Ž za Z), ne glede na velikost črk in neodvisno od jezika vmesnika (D-63), zato je vrstni red za vse člane in vse deljene povezave enak; kontakti brez vrednosti so v obeh smereh na koncu; enake vrednosti se razvrstijo po priimku, nato imenu (naraščajoče), nato po času nastanka in id, da je vrstni red popolnoma določen; privzeto razvrščanje je po priimku, nato imenu, naraščajoče z istimi pravili (feature-map §2.6). *(najnižja vloga: VIEWER)*
 - **FR-008-08**: Sistem MORA rezultate iskanja in filtrov paginirati (25 / 50 / 100 na stran, privzeto 25) in prikazati skupno število zadetkov ter položaj (design.md 8.9); ob spremembi iskanja, filtrov, razvrstitve ali velikosti strani se prikaže stran 1; zahtevana stran za zadnjo prikaže zadnjo obstoječo stran. *(najnižja vloga: VIEWER)*
 - **FR-008-09**: Sistem MORA iskalni niz, filtre, razvrstitev, stran in velikost strani hraniti v naslovu strani (URL), tako da *Nazaj*, *Naprej*, osvežitev in odprtje deljene povezave pri članu iste skupine prikažejo enako stanje. *(najnižja vloga: VIEWER)*
 - **FR-008-10**: Sistem MORA po vsaki osvežitvi rezultatov število zadetkov prikazati in ga sporočiti bralniku zaslona (»Najdenih N kontaktov«, z ustreznimi slovničnimi oblikami v sl/en). *(najnižja vloga: VIEWER)*
@@ -166,7 +175,7 @@ Najnižja vloga za vse zahteve te funkcionalnosti je VIEWER, zato vrstica »vlog
 
 - **SC-001**: V skupini z 10.000 kontakti 95 % iskanj s kombinacijo iskalnega niza, dveh pogojev in dveh značk vrne prvo stran rezultatov v manj kot 1 sekundi.
 - **SC-002**: Uporabnik v skupini s 500 kontakti najde določen kontakt po delu imena, e-naslova ali telefona v manj kot 15 sekundah.
-- **SC-003**: Odprtje deljene povezave ali osvežitev strani v 100 % primerov prikaže enako stanje iskanja, filtrov, razvrstitve in strani.
+- **SC-003**: Odprtje deljene povezave ali osvežitev strani v 100 % primerov prikaže enako stanje iskanja, filtrov, razvrstitve in strani, vključno z enakim vrstnim redom kontaktov ne glede na jezik vmesnika uporabnika.
 - **SC-004**: Testi izolacije v 100 % primerov ne vrnejo nobenega kontakta, ključa ali značke druge skupine.
 - **SC-005**: Celoten potek iskanja, filtriranja in razvrščanja je izvedljiv samo s tipkovnico in pri 320 px širine, brez kršitev axe (WCAG 2.1 A in AA).
 
@@ -174,7 +183,8 @@ Najnižja vloga za vse zahteve te funkcionalnosti je VIEWER, zato vrstica »vlog
 
 - Odvisna od **004-kontakti** (kontakti, predefinirani in dodatni atributi, značke, seznam in preglednica kontaktov s paginacijo); 008 seznam razširi z iskanjem, filtri in razvrščanjem, sama preglednica in prazno stanje prazne skupine sta v lasti 004.
 - Odvisna od **002-skupine** (članstvo in vloge) in **003-arhiviranje** (stanje arhivirane skupine, pasica).
-- **Odločitev – diakritični znaki:** pri iskanju in pogojih se diakritični znaki ne upoštevajo (`zupancic` najde »Zupančič«, `čeh` najde »Ceh«), ker uporabniki pogosto tipkajo brez strešic. Pri **razvrščanju** pa se upošteva abeceda jezika vmesnika (feature-map §2.6), torej je v slovenščini »Č« za »C«.
+- **Odločitev – diakritični znaki:** pri iskanju in pogojih se diakritični znaki ne upoštevajo (`zupancic` najde »Zupančič«, `čeh` najde »Ceh«), ker uporabniki pogosto tipkajo brez strešic. Pri **razvrščanju** pa velja slovenska abeceda (D-63), torej je »Č« za »C« za vse uporabnike, ne glede na jezik vmesnika; iskanje (brez strešic) in razvrščanje (s strešicami) sta namerno različna.
+- **Pojasnilo – »območje oznak filtrov«** (FR-008-11, scenarij 6 v US2): to je območje »Iskanje in filtri« nad preglednico; ko je odstranjena zadnja oznaka, fokus preide na gumb *Filtri* v istem območju.
 - **Odločitev – prosto iskanje** zajema samo predefinirane atribute (design.md 8.7); dodatni atributi in značke se iščejo s filtri. Besede iskalnega niza se kombinirajo z IN.
 - **Odločitev – meje:** iskalni niz do 200 znakov, do 10 pogojev atributov, do 30 značk v filtru, vrednost pogoja 1–500 znakov (najdaljša vrednost dodatnega atributa po §2.6).
 - **Odločitev – neznan ključ proti neznani znački:** pogoj ali razvrščanje nad ključem, ki ga v skupini ni, je `400 VALIDATION_FAILED` (ker gre za polje); značka, ki je v skupini ni, je veljavna vrednost in da 0 zadetkov. Odgovor je enak ne glede na to, ali ključ ali značka obstajata v drugi skupini, zato izolacija ni ogrožena.
@@ -188,4 +198,5 @@ Najnižja vloga za vse zahteve te funkcionalnosti je VIEWER, zato vrstica »vlog
 
 | CR | Date | Affected FR-IDs | Summary | DECISIONS |
 |---|---|---|---|---|
-| – | – | – | Ni sprememb | – |
+| – | – | – | Razjasnitev 2026-11-10 je v *Clarifications* | D-63 |
+| CR-008-1 | 2026-11-11 | FR-008-02, FR-008-03 | Robni primer iskanja telefona usklajen s FR-008-02: iskalni niz se vedno razdeli na besede, zato `041 123` najde tudi »041123456«. Prejšnja navedba (ne najde) je nasprotovala pravilu o besedah. | D-68 |

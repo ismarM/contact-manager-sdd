@@ -3,7 +3,14 @@ import { useMemo } from 'react';
 import type { AuthFetch } from '../../shared/api/authFetch';
 import { ApiError } from '../../shared/api/client';
 import { useAuth } from '../auth/authContext';
-import type { ContactDetail, ContactInput, ContactPage, TagSuggestions } from './types';
+import { type ContactQuery, toApiParams } from './contactQuery';
+import type {
+  ContactDetail,
+  ContactFilterOptions,
+  ContactInput,
+  ContactPage,
+  TagSuggestions,
+} from './types';
 
 // Odjemalec API kontaktov (plan.md – REST endpoints, contracts/openapi.yaml).
 
@@ -14,9 +21,10 @@ export function createContactsApi(authFetch: AuthFetch) {
   const contact = (groupId: string, contactId: string) =>
     `${base(groupId)}/contacts/${encodeURIComponent(contactId)}`;
   return {
-    listContacts(groupId: string, page: number, size: number): Promise<ContactPage> {
-      const query = new URLSearchParams({ page: String(page), size: String(size) });
-      return authFetch<ContactPage>(`${base(groupId)}/contacts?${query.toString()}`);
+    listContacts(groupId: string, query: ContactQuery, signal?: AbortSignal): Promise<ContactPage> {
+      return authFetch<ContactPage>(`${base(groupId)}/contacts?${toApiParams(query).toString()}`, {
+        signal,
+      });
     },
     getContact(groupId: string, contactId: string): Promise<ContactDetail> {
       return authFetch<ContactDetail>(contact(groupId, contactId));
@@ -44,6 +52,9 @@ export function createContactsApi(authFetch: AuthFetch) {
       return authFetch<void>(`${contact(groupId, contactId)}?${query.toString()}`, {
         method: 'DELETE',
       });
+    },
+    contactFilters(groupId: string, signal?: AbortSignal): Promise<ContactFilterOptions> {
+      return authFetch<ContactFilterOptions>(`${base(groupId)}/contact-filters`, { signal });
     },
     suggestTags(groupId: string, query: string, signal?: AbortSignal): Promise<TagSuggestions> {
       const params = new URLSearchParams({ q: query });
@@ -92,4 +103,15 @@ export function failureKey(
 
 export function isNotFound(error: unknown): boolean {
   return error instanceof ApiError && error.status === 404;
+}
+
+export type ListFailure = 'invalid' | 'notFound' | 'failed';
+
+/** Razvrstitev napake pri branju seznama: `400 VALIDATION_FAILED` (neveljavni filtri), `404`, sicer neuspeh nalaganja. */
+export function listFailure(error: unknown): ListFailure {
+  if (error instanceof ApiError) {
+    if (error.status === 400 && error.code === 'VALIDATION_FAILED') return 'invalid';
+    if (error.status === 404) return 'notFound';
+  }
+  return 'failed';
 }
