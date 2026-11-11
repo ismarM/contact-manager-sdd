@@ -196,10 +196,15 @@ class ContactRepository {
     java.util.Set<String> existingKeys(UUID group, Collection<String> keys) {
         java.util.Set<String> existing = new java.util.LinkedHashSet<>();
         for (String key : keys) {
-            boolean found = jdbc.sql("SELECT EXISTS (SELECT 1 FROM contact_attribute a"
-                            + " JOIN contact c ON c.id = a.contact_id WHERE a.key_norm = :key AND c.group_id = :group)")
-                    .param("key", key)
+            // Korelirana skalarna podizbira ima stalen načrt: kontakti skupine, za vsakega točno iskanje po indeksu
+            // contact_attribute_key (key_norm, contact_id). Zapis z JOIN ali EXISTS planer združi in pri zastareli
+            // statistiki (po množičnem vstavljanju, pred samodejno analizo) izbere vgnezdeno zanko z ~8 M branji
+            // (D-71).
+            boolean found = jdbc.sql("SELECT EXISTS (SELECT 1 FROM contact c WHERE c.group_id = :group AND"
+                            + " (SELECT 1 FROM contact_attribute a WHERE a.contact_id = c.id AND a.key_norm = :key"
+                            + " LIMIT 1) IS NOT NULL)")
                     .param("group", group)
+                    .param("key", key)
                     .query(Boolean.class)
                     .single();
             if (found) {
