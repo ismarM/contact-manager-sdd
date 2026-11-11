@@ -198,7 +198,6 @@
       "moreTags": "+{{count}}",
       "empty": "This group has no contacts yet.",
       "loading": "Loading…",
-      "loadFailed": "Contacts could not be loaded. Please try again.",
       "retry": "Try again"
     },
     "pagination": {

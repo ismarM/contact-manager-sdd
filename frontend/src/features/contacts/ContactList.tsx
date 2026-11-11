@@ -1,9 +1,16 @@
-import { IconAlertTriangle, IconDots } from '@tabler/icons-react';
+import {
+  IconAlertTriangle,
+  IconArrowDown,
+  IconArrowsSort,
+  IconArrowUp,
+  IconDots,
+} from '@tabler/icons-react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useLocation, useSearchParams } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { toast } from 'sonner';
 
+import { NotFoundPage } from '../../shared/pages/NotFoundPage';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,15 +27,40 @@ import {
 import { useGroup } from '../groups/groupContext';
 import { SectionPagination } from '../groups/SectionPagination';
 import { useDelayed } from '../groups/useDelayed';
-import { useContactsApi } from './api';
+import { type ListFailure, listFailure, useContactsApi } from './api';
 import { useConflictMessage } from './conflictMessage';
-import { canEditContacts, listSearch, type ListNotice, readPaging } from './contactRouting';
+import {
+  type ContactQuery,
+  type FieldRef,
+  serializeQuery,
+  toApiParams,
+  withChange,
+} from './contactQuery';
+import { canEditContacts, type ListNotice, listState } from './contactRouting';
+import { ContactToolbar } from './ContactToolbar';
 import { DeleteContactDialog } from './DeleteContactDialog';
 import type { ContactDetail, ContactPage, ContactSummary } from './types';
+import { type UpdateOptions, useContactQuery, useSearchText } from './useContactQuery';
 
 const VISIBLE_TAGS = 3;
 
-type State = { kind: 'loading' } | { kind: 'failed' } | { kind: 'ready'; data: ContactPage };
+/**
+ * Stanje branja seznama: izid zadnjega zahtevka (`key`) z zadnjimi uspešnimi podatki, ki ostanejo prikazani med
+ * ponovnim branjem in ob neuspehu osvežitve (design.md 8.15). Nalaganje je izpeljano: `key` ni ključ trenutnega zahtevka.
+ */
+interface ListState {
+  key: string | null;
+  data: ContactPage | null;
+  /** Poizvedba, ki je dala `data`, je imela iskalni niz ali filtre (prazno stanje). */
+  filtered: boolean;
+  /** Seznam je že vsaj enkrat odgovoril (uspešno ali z neveljavnimi filtri): orodna vrstica je prikazana. */
+  answered: boolean;
+  failure: Exclude<ListFailure, 'notFound'> | null;
+}
+
+function isFiltered(query: ContactQuery): boolean {
+  return query.q !== '' || query.conditions.length > 0 || query.tags.length > 0;
+}
 
 /** Stanje navigacije na seznam (po izbrisu iz pogleda): ponovno branje in morebitno sporočilo. */
 export interface ListNavigationState {
@@ -37,30 +69,47 @@ export interface ListNavigationState {
 }
 
 /**
- * Seznam kontaktov skupine (FR-004-06, FR-004-07; design.md 8.6, 8.9, 9.3): preglednica z napisom, ki se pod 640 px
- * vsebnika zloži v kartice (samo CSS), paginacija v naslovu poti (`page` 1-osna, `size`; privzeti vrednosti se ne
- * pišeta), stran onkraj zadnje preusmeri na zadnjo obstoječo (R-11). Med ponovnim branjem ostanejo stari podatki.
+ * Seznam kontaktov skupine (FR-004-06, FR-004-07, FR-008-01 … FR-008-17; design.md 8.6, 8.7, 8.9, 9.3): orodna vrstica
+ * z iskanjem, filtri in razvrščanjem, preglednica z napisom, ki se pod 640 px vsebnika zloži v kartice (samo CSS), in
+ * paginacija. Celotna poizvedba (iskanje, pogoji, značke, razvrstitev, stran, velikost) je v naslovu poti (R-07, R-11);
+ * stran onkraj zadnje preusmeri na zadnjo obstoječo. Med ponovnim branjem in ob neuspehu osvežitve ostanejo stari
+ * podatki; zastareli odgovor se zavrže.
  */
 export function ContactList({ titled, selectedId }: { titled: boolean; selectedId?: string }) {
   const { t } = useTranslation();
   const api = useContactsApi();
   const { group } = useGroup();
   const location = useLocation();
-  const [params, setParams] = useSearchParams();
-  const { page, size } = readPaging(params);
+  const { query, update } = useContactQuery();
   const navigation = (location.state ?? null) as ListNavigationState | null;
-  const [state, setState] = useState<State>({ kind: 'loading' });
+  const [state, setState] = useState<ListState>({
+    key: null,
+    data: null,
+    filtered: false,
+    answered: false,
+    failure: null,
+  });
+  const [gone, setGone] = useState(false);
   const [reloads, setReloads] = useState(0);
   const [notice, setNotice] = useState<ListNotice | null>(navigation?.notice ?? null);
   const [removing, setRemoving] = useState<ContactSummary | null>(null);
+  const pending = useRef<AbortController | null>(null);
+  const latest = useRef(0);
+  const requested = useRef<string | null>(null);
+  const mounted = useRef(false);
+  const updateRef = useRef(update);
   const heading = useRef<HTMLHeadingElement>(null);
+  const searchField = useRef<HTMLInputElement>(null);
   const focusHeading = useRef(false);
   const headingId = useId();
   const captionId = useId();
-  const showLoader = useDelayed(state.kind === 'loading');
+  const refresh = navigation?.refresh;
+  const requestKey = `${group.id}|${toApiParams(query).toString()}|${reloads}|${refresh ?? ''}`;
+  const loading = state.key !== requestKey;
+  const failure = loading ? null : state.failure;
+  const showLoader = useDelayed(loading);
   const conflictMessage = useConflictMessage();
   const editable = canEditContacts(group);
-  const refresh = navigation?.refresh;
   const title = t('title.groupScreen', { screen: t('contacts.screen.list'), group: group.title });
 
   useEffect(() => {
@@ -75,38 +124,104 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
     if (navigation?.notice) setNotice(navigation.notice);
   }
 
+  // Branje seznama: zadnji zahtevek zmaga, odgovor starejšega se zavrže, njegov zahtevek se prekine. Zahtevek se
+  // sproži takoj ob spremembi poizvedbe (`change`), še preden se izris odzove na nov naslov; učinek ga samo zagotovi
+  // (naslov iz zunanje navigacije) in ne podvoji.
+  const load = useCallback(
+    (next: ContactQuery, key: string) => {
+      if (requested.current === key) return;
+      requested.current = key;
+      pending.current?.abort();
+      const controller = new AbortController();
+      pending.current = controller;
+      const id = ++latest.current;
+      api.listContacts(group.id, next, controller.signal).then(
+        (data) => {
+          if (!mounted.current || id !== latest.current) return;
+          const pages = Math.max(1, Math.ceil(data.total / next.size));
+          if (next.page > pages) {
+            // Stran onkraj zadnje (stara povezava ali izbris zadnjega kontakta strani): zadnja obstoječa stran.
+            updateRef.current({ page: pages }, { replace: true });
+            return;
+          }
+          setState({ key, data, filtered: isFiltered(next), answered: true, failure: null });
+          if (focusHeading.current) {
+            focusHeading.current = false;
+            heading.current?.focus();
+          }
+        },
+        (error: unknown) => {
+          if (!mounted.current || id !== latest.current) return;
+          const kind = listFailure(error);
+          if (kind === 'notFound') {
+            setGone(true);
+            return;
+          }
+          // Neveljavni filtri: prejšnji zadetki ne ustrezajo več poizvedbi; sicer ostanejo prikazani.
+          setState((previous) => ({
+            key,
+            data: kind === 'invalid' ? null : previous.data,
+            filtered: previous.filtered,
+            answered: previous.answered || kind === 'invalid',
+            failure: kind,
+          }));
+        },
+      );
+    },
+    [api, group.id],
+  );
+
   useEffect(() => {
-    let active = true;
-    api.listContacts(group.id, page - 1, size).then(
-      (data) => {
-        if (!active) return;
-        const pages = Math.max(1, Math.ceil(data.total / size));
-        if (page > pages) {
-          // Stran onkraj zadnje (stara povezava ali izbris zadnjega kontakta strani): zadnja obstoječa stran.
-          setParams(listSearch(pages, size), { replace: true });
-          return;
-        }
-        setState({ kind: 'ready', data });
-        if (focusHeading.current) {
-          focusHeading.current = false;
-          heading.current?.focus();
-        }
-      },
-      () => {
-        if (active) setState({ kind: 'failed' });
-      },
-    );
+    mounted.current = true;
     return () => {
-      active = false;
+      mounted.current = false;
     };
-  }, [api, group.id, page, size, reloads, refresh, setParams]);
+  }, []);
+  useEffect(() => {
+    updateRef.current = update;
+  });
+  useEffect(() => {
+    load(query, requestKey);
+  }, [load, query, requestKey]);
+
+  /** Nova poizvedba: zahtevek steče takoj, naslov in izris sledita (brez podvojenega vnosa, če je naslov enak). */
+  const apply = useCallback(
+    (next: ContactQuery, options?: UpdateOptions) => {
+      if (serializeQuery(next) === serializeQuery(query)) return;
+      load(next, `${group.id}|${toApiParams(next).toString()}|${reloads}|${refresh ?? ''}`);
+      update(next, options);
+    },
+    [query, update, load, group.id, reloads, refresh],
+  );
 
   const reload = useCallback(() => setReloads((n) => n + 1), []);
 
   const goTo = (nextPage: number, nextSize: number) => {
     focusHeading.current = true;
-    setParams(listSearch(nextPage, nextSize));
+    changeQuery(nextSize === query.size ? { page: nextPage } : { size: nextSize });
   };
+
+  const [searchText, setSearchText, flushSearch] = useSearchText(query.q, (q) =>
+    apply(withChange(query, { q }), { replace: true }),
+  );
+  const changeQuery = (change: Partial<ContactQuery>, options?: UpdateOptions) =>
+    apply(withChange(query, { ...change, q: flushSearch(change.q) }), options);
+  // Besedilo v polju se razlikuje od iskanja v naslovu: seznam se bo osvežil (zakasnitev 300 ms).
+  const searchPending = searchText.trim() !== query.q;
+
+  const clearFilters = () => changeQuery({ q: '', conditions: [], tags: [] });
+  // Gumb v praznem stanju in opozorilu izgine: fokus preide na iskalno polje (design.md 8.12).
+  const clearAndFocus = () => {
+    clearFilters();
+    searchField.current?.focus();
+  };
+
+  const sortBy = (field: FieldRef) =>
+    changeQuery(
+      query.sort === field
+        ? { dir: query.dir === 'asc' ? 'desc' : 'asc' }
+        : { sort: field, dir: 'asc' },
+    );
 
   const onDeleted = (name: string) => {
     setRemoving(null);
@@ -125,8 +240,13 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
     reload();
   };
 
-  const data = state.kind === 'ready' ? state.data : null;
-  const query = location.search;
+  if (gone) return <NotFoundPage />;
+
+  const data = state.data;
+  // Orodna vrstica se pokaže z odgovorom seznama; prazna skupina brez iskanja in filtrov je ne potrebuje.
+  const showToolbar =
+    state.answered && !(data?.total === 0 && !state.filtered && !isFiltered(query));
+  const link = listState(query);
   const base = `/groups/${group.id}/contacts`;
 
   return (
@@ -136,11 +256,23 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
           {t('contacts.heading')}
         </h2>
         {editable && data && data.total > 0 && (
-          <Link to={`${base}/new`} className={primaryButton}>
+          <Link to={`${base}/new${link}`} className={primaryButton}>
             {t('contacts.newContact')}
           </Link>
         )}
       </div>
+
+      {showToolbar && (
+        <ContactToolbar
+          query={query}
+          update={changeQuery}
+          searchText={searchText}
+          onSearchText={setSearchText}
+          total={data?.total ?? null}
+          searchRef={searchField}
+          onClear={clearFilters}
+        />
+      )}
 
       {notice && (
         <div role="alert" className={notice.kind === 'gone' ? errorAlert : warningAlert}>
@@ -155,34 +287,50 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
         </div>
       )}
 
-      {state.kind === 'failed' && (
+      {failure === 'failed' && (
         <div role="alert" className={errorAlert}>
           <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
           <span className="flex flex-wrap items-center gap-3">
-            {t('contacts.list.loadFailed')}
-            <button
-              type="button"
-              className={secondaryButton}
-              onClick={() => {
-                setState({ kind: 'loading' });
-                reload();
-              }}
-            >
-              {t('contacts.list.retry')}
+            {t('contacts.search.loadFailed')}
+            <button type="button" className={secondaryButton} onClick={reload}>
+              {t('contacts.search.retry')}
             </button>
           </span>
         </div>
       )}
 
-      {state.kind === 'loading' && showLoader && <p role="status">{t('contacts.list.loading')}</p>}
+      {failure === 'invalid' && (
+        <div role="alert" className={errorAlert}>
+          <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
+          <span className="flex flex-wrap items-center gap-3">
+            {t('contacts.search.invalid')}
+            <button type="button" className={secondaryButton} onClick={clearAndFocus}>
+              {t('contacts.search.clear')}
+            </button>
+          </span>
+        </div>
+      )}
+
+      {loading && showLoader && <p role="status">{t('contacts.list.loading')}</p>}
 
       {data && data.total === 0 && (
         <div className="flex flex-col items-start gap-3 py-4">
-          <h3 className="text-lg font-bold">{t('contacts.list.empty')}</h3>
-          {editable && (
-            <Link to={`${base}/new`} className={primaryButton}>
-              {t('contacts.newContact')}
-            </Link>
+          {state.filtered ? (
+            <>
+              <h3 className="text-lg font-bold">{t('contacts.search.empty')}</h3>
+              <button type="button" className={secondaryButton} onClick={clearAndFocus}>
+                {t('contacts.search.clear')}
+              </button>
+            </>
+          ) : (
+            <>
+              <h3 className="text-lg font-bold">{t('contacts.list.empty')}</h3>
+              {editable && (
+                <Link to={`${base}/new${link}`} className={primaryButton}>
+                  {t('contacts.newContact')}
+                </Link>
+              )}
+            </>
           )}
         </div>
       )}
@@ -192,6 +340,7 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
           <div
             role="region"
             aria-labelledby={captionId}
+            aria-busy={loading || searchPending ? 'true' : undefined}
             tabIndex={0}
             className={`contacts-list overflow-x-auto ${focusRing}`}
           >
@@ -201,15 +350,24 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
               </caption>
               <thead className="sticky top-0 bg-card">
                 <tr>
-                  <th scope="col" className="border-b border-border p-2">
-                    {t('contacts.list.name')}
-                  </th>
-                  <th scope="col" className="border-b border-border p-2">
-                    {t('contacts.list.email')}
-                  </th>
-                  <th scope="col" className="border-b border-border p-2">
-                    {t('contacts.list.phone')}
-                  </th>
+                  <SortHeader
+                    field="lastName"
+                    label={t('contacts.list.name')}
+                    query={query}
+                    onSort={sortBy}
+                  />
+                  <SortHeader
+                    field="email"
+                    label={t('contacts.list.email')}
+                    query={query}
+                    onSort={sortBy}
+                  />
+                  <SortHeader
+                    field="phone"
+                    label={t('contacts.list.phone')}
+                    query={query}
+                    onSort={sortBy}
+                  />
                   <th scope="col" className="border-b border-border p-2">
                     {t('contacts.list.tags')}
                   </th>
@@ -229,7 +387,7 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
                   >
                     <th scope="row" className="p-2 font-bold break-words">
                       <Link
-                        to={`${base}/${contact.id}${query}`}
+                        to={`${base}/${contact.id}${link}`}
                         className={`text-primary underline underline-offset-4 ${focusRing}`}
                       >
                         {contact.displayName}
@@ -253,7 +411,7 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
                       <td data-actions className="p-2 text-right">
                         <RowActions
                           contact={contact}
-                          editTo={`${base}/${contact.id}/edit${query}`}
+                          editTo={`${base}/${contact.id}/edit${link}`}
                           onDelete={() => setRemoving(contact)}
                         />
                       </td>
@@ -265,11 +423,11 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
           </div>
           <SectionPagination
             label={t('contacts.pagination.label')}
-            page={page - 1}
-            size={size}
+            page={query.page - 1}
+            size={query.size}
             total={data.total}
             disabled={false}
-            onPage={(next) => goTo(next + 1, size)}
+            onPage={(next) => goTo(next + 1, query.size)}
             onSize={(next) => goTo(1, next)}
           />
         </>
@@ -288,6 +446,38 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
         />
       )}
     </section>
+  );
+}
+
+/** Glava stolpca, po katerem je mogoče razvrščati (FR-008-07; design.md 8.6): gumb, `aria-sort` in puščica smeri. */
+function SortHeader({
+  field,
+  label,
+  query,
+  onSort,
+}: {
+  field: FieldRef;
+  label: string;
+  query: ContactQuery;
+  onSort: (field: FieldRef) => void;
+}) {
+  const active = query.sort === field;
+  const Icon = !active ? IconArrowsSort : query.dir === 'desc' ? IconArrowDown : IconArrowUp;
+  return (
+    <th
+      scope="col"
+      aria-sort={!active ? 'none' : query.dir === 'desc' ? 'descending' : 'ascending'}
+      className="border-b border-border p-2"
+    >
+      <button
+        type="button"
+        className={`inline-flex min-h-11 items-center gap-1 font-bold ${focusRing}`}
+        onClick={() => onSort(field)}
+      >
+        {label}
+        <Icon aria-hidden="true" size={16} stroke={1.75} />
+      </button>
+    </th>
   );
 }
 
