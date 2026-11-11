@@ -35,9 +35,53 @@ class ContactService {
         this.audit = audit;
     }
 
-    ContactPage list(Membership membership, int page, int size) {
+    /**
+     * Stran zadetkov (FR-008-01 do FR-008-09): po sintaktični razčlenitvi se preveri še obstoj dodatnih ključev v tej
+     * skupini; odgovor je enak za ključ, ki ga ni nikjer, in za ključ samo v drugi skupini (FR-008-14, FR-008-16).
+     */
+    ContactPage list(Membership membership, ContactQuery query) {
+        requireKnownKeys(membership, query);
         return new ContactPage(
-                contacts.count(membership.groupId()), page, size, contacts.page(membership.groupId(), size, page));
+                contacts.count(membership.groupId(), query),
+                query.page(),
+                query.size(),
+                contacts.page(membership.groupId(), query));
+    }
+
+    /** Možnosti filtrov skupine (FR-008-06). */
+    ContactFilterOptions filterOptions(Membership membership) {
+        return contacts.filterOptions(membership.groupId());
+    }
+
+    private void requireKnownKeys(Membership membership, ContactQuery query) {
+        java.util.Set<String> wanted = new java.util.LinkedHashSet<>();
+        for (ContactQuery.Condition condition : query.conditions()) {
+            if (condition.field().kind() == ContactQuery.Kind.ATTRIBUTE) {
+                wanted.add(condition.field().keyNorm());
+            }
+        }
+        if (query.sort().kind() == ContactQuery.Kind.ATTRIBUTE) {
+            wanted.add(query.sort().keyNorm());
+        }
+        if (wanted.isEmpty()) {
+            return;
+        }
+        java.util.Set<String> existing = contacts.existingKeys(membership.groupId(), wanted);
+        List<si.contactmanager.shared.error.ValidationError.FieldError> errors = new java.util.ArrayList<>();
+        for (int i = 0; i < query.conditions().size(); i++) {
+            ContactQuery.Field field = query.conditions().get(i).field();
+            if (field.kind() == ContactQuery.Kind.ATTRIBUTE && !existing.contains(field.keyNorm())) {
+                errors.add(
+                        new si.contactmanager.shared.error.ValidationError.FieldError("f[" + i + "]", "UNKNOWN_FIELD"));
+            }
+        }
+        if (query.sort().kind() == ContactQuery.Kind.ATTRIBUTE
+                && !existing.contains(query.sort().keyNorm())) {
+            errors.add(new si.contactmanager.shared.error.ValidationError.FieldError("sort", "UNKNOWN_FIELD"));
+        }
+        if (!errors.isEmpty()) {
+            throw new ValidationException(errors);
+        }
     }
 
     ContactDetail read(Membership membership, UUID id) {

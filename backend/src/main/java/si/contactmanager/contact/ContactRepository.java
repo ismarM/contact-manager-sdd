@@ -92,23 +92,19 @@ class ContactRepository {
                 withChildren(contact, attributes(id), tags(List.of(id)).getOrDefault(id, List.of())));
     }
 
-    long count(UUID group) {
-        return jdbc.sql("SELECT count(*) FROM contact WHERE group_id = :group")
-                .param("group", group)
-                .query(Long.class)
-                .single();
+    long count(UUID group, ContactQuery query) {
+        ContactSearch.Sql sql = ContactSearch.count(group, query);
+        return jdbc.sql(sql.text()).params(sql.parameters()).query(Long.class).single();
     }
 
-    /** Stran kontaktov po priimku, nato imenu (kodne točke, prazno na koncu), nato po času nastanka in id (D-38). */
-    List<ContactSummary> page(UUID group, int size, int page) {
-        List<ContactSummary> rows = jdbc.sql(
-                        "SELECT id, first_name, last_name, email, phone, version, reverted_entry_id IS NOT NULL AS reverted FROM contact"
-                                + " WHERE group_id = :group"
-                                + " ORDER BY sort_last NULLS LAST, sort_first NULLS LAST, created_at, id"
-                                + " LIMIT :size OFFSET :offset")
-                .param("group", group)
-                .param("size", size)
-                .param("offset", (long) page * size)
+    /**
+     * Stran zadetkov poizvedbe (iskanje, pogoji, značke, razvrščanje po slovenski abecedi, D-63); besedilo SQL gradi
+     * {@link ContactSearch}, vse vrednosti so imenovani parametri.
+     */
+    List<ContactSummary> page(UUID group, ContactQuery query) {
+        ContactSearch.Sql sql = ContactSearch.page(group, query);
+        List<ContactSummary> rows = jdbc.sql(sql.text())
+                .params(sql.parameters())
                 .query((rs, row) -> {
                     String first = rs.getString("first_name");
                     String last = rs.getString("last_name");
@@ -194,6 +190,43 @@ class ContactRepository {
                 .param("group", group)
                 .param("id", id)
                 .update();
+    }
+
+    /** Normalizirani dodatni ključi iz {@code keys}, ki jih ima vsaj en kontakt te skupine (FR-008-14, R-06). */
+    java.util.Set<String> existingKeys(UUID group, Collection<String> keys) {
+        java.util.Set<String> existing = new java.util.LinkedHashSet<>();
+        for (String key : keys) {
+            boolean found = jdbc.sql("SELECT EXISTS (SELECT 1 FROM contact_attribute a"
+                            + " JOIN contact c ON c.id = a.contact_id WHERE a.key_norm = :key AND c.group_id = :group)")
+                    .param("key", key)
+                    .param("group", group)
+                    .query(Boolean.class)
+                    .single();
+            if (found) {
+                existing.add(key);
+            }
+        }
+        return existing;
+    }
+
+    /**
+     * Možnosti filtrov skupine (FR-008-06): različni ključi in značke, vsak v obliki najstarejšega kontakta, po
+     * slovenski abecedi (research R-08).
+     */
+    ContactFilterOptions filterOptions(UUID group) {
+        List<String> keys = jdbc.sql("SELECT key FROM (SELECT DISTINCT ON (a.key_norm) a.key_norm, a.key"
+                        + " FROM contact_attribute a JOIN contact c ON c.id = a.contact_id WHERE c.group_id = :group"
+                        + " ORDER BY a.key_norm, c.created_at, c.id) s ORDER BY key_norm COLLATE sort_sl, key_norm")
+                .param("group", group)
+                .query(String.class)
+                .list();
+        List<String> tags = jdbc.sql("SELECT tag FROM (SELECT DISTINCT ON (t.tag_norm) t.tag_norm, t.tag"
+                        + " FROM contact_tag t JOIN contact c ON c.id = t.contact_id WHERE c.group_id = :group"
+                        + " ORDER BY t.tag_norm, c.created_at, c.id) s ORDER BY tag_norm COLLATE sort_sl, tag_norm")
+                .param("group", group)
+                .query(String.class)
+                .list();
+        return new ContactFilterOptions(keys, tags);
     }
 
     /**
