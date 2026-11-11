@@ -9,7 +9,7 @@ Vsak test nosi FR-ID (`@Tag("FR-008-NN")` v JUnit; FR-ID v imenu testa v Vitest 
 |---|---|---|---|
 | FR-008-01 | `ContactQueryParserTest`, `ContactSearchIT` | `ContactSearch.test` | `iskanje.spec` |
 | FR-008-02 | `ContactQueryParserTest`, `ContactSearchIT`, `ContactSortCollationIT` | `ContactSearch.test` (nespremenjen niz) | `iskanje.spec` |
-| FR-008-03 | `ContactQueryParserTest`, `ContactFilterIT` | `ContactFilters.test`, `contactQuery.test` | `iskanje.spec` |
+| FR-008-03 | `ContactQueryParserTest`, `ContactFilterIT`, `ContactSearchIT` | `ContactFilters.test`, `contactQuery.test` | `iskanje.spec` |
 | FR-008-04 | `ContactQueryParserTest`, `ContactFilterIT` | `ContactFilters.test`, `contactQuery.test` | `iskanje.spec` (tudi 1000 značk) |
 | FR-008-05 | `ContactFilterIT` | `ContactFilters.test` | `iskanje.spec` |
 | FR-008-06 | `ContactFilterOptionsIT`, `ContactSearchIsolationMatrixSecurityIT` | `ContactFilters.test` (tudi 1000 značk, iskanje značk) | `iskanje.spec` |
