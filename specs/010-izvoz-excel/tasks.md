@@ -345,3 +345,9 @@ T034 exportFileName.ts
 - Testa nikoli ne spremeni, da bi ustrezal kodi; vsaka sprememba testa po pregledu dobi vnos v DECISIONS.md.
 - Brez utišanj brez odobrenega D-NN; barve samo iz žetonov design.md.
 - Pred označitvijo naloge kot opravljene požene `./verify.sh quick`.
+
+## Phase 11: Convergence
+
+- [ ] T048 Uskladi plan.md (*Project structure*, `api.ts`, `apiFetchBlob`), research.md R-02/R-03 in tasks T035/T036 z izvedbo: zahtevek izvoza gre prek `authFetchBlob` iz `shared/api/authFetch.ts` (dodaja `Authorization`, obravnava izgubljeno sejo), podpis je `exportContacts(authFetchBlob, groupId, request)`, zapis razvrstitve `attr:‹ključ›` poleg `x.‹ključ›` (D-92). Izvedba je pravilna, dokumenti so zastareli – popravi dokumente, ne kode (plan: Public Interfaces; partial)
+- [ ] T049 FR-010-02 (US2/AC2) Dopolni `ExportButton.test.tsx`: po *Posodobi izbor* in ponovnem *Izvozi v Excel* zahtevek vsebuje 13 identitet (mock `selectionCheck` vrne spremembo samo enkrat). Odprta ugotovitev pregleda testov (krog 2); sprememba testa dobi vnos v DECISIONS.md (partial)
+- [ ] T050 FR-010-13 Dopolni `ExportPerformanceIT`: poleg časa preveri, da je izvoz 10 000 identitet sprejet (`200`, meja `contactIds` 10 000 še velja), ali odstrani oznako FR-010-13 iz testa. Odprta ugotovitev pregleda testov (krog 2); sprememba testa dobi vnos v DECISIONS.md (partial)
