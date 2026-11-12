@@ -178,9 +178,9 @@ description: "Tasks for 009-mnozicno-urejanje (tests mandatory, independent test
 ## Phase 11: Polish & Cross-Cutting Concerns
 
 - [X] T051 FR-009-01 … FR-009-18 `/speckit-converge` do »Converged«; manjkajoče doda kot naloge in jih izvede.
-- [ ] T052 SC-001 … SC-005 Posodobi specs/009-mnozicno-urejanje/traceability.md: vsak FR-ID → testi → stanje; *Meritve*: SC-001 (E2E čas), SC-002 (`BulkPerformanceIT` p50/p95/največ in okolje, R-07).
-- [ ] T053 — `./verify.sh full` zelen (vključno z vsemi testi 000–008).
-- [ ] T054 — Ročni pregled skrivnosti cele veje (`gitleaks` nad `git diff main...`), izid v opisu PR.
+- [X] T052 SC-001 … SC-005 Posodobi specs/009-mnozicno-urejanje/traceability.md: vsak FR-ID → testi → stanje; *Meritve*: SC-001 (E2E čas), SC-002 (`BulkPerformanceIT` p50/p95/največ in okolje, R-07).
+- [X] T053 — `./verify.sh full` zelen (vključno z vsemi testi 000–008).
+- [X] T054 — Ročni pregled skrivnosti cele veje (`gitleaks` nad `git diff main...`), izid v opisu PR.
 - [ ] T055 — Push veje `mnozicno-urejanje` in PR v `main`: predpostavke (D-72, R-02 razlikovanje 404/409, R-08 nginx, odprta uskladitev 010), izid pregleda testov, commit `test(009)`.
 - [ ] T056 — Razvijalca: pregled PR, odločitev o D-72 (besedilo design.md 8.8), ročni preizkus tipkovnice in bralnika zaslona (design.md §10); merge (agent pusti neoznačeno).
 
