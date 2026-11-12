@@ -106,3 +106,21 @@ export async function createContactViaApi(
   if (response.status() !== 201) throw new Error(`ustvarjanje kontakta: ${response.status()}`);
   return ((await response.json()) as { id: string }).id;
 }
+
+// --- 009: množične operacije -----------------------------------------------------------------------------------------
+
+/** Najnovejši vnos sledi skupine: vrsta dejanja in število kontaktov v vnosu (`null` v prazni sledi). */
+export function lastAuditEntry(groupId: string): { action: string; contactCount: number } | null {
+  const row = sql(
+    `select action || '|' || contact_count from audit_entry
+     where group_id = ${literal(groupId)}::uuid order by seq desc limit 1`,
+  ).trim();
+  if (row === '') return null;
+  const [action = '', count = '0'] = row.split('|');
+  return { action, contactCount: Number(count) };
+}
+
+/** Število vnosov sledi skupine (kot `auditCount`, za branje v testih množičnih operacij). */
+export function auditEntryCount(groupId: string): number {
+  return auditCount(groupId);
+}
