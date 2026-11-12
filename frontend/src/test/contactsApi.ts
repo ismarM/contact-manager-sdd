@@ -263,7 +263,8 @@ export function mockContactsApi(
         ? await handlers.export(exported, group)
         : exportReply({ count: exported.contactIds.length });
       if (typeof outcome === 'object' && 'file' in outcome) {
-        return new HttpResponse(new Blob(['xlsx'], { type: XLSX_TYPE }), {
+        // Telo iz bajtov: jsdomov Blob nima stream(), zato ga undici v Node 22 (CI) zavrne.
+        return new HttpResponse(new TextEncoder().encode('xlsx'), {
           status: 200,
           headers: {
             'Content-Type': XLSX_TYPE,
