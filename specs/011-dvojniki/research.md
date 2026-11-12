@@ -161,7 +161,7 @@ Stanje ob izdelavi načrta: veja `izvoz-excel` ni potisnjena v `origin` (ob `git
 
 - **Pravilo:** 011 se razvija v veji `dvojniki` iz `origin/main`; ne dotika se Patrikove veje in ne izvaja `merge`/`rebase` brez navodila. Skupne datoteke se spreminjajo z majhnimi, samostojnimi dodatki.
 
-## R-16 Odločitve, ki čakajo na potrditev razvijalca
+## R-16 Odločitve razvijalca (O-1 … O-4 POTRJENO 2026-11-12, D-92)
 
 | # | Vprašanje | Priporočilo | Če razvijalec zavrne |
 |---|---|---|---|
