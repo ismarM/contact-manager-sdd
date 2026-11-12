@@ -28,6 +28,9 @@ public abstract class ApiTest {
     static void infrastructure(DynamicPropertyRegistry registry) {
         PostgresContainer.register(registry);
         FirebaseEmulatorContainer.register(registry);
+        // 012: ponavljanje brisanja identitete ne tekmuje s testi; testi kličejo IdentityDeletionJob.runOnce()
+        // neposredno.
+        registry.add("identity-deletion.scheduler-enabled", () -> "false");
     }
 
     @LocalServerPort

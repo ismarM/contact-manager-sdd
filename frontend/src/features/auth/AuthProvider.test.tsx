@@ -1,9 +1,10 @@
 import { screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { i18n } from '../../i18n';
 import { ANA, createAuthFake } from '../../test/authFake';
-import { ANA_PROFILE, mockProfileApi, renderApp } from '../../test/renderApp';
+import { confirmDeletion, openDeleteDialog, renderAccountApp, replies } from '../../test/myDataApi';
+import { ANA_PROFILE, currentLocation, mockProfileApi, renderApp } from '../../test/renderApp';
 
 describe('AuthProvider – sinhronizacija profila in izbire', () => {
   beforeEach(async () => {
@@ -53,5 +54,79 @@ describe('AuthProvider – sinhronizacija profila in izbire', () => {
     expect(localStorage.getItem('language')).toBeNull();
     expect(localStorage.getItem('theme')).toBeNull();
     expect(document.documentElement.dataset.theme).toBeUndefined();
+  });
+});
+
+describe('AuthProvider – izbris računa (accountDeleted)', () => {
+  beforeEach(async () => {
+    await i18n.changeLanguage('sl');
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /** Beleži vse poti, ki jih usmerjevalnik zapiše v zgodovino brskalnika. */
+  function recordNavigation() {
+    const visited: string[] = [];
+    const push = window.history.pushState.bind(window.history);
+    const replace = window.history.replaceState.bind(window.history);
+    const note = (url: string | URL | null | undefined) => {
+      if (url !== undefined && url !== null) visited.push(String(url));
+    };
+    vi.spyOn(window.history, 'pushState').mockImplementation((data, unused, url) => {
+      note(url);
+      push(data, unused, url);
+    });
+    vi.spyOn(window.history, 'replaceState').mockImplementation((data, unused, url) => {
+      note(url);
+      replace(data, unused, url);
+    });
+    return visited;
+  }
+
+  it('FR-012-14 FR-012-17: 204 počisti sejo, pokliče gateway.signOut() in vodi na /login?reason=account-deleted brez sporočila o poteku seje', async () => {
+    const { user, gateway, api } = renderAccountApp({ deletion: replies.deleted });
+    const dialog = await openDeleteDialog(user);
+    const visited = recordNavigation();
+    const apiCallsBefore = api.requests.length;
+
+    await confirmDeletion(user, dialog);
+
+    await waitFor(() => expect(currentLocation()).toBe('/login?reason=account-deleted'));
+    expect(gateway.signOutCalls).toBe(1);
+    expect(gateway.currentUser).toBeNull();
+    expect(await screen.findByRole('button', { name: 'Prijava z Googlom' })).toBeVisible();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('main')).not.toHaveTextContent('Seja je potekla. Prijavi se znova.');
+    expect(visited.some((url) => url.includes('session-expired'))).toBe(false);
+    // Po izbrisu ni več zahtevkov s sejo (razen izbrisa samega).
+    expect(api.requests.slice(apiCallsBefore).map((r) => r.path)).toEqual(['/api/me/deletion']);
+  });
+
+  it('FR-012-17: 202 vodi na /login?reason=account-deleted-pending, tudi brez sporočila o poteku seje', async () => {
+    const { user, gateway } = renderAccountApp({ deletion: replies.pending });
+    const dialog = await openDeleteDialog(user);
+    const visited = recordNavigation();
+
+    await confirmDeletion(user, dialog);
+
+    await waitFor(() => expect(currentLocation()).toBe('/login?reason=account-deleted-pending'));
+    expect(gateway.signOutCalls).toBe(1);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(visited.some((url) => url.includes('session-expired'))).toBe(false);
+  });
+
+  it('FR-012-14: po izbrisu je mogoča nova prijava (nov, prazen profil)', async () => {
+    const { user, gateway, profile } = renderAccountApp({ deletion: replies.deleted });
+    const dialog = await openDeleteDialog(user);
+    await confirmDeletion(user, dialog);
+    await waitFor(() => expect(currentLocation()).toBe('/login?reason=account-deleted'));
+    const syncsBefore = profile.requests.filter((r) => r.path === '/api/me').length;
+
+    await user.click(await screen.findByRole('button', { name: 'Prijava z Googlom' }));
+
+    await waitFor(() => expect(currentLocation()).toBe('/'));
+    expect(gateway.signInCalls).toBe(1);
+    expect(profile.requests.filter((r) => r.path === '/api/me')).toHaveLength(syncsBefore + 1);
   });
 });

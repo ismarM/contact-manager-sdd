@@ -56,7 +56,12 @@ public class SecurityConfig {
     }
 
     @Bean
-    JwtDecoder firebaseJwtDecoder(FirebaseProperties firebase) throws URISyntaxException, IOException {
+    JwtDecoder firebaseJwtDecoder(FirebaseProperties firebase, RevokedIdentities revoked)
+            throws URISyntaxException, IOException {
+        return new DeletedIdentityJwtDecoder(verifyingDecoder(firebase), revoked);
+    }
+
+    private static JwtDecoder verifyingDecoder(FirebaseProperties firebase) throws URISyntaxException, IOException {
         if (firebase.projectId() == null || firebase.projectId().isBlank()) {
             throw new IllegalStateException("firebase.project-id (FIREBASE_PROJECT_ID) is required");
         }

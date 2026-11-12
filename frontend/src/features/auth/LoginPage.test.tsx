@@ -138,3 +138,99 @@ describe('LoginPage', () => {
     expect(results.violations).toEqual([]);
   });
 });
+
+describe('LoginPage – potrdilo po izbrisu računa', () => {
+  const SL = 'Tvoj račun je izbrisan.';
+  const SL_PENDING =
+    'Tvoj račun je izbrisan. Brisanje povezave z Google računom še poteka, zato se z istim Google računom nekaj časa morda ne boš mogel znova registrirati. Poskusi znova čez nekaj minut.';
+  const EN = 'Your account has been deleted.';
+  const EN_PENDING =
+    'Your account has been deleted. Removing the link to your Google account is still in progress, so you may not be able to register again with the same Google account for a while. Please try again in a few minutes.';
+
+  beforeEach(async () => {
+    await i18n.changeLanguage('sl');
+  });
+
+  it('FR-012-17: reason=account-deleted prikaže status »Tvoj račun je izbrisan.« brez opozorila o poteku seje', async () => {
+    renderApp('/login?reason=account-deleted');
+
+    expect(await screen.findByRole('status')).toHaveTextContent(new RegExp(`^${SL}$`));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Prijava z Googlom' })).toBeVisible();
+  });
+
+  it('FR-012-17: reason=account-deleted-pending prikaže razširjeno besedilo o čakanju', async () => {
+    renderApp('/login?reason=account-deleted-pending');
+
+    expect(await screen.findByRole('status')).toHaveTextContent(SL_PENDING);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('FR-012-17: angleška sporočila za obe stanji', async () => {
+    localStorage.setItem('language', 'en');
+    await i18n.changeLanguage('en');
+    const first = renderApp('/login?reason=account-deleted');
+    expect(await screen.findByRole('status')).toHaveTextContent(new RegExp(`^${EN}$`));
+    first.unmount();
+
+    renderApp('/login?reason=account-deleted-pending');
+    expect(await screen.findByRole('status')).toHaveTextContent(EN_PENDING);
+  });
+
+  it('FR-012-17: preklop jezika pod kartico prevede sporočilo', async () => {
+    const { user } = renderApp('/login?reason=account-deleted');
+    expect(await screen.findByRole('status')).toHaveTextContent(SL);
+
+    await user.click(screen.getByRole('button', { name: 'English' }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent(EN);
+  });
+
+  it.each(['/login', '/login?reason=neznan'])(
+    'FR-012-17: brez razloga izbrisa (%s) statusa ni',
+    async (path) => {
+      renderApp(path);
+
+      await screen.findByRole('button', { name: 'Prijava z Googlom' });
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    },
+  );
+
+  it('FR-012-17: sporočilo o poteku seje se ne prikaže skupaj s potrdilom o izbrisu', async () => {
+    renderApp('/login?reason=account-deleted');
+
+    await screen.findByRole('status');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('main')).not.toHaveTextContent('Seja je potekla. Prijavi se znova.');
+  });
+
+  it('FR-012-17: potrdilo se porabi ob prikazu – po novi prijavi in odjavi ga ni več', async () => {
+    mockProfileApi();
+    const { user } = renderApp('/login?reason=account-deleted');
+    expect(await screen.findByRole('status')).toHaveTextContent(SL);
+
+    await user.click(screen.getByRole('button', { name: 'Prijava z Googlom' }));
+    await waitFor(() => expect(currentLocation()).toBe('/'));
+    await user.click(await screen.findByRole('button', { name: 'Meni računa' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Odjava' }));
+
+    await waitFor(() => expect(currentLocation()).toBe('/login'));
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it.each(['light', 'dark'] as const)(
+    'FR-012-17: stran za prijavo s potrdilom o izbrisu nima kršitev axe (tema %s)',
+    async (theme) => {
+      localStorage.setItem('theme', theme);
+      document.documentElement.dataset.theme = theme;
+      const { container, unmount } = renderApp('/login?reason=account-deleted');
+      await screen.findByRole('status');
+      expect((await axe(container)).violations).toEqual([]);
+      unmount();
+
+      const pending = renderApp('/login?reason=account-deleted-pending');
+      await screen.findByRole('status');
+      expect((await axe(pending.container)).violations).toEqual([]);
+    },
+  );
+});

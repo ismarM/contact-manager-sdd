@@ -27,7 +27,9 @@
       "popupBlocked": "Your browser blocked the sign-in window. Allow pop-ups for this site and try again.",
       "offline": "You're offline. Check your connection and try again.",
       "failed": "Sign-in failed. Please try again."
-    }
+    },
+    "accountDeleted": "Your account has been deleted.",
+    "accountDeletedPending": "Your account has been deleted. Removing the link to your Google account is still in progress, so you may not be able to register again with the same Google account for a while. Please try again in a few minutes."
   },
   "shell": {
     "skipLink": "Skip to content",
@@ -46,7 +48,32 @@
     "theme": "Theme",
     "themeSystem": "System",
     "themeLight": "Light",
-    "themeDark": "Dark"
+    "themeDark": "Dark",
+    "data": {
+      "heading": "My data",
+      "description": "The export contains your personal data, group memberships, received and sent invitations and the groups you own. It does not contain contacts or audit trails.",
+      "download": "Download my data (JSON)",
+      "success": "Your data has been downloaded.",
+      "error": "Your data could not be prepared. Please try again.",
+      "retry": "Try again"
+    },
+    "delete": {
+      "heading": "Delete account",
+      "consequences": "Deletion is permanent. Your personal data and received invitations will be deleted, you will be removed from all groups, and \"deleted user\" will be shown instead of you in archived groups you own and in audit trails. Archived groups in which you are the only member will be deleted.",
+      "button": "Delete account",
+      "loading": "Loading…",
+      "blockersHeading": "Groups that prevent account deletion",
+      "blockersHint": "Transfer ownership or archive these groups",
+      "blockersError": "Groups that prevent deletion could not be loaded. Please try again.",
+      "retry": "Try again",
+      "dialogTitle": "Delete account?",
+      "confirmLabel": "Type your email address to confirm",
+      "mismatch": "The email address you typed does not match yours.",
+      "cancel": "Cancel",
+      "confirm": "Delete account",
+      "failed": "Your account could not be deleted. Please try again.",
+      "ownsActiveGroups": "Your account cannot be deleted because you have become the owner of an active group. Transfer ownership or archive these groups."
+    }
   },
   "roles": {
     "OWNER": "Owner",

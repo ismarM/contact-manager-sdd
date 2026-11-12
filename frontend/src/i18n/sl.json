@@ -27,7 +27,9 @@
       "popupBlocked": "Brskalnik je blokiral okno za prijavo. Dovoli pojavna okna za to stran in poskusi znova.",
       "offline": "Ni povezave. Preveri povezavo in poskusi znova.",
       "failed": "Prijava ni uspela. Poskusi znova."
-    }
+    },
+    "accountDeleted": "Tvoj račun je izbrisan.",
+    "accountDeletedPending": "Tvoj račun je izbrisan. Brisanje povezave z Google računom še poteka, zato se z istim Google računom nekaj časa morda ne boš mogel znova registrirati. Poskusi znova čez nekaj minut."
   },
   "shell": {
     "skipLink": "Preskoči na vsebino",
@@ -46,7 +48,32 @@
     "theme": "Tema",
     "themeSystem": "Sistemska",
     "themeLight": "Svetla",
-    "themeDark": "Temna"
+    "themeDark": "Temna",
+    "data": {
+      "heading": "Moji podatki",
+      "description": "Izvoz vsebuje tvoje osebne podatke, članstva v skupinah, prejeta in poslana povabila ter skupine, katerih lastnik si. Kontaktov in revizijskih sledi ne vsebuje.",
+      "download": "Prenesi moje podatke (JSON)",
+      "success": "Podatki so preneseni.",
+      "error": "Podatkov ni bilo mogoče pripraviti. Poskusi znova.",
+      "retry": "Poskusi znova"
+    },
+    "delete": {
+      "heading": "Izbris računa",
+      "consequences": "Izbris je nepovraten. Tvoji osebni podatki in prejeta povabila se izbrišejo, odstranjen boš iz vseh skupin, v arhiviranih skupinah, katerih lastnik si, in v revizijskih sledeh bo namesto tebe prikazan »izbrisan uporabnik«. Arhivirane skupine, v katerih si edini član, se izbrišejo.",
+      "button": "Izbriši račun",
+      "loading": "Nalagam…",
+      "blockersHeading": "Skupine, ki preprečujejo izbris računa",
+      "blockersHint": "Prenesi lastništvo ali arhiviraj te skupine",
+      "blockersError": "Skupin, ki preprečujejo izbris, ni bilo mogoče naložiti. Poskusi znova.",
+      "retry": "Poskusi znova",
+      "dialogTitle": "Izbrišem račun?",
+      "confirmLabel": "Za potrditev vpiši svoj e-naslov",
+      "mismatch": "Vpisani e-naslov se ne ujema z tvojim.",
+      "cancel": "Prekliči",
+      "confirm": "Izbriši račun",
+      "failed": "Računa ni bilo mogoče izbrisati. Poskusi znova.",
+      "ownsActiveGroups": "Račun ne more biti izbrisan, ker si medtem postal lastnik nearhivirane skupine. Prenesi lastništvo ali arhiviraj te skupine."
+    }
   },
   "roles": {
     "OWNER": "Lastnik",
