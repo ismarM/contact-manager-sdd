@@ -1,7 +1,12 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type AuthFetch, createAuthFetch } from '../../shared/api/authFetch';
+import {
+  type AuthFetch,
+  type AuthFetchBlob,
+  createAuthFetch,
+  createAuthFetchBlob,
+} from '../../shared/api/authFetch';
 import { ApiError } from '../../shared/api/client';
 import {
   applyTheme,
@@ -72,6 +77,11 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
   const authFetch: AuthFetch = useCallback(
     <T,>(path: string, init?: RequestInit) =>
       createAuthFetch(gateway, () => sessionLost(true))<T>(path, init),
+    [gateway, sessionLost],
+  );
+
+  const authFetchBlob: AuthFetchBlob = useCallback(
+    (path, init) => createAuthFetchBlob(gateway, () => sessionLost(true))(path, init),
     [gateway, sessionLost],
   );
 
@@ -214,6 +224,7 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
       signOut,
       accountDeleted,
       authFetch,
+      authFetchBlob,
       theme,
       changeLanguage,
       changeTheme,
@@ -229,6 +240,7 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
       signOut,
       accountDeleted,
       authFetch,
+      authFetchBlob,
       theme,
       changeLanguage,
       changeTheme,

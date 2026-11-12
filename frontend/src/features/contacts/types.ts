@@ -102,6 +102,14 @@ export interface SelectionCheckResult {
   queries: { newMatches: string[]; noLongerMatching: string[] }[];
 }
 
+/** Telo `POST …/contacts/export` (010): izbrane identitete, razvrstitev seznama in jezik glave datoteke. */
+export interface ExportRequest {
+  contactIds: string[];
+  sort?: string;
+  dir?: 'asc' | 'desc';
+  language: 'sl' | 'en';
+}
+
 export type BulkField = 'address' | 'email' | 'phone' | 'custom';
 
 export interface AttributeSet {
