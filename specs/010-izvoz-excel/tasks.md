@@ -296,8 +296,8 @@ description: "Tasks for 010-izvoz-excel (tests mandatory, independent test revie
 - [x] T042 FR-010-01 … FR-010-16 `/speckit-converge` do »Converged«; manjkajoče doda kot naloge in jih izvede.
 - [x] T043 SC-001 … SC-006 Posodobi specs/010-izvoz-excel/traceability.md: vsak FR-ID → testi → stanje; matrika izolacije za `POST …/contacts/export`; *Meritve*: SC-002 (`ExportPerformanceIT` p50/p95/največ in okolje).
 - [x] T044 — `./verify.sh full` zelen (vključno z vsemi testi 000–009).
-- [ ] T045 — Ročni pregled skrivnosti cele veje (`gitleaks` nad `git diff main...`), izid v opisu PR.
-- [ ] T046 — Push veje `izvoz-excel` in PR v `main`. Opis PR navede:
+- [x] T045 — Ročni pregled skrivnosti cele veje (`gitleaks` nad `git diff main...`), izid v opisu PR.
+- [x] T046 — Push veje `izvoz-excel` in PR v `main`. Opis PR navede:
   - predpostavke: R-03 (ime datoteke in datum na odjemalcu), R-05 (izpust namesto `SELECTION_CHANGED`), R-09 (`TOO_MANY_COLUMNS`, potrjeno v FR-010-13);
   - D-89 (knjižnice) in D-91 (sprememba testa 009);
   - izid pregleda testov in commit `test(010)`.
