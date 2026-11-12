@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import si.contactmanager.contact.support.MergeApiTest;
 
 /**
- * Velika skupina dvojnikov (D-89: 40 kontaktov z istim e-naslovom): iskanje vrne eno skupino s 40 kontakti, primerjava
+ * Velika skupina dvojnikov (D-93: 40 kontaktov z istim e-naslovom): iskanje vrne eno skupino s 40 kontakti, primerjava
  * in združitev sprejmeta največ 10, zato se skupina zmanjšuje v krogih po 10 (ohranjeni je vedno najstarejši), vsak
  * krog ustvari natanko en vnos {@code MERGE} in je razveljavljiv z rollbackom 005.
  */

@@ -1,6 +1,6 @@
 # Research: Iskanje in združevanje podvojenih kontaktov (011)
 
-Vhod: [spec.md](spec.md) (Clarify 2026-11-12, D-89: največ 10 kontaktov v primerjavi, FR-011-21), `feature-map.md` (§2.2, §2.4, §2.6, §2.7, §2.10), obstoječa koda 004/005/008/009 (`ContactService`, `ContactRepository`, `ContactSnapshots`, `AuditLog`, `RollbackService`, `BulkService`, `ContactInputParser`, `GroupAccess`). V Technical Context ni ostalo `NEEDS CLARIFICATION`; tri odločitve, ki jih specifikacija ne določa in so potencialno občutljive, so zbrane v R-16 (O-1 … O-4) in čakajo na potrditev razvijalca.
+Vhod: [spec.md](spec.md) (Clarify 2026-11-12, D-93: največ 10 kontaktov v primerjavi, FR-011-21), `feature-map.md` (§2.2, §2.4, §2.6, §2.7, §2.10), obstoječa koda 004/005/008/009 (`ContactService`, `ContactRepository`, `ContactSnapshots`, `AuditLog`, `RollbackService`, `BulkService`, `ContactInputParser`, `GroupAccess`). V Technical Context ni ostalo `NEEDS CLARIFICATION`; tri odločitve, ki jih specifikacija ne določa in so potencialno občutljive, so zbrane v R-16 (O-1 … O-4) in čakajo na potrditev razvijalca.
 
 ---
 
@@ -39,17 +39,17 @@ Funkcija `DuplicateKeys.key(category, contact) → Optional<Key>`; prazen `Optio
 ## R-04 Razvrščanje, strani in oblika odgovora iskanja
 
 - **Decision:**
-  - Kontakti v skupini: `created_at` naraščajoče, nato `id` naraščajoče (FR-011-07, D-89) – iz SQL `ORDER BY`.
+  - Kontakti v skupini: `created_at` naraščajoče, nato `id` naraščajoče (FR-011-07, D-93) – iz SQL `ORDER BY`.
   - Skupine: po `reason.value` z `Collator.getInstance(Locale.forLanguageTag("sl"))`, moč `SECONDARY` (ne glede na velikost črk, razlikuje strešice; enako kot D-63 za razvrščanje kontaktov), nato po `created_at` in `id` prvega kontakta (stabilen, determinističen vrstni red).
   - Paginacija po feature-map §2.6: `size` ∈ {25, 50, 100} (privzeto 25), `page` 0-osno kot v 008 (`ContactQueryParser`); vmesnik v naslovu uporablja 1-osno `page` kot revizijska sled. Neveljaven `page`/`size`/`category` → `400 VALIDATION_FAILED` (`INVALID_VALUE`, polje `category` je obvezno: `REQUIRED`). Stran prek zadnje → `200` s praznim `groups` in pravim `total`; vmesnik preusmeri na zadnjo stran.
-  - Odgovor: `{category, total, page, size, groups:[{reason:{category,value}, size, contacts:[{id, displayName}]}]}`; `contacts` vsebuje **vse** kontakte skupine (D-89: kartice prikazujejo celotno skupino); `total` = število skupin dvojnikov (ne kontaktov).
+  - Odgovor: `{category, total, page, size, groups:[{reason:{category,value}, size, contacts:[{id, displayName}]}]}`; `contacts` vsebuje **vse** kontakte skupine (D-93: kartice prikazujejo celotno skupino); `total` = število skupin dvojnikov (ne kontaktov).
 - **Rationale:** `Collator` v JVM je enak za vse vloge in neodvisen od jezika vmesnika; test razvrščanja uporablja samo črke in števke (ne ločil), da se izogne razlikam med JDK in ICU (008). Stabilna razvrstitev je pogoj za paginacijo brez ponavljanja ali izpusta.
 - **Alternatives considered:** razvrščanje po velikosti skupine – spec določa abecedno po razlogu; `LIMIT/OFFSET` v SQL – skupine nastanejo šele po grupiranju.
 
 ## R-05 Primerjava: izbor 10 kontaktov, izbrisani in tuji
 
 - **Decision:** `GET …/duplicates/compare?ids=a,b,…` sprejme 2–10 različnih UUID (`ids` je lahko ponovljen parameter ali seznam, ločen z vejicami). Postopek: (1) identitete, ki so veljavni UUID, se razvrstijo kot v 009 R-02 – obstoječ kontakt te skupine; **izbrisan** (je v `audit_change` vnosa te skupine: `ContactRepository.knownToGroup`); **tuj** (ni ne v `contact` ne v sledi te skupine) → `404`; (2) odgovor vsebuje samo obstoječe kontakte, razvrščene po `created_at`, `id` (ne glede na vrstni red v zahtevku), z `version`, `createdAt`, vsemi polji, atributi in značkami; (3) če je obstoječih manj kot 2, je odgovor še vedno `200` z manj kontakti – vmesnik prikaže »Te skupine dvojnikov ni več.« in povezavo na osvežene rezultate (FR-011-16, Edge Cases).
-- **Izbor prvih 10 (D-89):** *izbere ga vmesnik iz kartice*, ker kartica že vsebuje vse kontakte skupine razvrščene po `created_at`, `id` (R-04); strežnik zahteva samo ≤ 10 identitet in jih vrne razvrščene. Več kot 10 ali manj kot 2 različnih → `400 VALIDATION_FAILED` (`ids`: `TOO_MANY` pri > 10, `REQUIRED` pri < 2 različnih ali brez parametra; ponovljen id: `DUPLICATE`; neveljaven UUID: `INVALID_VALUE` – obstoječi nabor kod 004/008/009, brez nove kode).
+- **Izbor prvih 10 (D-93):** *izbere ga vmesnik iz kartice*, ker kartica že vsebuje vse kontakte skupine razvrščene po `created_at`, `id` (R-04); strežnik zahteva samo ≤ 10 identitet in jih vrne razvrščene. Več kot 10 ali manj kot 2 različnih → `400 VALIDATION_FAILED` (`ids`: `TOO_MANY` pri > 10, `REQUIRED` pri < 2 različnih ali brez parametra; ponovljen id: `DUPLICATE`; neveljaven UUID: `INVALID_VALUE` – obstoječi nabor kod 004/008/009, brez nove kode).
 - **Rationale:** strežnik ne ugiba, kateri kontakti so »skupina« (skupina ni shranjena); determinizem izbora je v razvrstitvi, ki ju zagotavljata iskanje in primerjava z istim ključem (`created_at`, `id`). Izbrisan kontakt ni `404`, ker bi `404` v tem primeru urednika zavedel, da je napaka v naslovu (Assumptions: »Zbrisan kontakt … je 409/ni več«).
 - **Znana omejitev** (kot 009 R-02, D-73): kontakt, izbrisan pred uvedbo beleženja 005, nima vnosa v sledi in dobi `404` namesto »ni več«; vmesnik obe obravnava kot »kontakt ne obstaja več« (produkcijskih podatkov iz tega časa ni).
 - **Alternatives considered:** strežnik vrne skupino po ključu (`category` + `value`) – ponovno iskanje, odvisno od sočasnih sprememb; `404` za izbrisane – ne ustreza FR-011-16.
@@ -72,7 +72,7 @@ Funkcija `DuplicateKeys.key(category, contact) → Optional<Key>`; prazen `Optio
 ## R-07 Vrstni red preverjanj združitve in branj
 
 - **Decision (feature-map §2.2, D-41, 009 R-02):** `401` → `404` (skupina, nečlan **ali** vsaj ena identiteta, ki nikoli ni bila kontakt te skupine) → `403` (VIEWER, tudi v arhivirani skupini) → `409 GROUP_ARCHIVED` → `400` (**zgradba zahtevka**: telo ni JSON, število 2–10, različnost, `version` manjka ali ni število) → `409 VERSION_CONFLICT` (katerikoli vključeni kontakt spremenjen ali izbrisan) → `400` (**rezultat**: slovar podatkov, `result.*`). Iskanje in primerjava: 401 → 404 → 403 → 409 → 400 (parametri; za primerjavo najprej identitete).
-- **Pomembno:** (a) pri več kot 10 identitetah v telesu se baza za korak 404 ne obišče (kot 009 R-15); pri 11 identitetah, med katerimi je tuja, spec dovoljuje `400` ali `404` – test zahteva le »400 ali 404, nikoli 2xx, brez sprememb« (Analyze F2); strogi `400 VALIDATION_FAILED` velja za 11 kontaktov iste skupine; nato 403 → 409 → `400 TOO_MANY` – zato `400` ob prevelikem številu velja kot zahteva D-89, ne glede na to, ali so kontakti sicer veljavni; (b) `VERSION_CONFLICT` pred `VALIDATION_FAILED` rezultata je skladen s `ContactService.update` (zastarela verzija je konflikt tudi ob neveljavnih podatkih); (c) `403` pred `409 GROUP_ARCHIVED`: VIEWER arhivirane skupine dobi `403`.
+- **Pomembno:** (a) pri več kot 10 identitetah v telesu se baza za korak 404 ne obišče (kot 009 R-15); pri 11 identitetah, med katerimi je tuja, spec dovoljuje `400` ali `404` – test zahteva le »400 ali 404, nikoli 2xx, brez sprememb« (Analyze F2); strogi `400 VALIDATION_FAILED` velja za 11 kontaktov iste skupine; nato 403 → 409 → `400 TOO_MANY` – zato `400` ob prevelikem številu velja kot zahteva D-93, ne glede na to, ali so kontakti sicer veljavni; (b) `VERSION_CONFLICT` pred `VALIDATION_FAILED` rezultata je skladen s `ContactService.update` (zastarela verzija je konflikt tudi ob neveljavnih podatkih); (c) `403` pred `409 GROUP_ARCHIVED`: VIEWER arhivirane skupine dobi `403`.
 - **Rationale:** enak vrstni red kot v ostalih funkcionalnostih, zato isti tipi izjem in rokovalniki; nobena nova koda napake (`VALIDATION_FAILED`, `VERSION_CONFLICT`, `GROUP_ARCHIVED` so v registru §2.10).
 
 ## R-08 Atomarnost, zaklepanje in sočasnost
@@ -112,7 +112,7 @@ Funkcija `DuplicateKeys.key(category, contact) → Optional<Key>`; prazen `Optio
   - Razdelek `duplicates` v `GroupLayout` (poleg `contacts`, `audit`, `settings`); podpoti `duplicates` in `duplicates/compare`; drugo → »Te strani ni«.
   - Zavihek »Dvojniki« v `GroupHeader` samo za EDITOR+ v nearhivirani skupini (FR-011-01, design.md 7.1), med »Kontakti« in »Revizijska sled«. Ob neposredni poti: bralec ali arhivirana skupina → razlaga + povezava »Na kontakte skupine« (brez klica API).
   - `DuplicateSearchForm`: skupina izbirnih gumbov »Kategorija« (`fieldset`/`legend`, `radiogroup`), privzeto »Ime in priimek«, gumb »Poišči dvojnike«. **Naslov (URL)** po iskanju vsebuje `category`, `page`, `size`; `/duplicates` brez `category` pokaže samo obrazec; z `category` naloži rezultate (osvežitev in *Nazaj* ohranita rezultat, FR-011-02).
-  - `DuplicateCard`: `li` s poimenovano skupino (naslov = razlog), imena kontaktov, gumb »Primerjaj in združi«. Skupine z > 10 kontakti: prvih 10 (ki gredo v primerjavo) je v seznamu, ostali so v `details` »Še N kontaktov« (D-89: celotna skupina je vidna; ni skrita). Povezava na primerjavo: `ids` = prvih 10, `total` = velikost skupine.
+  - `DuplicateCard`: `li` s poimenovano skupino (naslov = razlog), imena kontaktov, gumb »Primerjaj in združi«. Skupine z > 10 kontakti: prvih 10 (ki gredo v primerjavo) je v seznamu, ostali so v `details` »Še N kontaktov« (D-93: celotna skupina je vidna; ni skrita). Povezava na primerjavo: `ids` = prvih 10, `total` = velikost skupine.
   - Paginacija: obstoječa `SectionPagination` (nav »Strani rezultatov«), fokus na naslov rezultatov ob menjavi strani; prazno stanje (design.md 8.15) »Ni dvojnikov po kategoriji ‹kategorija›.«; napaka nalaganja trajno sporočilo z *Poskusi znova* (8.13).
 - **Rationale:** brez novih knjižnic; vzorec URL-ja in paginacije kot revizijska sled (005) in seznam (008).
 
@@ -153,15 +153,15 @@ Stanje ob izdelavi načrta: veja `izvoz-excel` ni potisnjena v `origin` (ob `git
 | Model kontakta | samo dodatek metode `ContactSnapshots.replaceMerged`; brez spremembe stolpcev | bere kontakte (izvoz), brez sprememb modela | nizko |
 | `ContactRepository` / `ContactSnapshots` | dodane metode (`duplicateCandidates`, `replaceMerged`) | lahko doda `ContactRepository.exportRows…`/podobno | srednje: oba dodajata v isto datoteko → konflikt pri združevanju, razrešitev je mehanska (dodatki na koncu razreda) |
 | `ApiExceptionHandler`, `SecurityConfig` | brez sprememb | morda nova koda `EXPORT_EMPTY` (feature-map §2.10) | nizko |
-| `DECISIONS.md` | D-90 … (R-16) | tudi novi D-NN | **visoko**: skupna zaporedna številka; ob konfliktu se 011 vnosi preštevilčijo (kot pri 012, D-84) – številke v dokumentih 011 se zato pred PR preverijo (`git grep "D-9"`) |
-| Oznake `CR-NN` | 011 ne uvaja novih CR (Clarify D-89 je pred planom) | lahko uvede CR | nizko; številčenje enotno, preveri ob PR |
+| `DECISIONS.md` | D-94 … (R-16) | tudi novi D-NN | **visoko**: skupna zaporedna številka; ob konfliktu se 011 vnosi preštevilčijo (kot pri 012, D-84) – številke v dokumentih 011 se zato pred PR preverijo (`git grep "D-9"`) |
+| Oznake `CR-NN` | 011 ne uvaja novih CR (Clarify D-93 je pred planom) | lahko uvede CR | nizko; številčenje enotno, preveri ob PR |
 | FE: `GroupLayout`, `GroupHeader`, `i18n/{sl,en}.json`, `test/msw.ts` | nov razdelek `duplicates`, ključi `duplicates.*` | akcijska vrstica izbora (`SelectionActionBar`) dobi gumb *Izvozi v Excel*, ključi `export.*` | srednje: `GroupLayout`/`GroupHeader`/`sl.json`/`en.json`/`msw.ts` so skupne; konflikti so na ločenih blokih (ključi `duplicates.*` v sklenjenem bloku, rokovalniki 011 na koncu `msw.ts`) |
 | Revizijska sled (005) | uporablja `MERGE` (že podprt: `AuditAction`, `ChangeDiff`, `sl.json` `MERGE_count_*`) | izvoz ne beleži vnosov | brez konflikta |
 | Izbor kontaktov (009) | 011 ga **ne** uporablja (skupina dvojnikov ni izbor) | uporablja `SelectionProvider` | brez konflikta |
 
 - **Pravilo:** 011 se razvija v veji `dvojniki` iz `origin/main`; ne dotika se Patrikove veje in ne izvaja `merge`/`rebase` brez navodila. Skupne datoteke se spreminjajo z majhnimi, samostojnimi dodatki.
 
-## R-16 Odločitve razvijalca (O-1 … O-4 POTRJENO 2026-11-12, D-92)
+## R-16 Odločitve razvijalca (O-1 … O-4 POTRJENO 2026-11-12, D-96)
 
 | # | Vprašanje | Priporočilo | Če razvijalec zavrne |
 |---|---|---|---|

@@ -1,6 +1,6 @@
 # Sledljivost: 011-dvojniki
 
-Stanje po fazi *Testi* (test-first, workflow §4.2; pregled: **ROČNO ODOBRENO – izjema D-94**): testi T008–T032 so napisani, implementacije (T034 …) še ni, zato testi s pričakovanim vedenjem **padajo zaradi pravega razloga** (`501`, `UnsupportedOperationException`, `not implemented`, manjkajoča pot ali zavihek). Zaščitni primeri 401/403/404/405/409 so zeleni že ob ogrodju. Stanje stolpca *Stanje* se po implementaciji posodobi v »zelen«.
+Stanje po fazi *Testi* (test-first, workflow §4.2; pregled: **ROČNO ODOBRENO – izjema D-98**): testi T008–T032 so napisani, implementacije (T034 …) še ni, zato testi s pričakovanim vedenjem **padajo zaradi pravega razloga** (`501`, `UnsupportedOperationException`, `not implemented`, manjkajoča pot ali zavihek). Zaščitni primeri 401/403/404/405/409 so zeleni že ob ogrodju. Stanje stolpca *Stanje* se po implementaciji posodobi v »zelen«.
 
 Pot do testov: BE `backend/src/test/java/si/contactmanager/contact/…` (`*Test` unit, `*IT` integracijski, `*SecurityIT` varnostni), FE `frontend/src/features/duplicates/…`, E2E `e2e/tests/dvojniki.spec.ts`.
 
@@ -39,7 +39,7 @@ Pot do testov: BE `backend/src/test/java/si/contactmanager/contact/…` (`*Test`
 
 ## Pregled testov
 
-**Izid: ROČNO ODOBRENO – izjema D-94.** Podagent `pregled-testov` je v vseh štirih krogih vrnil **ZAVRNJENO**; SPREJETO ni bilo vrnjeno. Razvijalec (Ismar) je izrecno odobril ročni zaključek test-first faze in izključil peti krog.
+**Izid: ROČNO ODOBRENO – izjema D-98.** Podagent `pregled-testov` je v vseh štirih krogih vrnil **ZAVRNJENO**; SPREJETO ni bilo vrnjeno. Razvijalec (Ismar) je izrecno odobril ročni zaključek test-first faze in izključil peti krog.
 
 | Krog | Izid | Glavne ugotovitve | Odprava |
 |---|---|---|---|
@@ -58,7 +58,7 @@ Pot do testov: BE `backend/src/test/java/si/contactmanager/contact/…` (`*Test`
 ### Neblokirajoča priporočila 4. kroga, ki niso izvedena
 
 - **T030 ostaja odprt (nepokrito):** `CompareA11y.test.tsx` nima preverjanja paritete DOM po vlogah pri 360 in 1280 px prek `matchMedia` ter dosegljivosti »Ostane« in »Izloči iz združevanja« v obeh. Zahteva ni neposredno v spec; 360 px pokriva E2E. Naloga ni označena kot opravljena.
-- `DuplicateIsolationMatrixSecurityIT` (11 identitet s tujim kontaktom): test sprejme `400` ali `404`; pravilo (R-07, D-93) se ne zaostruje.
+- `DuplicateIsolationMatrixSecurityIT` (11 identitet s tujim kontaktom): test sprejme `400` ali `404`; pravilo (R-07, D-97) se ne zaostruje.
 - Test poti `…/duplicates/xyz` (»Te strani ni«) je zelen že ob ogrodju kot regresijski varovalec.
 
 ## Meritve

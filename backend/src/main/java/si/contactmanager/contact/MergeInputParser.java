@@ -19,7 +19,7 @@ import tools.jackson.databind.json.JsonMapper;
  */
 public final class MergeInputParser {
 
-    /** Največ kontaktov v primerjavi in združitvi (D-89, FR-011-21). */
+    /** Največ kontaktov v primerjavi in združitvi (D-93, FR-011-21). */
     public static final int MAX_CONTACTS = 10;
 
     private static final int MIN_CONTACTS = 2;

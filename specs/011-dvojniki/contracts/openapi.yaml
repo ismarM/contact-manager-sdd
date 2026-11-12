@@ -6,7 +6,7 @@ info:
     Iskanje skupin podvojenih kontaktov po eni kategoriji, nalaganje kontaktov za tabelo razlik in atomarna združitev.
     Vsi endpointi zahtevajo vlogo EDITOR ali višjo in so v arhivirani ali trajno arhivirani skupini zavrnjeni
     (409 GROUP_ARCHIVED, tudi branje; VIEWER dobi 403). Primerjava in združitev imata največ 10 kontaktov (FR-011-21,
-    D-89). Vrstni red preverjanj (feature-map §2.2, research.md R-07): 401 → 404 (skupina, nečlan ali identiteta, ki
+    D-93). Vrstni red preverjanj (feature-map §2.2, research.md R-07): 401 → 404 (skupina, nečlan ali identiteta, ki
     nikoli ni bila kontakt te skupine) → 403 → 409 GROUP_ARCHIVED → 400 (zgradba zahtevka) → 409 VERSION_CONFLICT → 400
     (rezultat združitve). Združitev je atomarna in ustvari natanko en vnos revizijske sledi vrste MERGE (005); razveljavi
     jo rollback iz 005 (POST /groups/{groupId}/audit/{entryId}/rollback, ADMIN+), 011 nima lastnega endpointa za
@@ -158,7 +158,7 @@ components:
           schema: { $ref: '#/components/schemas/ValidationError' }
           examples:
             tooManyContacts:
-              summary: Več kot 10 kontaktov (D-89)
+              summary: Več kot 10 kontaktov (D-93)
               value: { code: VALIDATION_FAILED, errors: [{ field: contacts, code: TOO_MANY }] }
             mergedResult:
               summary: Rezultat krši slovar podatkov
