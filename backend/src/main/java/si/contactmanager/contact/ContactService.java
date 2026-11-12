@@ -53,7 +53,16 @@ class ContactService {
         return contacts.filterOptions(membership.groupId());
     }
 
-    private void requireKnownKeys(Membership membership, ContactQuery query) {
+    void requireKnownKeys(Membership membership, ContactQuery query) {
+        List<si.contactmanager.shared.error.ValidationError.FieldError> errors = unknownKeys(membership, query);
+        if (!errors.isEmpty()) {
+            throw new ValidationException(errors);
+        }
+    }
+
+    /** Napake {@code UNKNOWN_FIELD} za dodatne ključe, ki jih skupina nima (FR-008-14); prazno, če so vsi znani. */
+    List<si.contactmanager.shared.error.ValidationError.FieldError> unknownKeys(
+            Membership membership, ContactQuery query) {
         java.util.Set<String> wanted = new java.util.LinkedHashSet<>();
         for (ContactQuery.Condition condition : query.conditions()) {
             if (condition.field().kind() == ContactQuery.Kind.ATTRIBUTE) {
@@ -64,7 +73,7 @@ class ContactService {
             wanted.add(query.sort().keyNorm());
         }
         if (wanted.isEmpty()) {
-            return;
+            return List.of();
         }
         java.util.Set<String> existing = contacts.existingKeys(membership.groupId(), wanted);
         List<si.contactmanager.shared.error.ValidationError.FieldError> errors = new java.util.ArrayList<>();
@@ -79,9 +88,7 @@ class ContactService {
                 && !existing.contains(query.sort().keyNorm())) {
             errors.add(new si.contactmanager.shared.error.ValidationError.FieldError("sort", "UNKNOWN_FIELD"));
         }
-        if (!errors.isEmpty()) {
-            throw new ValidationException(errors);
-        }
+        return errors;
     }
 
     ContactDetail read(Membership membership, UUID id) {

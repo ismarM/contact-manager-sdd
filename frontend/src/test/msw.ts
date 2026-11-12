@@ -7,6 +7,7 @@ import { setupServer } from 'msw/node';
 // testa vrne prazno stran. Od 006 ogrodje ob vsaki strani naloži število povabil (`GET /api/invitations/count` → 0), *Nastavitve*
 // admina pa naložijo čakajoča povabila skupine (`GET …/invitations` → prazna stran); tudi ta dva imata privzet odgovor.
 // Od 007 *Nastavitve* naložijo člane skupine (`GET …/members` → ena stran z lastnikom); tudi to ima privzet odgovor.
+// Od 009 imajo privzet odgovor tudi `contact-ids`, `selection-check`, `bulk-update` in `bulk-delete`.
 // Od 012 *Moj račun* naloži blokade izbrisa računa (`GET /api/me/deletion-blockers` → prazen seznam), zato imajo tudi obstoječi
 // testi strani *Moj račun* privzet odgovor.
 // Začetni rokovalniki imajo najnižjo prednost – vsak `server.use` v testu jih preglasi.
@@ -47,6 +48,26 @@ export const server = setupServer(
   }),
   // Od 008 seznam kontaktov ob odprtju panela filtrov naloži možnosti filtrov (`GET …/contact-filters`); privzeto prazne.
   http.get('/api/groups/:groupId/contact-filters', () => HttpResponse.json({ keys: [], tags: [] })),
+  // Od 009 seznam kontaktov izbor »Izberi vse zadetke« in množične operacije kličejo štiri nove endpointe; privzeto brez zadetkov in brez sprememb.
+  http.get('/api/groups/:groupId/contact-ids', () =>
+    HttpResponse.json({ total: 0, truncated: false, ids: [] }),
+  ),
+  http.post('/api/groups/:groupId/contacts/selection-check', async ({ request }) => {
+    const body = (await request.json()) as { queries?: unknown[] };
+    return HttpResponse.json({
+      changed: false,
+      missing: [],
+      queries: (body.queries ?? []).map(() => ({ newMatches: [], noLongerMatching: [] })),
+    });
+  }),
+  http.post('/api/groups/:groupId/contacts/bulk-update', async ({ request }) => {
+    const body = (await request.json()) as { contactIds: string[] };
+    return HttpResponse.json({ changed: body.contactIds.length });
+  }),
+  http.post('/api/groups/:groupId/contacts/bulk-delete', async ({ request }) => {
+    const body = (await request.json()) as { contactIds: string[] };
+    return HttpResponse.json({ deleted: body.contactIds.length });
+  }),
   http.get('/api/groups/:groupId/contacts', ({ request }) => {
     const url = new URL(request.url);
     return HttpResponse.json({

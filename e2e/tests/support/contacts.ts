@@ -183,3 +183,77 @@ export function createManyDistinctTags(groupId: string, count: number): void {
            where group_id = ${literal(groupId)}::uuid) c on c.r = (t.n - 1) / 30`,
   );
 }
+
+// --- 009: množični izbor in urejanje ---------------------------------------------------------------------------------
+
+/**
+ * Skupini doda `count` kontaktov »Ime001 Priimek001« … z značko `tag` (paketno, SQL) in vrne njihove id po vrstnem
+ * redu številk. Za skupino jo kličeš samo enkrat (imena bi se ponovila).
+ */
+export function createTaggedContacts(groupId: string, count: number, tag: string): string[] {
+  const ids = sql(
+    `with c as (
+       insert into contact (group_id, first_name, last_name, sort_last, sort_first)
+       select ${literal(groupId)}::uuid, 'Ime' || lpad(n::text, 3, '0'), 'Priimek' || lpad(n::text, 3, '0'),
+              lower('Priimek' || lpad(n::text, 3, '0')), lower('Ime' || lpad(n::text, 3, '0'))
+       from generate_series(1, ${count}) n
+       returning id, sort_last),
+     t as (
+       insert into contact_tag (contact_id, position, tag, tag_norm)
+       select id, 0, ${literal(tag)}, lower(${literal(tag)}) from c)
+     select id from c order by sort_last`,
+  );
+  return ids
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => /^[0-9a-f-]{36}$/.test(line));
+}
+
+/** Kontakt z imenom in značkami (npr. »Mojca Kralj« s 30 značkami) – vrne id. */
+export function createContactWithTags(groupId: string, name: string, tags: string[]): string {
+  const [first = '', ...rest] = name.split(' ');
+  return createContact(groupId, { first, last: rest.join(' '), tags });
+}
+
+/** Značke kontakta po vrstnem redu. */
+export function tagsOf(contactId: string): string[] {
+  const out = sql(
+    `select tag from contact_tag where contact_id = ${literal(contactId)}::uuid order by position`,
+  );
+  return out === '' ? [] : out.split('\n').map((line) => line.trim());
+}
+
+/** Dodatni atributi kontakta (ključ, vrednost) po vrstnem redu. */
+export function attributesOf(contactId: string): [key: string, value: string][] {
+  const out = sql(
+    `select key || '|' || value from contact_attribute where contact_id = ${literal(contactId)}::uuid order by position`,
+  );
+  return out === ''
+    ? []
+    : out.split('\n').map((line) => {
+        const [key = '', ...value] = line.trim().split('|');
+        return [key, value.join('|')];
+      });
+}
+
+/** Doda značko kontaktu, kot da bi jo dodal drug urednik (verzija +1). */
+export function addTagInDb(contactId: string, tag: string): void {
+  sql(
+    `insert into contact_tag (contact_id, position, tag, tag_norm)
+     select ${literal(contactId)}::uuid, coalesce(max(position) + 1, 0), ${literal(tag)}, lower(${literal(tag)})
+     from contact_tag where contact_id = ${literal(contactId)}::uuid`,
+  );
+  sql(
+    `update contact set version = version + 1, updated_at = now() where id = ${literal(contactId)}::uuid`,
+  );
+}
+
+/** Odstrani značko kontaktu, kot da bi jo odstranil drug urednik (verzija +1). */
+export function removeTagInDb(contactId: string, tag: string): void {
+  sql(
+    `delete from contact_tag where contact_id = ${literal(contactId)}::uuid and tag_norm = lower(${literal(tag)})`,
+  );
+  sql(
+    `update contact set version = version + 1, updated_at = now() where id = ${literal(contactId)}::uuid`,
+  );
+}

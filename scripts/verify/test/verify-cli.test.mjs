@@ -19,6 +19,15 @@ const run = (args, options = {}) => {
 
 /** PATH z vsemi programi gostitelja razen izbranih (npr. java, docker). */
 function pathWithout(excluded) {
+  if (process.platform === 'win32') {
+    // Na Windowsu simbolne povezave do .exe ne najdejo svojih DLL-jev (msys-2.0.dll), zato PATH sestavimo iz izvirnih
+    // map in izpustimo tiste, ki vsebujejo izključeni program (D-77).
+    const has = (dir, name) => [name, `${name}.exe`, `${name}.cmd`, `${name}.bat`].some((file) => existsSync(path.join(dir, file)));
+    return (process.env.PATH ?? '')
+      .split(path.delimiter)
+      .filter((dir) => dir && !excluded.some((name) => has(dir, name)))
+      .join(path.delimiter);
+  }
   const bin = mkdtempSync(path.join(tmpdir(), 'cm-path-'));
   for (const dir of (process.env.PATH ?? '').split(path.delimiter)) {
     if (!dir || !existsSync(dir)) continue;

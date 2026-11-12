@@ -1,10 +1,16 @@
 import { http, HttpResponse, type JsonBodyType } from 'msw';
 
 import type {
+  BulkContactErrors,
+  BulkDeleteRequest,
+  BulkFieldError,
+  BulkUpdateRequest,
   ContactDetail,
   ContactInput,
   ContactPage,
   ContactSummary,
+  SelectionCheckRequest,
+  SelectionCheckResult,
 } from '../features/contacts/types';
 import { ANA, createAuthFake } from './authFake';
 import { GROUP_ID, groupDetail, mockGroupsApi, type Reply } from './groupsApi';
@@ -119,6 +125,14 @@ export function mockContactsApi(
     tags?: Handler<[URL, string]>;
     /** Možnosti filtrov (008); privzeto prazne. */
     filters?: Handler<[string]>;
+    /** 009: `GET …/contact-ids`; privzeto brez zadetkov. */
+    contactIds?: Handler<[URL, string]>;
+    /** 009: `POST …/contacts/selection-check`; privzeto »brez sprememb«. */
+    selectionCheck?: Handler<[SelectionCheckRequest, string]>;
+    /** 009: `POST …/contacts/bulk-update`; privzeto `{changed: število identitet}`. */
+    bulkUpdate?: Handler<[BulkUpdateRequest, string]>;
+    /** 009: `POST …/contacts/bulk-delete`; privzeto `{deleted: število identitet}`. */
+    bulkDelete?: Handler<[BulkDeleteRequest, string]>;
   } = {},
 ) {
   const requests: RecordedContactRequest[] = [];
@@ -200,6 +214,44 @@ export function mockContactsApi(
       const group = String(params.groupId);
       return respond(handlers.filters ? await handlers.filters(group) : filterOptionsReply([], []));
     }),
+    http.get('/api/groups/:groupId/contact-ids', async ({ request, params }) => {
+      await record(request);
+      const url = new URL(request.url);
+      const group = String(params.groupId);
+      return respond(
+        handlers.contactIds ? await handlers.contactIds(url, group) : contactIdsReply([]),
+      );
+    }),
+    http.post('/api/groups/:groupId/contacts/selection-check', async ({ request, params }) => {
+      const { body } = await record(request);
+      const check = body as SelectionCheckRequest;
+      const group = String(params.groupId);
+      return respond(
+        handlers.selectionCheck
+          ? await handlers.selectionCheck(check, group)
+          : selectionCheckReply({ queries: check.queries.map(() => ({})) }),
+      );
+    }),
+    http.post('/api/groups/:groupId/contacts/bulk-update', async ({ request, params }) => {
+      const { body } = await record(request);
+      const edit = body as BulkUpdateRequest;
+      const group = String(params.groupId);
+      return respond(
+        handlers.bulkUpdate
+          ? await handlers.bulkUpdate(edit, group)
+          : bulkUpdateReply(edit.contactIds.length),
+      );
+    }),
+    http.post('/api/groups/:groupId/contacts/bulk-delete', async ({ request, params }) => {
+      const { body } = await record(request);
+      const target = body as BulkDeleteRequest;
+      const group = String(params.groupId);
+      return respond(
+        handlers.bulkDelete
+          ? await handlers.bulkDelete(target, group)
+          : bulkDeleteReply(target.contactIds.length),
+      );
+    }),
     http.get('/api/groups/:groupId/tags', async ({ request, params }) => {
       await record(request);
       const url = new URL(request.url);
@@ -215,6 +267,10 @@ export function mockContactsApi(
     /** Zahtevki z dano metodo in potjo (brez poizvedbe). */
     of(method: string, path: string) {
       return requests.filter((r) => r.method === method && r.path === path);
+    },
+    /** Telesa zahtevkov POST na dano pot (npr. `/api/groups/<id>/contacts/bulk-update`), po vrstnem redu. */
+    recordedBodies(path: string): unknown[] {
+      return requests.filter((r) => r.method === 'POST' && r.path === path).map((r) => r.body);
     },
   };
 }
@@ -321,4 +377,75 @@ export function deferred<T>() {
 /** `count` značk »znacka0001« … za preizkus velikih seznamov. */
 export function manyTags(count: number): string[] {
   return Array.from({ length: count }, (_, i) => `znacka${String(i + 1).padStart(4, '0')}`);
+}
+
+// --- 009: izbor in množično urejanje -------------------------------------------------------------------------------
+
+/** Pot množičnega endpointa skupine (`contacts/bulk-update`, `contacts/selection-check`, …). */
+export function bulkPath(
+  endpoint: 'bulk-update' | 'bulk-delete' | 'selection-check',
+  group = GROUP_ID,
+): string {
+  return `/api/groups/${group}/contacts/${endpoint}`;
+}
+
+/** Odgovor `GET …/contact-ids`: `truncated` ob `total` nad 10 000 (ids tedaj prazen). */
+export function contactIdsReply(ids: string[], total = ids.length): Reply {
+  const truncated = total > 10_000;
+  return { status: 200, body: { total, truncated, ids: truncated ? [] : ids } };
+}
+
+/** Odgovor `selection-check`; `changed` je izpeljan iz seznamov, razen če ga test določi. */
+export function selectionCheckReply(
+  result: {
+    missing?: string[];
+    queries?: { newMatches?: string[]; noLongerMatching?: string[] }[];
+    changed?: boolean;
+  } = {},
+): Reply {
+  const queries = (result.queries ?? []).map((q) => ({
+    newMatches: q.newMatches ?? [],
+    noLongerMatching: q.noLongerMatching ?? [],
+  }));
+  const missing = result.missing ?? [];
+  const body: SelectionCheckResult = {
+    changed:
+      result.changed ??
+      (missing.length > 0 ||
+        queries.some((q) => q.newMatches.length + q.noLongerMatching.length > 0)),
+    missing,
+    queries,
+  };
+  return { status: 200, body: body as unknown as JsonBodyType };
+}
+
+export function bulkUpdateReply(changed: number): Reply {
+  return { status: 200, body: { changed } };
+}
+
+export function bulkDeleteReply(deleted: number): Reply {
+  return { status: 200, body: { deleted } };
+}
+
+/** `400 VALIDATION_FAILED` množične operacije: napake zahtevka in (neobvezno) napake po kontaktih. */
+export function bulkValidationReply(
+  errors: BulkFieldError[],
+  contacts?: BulkContactErrors[],
+): Reply {
+  return {
+    status: 400,
+    body: { code: 'VALIDATION_FAILED', errors, ...(contacts ? { contacts } : {}) },
+  };
+}
+
+export function selectionChangedReply(missing: string[]): Reply {
+  return { status: 409, body: { code: 'SELECTION_CHANGED', missing } };
+}
+
+export function archivedReply(): Reply {
+  return { status: 409, body: { code: 'GROUP_ARCHIVED' } };
+}
+
+export function forbiddenReply(): Reply {
+  return { status: 403, body: { code: 'FORBIDDEN' } };
 }

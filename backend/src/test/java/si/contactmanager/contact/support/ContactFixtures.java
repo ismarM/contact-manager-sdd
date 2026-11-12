@@ -138,6 +138,99 @@ public final class ContactFixtures {
         }
     }
 
+    /**
+     * {@code count} kontaktov »Ime 00001 Priimek 00001« … paketno, vsak z danimi značkami (po vrstnem redu) in dodatnimi
+     * atributi (ključ → vrednost, po vrstnem redu); za meritve z 10 000 kontakti. Vrne id-je po imenu.
+     */
+    public List<UUID> insertManyWithTagsAndAttributes(
+            UUID group, long userId, int count, List<String> tags, Map<String, String> attributes) {
+        List<UUID> ids = jdbc.queryForList(
+                "insert into contact (group_id, first_name, last_name, sort_first, sort_last, updated_by)"
+                        + " select ?, 'Ime ' || lpad(n::text, 5, '0'), 'Priimek ' || lpad(n::text, 5, '0'),"
+                        + " 'ime ' || lpad(n::text, 5, '0'), 'priimek ' || lpad(n::text, 5, '0'), ?"
+                        + " from generate_series(1, ?) n returning id",
+                UUID.class,
+                group,
+                userId,
+                count);
+        int position = 0;
+        for (String tag : tags) {
+            insertChildRows(
+                    "insert into contact_tag (contact_id, position, tag, tag_norm)"
+                            + " select unnest(?::uuid[]), ?, ?, ?",
+                    ids,
+                    position++,
+                    tag,
+                    key(tag));
+        }
+        int attributePosition = 0;
+        for (Map.Entry<String, String> attribute : attributes.entrySet()) {
+            int at = attributePosition++;
+            jdbc.update(connection -> {
+                var statement = connection.prepareStatement(
+                        "insert into contact_attribute (contact_id, position, key, key_norm, value)"
+                                + " select unnest(?::uuid[]), ?, ?, ?, ?");
+                statement.setArray(1, connection.createArrayOf("uuid", ids.toArray()));
+                statement.setInt(2, at);
+                statement.setString(3, attribute.getKey());
+                statement.setString(4, key(attribute.getKey()));
+                statement.setString(5, attribute.getValue());
+                return statement;
+            });
+        }
+        return ids;
+    }
+
+    private void insertChildRows(String sql, List<UUID> ids, int position, String text, String norm) {
+        jdbc.update(connection -> {
+            var statement = connection.prepareStatement(sql);
+            statement.setArray(1, connection.createArrayOf("uuid", ids.toArray()));
+            statement.setInt(2, position);
+            statement.setString(3, text);
+            statement.setString(4, norm);
+            return statement;
+        });
+    }
+
+    /**
+     * Izbriše kontakt, kot bi ga izbrisal 004: vrstica izgine, v sledi skupine pa nastane vnos {@code DELETE} s stanjem
+     * kontakta prej (identiteta je tako »znana« skupini, research R-02).
+     */
+    public void deleteAsAudited(UUID group, long userId, UUID contact) {
+        String name = jdbc.queryForObject(
+                "select trim(coalesce(first_name, '') || ' ' || coalesce(last_name, '')) from contact where id = ?"
+                        + " and group_id = ?",
+                String.class,
+                contact,
+                group);
+        Long seq = jdbc.queryForObject(
+                "select coalesce((select last_seq from audit_head where group_id = ?), 0) + 1", Long.class, group);
+        UUID entry = jdbc.queryForObject(
+                "insert into audit_entry (group_id, seq, actor_id, action, contact_count, contact_name)"
+                        + " values (?, ?, ?, 'DELETE', 1, ?) returning id",
+                UUID.class,
+                group,
+                seq,
+                userId,
+                name);
+        jdbc.update(
+                "insert into audit_change (entry_id, position, contact_id, display_name, before)"
+                        + " select ?, 0, c.id, ?, jsonb_build_object('firstName', c.first_name, 'lastName', c.last_name,"
+                        + " 'address', c.address, 'email', c.email, 'phone', c.phone, 'attributes', '[]'::jsonb,"
+                        + " 'tags', '[]'::jsonb, 'version', c.version) from contact c where c.id = ?",
+                entry,
+                name,
+                contact);
+        jdbc.update(
+                "insert into audit_head (group_id, last_seq, last_entry_id) values (?, ?, ?)"
+                        + " on conflict (group_id) do update set last_seq = excluded.last_seq,"
+                        + " last_entry_id = excluded.last_entry_id",
+                group,
+                seq,
+                entry);
+        jdbc.update("delete from contact where id = ? and group_id = ?", contact, group);
+    }
+
     public boolean exists(UUID contact) {
         Integer count = jdbc.queryForObject("select count(*) from contact where id = ?", Integer.class, contact);
         return count != null && count > 0;

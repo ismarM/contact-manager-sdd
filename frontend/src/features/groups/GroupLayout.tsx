@@ -9,6 +9,7 @@ import { errorAlert } from '../../shared/ui/styles';
 import { AuditEntryPage } from '../audit/AuditEntryPage';
 import { AuditPage } from '../audit/AuditPage';
 import { ContactsPage } from '../contacts/ContactsPage';
+import { SelectionProvider } from '../contacts/selection/SelectionProvider';
 import { useGroupsApi } from './api';
 import { ArchivedBanner } from './ArchivedBanner';
 import { GroupContext, type GroupContextValue } from './groupContext';
@@ -146,19 +147,21 @@ function GroupScreen({
 
   return (
     <GroupContext.Provider value={context}>
-      <GroupHeader group={context.group} focusTitle={focusTitle} />
-      <ArchivedBanner />
-      {screen === 'contacts' ? (
-        <ContactsPage />
-      ) : screen === 'audit' ? (
-        entryId === undefined ? (
-          <AuditPage />
+      <SelectionProvider groupId={groupId}>
+        <GroupHeader group={context.group} focusTitle={focusTitle} />
+        <ArchivedBanner />
+        {screen === 'contacts' ? (
+          <ContactsPage />
+        ) : screen === 'audit' ? (
+          entryId === undefined ? (
+            <AuditPage />
+          ) : (
+            <AuditEntryPage entryId={entryId} />
+          )
         ) : (
-          <AuditEntryPage entryId={entryId} />
-        )
-      ) : (
-        <SettingsPage />
-      )}
+          <SettingsPage />
+        )}
+      </SelectionProvider>
     </GroupContext.Provider>
   );
 }

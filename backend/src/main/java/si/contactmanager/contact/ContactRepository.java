@@ -5,10 +5,12 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -23,6 +25,9 @@ class ContactRepository {
 
     /** Največ predlogov značk (research R-07). */
     static final int SUGGESTIONS = 20;
+
+    /** Največ identitet v enem stavku (meja parametrov PostgreSQL je 32.767). */
+    private static final int CHUNK = 5000;
 
     private static final String DETAIL = "SELECT c.id, c.first_name, c.last_name, c.address, c.email, c.phone,"
             + " c.version, c.created_at, c.updated_at, u.name AS updated_by_name, u.email AS updated_by_email,"
@@ -72,6 +77,83 @@ class ContactRepository {
                 .param("id", id)
                 .query(Long.class)
                 .optional();
+    }
+
+    /** Identitete vseh zadetkov poizvedbe (brez razvrščanja; »Izberi vse zadetke«, research R-09). */
+    List<UUID> ids(UUID group, ContactQuery query) {
+        Map<String, Object> parameters = new LinkedHashMap<>();
+        String where = ContactSearch.where(group, query, parameters);
+        return jdbc.sql("SELECT c.id FROM contact c WHERE " + where)
+                .params(parameters)
+                .query(UUID.class)
+                .list();
+    }
+
+    /** Identitete iz {@code ids}, ki so kontakti te skupine. */
+    Set<UUID> existing(UUID group, Collection<UUID> ids) {
+        Set<UUID> found = new LinkedHashSet<>();
+        for (List<UUID> chunk : chunks(ids)) {
+            found.addAll(jdbc.sql("SELECT id FROM contact WHERE group_id = :group AND id IN (:ids)")
+                    .param("group", group)
+                    .param("ids", chunk)
+                    .query(UUID.class)
+                    .list());
+        }
+        return found;
+    }
+
+    /**
+     * Zaklene obstoječe kontakte iz {@code ids} (research R-03): po kosih in v vrstnem redu {@code id}, zato se
+     * prekrivajoči operaciji ne zaklenita križno; vrne zaklenjene identitete.
+     */
+    Set<UUID> lockExisting(UUID group, Collection<UUID> ids) {
+        List<UUID> sorted = ids.stream().sorted().toList();
+        Set<UUID> locked = new LinkedHashSet<>();
+        for (List<UUID> chunk : chunks(sorted)) {
+            locked.addAll(jdbc.sql("SELECT id FROM contact WHERE group_id = :group AND id IN (:ids)"
+                            + " ORDER BY id FOR UPDATE")
+                    .param("group", group)
+                    .param("ids", chunk)
+                    .query(UUID.class)
+                    .list());
+        }
+        return locked;
+    }
+
+    /** Identitete iz {@code ids}, ki se pojavijo v sledi te skupine (so bile njeni kontakti; R-02). */
+    Set<UUID> knownToGroup(UUID group, Collection<UUID> ids) {
+        Set<UUID> known = new LinkedHashSet<>();
+        for (List<UUID> chunk : chunks(ids)) {
+            known.addAll(jdbc.sql("SELECT DISTINCT ch.contact_id FROM audit_change ch"
+                            + " JOIN audit_entry e ON e.id = ch.entry_id"
+                            + " WHERE e.group_id = :group AND ch.contact_id IN (:ids)")
+                    .param("group", group)
+                    .param("ids", chunk)
+                    .query(UUID.class)
+                    .list());
+        }
+        return known;
+    }
+
+    /** Izbriše kontakte skupine (kaskada odstrani atribute in značke); vrne število izbrisanih. */
+    int deleteAll(UUID group, Collection<UUID> ids) {
+        int deleted = 0;
+        for (List<UUID> chunk : chunks(ids)) {
+            deleted += jdbc.sql("DELETE FROM contact WHERE group_id = :group AND id IN (:ids)")
+                    .param("group", group)
+                    .param("ids", chunk)
+                    .update();
+        }
+        return deleted;
+    }
+
+    private static List<List<UUID>> chunks(Collection<UUID> ids) {
+        List<UUID> all = ids instanceof List<UUID> list ? list : new ArrayList<>(ids);
+        List<List<UUID>> chunks = new ArrayList<>();
+        for (int from = 0; from < all.size(); from += CHUNK) {
+            chunks.add(all.subList(from, Math.min(all.size(), from + CHUNK)));
+        }
+        return chunks;
     }
 
     boolean exists(UUID group, UUID id) {

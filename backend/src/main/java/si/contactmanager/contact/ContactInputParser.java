@@ -32,13 +32,13 @@ public final class ContactInputParser {
     static final int ATTRIBUTES_MAX = 50;
     static final int TAGS_MAX = 30;
 
-    private static final Pattern EMAIL = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
-    private static final Pattern PHONE = Pattern.compile("^[0-9+\\-()/ ]+$");
-    private static final Pattern WHITESPACE = Pattern.compile("\\s");
-    private static final Pattern SPACES = Pattern.compile("\\s+");
+    static final Pattern EMAIL = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
+    static final Pattern PHONE = Pattern.compile("^[0-9+\\-()/ ]+$");
+    static final Pattern WHITESPACE = Pattern.compile("\\s");
+    static final Pattern SPACES = Pattern.compile("\\s+");
 
     /** Imena predefiniranih polj v obeh jezikih (normalizirana: male črke, en presledek). */
-    private static final Set<String> RESERVED_KEYS = Set.of(
+    static final Set<String> RESERVED_KEYS = Set.of(
             "ime",
             "first name",
             "priimek",
@@ -274,7 +274,7 @@ public final class ContactInputParser {
         return errors.stream().anyMatch(e -> e.field().equals(field));
     }
 
-    private static int length(String text) {
+    static int length(String text) {
         return text.codePointCount(0, text.length());
     }
 

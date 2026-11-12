@@ -2,7 +2,7 @@ spring:
   application:
     name: contact-manager
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/contacts}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/contacts?reWriteBatchedInserts=true}
     username: ${DB_USER:contacts}
     password: ${DB_PASSWORD:contacts}
   jpa:
