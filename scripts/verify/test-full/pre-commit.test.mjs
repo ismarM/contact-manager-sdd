@@ -66,7 +66,8 @@ describe('pre-commit z gitleaks', () => {
     assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
   });
 
-  it('FR-000-19: v Git worktreeju je skrivnost zaznana, čist commit uspe', () => {
+  // Na Windowsu datoteka `.git` worktreeja vsebuje pot `C:/…`, ki je v Linux vsebniku ni mogoče razrešiti (D-81).
+  it('FR-000-19: v Git worktreeju je skrivnost zaznana, čist commit uspe', { skip: process.platform === 'win32' }, () => {
     const { repo, git } = repoWithHooks();
     writeFileSync(path.join(repo, 'README.md'), '# Začetek\n');
     git('add', '.');

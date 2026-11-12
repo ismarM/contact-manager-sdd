@@ -22,8 +22,22 @@ if command -v gitleaks >/dev/null 2>&1; then
 elif command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
   ROOT="$(git rev-parse --show-toplevel)"
   COMMON="$(cd "$(git rev-parse --git-common-dir)" && pwd)"
-  docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp \
-    -v "$ROOT:$ROOT" -v "$COMMON:$COMMON" -w "$ROOT" "$GITLEAKS_IMAGE" "${ARGS[@]}" 2>&1 | tee "$LOG"
+  # Git Bash na Windowsu vrne poti oblike C:/…, ki v Linux vsebniku niso veljavni (docker: »working directory … is
+  # invalid«); preslikamo ju v /c/… in izklopimo samodejno pretvorbo poti MSYS (D-81).
+  container_path() {
+    case "$1" in
+      [A-Za-z]:/*) printf '/%s%s' "$(printf '%s' "${1%%:*}" | tr 'A-Z' 'a-z')" "${1#?:}" ;;
+      *) printf '%s' "$1" ;;
+    esac
+  }
+  C_ROOT="$(container_path "$ROOT")"
+  C_COMMON="$(container_path "$COMMON")"
+  # Na Windowsu uid/gid iz Git Basha v vsebniku ne ustrezata lastniku priklopa (git: »dubious ownership«); tam tečemo kot
+  # root, slika gitleaks ima `safe.directory=*` (D-81).
+  USER_ARGS=(--user "$(id -u):$(id -g)")
+  [ "$C_ROOT" != "$ROOT" ] && USER_ARGS=()
+  MSYS_NO_PATHCONV=1 docker run --rm "${USER_ARGS[@]}" -e HOME=/tmp \
+    -v "$ROOT:$C_ROOT" -v "$COMMON:$C_COMMON" -w "$C_ROOT" "$GITLEAKS_IMAGE" "${ARGS[@]}" 2>&1 | tee "$LOG"
   STATUS=${PIPESTATUS[0]}
 else
   echo 'pre-commit: za preverjanje skrivnosti namesti gitleaks (https://github.com/gitleaks/gitleaks) ali zaženi Docker.' >&2
