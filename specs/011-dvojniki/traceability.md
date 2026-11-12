@@ -69,3 +69,10 @@ Pot do testov: BE `backend/src/test/java/si/contactmanager/contact/…` (`*Test`
 - **SC-004:** `MergeVersionConflictIT`, `MergeConcurrencyIT` (prekrivajoče združitve 20 ponovitev brez zastoja, združitev + urejanje, + množično urejanje, + arhiviranje, + rollback).
 - **SC-005:** `MergeRollbackIT`, `MergeLargeGroupIT` (rollback pred krogom 3), `dvojniki.spec.ts` (admin povrne skupino prek obstoječega rollbacka 005, brez nove kode).
 - **SC-006:** `DuplicateIsolationMatrixSecurityIT` (83 izvedb), `dvojniki.spec.ts`.
+
+## Končna verifikacija (Converge)
+
+- `./verify.sh full`: **zelen** (690 s) po združitvi `origin/main` (010) v `dvojniki`. Prvi zagon je padel: (a) E2E 004 pričakuje stare razdelke skupine brez »Dvojniki« → D-102 (sprememba-testa); (b) dva testa 007 (w360) sta presegla časovno omejitev prijave (okno emulatorja se ni odprlo) – v ločenem zagonu `kontakti` + `clani` 75/75 zelenih in v drugem polnem zagonu zelena.
+- Converge: vseh 21 FR in 6 SC potrjenih (testi in koda), brez odprtih ugotovitev; T030 izpolnjen v pravem brskalniku; ostajata T060 (push, PR) in T061 (pregled razvijalcev).
+- Skrivnosti: `gitleaks git --log-opts origin/main..HEAD`: brez najdb.
+
