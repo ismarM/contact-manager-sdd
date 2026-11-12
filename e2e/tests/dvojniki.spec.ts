@@ -633,6 +633,70 @@ test('FR-011-21: primerjava je uporabna pri 320 px – brez vodoravnega drsenja,
   await expectNoAxeViolations(page);
 });
 
+test('FR-011-08 FR-011-11 FR-011-12 FR-011-21 T030: primerjava ima v pravem brskalniku pri 360 in 1280 px enako drevo dostopnosti, »Ostane« in »Izloči iz združevanja« sta dosegljiva v obeh', async ({
+  page,
+}) => {
+  await signedIn(page);
+  const groupId = await createGroup(page, { title: 'Projekt FERI' });
+  const email = 'skupina@primer.si';
+  for (let n = 1; n <= 10; n += 1) {
+    seedContact(groupId, {
+      first: `Ime${String(n).padStart(2, '0')}`,
+      last: `Priimek${String(n).padStart(2, '0')}`,
+      email,
+      phone: `040 000 ${String(n).padStart(3, '0')}`,
+      tags: n % 2 === 0 ? ['vip', `znacka${n}`] : ['vip'],
+      attributes: n <= 3 ? [{ key: 'Kompetenca', value: `web dev ${n}` }] : [],
+      createdAt: iso(n),
+    });
+  }
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await searchByEmail(page, groupId);
+  await card(page, email).getByRole('button', { name: 'Primerjaj in združi' }).click();
+  await expect(page.getByRole('heading', { level: 2, name: 'Primerjava dvojnikov' })).toBeVisible();
+
+  // Drevo dostopnosti glavne vsebine (vloge, imena, stanja) – enako pri obeh širinah: ena komponenta, brez
+  // podvojene vsebine za mobilni ali namizni prikaz.
+  const main = page.getByRole('main');
+  const treeAt = async (width: number) => {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(page.getByRole('region', { name: 'Predogled združenega kontakta' })).toBeVisible();
+    return main.ariaSnapshot();
+  };
+  const wide = await treeAt(1280);
+  const narrow = await treeAt(360);
+  const wideAgain = await treeAt(1280);
+  expect(narrow).toBe(wide);
+  expect(wideAgain).toBe(wide);
+
+  // Dosegljivost: v obeh širinah sta oznaka »Ostane« in gumb »Izloči iz združevanja« vidna in v oknu strani, gumb
+  // se dejansko klikne (brez `force`), skupina izbirnih gumbov pa ostane ena na polje.
+  for (const width of [360, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    const first = page.getByRole('group', { name: nm(1), exact: true });
+    await expect(first).toBeVisible();
+    await expect(first.getByText('Ostane')).toBeVisible();
+    const exclude = page
+      .getByRole('group', { name: nm(10), exact: true })
+      .getByRole('button', { name: 'Izloči iz združevanja' });
+    await exclude.scrollIntoViewIfNeeded();
+    await expect(exclude).toBeVisible();
+    const box = await exclude.boundingBox();
+    const viewport = page.viewportSize();
+    expect(box).not.toBeNull();
+    expect((box?.x ?? -1) + (box?.width ?? 0)).toBeLessThanOrEqual((viewport?.width ?? 0) + 1);
+    await expect(page.getByRole('group', { name: 'Telefon', exact: true })).toHaveCount(1);
+    expect(await noHorizontalScroll(page)).toBe(true);
+  }
+  await page.setViewportSize({ width: 360, height: 900 });
+  const exclude = page
+    .getByRole('group', { name: nm(10), exact: true })
+    .getByRole('button', { name: 'Izloči iz združevanja' });
+  await exclude.click();
+  await expect(page.getByRole('group', { name: nm(10), exact: true })).toHaveCount(0);
+  await expectNoAxeViolations(page);
+});
+
 // --- (7) bralec in arhivirana skupina --------------------------------------------------------------------------------
 
 test('FR-011-01 FR-011-19: bralec – zavihka ni, neposredna pot pokaže razlago brez obrazca', async ({
