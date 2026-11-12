@@ -32,7 +32,14 @@ export function LoginPage() {
   }
 
   const sessionExpired = params.get('reason') === 'session-expired';
-  // Ogrodje 012: razlog `account-deleted` / `account-deleted-pending` – sporočilo pride z implementacijo.
+  // Potrdilo po izbrisu računa (012, FR-012-14, FR-012-17); `pending` = brisanje povezave z Google računom še poteka.
+  const reason = params.get('reason');
+  const deletedNotice =
+    reason === 'account-deleted'
+      ? 'login.accountDeleted'
+      : reason === 'account-deleted-pending'
+        ? 'login.accountDeletedPending'
+        : null;
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-4 py-8">
@@ -42,6 +49,11 @@ export function LoginPage() {
           {t('app.name')}
         </h1>
         <p className="mt-3 text-muted-foreground">{t('login.tagline')}</p>
+        {deletedNotice && (
+          <p role="status" className="mt-6 rounded-md border-l-4 border-border bg-muted p-3">
+            {t(deletedNotice)}
+          </p>
+        )}
         {signInError ? (
           <div
             role="alert"

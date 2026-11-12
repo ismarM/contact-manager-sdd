@@ -154,13 +154,16 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
     await gateway.signOut();
   }, [clearSession, gateway]);
 
-  // Ogrodje 012: samo lokalna odjava; sporočilo in izbris seje pridejo z implementacijo.
+  // Račun je izbrisan (012, FR-012-14, FR-012-17): seja se počisti PRED preusmeritvijo, zato ni sporočila o poteku seje.
+  // `pending` = 202 (brisanje identitete pri ponudniku še čaka).
   const accountDeleted = useCallback(
     async (pending: boolean) => {
-      void pending;
+      expectingSignOut.current = true;
+      setExitTo(`/login?reason=${pending ? 'account-deleted-pending' : 'account-deleted'}`);
+      clearSession();
       await gateway.signOut();
     },
-    [gateway],
+    [clearSession, gateway],
   );
 
   const savePreferences = useCallback(
