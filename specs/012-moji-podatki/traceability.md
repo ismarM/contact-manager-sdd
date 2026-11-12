@@ -75,7 +75,8 @@ Trije testi (`IdentityDeletionIT`, `DeletedUserLeakSecurityIT`, `ReRegistrationG
 - **T074 – ročna vrata pred združitvijo: produkcijski Firebase OAuth 2.0 dostop** (quickstart.md, *Produkcija*). Emulator in unit test z lažnim transportom tega ne dokazujeta; z ustrezno konfiguracijo ni bilo preverjeno. **Ostaja odprto.**
 - **Izrecna potrditev Patrika v pregledu PR** za **D-72** (hramba Firebase UID v nadgrobniku, konstitucija VI), **D-76** (izjema: četrti krog in ročna odobritev test-first faze) in **D-77** (sprememba petih testov zaradi napačne predpostavke o emulatorju). **Ostaja odprto.**
 - **T073 – ponovna uskladitev s 009 tik pred PR.** Stanje ob Convergu (2026-11-12): `origin/main` je še `f557382` (008), zadnja migracija `V8__iskanje.sql` (V9 prosta), zadnji vnos `D-71` (D-72 … D-78 enolični), `CR-02` (CR-03 in CR-04 prosta), veje 009 na `origin` ni. Konflikta ni; preverjanje je treba ponoviti pred PR.
-- T075 (ročni preizkus quickstart.md), T077 (push in PR) in T078 (pregled in združitev) ostajajo odprti; T076 (Converge) je opravljen s tem zapisom.
+- **T075 (ročni preizkus) je zaključen na podlagi potrditve razvijalca** (Ismar, 2026-11-12): izvoz, blokada, prenos lastništva, izbris z vpisom e-naslova, odjava, zavrnitev stare seje, ponovna prijava in tipkovnica na lokalnem razvojnem Compose z Auth Emulatorjem. To **ni** dokaz produkcijskega OAuth (T074).
+- T077 (push in PR) in T078 (pregled in združitev) ostajajo odprti; T076 (Converge) je opravljen s tem zapisom.
 
 ## Končni pregled (Converge)
 
