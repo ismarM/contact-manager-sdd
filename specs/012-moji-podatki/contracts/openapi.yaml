@@ -17,8 +17,8 @@ paths:
       operationId: exportMyData
       summary: Izvoz mojih podatkov (FR-012-01 … FR-012-04, FR-012-16)
       description: >
-        Posnetek podatkov prijavljenega uporabnika (en `REPEATABLE READ` posnetek: popoln ali nič). Brez kontaktov, revizijskih sledi in osebnih podatkov drugih uporabnikov,
-        z izjemama iz spec.md (ime pošiljatelja prejetega povabila, e-naslov povabljenega pri poslanem povabilu). Vsi seznami so v celoti (ni paginacije). Odgovor se ne predpomni.
+        Posnetek podatkov prijavljenega uporabnika (en `REPEATABLE READ` posnetek: popoln ali nič; sočasen izbris računa → 401). Brez kontaktov, revizijskih sledi in osebnih podatkov drugih uporabnikov,
+        z edinima izjemama iz FR-012-03 (ime pošiljatelja prejetega povabila, e-naslov povabljenega pri poslanem povabilu). Vsi seznami so v celoti (ni paginacije). Odgovor se ne predpomni.
         Odjemalec datoteko shrani pod imenom `moji-podatki-YYYY-MM-DD.json` z lokalnim datumom brskalnika.
       responses:
         "200":
@@ -80,7 +80,7 @@ paths:
         izbris podatkov in uporabnika, zapis nadgrobnika; po potrditvi (commit) takojšen klic Firebase `accounts:delete` (OAuth 2.0 dostop storitvenega računa; nikoli ID žeton uporabnika).
         **Dve uspešni stanji (FR-012-17):** `204` – lokalni račun IN identiteta pri Firebase sta izbrisana (tudi če je identiteta že izbrisana); `202` – lokalni račun je izbrisan, brisanje identitete pa
         čaka (Firebase nedosegljiv ali začasna napaka) in se ponavlja v ozadju, dokler ne uspe. V obeh stanjih so lokalni podatki izbrisani in žeton neuporaben (401); v stanju 202 se uporabnik z istim
-        Google računom morda še ne more znova registrirati (prijava = 401), dokler brisanje pri Firebase ne uspe. Drugi sočasni zahtevek istega uporabnika dobi 401.
+        Google računom morda še ne more znova registrirati (prijava = 401), dokler brisanje pri Firebase ne uspe. Drugi sočasni zahtevek istega uporabnika dobi 401, ne glede na število skupin (tudi če uporabnik ni član nobene). Neujemanje e-naslova se zavrne pred zaklepanjem skupin; klic Firebase teče zunaj podatkovne transakcije.
       requestBody:
         required: true
         content:

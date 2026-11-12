@@ -47,14 +47,16 @@ CREATE INDEX group_member_updated_by ON group_member (updated_by);
 | `firebase_uid` | Firebase UID izbrisanega uporabnika (`sub` iz žetona) | PK; vir: `app_user.firebase_uid` v trenutku izbrisa; nikoli ne vsebuje imena ali e-naslova |
 | `deleted_at` | čas potrditve izbrisa v aplikaciji | samo za diagnostiko |
 | `provider_deleted_at` | čas uspešnega brisanja identitete pri ponudniku | `NULL` dokler ne uspe; nastavi ga `IdentityDeletionJob` ali hitra pot po izbrisu |
-| `attempts`, `next_attempt_at` | ponavljanje (R-07) | odmik `min(30 s · 2^attempts, 1 h)`; `FOR UPDATE SKIP LOCKED` |
+| `attempts`, `next_attempt_at` | ponavljanje in zakup (R-07) | `next_attempt_at` je hkrati čas naslednjega poskusa in **zakup**: ob vstavitvi `now() + lease` (privzeto 30 s), ob prevzemu v opravilu `now() + lease`, po neuspehu `now() + min(30 s · 2^attempts, 1 h)`; prevzem je en kratek `UPDATE … WHERE firebase_uid IN (SELECT … FOR UPDATE SKIP LOCKED) RETURNING` |
 | `last_error` | kratka koda zadnjega neuspeha (`TIMEOUT`, `HTTP_5XX`, `HTTP_401` …) | brez uporabnikovih podatkov, ne UID-a |
+
+Vstavitev je `INSERT … ON CONFLICT (firebase_uid) DO NOTHING`: podvojen zapis ni nikoli vzrok za `500` (sočasni izbris istega uporabnika, R-04). Shema migracije se zaradi tega ne spreminja.
 
 **Življenjski cikel vrstice:**
 
 | Stanje | Pogoj | Učinek |
 |---|---|---|
-| odprt | `provider_deleted_at IS NULL` | ID žetoni UID-a: 401; nova registracija: zavrnjena (sprožilec); opravilo ponavlja brisanje pri ponudniku |
+| odprt | `provider_deleted_at IS NULL` | ID žetoni UID-a: 401; nova registracija: zavrnjena (sprožilec); opravilo po izteku zakupa ponavlja brisanje pri ponudniku (zunaj podatkovne transakcije) |
 | zaprt | `provider_deleted_at` nastavljen | ID žetoni UID-a: 401 do izbrisa vrstice (žeton lahko velja še do 1 ure) |
 | izbrisan | `provider_deleted_at < now() - 2 h` (`identity-deletion.tombstone-retention`, najmanj 70 min) | opravilo izbriše vrstico (tudi po ponovnem zagonu; prvi zagon takoj); do takrat so vsi žetoni potekli. Odprta vrstica (`provider_deleted_at IS NULL`) se ne izbriše nikoli |
 
@@ -96,4 +98,4 @@ Struktura `MyData` (podrobnosti in primer v [contracts/openapi.yaml](contracts/o
 | `sentInvitations` | `invitation` (`inviter_id = uporabnik`) ⨝ `contact_group`, `app_user` prejemnika | `inviteeEmail` je edini podatek drugega uporabnika; neodvisno od trenutne vloge ali članstva |
 | `ownedGroups` | `contact_group` ⨝ `group_member` (`role = 'OWNER'`) | `state`: `ACTIVE` ali `ARCHIVED`; trajno arhivirana skupina nima lastnika, torej ni v izvozu |
 
-Iz izvoza so izpuščeni: kontakti, atributi, značke, revizijska sled, imena in e-naslovi članov, `id`-ji (FR-012-03).
+Iz izvoza so izpuščeni: kontakti, atributi, značke, revizijska sled, imena in e-naslovi članov, `id`-ji (FR-012-03). **Edina izjema** (FR-012-03, CR-04): ime pošiljatelja prejetega povabila in e-naslov povabljenega pri poslanem povabilu.

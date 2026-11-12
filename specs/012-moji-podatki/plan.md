@@ -36,21 +36,21 @@ e-naslova in stran za prijavo s potrdilom o izbrisu. Odločitve: [research.md](r
 **Constraints**: WCAG 2.1 AA, sl/en, brez pravih zunanjih storitev v testih (emulator), barve samo iz žetonov, izbris se ne zapiše v sled (§2.7), brez sprememb obstoječih tabel in pogodb 001–008,
 brez AI dnevnikov, skrivnosti (poverilnice storitvenega računa) izven Gita
 
-**Scale/Scope**: 16 FR (FR-012-01 … FR-012-16), 3 endpointi, 0 novih poti (razdelka v `/account`), 1 migracija, 1 novo ozadnje opravilo
+**Scale/Scope**: 18 FR (FR-012-01 … FR-012-18), 9 SC, 3 endpointi, 0 novih poti (razdelka v `/account`), 1 migracija, 1 novo ozadnje opravilo
 
 ## Constitution Check
 
 | Principle (constitution) | How this plan complies |
 |---|---|
-| I. Specification is the contract | Pokriti vsi FR-012-01 … FR-012-16 (tabela pokritosti spodaj); *Public Interfaces* določajo endpointe, poti in dostopna imena; `OWNS_ACTIVE_GROUPS` je že v feature-map §2.10 (nove kode ni); nova koda polja pri 400: `email: MISMATCH`. Specifikacija se ne spreminja. |
-| II. Test-first | BE: unit (`ExportAssemblerTest`, `DeleteAccountInputParserTest`, `IdentityRetryBackoffTest`), integracijski (`MyDataExportIT`, `DeletionBlockersIT`, `AccountDeletionIT`, `AccountDeletionGroupsIT`, `AccountDeletionConcurrencyIT`, `AccountDeletionLockingIT`, `IdentityDeletionIT` (izpad, ponovitev, odmik, čiščenje), `IdentityDeletionRestartIT` (ponavljanje in čiščenje po ponovnem zagonu), `FirebaseIdentityProviderIT`, `AccountDeletionMigrationIT`, `AccountDeletionAuditIT`), varnostni (`MyDataIsolationMatrixSecurityIT`, `DeletedIdentityTokenSecurityIT`, `DeletedUserLeakSecurityIT`, `ReRegistrationGuardSecurityIT`). FE: funkcionalni z MSW in `vitest-axe`. E2E `moji-podatki.spec.ts`. Pregled testov opravi agent `pregled-testov` pred kodo (workflow §4.2). |
+| I. Specification is the contract | Pokriti vsi FR-012-01 … FR-012-18 in SC-001 … SC-009 (tabela pokritosti spodaj); *Public Interfaces* določajo endpointe, poti in dostopna imena; `OWNS_ACTIVE_GROUPS` je že v feature-map §2.10 (nove kode ni); nova koda polja pri 400: `email: MISMATCH`. Specifikacija se ne spreminja. |
+| II. Test-first | BE: unit (`ExportAssemblerTest`, `DeleteAccountInputParserTest`, `IdentityRetryBackoffTest`, `FirebaseIdentityProviderTest` (lažen transport in vir žetona), `ConfigurationSecurityTest`, `MigrationVersionsUniqueTest`), integracijski (`MyDataExportIT`, `DeletionBlockersIT`, `AccountDeletionIT`, `AccountDeletionGroupsIT`, `AccountDeletionConcurrencyIT`, `AccountDeletionLockingIT`, `AccountDeletionAtomicityIT`, `MyDataExportConcurrencyIT`, `IdentityDeletionIT` (izpad, ponovitev, odmik, čiščenje), `IdentityDeletionRestartIT` (ponavljanje in čiščenje po ponovnem zagonu), `FirebaseIdentityProviderIT`, `AccountDeletionMigrationIT`, `AccountDeletionAuditIT`), varnostni (`MyDataIsolationMatrixSecurityIT`, `DeletedIdentityTokenSecurityIT`, `DeletedUserLeakSecurityIT`, `ReRegistrationGuardSecurityIT`). FE: funkcionalni z MSW in `vitest-axe`. E2E `moji-podatki.spec.ts`. Pregled testov opravi agent `pregled-testov` pred kodo (workflow §4.2). |
 | III. Group isolation and roles | Vsi trije endpointi so v matriki izolacije za uporabniško vezane vire (workflow 2.5): 401 (brez, neveljaven, potekel žeton, žeton izbrisanega uporabnika), 404 za tuj identifikator (poti ne obstajajo). Izbris pod zaklepi skupin ne more pustiti nearhivirane skupine brez lastnika (SC-006). Avtorizacija ostaja na zaledju (`OWNS_ACTIVE_GROUPS` presoja strežnik, vmesnik le skrije gumb). |
 | IV. Accessible, bilingual, responsive UI | design.md 8.11 (dialog z vpisom), 8.13 (napaka s *Poskusi znova*), 9.9 (točki 3 in 4); fokus na *Prekliči*, Esc, vrnitev fokusa; sl/en (`account.data.*`, `account.delete.*`, `login.accountDeleted`); axe v FE testih in E2E; 320 px; gumbi ≥ 44 px. |
-| V. Data integrity | Izbris je atomaren (ena transakcija); odločitev pod zaklepom (R-04); izbris ni skupna transakcija z Firebase, a je vsako vmesno stanje trajno zapisano in idempotentno (R-01, R-07); sled ostane nespremenljiva (R-05). Izvoz je `REPEATABLE READ` posnetek. Izvoz ni seznam v vmesniku, zato ni paginiran (R-09). |
-| VI. Privacy and GDPR | Izvoz in izbris sta jedro te funkcionalnosti. **Odstopanje (D-72):** Firebase UID izbrisanega uporabnika ostane v `deleted_identity` do uspešnega brisanja pri ponudniku in še 2 uri (razveljavitev žetona); ni ime ali e-naslov (SC-004). Brez novih osebnih podatkov. Poverilnice storitvenega računa niso v Gitu. |
+| V. Data integrity | Lokalni izbris je atomaren (ena kratka transakcija; test atomarnosti); odločitev pod zaklepom (R-04); izbris ni skupna transakcija z Firebase, zunanji klic teče zunaj podatkovne transakcije, vmesna stanja so trajno zapisana in idempotentna (R-01, R-07); sled ostane nespremenljiva (R-05). Izvoz je `REPEATABLE READ` posnetek. **Odstopanje od »vsi seznami so paginirani«:** izvoz je celovit posnetek v datoteko, seznam blokad pa je omejen na lastne nearhivirane skupine (R-15, *Complexity Tracking*). |
+| VI. Privacy and GDPR | Izvoz in izbris sta jedro te funkcionalnosti. **Odstopanje (D-72, R-15):** Firebase UID izbrisanega uporabnika ostane v `deleted_identity` do uspešnega brisanja pri ponudniku in še 2 uri (razveljavitev žetona); ni ime ali e-naslov (SC-004), isti stolpec že obstaja kot `app_user.firebase_uid`. Potrditev drugega razvijalca v pregledu PR (kot D-19). Brez novih osebnih podatkov. Poverilnice storitvenega računa niso v Gitu. |
 | VII. One verification path | Novi testi tečejo v obstoječih korakih `verify.sh`. Nova knjižnica ima vnos D-73 (potrjena z D-74). Brez utišanj (`@SuppressWarnings`, `eslint-disable`). |
 
-**Rezultat (pred raziskavo):** PASS. **Ponovno preverjanje po fazi 1:** PASS. Opombe: (1) VI dopušča odstopanje samo z vnosom → D-72; (2) VII zahteva vnos za novo knjižnico → D-73, potrjen z D-74 (razvijalec); (3) migracijska številka V9 ni zagotovo prosta (R-14).
+**Rezultat (pred raziskavo):** PASS. **Ponovno preverjanje po fazi 1:** PASS. Opombe: (1) VI: odstopanje z vnosom D-72 in potrditvijo obeh razvijalcev (R-15); V: nepaginiran izvoz utemeljen v R-15; (2) VII zahteva vnos za novo knjižnico → D-73, potrjen z D-74 (razvijalec); (3) migracijska številka V9 ni zagotovo prosta (R-14).
 
 ## Public Interfaces *(mandatory)*
 
@@ -69,7 +69,7 @@ brez AI dnevnikov, skrivnosti (poverilnice storitvenega računa) izven Gita
 - `POST /api/me/deletion` telo `{"email": "…"}`. Vrstni red: **401** (neprijavljen, žeton izbrisanega, uporabnik ne obstaja več) → **400 `VALIDATION_FAILED`** (`email`: `REQUIRED`, `MISMATCH`; neznano polje `UNKNOWN_FIELD`;
   neveljaven JSON `body: MALFORMED`) → **409 `OWNS_ACTIVE_GROUPS`** s telesom `{"code","groups":[{"id","title"}]}` (preverjeno pod zaklepi, FR-012-13) → **204** ali **202**. Primerjava e-naslova: obrez, brez velikosti črk, z e-naslovom v bazi.
   **204** – takojšen poskus brisanja identitete (omejen na 5 s) je uspel ali identiteta ni več obstajala. **202** – podatki aplikacije so v celoti izbrisani, brisanje identitete pa ni uspelo (nedosegljiv, `5xx`, `429`, `401/403` poverilnic) in se ponavlja do uspeha; ponovitev zahtevka ni mogoča (uporabnika ni več, žeton → 401) in ni potrebna. V obeh stanjih je žeton neuporaben (401); ob `202` se uporabnik z istim Google računom morda še ne more znova registrirati (prijava 401, dokler brisanje pri Firebase ne uspe).
-- **Ne obstajajo** (FR-012-16): `/api/users/{id}/export`, `/api/users/{id}`, `/api/me/{id}/export`, `DELETE /api/me` → `404`/`405`; testirano.
+- **Ne obstajajo** (FR-012-16): `/api/users/{id}/export`, `/api/users/{id}`, `/api/me/{id}/export` → `404`; `DELETE /api/me` → `405` (pot obstaja samo za `PUT`); testirano po poti.
 - Napake: `401 {"code":"UNAUTHENTICATED"}`; `400 {"code":"VALIDATION_FAILED","errors":[{"field","code"}]}`; `409 {"code":"OWNS_ACTIVE_GROUPS","groups":[…]}`. Podrobnosti: [contracts/openapi.yaml](contracts/openapi.yaml).
 - Posledice ob dokončanem izbrisu za druge funkcionalnosti (brez sprememb njihovih pogodb): `GET …/audit` in `GET …/members`, `GET /api/groups/archived`, `GET /api/invitations` in `GET …/invitations` že prikazujejo
   `null` / `deletedOwner` kot »izbrisan uporabnik« (D-55, 005, 007).
@@ -119,9 +119,9 @@ brez AI dnevnikov, skrivnosti (poverilnice storitvenega računa) izven Gita
 | FR-ID | BE integracijski / varnostni / sočasnostni | FE funkcionalni | E2E |
 |---|---|---|---|
 | FR-012-01 | – | `MyDataSection.test` | `moji-podatki.spec` |
-| FR-012-02 | `MyDataExportIT` (vsa polja, prazni seznami, izbrisan pošiljatelj, jezik/tema, glave, ime datoteke), `ExportAssemblerTest`, `MyDataIsolationMatrixSecurityIT` | `MyDataSection.test` (ime datoteke po lokalnem datumu) | `moji-podatki.spec` (prenos in branje nazaj) |
-| FR-012-03 | `MyDataExportIT` (kanarčki v kontaktih, sledi, drugih članih), `MyDataIsolationMatrixSecurityIT` | – | `moji-podatki.spec` |
-| FR-012-04 | – | `MyDataSection.test` (MSW 500, brez povezave) | `moji-podatki.spec` (zaledje ustavljeno) |
+| FR-012-02 | `MyDataExportIT` (vsa polja, prazni seznami, izbrisan pošiljatelj, jezik/tema, glave, ime datoteke), `ExportAssemblerTest`, `MyDataExportConcurrencyIT` (izvoz med izbrisom: popoln ali 401), `MyDataIsolationMatrixSecurityIT` | `MyDataSection.test` (ime datoteke po lokalnem datumu) | `moji-podatki.spec` (prenos in branje nazaj) |
+| FR-012-03 | `MyDataExportIT` (kanarčki v kontaktih, sledi, drugih članih; bela lista: ime pošiljatelja, e-naslov povabljenega – CR-04), `MyDataIsolationMatrixSecurityIT` | – | `moji-podatki.spec` |
+| FR-012-04 | – | `MyDataSection.test` (MSW 500, brez povezave) | `moji-podatki.spec` (`page.route` abort) |
 | FR-012-05 | – | `DeleteAccountSection.test` | `moji-podatki.spec` |
 | FR-012-06 | `DeletionBlockersIT`, `AccountDeletionIT` (409), `AccountDeletionGroupsIT`, `MyDataIsolationMatrixSecurityIT` | `DeleteAccountSection.test` (seznam, povezave, brez gumba, po arhiviranju gumb) | `moji-podatki.spec` |
 | FR-012-07 | `AccountDeletionIT` (400 `REQUIRED`/`MISMATCH`, obrez, velikost črk), `DeleteAccountInputParserTest` | `DeleteAccountDialog.test` (fokus, Esc, napačen vpis) | `moji-podatki.spec` |
@@ -130,16 +130,16 @@ brez AI dnevnikov, skrivnosti (poverilnice storitvenega računa) izven Gita
 | FR-012-10 | `AccountDeletionGroupsIT` (edini član trajno arhivirane → izbrisana; eden od več → ostane) | – | – |
 | FR-012-11 | `AccountDeletionIT` (poslano povabilo ostane, pošiljatelj izbrisan; sprejem po 006) | – | `moji-podatki.spec` |
 | FR-012-12 | `AccountDeletionAuditIT`, `DeletedUserLeakSecurityIT`, `AccountDeletionMigrationIT` (`SET NULL` brez kopije imena; indeksi) | – | `moji-podatki.spec` (sled) |
-| FR-012-13 | `AccountDeletionConcurrencyIT` (100 ponovitev, SC-006), `AccountDeletionLockingIT` | `DeleteAccountSection.test` (409 po odprtem dialogu) | – |
-| FR-012-14 | `IdentityDeletionIT` (identiteta v emulatorju izbrisana; ponovna prijava = nov UID, prazen račun), `ReRegistrationGuardSecurityIT` | `AuthProvider.test` (`accountDeleted`), `LoginPage.test` | `moji-podatki.spec` (ponovna prijava) |
-| FR-012-17 | `AccountDeletionIT` (204; 202 ob `docker pause`; v obeh stanjih brez lokalnih podatkov), `IdentityDeletionIT` (`USER_NOT_FOUND` = uspeh; `401/403` → 202 z `last_error`) | `DeleteAccountDialog.test` (204 in 202 → `accountDeleted(pending)`), `LoginPage.test` (obe sporočili) | `moji-podatki.spec` (202 z ustavljenim emulatorjem) |
-| FR-012-18 | `IdentityDeletionIT` (odmik, hramba do 2 h, odstranitev po 2 h, nikoli odprtega), `IdentityDeletionRestartIT` (ponovni zagon: dokončanje in čiščenje), `DeletedIdentityTokenSecurityIT`, `ReRegistrationGuardSecurityIT` (tekma prijava/izbris, prijava med čakanjem → 401, po uspehu nov račun), `AccountDeletionMigrationIT` | – | `moji-podatki.spec` |
-| FR-012-15 | `DeletedIdentityTokenSecurityIT` (vsi endpointi 401, `PUT /api/me` 401), `AccountDeletionLockingIT` (dvojni zahtevek: 204 ali 202 + 401) | – | `moji-podatki.spec` (druga naprava) |
-| FR-012-16 | `MyDataIsolationMatrixSecurityIT` (poti s tujim id → 404/405, izvoz samo lastni) | – | – |
+| FR-012-13 | `AccountDeletionConcurrencyIT` (100 ponovitev, SC-006), `AccountDeletionLockingIT`, `AccountDeletionAtomicityIT` (vsiljena napaka sredi izbrisa: nič se ne spremeni) | `DeleteAccountSection.test` (409 po odprtem dialogu) | – |
+| FR-012-14 | `IdentityDeletionIT` (identiteta v emulatorju izbrisana; ponovna prijava = nov UID, prazen račun), `ReRegistrationGuardSecurityIT`, `FirebaseIdentityProviderIT`, `FirebaseIdentityProviderTest` | `AuthProvider.test` (`accountDeleted`), `LoginPage.test` | `moji-podatki.spec` (ponovna prijava) |
+| FR-012-15 | `DeletedIdentityTokenSecurityIT` (vsi endpointi 401, `PUT /api/me` 401), `AccountDeletionLockingIT` (dvojni zahtevek, tudi brez skupin: 204 ali 202 + 401) | – | `moji-podatki.spec` (druga naprava) |
+| FR-012-16 | `MyDataIsolationMatrixSecurityIT` (`/api/users/{id}/…` in `/api/me/{id}/…` → 404, `DELETE /api/me` → 405; izvoz samo lastni) | – | – |
+| FR-012-17 | `AccountDeletionIT` (204; 202 ob `docker pause`; v obeh stanjih brez lokalnih podatkov), `IdentityDeletionIT` (`USER_NOT_FOUND` = uspeh; `401/403` → 202 z `last_error`), `FirebaseIdentityProviderTest` (preslikava 401/403/429/5xx/časovna omejitev) | `DeleteAccountDialog.test` (204 in 202 → `accountDeleted(pending)`), `LoginPage.test` (obe sporočili) | `moji-podatki.spec` (202 prek `page.route`) |
+| FR-012-18 | `IdentityDeletionIT` (odmik, zakup, hramba do 2 h, odstranitev po 2 h, nikoli odprtega), `IdentityDeletionRestartIT` (ponovni zagon: dokončanje in čiščenje), `DeletedIdentityTokenSecurityIT`, `ReRegistrationGuardSecurityIT` (tekma prijava/izbris, prijava med čakanjem → 401, po uspehu nov račun), `AccountDeletionMigrationIT`, `IdentityRetryBackoffTest`, `ConfigurationSecurityTest` | – | `moji-podatki.spec` (ponovna prijava) |
 
-Dodatno (R-01, R-06, R-07, R-13, R-16): `IdentityDeletionIT` – izpad Firebase med brisanjem (`docker pause`), ponovitev nedokončanega brisanja, idempotentnost (`USER_NOT_FOUND` = uspeh), odmik; `IdentityDeletionRestartIT` –
-ponavljanje in čiščenje po ponovnem zagonu aplikacije (drugi kontekst nad isto bazo); `FirebaseIdentityProviderIT` – dejanska izmenjava z emulatorjem (vključno s pastjo napačnega projekta, R-06); `ConfigurationSecurityTest` –
-brez skrivnosti v kodi in konfiguraciji (gitleaks v pre-commit je že vrata), zavrnitev `tombstone-retention` < 70 min.
+Dodatno (R-01, R-06, R-07, R-13, R-16): `IdentityDeletionIT` – izpad Firebase med brisanjem (`docker pause` samo v izoliranem IT, vedno z `unpause` v `finally`), ponovitev nedokončanega brisanja, idempotentnost (`USER_NOT_FOUND` = uspeh), odmik, zakup; `IdentityDeletionRestartIT` –
+ponavljanje in čiščenje po ponovnem zagonu aplikacije (drugi kontekst nad isto bazo); `FirebaseIdentityProviderIT` – dejanska izmenjava z emulatorjem (vključno s pastjo napačnega projekta, R-06); `FirebaseIdentityProviderTest` – produkcijski in emulatorski zahtevek ter preslikava napak z lažnim transportom (R-06); `ConfigurationSecurityTest` –
+brez skrivnosti v kodi in konfiguraciji (gitleaks v pre-commit je že vrata), zavrnitev `tombstone-retention` < 70 min; `MigrationVersionsUniqueTest` – brez podvojenih različic migracij (R-14). Pristnost produkcijskega OAuth dostopa ni avtomatski test, ampak **ročna vrata pred združitvijo** (quickstart, T-naloga).
 Merljiva merila: SC-001 – `MyDataExportIT` (100 članstev + 50 povabil, ≤ 5 s); SC-002 – `MyDataExportIT`, `MyDataIsolationMatrixSecurityIT`; SC-003 – `moji-podatki.spec` (izbris < 1 min);
 SC-004 – `DeletedUserLeakSecurityIT`; SC-005 – `AccountDeletionAuditIT`, `AccountDeletionIT`, `moji-podatki.spec`; SC-006 – `AccountDeletionConcurrencyIT`; SC-007 – `DeleteAccountSection.test`, `moji-podatki.spec`; SC-008 – `AccountDeletionIT`, `IdentityDeletionIT`, `IdentityDeletionRestartIT`; SC-009 – `IdentityDeletionIT`, `IdentityDeletionRestartIT`, `DeletedIdentityTokenSecurityIT`.
 Regresija 000–008: `./verify.sh full` (obstoječi testi se ne spreminjajo; dotaknjena sta le `ApiTest` – ena lastnost – in `AccountPage.test.tsx` – nova `describe`).
@@ -168,30 +168,37 @@ backend/src/main/java/si/contactmanager/
 │   ├── MyDataRepository.java            # NOVO: JdbcClient, posnetek REPEATABLE READ (profil, članstva, povabila, skupine v lasti)
 │   ├── MyData.java                      # NOVO: zapisi odgovora (contracts MyData)
 │   ├── AccountDeletionController.java   # NOVO: POST /api/me/deletion
-│   ├── AccountDeletionService.java      # NOVO: transakcija (R-04, R-05), po potrditvi hitri poskus (R-01)
-│   ├── AccountDeletionRepository.java   # NOVO: zaklep skupin, stanje, izbris skupin, izbris uporabnika, nadgrobnik
+│   ├── AccountDeletionService.java      # NOVO: brez transakcije: predpreverjanje e-naslova → LocalAccountDeletion → takojšen IdentityProvider.delete → markDeleted/markFailed (R-01, R-07)
+│   ├── LocalAccountDeletion.java        # NOVO: @Transactional execute(user, email): zaklep skupin, ponovno branje, 409, izbris skupin in uporabnika (0 vrstic → 401), nadgrobnik z zakupom (R-04, R-05)
+│   ├── AccountDeletionRepository.java   # NOVO: zaklep skupin, stanje, izbris skupin, izbris uporabnika, blockingGroups
+│   ├── ExportAssembler.java             # NOVO: čista funkcija vrstice → MyData (unit test); kliče jo MyDataController prek MyDataRepository
+│   ├── AccountExceptionHandler.java     # NOVO: @RestControllerAdvice: 409 OWNS_ACTIVE_GROUPS s telesom, 401 (UnauthenticatedException, SQLSTATE CM401); ApiExceptionHandler se ne spreminja (R-14)
 │   ├── DeleteAccountInputParser.java    # NOVO: telo { "email" }; napake po poljih (kot 007)
-│   ├── DeletedIdentities.java           # NOVO: nadgrobniki (contains, pending, markDeleted, fail, purge)
+│   ├── DeletedIdentities.java           # NOVO: nadgrobniki: insert (ON CONFLICT DO NOTHING), contains, lease(n) (en UPDATE … SKIP LOCKED … RETURNING), markDeleted, markFailed, purge; vsaka metoda svoja kratka transakcija
 │   ├── IdentityProvider.java            # NOVO: vmesnik delete(uid) → izid {DELETED, NOT_FOUND, RETRY, MISCONFIGURED}; DELETED/NOT_FOUND → 204, ostalo → 202
-│   ├── FirebaseIdentityProvider.java    # NOVO: REST accounts:delete (emulator: Bearer owner; produkcija: OAuth2, R-06)
-│   ├── IdentityDeletionJob.java         # NOVO: @Scheduled, SKIP LOCKED, odmik, purge (R-07); runOnce() za teste
+│   ├── FirebaseIdentityProvider.java    # NOVO: REST accounts:delete prek injektiranega HttpClient in AccessTokenSource (R-06)
+│   ├── AccessTokenSource.java           # NOVO: vmesnik; EmulatorAccessTokenSource (»owner«) in GoogleAccessTokenSource (OAuth 2.0, ADC) v istem paketu
+│   ├── IdentityDeletionProperties.java  # NOVO: identity-deletion.* (interval, lease, timeouti, tombstone-retention ≥ 70 min)
+│   ├── IdentityDeletionConfig.java      # NOVO: @EnableScheduling samo ob scheduler-enabled=true
+│   ├── IdentityDeletionJob.java         # NOVO: @Scheduled + ApplicationReadyEvent; purge, lease(5), klic zunaj transakcije, markDeleted/markFailed (R-07); runOnce() za teste
 │   └── IdentityRetryBackoff.java        # NOVO: čista funkcija odmika (unit test)
 ├── shared/security/
 │   ├── DeletedIdentityJwtDecoder.java   # NOVO: ovije FirebaseJwtDecoder, zavrne UID iz nadgrobnika (R-08)
 │   └── SecurityConfig.java              # SPREMEMBA: ovitje dekoderja (3 vrstice)
-└── shared/error/{OwnsActiveGroupsException, UnauthenticatedException}.java + ApiExceptionHandler (409 s telesom, 401, SQLSTATE CM401 → 401)
+└── shared/error/{OwnsActiveGroupsException, UnauthenticatedException}.java   # ApiExceptionHandler NI spremenjen (obravnava v account/AccountExceptionHandler)
 backend/src/main/resources/application.yaml                          # SPREMEMBA: identity-deletion.* (interval 30 s, request-timeout 5 s, tombstone-retention 2 h – min. 70 min, scheduler-enabled); brez skrivnosti
-backend/pom.xml                                                      # SPREMEMBA: google-auth-library-oauth2-http (D-73, po potrditvi)
+backend/pom.xml                                                      # SPREMEMBA: google-auth-library-oauth2-http (D-73, potrjeno z D-74)
 backend/src/test/java/si/contactmanager/account/
 ├── {MyDataExportIT, DeletionBlockersIT, AccountDeletionIT, AccountDeletionGroupsIT, AccountDeletionConcurrencyIT, AccountDeletionLockingIT}.java
-├── {AccountDeletionAuditIT, AccountDeletionMigrationIT, IdentityDeletionIT, IdentityDeletionRestartIT, FirebaseIdentityProviderIT}.java
+├── {AccountDeletionAuditIT, AccountDeletionMigrationIT, AccountDeletionAtomicityIT, MyDataExportConcurrencyIT, IdentityDeletionIT, IdentityDeletionRestartIT, FirebaseIdentityProviderIT}.java
 ├── {MyDataIsolationMatrixSecurityIT, DeletedIdentityTokenSecurityIT, DeletedUserLeakSecurityIT, ReRegistrationGuardSecurityIT}.java
-├── {ExportAssemblerTest, DeleteAccountInputParserTest, IdentityRetryBackoffTest, ConfigurationSecurityTest}.java
+├── {ExportAssemblerTest, DeleteAccountInputParserTest, IdentityRetryBackoffTest, FirebaseIdentityProviderTest, ConfigurationSecurityTest}.java
+backend/src/test/java/si/contactmanager/MigrationVersionsUniqueTest.java   # NOVO: unit, brez baze (R-14)
 └── support/AccountFixtures.java         # deleteViaApi, tombstone(uid), isIdentityInEmulator, reRegister(sameGoogleId), dumpTextExceptContacts
-backend/src/test/java/si/contactmanager/support/{ApiTest, FirebaseEmulatorContainer}.java   # SPREMEMBA: scheduler-enabled=false; pause/unpause, lookup, signInWithIdp z istim sub
+backend/src/test/java/si/contactmanager/support/{ApiTest, FirebaseEmulatorContainer}.java   # SPREMEMBA: scheduler-enabled=false; `paused(() -> …)` (pause v try/finally, unpause tudi v @AfterEach), lookup, signInWithIdp z istim sub
 
 frontend/src/features/account/
-├── api.ts, types.ts                     # NOVO: createMyDataApi: exportData, deletionBlockers, deleteAccount (authFetch)
+├── api.ts, types.ts                     # NOVO: createMyDataApi: exportData, deletionBlockers, deleteAccount (authFetch); `deleteAccount` loči `204` (undefined) od `202` (telo s kodo) – apiFetch ostane nespremenjen
 ├── MyDataSection.tsx                    # NOVO
 ├── DeleteAccountSection.tsx             # NOVO: seznam blokad ali gumb
 ├── DeleteAccountDialog.tsx              # NOVO: po vzoru DeleteGroupDialog (vpis e-naslova)
@@ -203,7 +210,7 @@ frontend/src/features/auth/{AuthProvider.tsx, authContext.ts, LoginPage.tsx}   #
 frontend/src/i18n/{sl,en}.json           # ključi account.data.*, account.delete.*, login.accountDeleted, login.accountDeletedPending (ločen blok)
 frontend/src/test/myDataApi.ts           # NOVO: MSW rokovalniki
 
-e2e/tests/moji-podatki.spec.ts, e2e/tests/support/{myData.ts}   # NOVO (pomožni SQL: povabila, arhiviranje, trajno arhivirana skupina; nadgrobniki)
+e2e/tests/moji-podatki.spec.ts, e2e/tests/support/{myData.ts}   # NOVO (pomožni SQL: povabila, arhiviranje, trajno arhivirana skupina; nadgrobniki); napake z `page.route`, brez ustavljanja Compose storitev
 ```
 
 **Structure Decision**: obstoječa struktura iz 000–008. Funkcionalnost je vezana na uporabnika, ne na skupino, zato koda živi v obstoječem paketu `account` (kjer sta že `MeController`, `UserDirectory`) in
@@ -222,16 +229,22 @@ Skrivnosti: poverilnice storitvenega računa samo prek okoljske spremenljivke (`
 
 ## Vzporedni razvoj s 009
 
-- **Migracija:** `V9__moji_podatki.sql`; številka se preveri ob začetku implementacije in tik pred PR (`ls db/migration` po `git fetch`); ob trku se preštevilči naša (R-14). Dvojna različica Flyway zruši zagon in vse integracijske teste – ne ostane neopaženo.
-- **`DECISIONS.md`:** D-72 in D-73 sta zadnja vnosa; ob trku s Patrikovimi vnosi se preštevilčita (R-14).
-- **Skupne datoteke (največ 7, minimalne spremembe):** `SecurityConfig`, `ApiExceptionHandler`, `AccountPage.tsx`, `AuthProvider.tsx` + `authContext.ts`, `LoginPage.tsx`, `i18n/sl.json` + `en.json`, `ApiTest`.
-  009 teh ne dotakne razen i18n (drugi ključi). Skupne datoteke `feature-map.md`, workflow, konstitucija se ne spreminjajo.
+Podrobnosti: research R-14.
+
+- **Migracija:** `V9__moji_podatki.sql`; številka se preveri ob začetku implementacije in tik pred PR (`ls db/migration` po `git fetch`); ob trku se preštevilči naša. Posamično zeleni veji s trkom se pokažeta šele po združitvi: drugi PR mora imeti posodobljen `main`, `MigrationVersionsUniqueTest`
+  v `verify quick` pa trk ujame takoj po rebase. Podatkovnih volumnov se ne briše; preštevilčena migracija se preizkusi na ločenem Compose projektu (`-p contact-manager-012`) ali Testcontainers bazi.
+- **`DECISIONS.md`:** D-72 … D-75 in `CR-03`, `CR-04` so zadnji vnosi; ob trku s Patrikovimi se preštevilčijo.
+- **Skupne datoteke:** `ApiExceptionHandler` **ne spreminjamo** (naši obravnavi sta v `AccountExceptionHandler`; 009 bo dodal `SELECTION_CHANGED`). Spremenjene: `SecurityConfig` (3 vrstice), `AccountPage.tsx`, `AuthProvider.tsx` + `authContext.ts`, `LoginPage.tsx`,
+  `i18n/sl.json` + `en.json` (sklenjen blok), `ApiTest` (ena lastnost). 009 običajno spreminja samo i18n. Datoteke `feature-map.md`, workflow, konstitucija se ne spreminjajo.
+- **Zaklepanje:** 009 naj pri množičnih operacijah najprej zaklene skupino, nato piše vrstice s sklicem na uporabnika (D-58 R-01); sicer deluje obramba (zaznava mrtvega objema z enim ponovnim poskusom).
 - Patrikove veje 009 ne dotikam; delo je samo na `moji-podatki` (iz `origin/main` `f557382`, 008 je združena).
 
 ## Complexity Tracking
 
 | Odstopanje | Zakaj je potrebno | Zavrnjena enostavnejša možnost |
 |---|---|---|
-| Nova tabela `deleted_identity` + sprožilec (konstitucija VI: čim manj osebnih podatkov) | ID žetona se ne da razveljaviti; FR-012-15 zahteva 401 na vseh napravah, FR-012-14 prepoved ponovne povezave | zanašanje na odsotnost vrstice `app_user` (404 namesto 401, `PUT /api/me` bi znova ustvaril račun) |
-| Ena nova knjižnica (D-73, po potrditvi) | produkcijski OAuth2 žeton za Identity Toolkit | lastna izvedba OAuth2 JWT bearer z `nimbus-jose-jwt` (ročna varnostna koda, brez podpore za metapodatkovni strežnik) |
-| Ozadnje opravilo (`@Scheduled`) | brisanje identitete ob izpadu Firebase se mora zanesljivo dokončati po zrušitvi | ročno brisanje (spec zahteva ponavljanje »dokler ne uspe«) |
+| Nova tabela `deleted_identity` + sprožilec; hramba Firebase UID (konstitucija VI) | ID žetona se ne da razveljaviti; FR-012-15 zahteva 401 na vseh napravah, FR-012-14 prepoved ponovne povezave; UID je neprosojen, v bazi že obstaja (`app_user.firebase_uid`), hramba je časovno omejena (do uspeha + 2 uri); potrditev obeh razvijalcev (R-15) | zanašanje na odsotnost vrstice `app_user` (404 namesto 401, `PUT /api/me` bi znova ustvaril račun) |
+| Nepaginiran izvoz in seznam blokad (konstitucija V) | izvoz je celovit posnetek v datoteko (FR-012-02), seznam blokad obsega samo lastne nearhivirane skupine in ga mora uporabnik videti v celoti (SC-007) | paginacija izvoza: večkratni klici, nedosleden posnetek |
+| Ena nova knjižnica (D-73, potrjena z D-74) | produkcijski OAuth 2.0 žeton za Identity Toolkit | lastna izvedba OAuth2 JWT bearer z `nimbus-jose-jwt` (ročna varnostna koda, brez podpore za metapodatkovni strežnik) |
+| Ozadnje opravilo (`@Scheduled`) z zakupom | brisanje identitete ob izpadu Firebase se mora zanesljivo dokončati po zrušitvi, brez zunanjih klicev znotraj transakcije | ročno brisanje (spec zahteva ponavljanje »dokler ne uspe«) |
+| Poseben `AccountExceptionHandler` | zmanjša konflikte s Patrikovo 009 (`ApiExceptionHandler`) | razširitev `ApiExceptionHandler` (verjeten trk pri združitvi) |

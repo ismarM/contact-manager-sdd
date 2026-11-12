@@ -4,7 +4,7 @@
 
 - Docker (Compose v2), JDK 21+, Node.js ≥ 22.22; funkcionalnosti 001–008 so v `main`.
 - Trije uporabniki Auth Emulatorja (npr. »Pia Kos«, »Ana Novak«, »Boštjan Zupan«), vsi vsaj enkrat prijavljeni.
-- **Pred začetkom dela in pred PR** (R-14): `git fetch && ls backend/src/main/resources/db/migration` – če je `V9__*` že zasedena, se `V9__moji_podatki.sql` preimenuje v naslednjo prosto.
+- **Pred začetkom dela in pred PR** (R-14): `git fetch && ls backend/src/main/resources/db/migration` – če je `V9__*` že zasedena, se `V9__moji_podatki.sql` preimenuje v naslednjo prosto. **Podatkovnih volumnov se ne briše** (`docker compose down -v` ni dovoljen brez izrecne potrditve): preštevilčeno migracijo preizkusi na ločenem Compose projektu z lastnim volumnom (`docker compose -p contact-manager-012 up --build`) ali s Testcontainers testi.
 
 ## Zagon
 
@@ -45,14 +45,17 @@ SELECT firebase_uid, provider_deleted_at, attempts, last_error FROM deleted_iden
 | 11 | Dva zavihka: potrdi izbris v obeh | en uspe (204 ali 202), drugi 401 → prijava | FR-012-15 |
 | 12 | Druga naprava (drug brskalnik) z isto sejo po izbrisu | prvi zahtevek 401 → prijava | FR-012-15 |
 | 13 | Ponovna prijava z istim Google računom | nov prazen račun brez skupin in povabil | FR-012-14 |
-| 14 | Izpad Firebase: `docker compose pause auth`, izbris računa (traja do ~7 s), `unpause auth`, počakaj ≤ 1 min | API vrne **202**, vmesnik odjavi in na prijavi pove, da brisanje povezave z Google računom še poteka; po `unpause` se `deleted_identity.provider_deleted_at` nastavi; do takrat prijava istega Google računa: neuspešna (401); potem: nov prazen račun | FR-012-17, -18 |
+| 14 | *Samo lokalni razvojni Compose, ne `verify`/E2E:* izpad Firebase: `docker compose pause auth`, izbris računa (traja do ~7 s), `unpause auth`, počakaj ≤ 1 min | API vrne **202**, vmesnik odjavi in na prijavi pove, da brisanje povezave z Google računom še poteka; po `unpause` se `deleted_identity.provider_deleted_at` nastavi; do takrat prijava istega Google računa: neuspešna (401); potem: nov prazen račun | FR-012-17, -18 |
 | 15 | Ponovni zagon med čakanjem: ponovi 14, vendar pred `unpause` naredi `docker compose restart backend` | po zagonu in `unpause` brisanje dokončano brez novega zahtevka | FR-012-18, SC-008 |
 | 16 | Čiščenje: `UPDATE deleted_identity SET provider_deleted_at = now() - interval '3 hours'`, počakaj ≤ 30 s (ali `restart backend`) | vrstica odstranjena; vrstica z `provider_deleted_at` 1 h ostane | FR-012-18, SC-009 |
 | 17 | Tipkovnica, bralnik zaslona (design.md §10), 320 px | dialog ujame fokus, Esc zapre; brez vodoravnega drsenja | design.md §10 |
 
-## Produkcija (ročno, ni del testov – R-06)
+## Produkcija – ročna vrata pred združitvijo (ni avtomatski test, R-06)
 
-Zaledje v produkciji za brisanje identitete potrebuje poverilnice storitvenega računa (vloga *Firebase Authentication Admin*) prek `GOOGLE_APPLICATION_CREDENTIALS` (OAuth 2.0 dostop; nikoli ID žeton uporabnika); poverilnice niso v Gitu
-(konstitucija VI). Preverjanje: z izbrisom testnega računa mora `deleted_identity.provider_deleted_at` dobiti vrednost, `last_error` mora biti `NULL`; vrednost `HTTP_401`/`HTTP_403` pomeni napačne poverilnice.
+Emulator in unit testi z lažnim transportom ne dokazujejo produkcijske konfiguracije; zato ta koraka opravi razvijalec na pravem (testnem) Firebase projektu in rezultat zapiše v `traceability.md`:
+
+1. Poverilnice storitvenega računa (vloga *Firebase Authentication Admin*) so **samo** okoljska spremenljivka `GOOGLE_APPLICATION_CREDENTIALS` oziroma mount izven repozitorija (konstitucija VI; gitleaks v pre-commit); `FIREBASE_PROJECT_ID` je isti projekt, ki ga zahteva preverjanje žetonov.
+2. Z izbrisom testnega računa mora `deleted_identity.provider_deleted_at` dobiti vrednost, `last_error` mora ostati `NULL`, odgovor je `204`, identiteta v konzoli Firebase pa ne sme več obstajati. `last_error` z `HTTP_401`/`HTTP_403` pomeni napačne poverilnice ali vlogo (odgovor je `202`, v dnevniku `ERROR`).
+3. Poskus z začasno neveljavnimi poverilnicami mora dati `202` in `ERROR` brez uhajanja poverilnic ali UID-ja v dnevnik; po popravku poverilnic se vrstica sama dokonča.
 
 Endpointi: [contracts/openapi.yaml](contracts/openapi.yaml) · podatki: [data-model.md](data-model.md) · odločitve: [research.md](research.md).
