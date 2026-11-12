@@ -89,6 +89,7 @@ Dodatek k elementom seznama 004/008; njihova imena se ne spremenijo.
 | Seznam | alert | »Zadetkov ni bilo mogoče naložiti. Poskusi znova.« / "The results could not be loaded. Try again." | `GET …/contact-ids` ni uspel; izbor nespremenjen (ključ `contacts.selection.loadFailed`) | FR-009-03, FR-009-17 |
 | Dialog urejanja | dialog | »Uredi izbrane kontakte (12)« / "Edit selected contacts (12)" | naslov `h2` | FR-009-06 |
 | Dialog urejanja | combobox | »Dodaj značke« / "Add tags" | vnos značk (TagInput 004) | FR-009-06, FR-009-08 |
+| Dialog urejanja | list | »Značke za dodajanje« / "Tags to add"; »Značke za odstranitev« / "Tags to remove" | seznama vnesenih značk (TagInput 004, `listLabel`) | FR-009-06, FR-009-08 |
 | Dialog urejanja | combobox | »Odstrani značke« / "Remove tags" | vnos značk | FR-009-06, FR-009-08 |
 | Dialog urejanja | group | »Nastavi atribut« / "Set attribute" | vrstice atributov | FR-009-07 |
 | Dialog urejanja | combobox (nativni select) | »Atribut 1« / "Attribute 1" – možnosti »Naslov« / "Address", »E-naslov« / "Email", »Telefon« / "Phone", »Dodatni atribut« / "Custom attribute" (brez *Ime*, *Priimek*) | izbira polja n-te vrstice | FR-009-07 |

@@ -18,10 +18,16 @@ export function TagInput({
   tags,
   onChange,
   serverError,
+  label,
+  listLabel,
 }: {
   tags: string[];
   onChange: (tags: string[]) => void;
   serverError?: ErrorKey;
+  /** Ime polja (privzeto »Dodaj značko«; množično urejanje 009: »Dodaj značke«, »Odstrani značke«). */
+  label?: string;
+  /** Ime seznama vnesenih značk (privzeto »Dodane značke«). */
+  listLabel?: string;
 }) {
   const { t } = useTranslation();
   const api = useContactsApi();
@@ -102,7 +108,7 @@ export function TagInput({
   return (
     <div className="flex flex-col gap-2">
       <label htmlFor={inputId} className="font-bold">
-        {t('contacts.form.addTag')}
+        {label ?? t('contacts.form.addTag')}
       </label>
       <div className="relative">
         <input
@@ -133,7 +139,7 @@ export function TagInput({
           <ul
             id={listId}
             role="listbox"
-            aria-label={t('contacts.form.addTag')}
+            aria-label={label ?? t('contacts.form.addTag')}
             className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-float"
           >
             {options.map((tag, index) => (
@@ -161,7 +167,7 @@ export function TagInput({
         </p>
       )}
       {tags.length > 0 && (
-        <ul aria-label={t('contacts.form.addedTags')} className="flex flex-wrap gap-2">
+        <ul aria-label={listLabel ?? t('contacts.form.addedTags')} className="flex flex-wrap gap-2">
           {tags.map((tag) => (
             <li
               key={tag}

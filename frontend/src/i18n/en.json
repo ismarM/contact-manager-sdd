@@ -365,11 +365,15 @@
       "delete": "Delete",
       "clear": "Clear selection",
       "limit": "You can select at most 10,000 contacts. Narrow the search with filters.",
-      "loadFailed": "The results could not be loaded. Try again."
+      "loadFailed": "The results could not be loaded. Try again.",
+      "count_two": "{{count}} selected",
+      "count_few": "{{count}} selected"
     },
     "bulk": {
       "editTitle": "Edit selected contacts ({{count}})",
       "addTags": "Add tags",
+      "addTagsList": "Tags to add",
+      "removeTagsList": "Tags to remove",
       "removeTags": "Remove tags",
       "setAttribute": "Set attribute",
       "attribute": "Attribute {{n}}",
@@ -422,7 +426,6 @@
       "tooManyAttributesFor_one": "{{count}} contact would have too many custom attributes: {{names}}.",
       "tooManyAttributesFor_other": "{{count}} contacts would have too many custom attributes: {{names}}.",
       "andMore": "… and {{count}} more",
-      "limitTags": "You can add at most 30 tags.",
       "errors": {
         "REQUIRED": "Enter a value.",
         "TOO_LONG": "The value is too long.",
@@ -431,7 +434,29 @@
         "DUPLICATE": "The value is duplicated.",
         "RESERVED_KEY": "The key is reserved for a predefined field.",
         "EMPTY_OPERATION": "Enter at least one change."
-      }
+      },
+      "apply_two": "Apply to {{count}} contacts",
+      "apply_few": "Apply to {{count}} contacts",
+      "updated_two": "{{count}} contacts updated.",
+      "updated_few": "{{count}} contacts updated.",
+      "deleteTitle_two": "Delete {{count}} contacts?",
+      "deleteTitle_few": "Delete {{count}} contacts?",
+      "deleteConfirm_two": "Delete {{count}} contacts",
+      "deleteConfirm_few": "Delete {{count}} contacts",
+      "deleted_two": "{{count}} contacts deleted.",
+      "deleted_few": "{{count}} contacts deleted.",
+      "newMatches_two": "{{count}} new results",
+      "newMatches_few": "{{count}} new results",
+      "noLonger_two": "{{count}} contacts no longer match the filters",
+      "noLonger_few": "{{count}} contacts no longer match the filters",
+      "missing_two": "{{count}} contacts no longer exist",
+      "missing_few": "{{count}} contacts no longer exist",
+      "missingAlert_two": "{{count}} selected contacts no longer exist.",
+      "missingAlert_few": "{{count}} selected contacts no longer exist.",
+      "tooManyTagsFor_two": "{{count}} contacts would have too many tags: {{names}}.",
+      "tooManyTagsFor_few": "{{count}} contacts would have too many tags: {{names}}.",
+      "tooManyAttributesFor_two": "{{count}} contacts would have too many custom attributes: {{names}}.",
+      "tooManyAttributesFor_few": "{{count}} contacts would have too many custom attributes: {{names}}."
     }
   },
   "audit": {

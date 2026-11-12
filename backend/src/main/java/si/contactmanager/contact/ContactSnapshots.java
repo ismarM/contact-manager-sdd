@@ -121,6 +121,47 @@ public class ContactSnapshots {
         insertChildren(withChildren);
     }
 
+    /** Sprememba vsebine enega kontakta pri množičnem urejanju (ime se ne spreminja). */
+    public record Change(UUID contactId, ContactState before, ContactState after) {}
+
+    /**
+     * Množično urejanje (research R-07): paketni {@code UPDATE contact} (vrednosti polj, {@code version + 1}, izvajalec,
+     * {@code updated_at = now()}, brez oznake rollbacka); atributi in značke so zamenjani samo pri kontaktih, kjer so se
+     * spremenili. Vrstice so že zaklenjene (R-03); vedno s pogojem {@code group_id}.
+     */
+    public void replaceContent(UUID groupId, long actor, List<Change> changes) {
+        batch.batchUpdate(
+                "UPDATE contact SET address = :address, email = :email, phone = :phone, version = version + 1,"
+                        + " updated_by = :by, updated_at = now(), reverted_entry_id = NULL"
+                        + " WHERE group_id = :group AND id = :id",
+                changes.stream()
+                        .map(c -> (SqlParameterSource) new MapSqlParameterSource()
+                                .addValue("group", groupId)
+                                .addValue("id", c.contactId())
+                                .addValue("address", c.after().address())
+                                .addValue("email", c.after().email())
+                                .addValue("phone", c.after().phone())
+                                .addValue("by", actor))
+                        .toArray(SqlParameterSource[]::new));
+        List<Target> withChildren = changes.stream()
+                .filter(c -> !c.before().attributes().equals(c.after().attributes())
+                        || !c.before().tags().equals(c.after().tags()))
+                .map(c -> new Target(c.contactId(), c.after(), true))
+                .toList();
+        for (int from = 0; from < withChildren.size(); from += CHUNK) {
+            List<UUID> chunk = withChildren.subList(from, Math.min(withChildren.size(), from + CHUNK)).stream()
+                    .map(Target::contactId)
+                    .toList();
+            jdbc.sql("DELETE FROM contact_attribute WHERE contact_id IN (:ids)")
+                    .param("ids", chunk)
+                    .update();
+            jdbc.sql("DELETE FROM contact_tag WHERE contact_id IN (:ids)")
+                    .param("ids", chunk)
+                    .update();
+        }
+        insertChildren(withChildren);
+    }
+
     private static SqlParameterSource[] rows(UUID groupId, UUID entry, List<Target> targets) {
         return targets.stream()
                 .map(t -> {

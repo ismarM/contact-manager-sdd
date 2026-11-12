@@ -19,8 +19,12 @@ import si.contactmanager.contact.support.BulkApiTest;
 class BulkArchivedIT extends BulkApiTest {
 
     private void assertWritesRejected(Scenario s, List<UUID> all) throws Exception {
+        assertWritesRejected(s, all, List.of(Who.EDITOR, Who.ADMIN, Who.OWNER));
+    }
+
+    private void assertWritesRejected(Scenario s, List<UUID> all, List<Who> writers) throws Exception {
         Snapshot before = snapshot(s.group());
-        for (Who who : List.of(Who.EDITOR, Who.ADMIN, Who.OWNER)) {
+        for (Who who : writers) {
             HttpResponse<String> update = bulkUpdate(s.token(who), s.group(), request(all, "addTags", List.of("nova")));
             HttpResponse<String> delete = bulkDelete(s.token(who), s.group(), request(all));
             for (HttpResponse<String> response : List.of(update, delete)) {
@@ -39,7 +43,11 @@ class BulkArchivedIT extends BulkApiTest {
     }
 
     private void assertReadsAllowed(Scenario s, List<UUID> all) throws Exception {
-        for (Who who : List.of(Who.VIEWER, Who.EDITOR, Who.ADMIN, Who.OWNER)) {
+        assertReadsAllowed(s, all, List.of(Who.VIEWER, Who.EDITOR, Who.ADMIN, Who.OWNER));
+    }
+
+    private void assertReadsAllowed(Scenario s, List<UUID> all, List<Who> readers) throws Exception {
+        for (Who who : readers) {
             HttpResponse<String> ids = contactIds(s.token(who), s.group());
             HttpResponse<String> check = selectionCheck(s.token(who), s.group(), request(all));
             assertThat(ids.statusCode()).as(who.name()).isEqualTo(200);
@@ -63,8 +71,9 @@ class BulkArchivedIT extends BulkApiTest {
         List<UUID> all = contacts.insertMany(s.group(), s.id(Who.OWNER), 5);
         groups.makePermanentlyArchived(s.group());
 
-        assertWritesRejected(s, all);
-        assertReadsAllowed(s, all);
+        // trajno arhivirana skupina nima več lastnika (kot v ContactArchivedRuleIT, D-76)
+        assertWritesRejected(s, all, List.of(Who.EDITOR, Who.ADMIN));
+        assertReadsAllowed(s, all, List.of(Who.VIEWER, Who.EDITOR, Who.ADMIN));
     }
 
     /** Vrstni red preverjanj (R-02, T044): 403 oziroma 409 GROUP_ARCHIVED pred 400 za neveljavno telo. */

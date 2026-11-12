@@ -122,7 +122,7 @@ describe('SelectionCheck', () => {
     const { user, api } = render();
     await listReady();
     await pick(user, displayName(1), displayName(2));
-    const { apply } = await openEdit(user, 2);
+    const { apply } = await openEdit(user, /^Uporabi za 2 kontakta$/);
 
     await apply();
 

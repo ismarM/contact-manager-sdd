@@ -283,7 +283,7 @@ test('FR-009-01 FR-009-05 SC-005: samo tipkovnica od izbora do obvestila; pri 32
 }) => {
   await signedIn(page);
   const id = await createGroup(page, { title: 'Projekt FERI' });
-  createTaggedContacts(id, 5, 'konferenca2025');
+  createTaggedContacts(id, 40, 'konferenca2025');
   await page.setViewportSize({ width: 320, height: 640 });
   await page.goto(`/groups/${id}/contacts`);
 
@@ -300,6 +300,13 @@ test('FR-009-01 FR-009-05 SC-005: samo tipkovnica od izbora do obvestila; pri 32
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );
+  // T057: vrstica ostane ob dnu vidnega polja tudi po drsenju seznama (ne drsi s stranjo).
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const top = await bar.boundingBox();
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  const bottom = await bar.boundingBox();
+  expect(top?.y).toBeCloseTo(bottom?.y ?? -1, 0);
+  expect((bottom?.y ?? 0) + (bottom?.height ?? 0)).toBeGreaterThan(640 - 4);
 
   await bar.getByRole('button', { name: 'Uredi izbrane' }).focus();
   await page.keyboard.press('Enter');

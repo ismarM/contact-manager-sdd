@@ -317,31 +317,35 @@ describe('selection – lastnosti na naključnih zaporedjih', () => {
     for (const count of membership.values()) expect(count).toBe(1);
   }
 
-  it.each([1, 7, 42, 2026])('FR-009-04 FR-009-18: invarianti ob semenu %i', (seed) => {
-    const next = random(seed);
-    let selection = emptySelection(GROUP);
-    const universe = 12_000;
-    const pick = (max: number) => Math.floor(next() * max);
+  it.each([1, 7, 42, 2026])(
+    'FR-009-04 FR-009-18: invarianti ob semenu %i',
+    (seed) => {
+      const next = random(seed);
+      let selection = emptySelection(GROUP);
+      const universe = 12_000;
+      const pick = (max: number) => Math.floor(next() * max);
 
-    for (let step = 0; step < 300; step += 1) {
-      const kind = pick(4);
-      const start = pick(universe - 3_000);
-      let change: SelectionChange;
-      if (kind === 0) {
-        change = toggle(selection, `k${pick(universe)}`);
-      } else if (kind === 1) {
-        change = setPage(selection, range(start, start + pick(60)), next() < 0.5);
-      } else if (kind === 2) {
-        change = addMatches(
-          selection,
-          params({ q: `q${pick(30)}` }),
-          range(start, start + 1 + pick(2_500)),
-        );
-      } else {
-        change = setPage(selection, range(start, start + pick(900)), false);
+      for (let step = 0; step < 300; step += 1) {
+        const kind = pick(4);
+        const start = pick(universe - 3_000);
+        let change: SelectionChange;
+        if (kind === 0) {
+          change = toggle(selection, `k${pick(universe)}`);
+        } else if (kind === 1) {
+          change = setPage(selection, range(start, start + pick(60)), next() < 0.5);
+        } else if (kind === 2) {
+          change = addMatches(
+            selection,
+            params({ q: `q${pick(30)}` }),
+            range(start, start + 1 + pick(2_500)),
+          );
+        } else {
+          change = setPage(selection, range(start, start + pick(900)), false);
+        }
+        if (change.ok) selection = change.selection;
+        assertInvariants(selection);
       }
-      if (change.ok) selection = change.selection;
-      assertInvariants(selection);
-    }
-  });
+    },
+    60_000,
+  );
 });

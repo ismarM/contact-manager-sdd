@@ -39,6 +39,11 @@ import {
 import { canEditContacts, type ListNotice, listState } from './contactRouting';
 import { ContactToolbar } from './ContactToolbar';
 import { DeleteContactDialog } from './DeleteContactDialog';
+import { selectionParams } from './selection/api';
+import { SelectAllOnPage } from './selection/SelectAllOnPage';
+import { SelectContact } from './selection/SelectContact';
+import { SelectionActionBar, type SelectionNotice } from './selection/SelectionActionBar';
+import { useSelection } from './selection/selectionContext';
 import type { ContactDetail, ContactPage, ContactSummary } from './types';
 import { type UpdateOptions, useContactQuery, useSearchText } from './useContactQuery';
 
@@ -93,9 +98,15 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
   const [reloads, setReloads] = useState(0);
   const [notice, setNotice] = useState<ListNotice | null>(navigation?.notice ?? null);
   const [removing, setRemoving] = useState<ContactSummary | null>(null);
+  const selection = useSelection();
+  const [selectionNotice, setSelectionNotice] = useState<SelectionNotice | null>(null);
+  const selectAllBox = useRef<HTMLInputElement>(null);
   const pending = useRef<AbortController | null>(null);
   const latest = useRef(0);
   const requested = useRef<string | null>(null);
+  // Poizvedba zadnjega zahtevka: naslov se posodobi z zamikom, »Izberi vse zadetke« pa mora zajeti prav tisto, kar je
+  // uporabnik pravkar iskal (FR-009-03).
+  const latestQuery = useRef(query);
   const mounted = useRef(false);
   const updateRef = useRef(update);
   const heading = useRef<HTMLHeadingElement>(null);
@@ -131,6 +142,7 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
     (next: ContactQuery, key: string) => {
       if (requested.current === key) return;
       requested.current = key;
+      latestQuery.current = next;
       pending.current?.abort();
       const controller = new AbortController();
       pending.current = controller;
@@ -248,14 +260,18 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
     state.answered && !(data?.total === 0 && !state.filtered && !isFiltered(query));
   const link = listState(query);
   const base = `/groups/${group.id}/contacts`;
+  const pageIds = data?.items.map((contact) => contact.id) ?? [];
 
   return (
-    <section aria-labelledby={headingId} className="flex min-w-0 flex-col gap-4">
+    <section
+      aria-labelledby={headingId}
+      className={`flex min-w-0 flex-col gap-4 ${selection.count > 0 ? 'pb-28 sm:pb-0' : ''}`}
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id={headingId} ref={heading} tabIndex={-1} className="text-xl font-bold outline-none">
           {t('contacts.heading')}
         </h2>
-        {editable && data && data.total > 0 && (
+        {editable && data && data.total > 0 && selection.count === 0 && (
           <Link to={`${base}/new${link}`} className={primaryButton}>
             {t('contacts.newContact')}
           </Link>
@@ -272,6 +288,36 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
           searchRef={searchField}
           onClear={clearFilters}
         />
+      )}
+
+      {selection.count > 0 && (
+        <SelectionActionBar
+          total={data?.total ?? null}
+          params={() => selectionParams(latestQuery.current)}
+          onNotice={setSelectionNotice}
+          onClear={() => {
+            selection.clear();
+            setSelectionNotice(null);
+            selectAllBox.current?.focus();
+          }}
+          onChanged={reload}
+          onDeleted={() => {
+            setSelectionNotice(null);
+            reload();
+            selectAllBox.current?.focus();
+          }}
+        />
+      )}
+
+      {selectionNotice && (
+        <div role="alert" className={errorAlert}>
+          <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
+          <span>
+            {selectionNotice === 'limit'
+              ? t('contacts.selection.limit')
+              : t('contacts.selection.loadFailed')}
+          </span>
+        </div>
       )}
 
       {notice && (
@@ -350,6 +396,17 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
               </caption>
               <thead className="sticky top-0 bg-card">
                 <tr>
+                  <td data-select-all className="w-10 border-b border-border p-2">
+                    <SelectAllOnPage
+                      inputRef={selectAllBox}
+                      state={selection.pageState(pageIds)}
+                      onChange={(selected) => {
+                        setSelectionNotice(
+                          selection.setPage(pageIds, selected) === 'limit' ? 'limit' : null,
+                        );
+                      }}
+                    />
+                  </td>
                   <SortHeader
                     field="lastName"
                     label={t('contacts.list.name')}
@@ -383,8 +440,20 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
                   <tr
                     key={contact.id}
                     aria-current={contact.id === selectedId ? 'true' : undefined}
-                    className="h-12 border-b border-border hover:bg-muted aria-[current=true]:bg-selected"
+
+                    className={`h-12 border-b border-border hover:bg-muted aria-[current=true]:bg-selected ${selection.isSelected(contact.id) ? 'bg-selected' : ''}`}
                   >
+                    <td data-select className="p-2">
+                      <SelectContact
+                        name={contact.displayName}
+                        checked={selection.isSelected(contact.id)}
+                        onChange={() => {
+                          setSelectionNotice(
+                            selection.toggle(contact.id) === 'limit' ? 'limit' : null,
+                          );
+                        }}
+                      />
+                    </td>
                     <th scope="row" className="p-2 font-bold break-words">
                       <Link
                         to={`${base}/${contact.id}${link}`}

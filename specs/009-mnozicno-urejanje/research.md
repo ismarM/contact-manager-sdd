@@ -32,7 +32,7 @@ Vhod: [spec.md](spec.md) (Clarify 2026-11-12: meja 10 000, posnetek »vsi zadetk
 
 - **Decision:** `BulkEdit.apply(ContactState, BulkEditInput) → ContactState` brez stanja in brez baze; vrstni red po Edge Cases: odstrani značke → dodaj značke → nastavi atribute.
   - Značke: primerjava po `normalize` (obstoječi `ContactInputParser.normalize`); dodana značka gre na konec, v zapisu iz zahtevka; obstoječa ostane v svojem zapisu (scenarij US2-6).
-  - Dodatni atribut: obstoječ ključ (normaliziran) → vrednost in zapis ključa iz zahtevka, položaj ostane; nov ključ → na konec; prazna vrednost → odstranitev, položaji se strnejo.
+  - Dodatni atribut: obstoječ ključ (normaliziran) → vrednost in zapis ključa iz zahtevka, položaj ostane; **če je vrednost enaka obstoječi, ostane tudi zapis ključa in kontakt se ne šteje kot spremenjen** (D-78, FR-009-12); nov ključ → na konec; prazna vrednost → odstranitev, položaji se strnejo.
   - *Naslov*, *E-naslov*, *Telefon*: neprazna vrednost nastavi, prazna izprazni (`null`).
   - Kontakt je »spremenjen«, če se vsebina (polja, atributi, značke v vrstnem redu) razlikuje; samo ti dobijo `version + 1`, `updated_by`, `updated_at = now()`, `reverted_entry_id = NULL` (kot 004 `update`), samo ti so v vnosu sledi in v »Posodobljenih N«.
 - **Validacija končnega stanja po kontaktu:** največ 30 značk (`TOO_MANY` na `tags`), največ 50 dodatnih atributov (`TOO_MANY` na `attributes`). Ostala pravila (oblika e-naslova in telefona, dolžine, rezervirani ključi, presledki v znački) so neodvisna od kontakta in se preverijo na zahtevku (R-05).

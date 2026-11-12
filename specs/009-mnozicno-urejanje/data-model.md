@@ -43,7 +43,7 @@ Vsaj eden od `addTags`, `removeTags`, `attributes` ni prazen (`EMPTY_OPERATION`)
 
 1. odstrani značke iz `removeTags` (primerjava `normalize`); manjkajoča značka ni napaka;
 2. doda značke iz `addTags`, ki jih kontakt (normalizirano) nima – na konec, v zapisu iz zahtevka;
-3. za vsak `AttributeSet`: predefinirano polje = vrednost ali `null`; dodatni ključ: obstoječ (normalizirano) → nova vrednost in zapis ključa, isti položaj; nov → na konec; prazna vrednost → odstrani, položaji se strnejo.
+3. za vsak `AttributeSet`: predefinirano polje = vrednost ali `null`; dodatni ključ: obstoječ (normalizirano) → nova vrednost in zapis ključa, isti položaj (pri enaki vrednosti ostane zapis ključa in ni spremembe, D-78); nov → na konec; prazna vrednost → odstrani, položaji se strnejo.
 
 `changed = vsebina(before) ≠ vsebina(after)` (polja, atributi in značke v vrstnem redu; metapodatki se ne primerjajo).
 

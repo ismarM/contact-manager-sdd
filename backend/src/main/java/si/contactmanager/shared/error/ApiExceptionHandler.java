@@ -18,6 +18,26 @@ class ApiExceptionHandler {
         return ResponseEntity.badRequest().body(ValidationError.of(exception.errors()));
     }
 
+    /** Množična operacija: napake zahtevka ali končnih stanj kontaktov (research R-06). */
+    @ExceptionHandler(BulkValidationException.class)
+    ResponseEntity<BulkValidationError> bulkValidation(BulkValidationException exception) {
+        return ResponseEntity.badRequest()
+                .body(new BulkValidationError(
+                        ValidationError.VALIDATION_FAILED,
+                        exception.errors(),
+                        exception.contacts().isEmpty() ? null : exception.contacts()));
+    }
+
+    /** Izbrani kontakti skupine, ki ne obstajajo več (FR-009-10, feature-map §2.10). */
+    @ExceptionHandler(SelectionChangedException.class)
+    ResponseEntity<SelectionChanged> selectionChanged(SelectionChangedException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new SelectionChanged("SELECTION_CHANGED", exception.missing()));
+    }
+
+    /** Telo {@code 409 SELECTION_CHANGED}. */
+    record SelectionChanged(String code, java.util.List<java.util.UUID> missing) {}
+
     /** Nečlan ali neobstoječ vir: 404 s praznim telesom, enako kot neobstoječa pot (feature-map §2.2, 002 R-01). */
     @ExceptionHandler(NotFoundException.class)
     ResponseEntity<Void> notMember() {

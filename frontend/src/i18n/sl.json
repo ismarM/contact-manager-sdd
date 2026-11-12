@@ -366,12 +366,14 @@
       "edit": "Uredi izbrane",
       "delete": "Izbriši",
       "clear": "Počisti izbor",
-      "limit": "Izbereš lahko največ 10 000 kontaktov. Zoži iskanje s filtri.",
+      "limit": "Izbereš lahko največ 10 000 kontaktov. Zoži iskanje s filtri.",
       "loadFailed": "Zadetkov ni bilo mogoče naložiti. Poskusi znova."
     },
     "bulk": {
       "editTitle": "Uredi izbrane kontakte ({{count}})",
       "addTags": "Dodaj značke",
+      "addTagsList": "Značke za dodajanje",
+      "removeTagsList": "Značke za odstranitev",
       "removeTags": "Odstrani značke",
       "setAttribute": "Nastavi atribut",
       "attribute": "Atribut {{n}}",
@@ -446,7 +448,6 @@
       "tooManyAttributesFor_few": "Pri {{count}} kontaktih bi bilo preveč dodatnih atributov: {{names}}.",
       "tooManyAttributesFor_other": "Pri {{count}} kontaktih bi bilo preveč dodatnih atributov: {{names}}.",
       "andMore": "… in še {{count}}",
-      "limitTags": "Dodaš lahko največ 30 značk.",
       "errors": {
         "REQUIRED": "Vpiši vrednost.",
         "TOO_LONG": "Vrednost je predolga.",

@@ -25,7 +25,7 @@ services:
   backend:
     build: ./backend
     environment:
-      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-contacts}
+      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-contacts}?reWriteBatchedInserts=true
       DB_USER: ${POSTGRES_USER:-contacts}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-contacts}
       FIREBASE_AUTH_EMULATOR_HOST: auth:9099
