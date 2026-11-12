@@ -72,13 +72,23 @@ Trije testi (`IdentityDeletionIT`, `DeletedUserLeakSecurityIT`, `ReRegistrationG
 
 ## Odprta obvezna preverjanja
 
-- **T074 – ročna vrata pred združitvijo:** pristnost produkcijskega OAuth 2.0 dostopa (quickstart.md, *Produkcija*). Emulator in unit test z lažnim transportom tega ne dokazujeta. **Ostaja odprto.**
-- Soglasje Patrika za izjemo D-76 (četrti krog in ročni zaključek) in za D-72 (hramba UID) se zahteva v pregledu PR.
-- T073 – ponovna uskladitev s 009 (migracija, `D-NN`, `CR-NN`) tik pred PR.
+- **T074 – ročna vrata pred združitvijo: produkcijski Firebase OAuth 2.0 dostop** (quickstart.md, *Produkcija*). Emulator in unit test z lažnim transportom tega ne dokazujeta; z ustrezno konfiguracijo ni bilo preverjeno. **Ostaja odprto.**
+- **Izrecna potrditev Patrika v pregledu PR** za **D-72** (hramba Firebase UID v nadgrobniku, konstitucija VI), **D-76** (izjema: četrti krog in ročna odobritev test-first faze) in **D-77** (sprememba petih testov zaradi napačne predpostavke o emulatorju). **Ostaja odprto.**
+- **T073 – ponovna uskladitev s 009 tik pred PR.** Stanje ob Convergu (2026-11-12): `origin/main` je še `f557382` (008), zadnja migracija `V8__iskanje.sql` (V9 prosta), zadnji vnos `D-71` (D-72 … D-78 enolični), `CR-02` (CR-03 in CR-04 prosta), veje 009 na `origin` ni. Konflikta ni; preverjanje je treba ponoviti pred PR.
+- T075 (ročni preizkus quickstart.md), T077 (push in PR) in T078 (pregled in združitev) ostajajo odprti; T076 (Converge) je opravljen s tem zapisom.
+
+## Končni pregled (Converge)
+
+- **Test-first faza je zapisana kot ROČNO ODOBRENO – izjema D-76**, ne kot SPREJETO podagenta (štirje krogi ZAVRNJENO).
+- **Sprememba sprejetih testov (D-77):** pet testov (`FirebaseIdentityProviderIT`, `IdentityDeletionIT`, `IdentityDeletionRestartIT`, `DeletedIdentityTokenSecurityIT`, `ReRegistrationGuardSecurityIT`) je imelo napačno predpostavko o emulatorju; razlog, dokaz in nadomestno preverjanje so v DECISIONS.md D-77; asercije o vedenju zaledja niso oslabljene.
+- **Najdeno in odpravljeno (robustnost, FR-012-17):** nepričakovana napaka med klicem ponudnika ni smela dati `500` po že potrjenem lokalnem izbrisu; `AccountDeletionService` in `IdentityDeletionJob` jo zdaj obravnavata kot `RETRY` (`last_error = INTERNAL`, odgovor `202`, nadgrobnik odprt). Ciljni testi (`AccountDeletionIT`, `IdentityDeletionIT`, `AccountDeletionLockingIT`) zeleni; `./verify.sh full` ni bil ponovljen (sprememba je omejena na dva `catch`).
+- **Brez FR/SC vrzeli:** vseh 18 FR in 9 SC je pokritih (tabela zgoraj); regresija 000–008 zelena v `verify full`.
+- **Dodana koda, ki je plan ne našteva dobesedno (utemeljena, brez naloge):** `RevokedIdentities` (vmesnik v `shared.security`, da paket `shared` ne zavisi od `account`), `IdentityProvider.Result`/`deleteWithDetail` (potrebna za kodo napake v `last_error`), `MyDataService` (združuje načrtovana `MyDataExportService` in blokade).
+- **Skrivnosti:** `gitleaks` čez vseh 10 commitov veje (`origin/main..HEAD`): brez najdb; diff proti `origin/main` se dotika samo `backend/`, `frontend/`, `e2e/`, `specs/012-moji-podatki/` in `DECISIONS.md`.
 
 ## Implementacija US1 (izvoz)
 
-Implementirano: `MyDataRepository`, `ExportAssembler`, `MyDataService` (`REPEATABLE READ`, `READ ONLY`), `GET /api/me/export` (`Content-Disposition`, `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`), `AccountExceptionHandler` (401 ob izbrisanem uporabniku), FE `MyDataSection`, `downloadJson`/`localDateStamp`, `exportData`. Zeleni: `ExportAssemblerTest` (6), `MyDataExportIT` (3), `MyDataIsolationMatrixSecurityIT` (15 od 16), `MyDataSection.test` (11), vsi obstoječi FE testi. Še rdeča zaradi US2 (ne zaradi US1): `MyDataExportConcurrencyIT` in `MyDataIsolationMatrixSecurityIT.deletingWithAnotherUsersEmail…` (zahtevata `POST /api/me/deletion`).
+Implementirano: `MyDataRepository`, `ExportAssembler`, `MyDataService` (`REPEATABLE READ`, `READ ONLY`), `GET /api/me/export` (`Content-Disposition`, `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`), `AccountExceptionHandler` (401 ob izbrisanem uporabniku), FE `MyDataSection`, `downloadJson`/`localDateStamp`, `exportData`. Vsi testi izvoza so zeleni (`ExportAssemblerTest`, `MyDataExportIT`, `MyDataExportConcurrencyIT`, `MyDataIsolationMatrixSecurityIT`, `MyDataSection.test`, E2E); `MyDataExportConcurrencyIT` in `MyDataIsolationMatrixSecurityIT.deletingWithAnotherUsersEmail…` sta zelena od implementacije izbrisa (US2).
 
 ## Implementacija US2 in US3 (izbris računa, Firebase, blokada)
 
