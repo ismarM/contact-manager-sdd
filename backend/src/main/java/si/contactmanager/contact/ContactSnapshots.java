@@ -309,4 +309,9 @@ public class ContactSnapshots {
                 rs.getTimestamp("updated_at").toInstant(),
                 rs.getObject("updated_by", Long.class));
     }
+
+    /** Zapis združenega ohranjenega kontakta (FR-011-15, research R-09): ključi razvrščanja, verzija + 1. Ogrodje. */
+    public void replaceMerged(UUID groupId, long actor, UUID keeperId, ContactState after) {
+        throw new UnsupportedOperationException("ni implementirano");
+    }
 }

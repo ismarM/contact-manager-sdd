@@ -433,4 +433,9 @@ class ContactRepository {
                 email == null ? null : new UserRef(rs.getString("updated_by_name"), email),
                 revert(rs));
     }
+
+    /** Kontakti skupine za iskanje dvojnikov, razvrščeni po {@code created_at}, {@code id} (FR-011-07). Ogrodje. */
+    List<DuplicateCandidate> duplicateCandidates(UUID group) {
+        throw new UnsupportedOperationException("ni implementirano");
+    }
 }

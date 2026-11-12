@@ -8,6 +8,7 @@ import { setupServer } from 'msw/node';
 // admina pa naložijo čakajoča povabila skupine (`GET …/invitations` → prazna stran); tudi ta dva imata privzet odgovor.
 // Od 007 *Nastavitve* naložijo člane skupine (`GET …/members` → ena stran z lastnikom); tudi to ima privzet odgovor.
 // Od 009 imajo privzet odgovor tudi `contact-ids`, `selection-check`, `bulk-update` in `bulk-delete`.
+// Od 011 imajo privzet odgovor tudi endpointi dvojnikov (`duplicates`, `duplicates/compare`, `duplicates/merge`).
 // Od 012 *Moj račun* naloži blokade izbrisa računa (`GET /api/me/deletion-blockers` → prazen seznam), zato imajo tudi obstoječi
 // testi strani *Moj račun* privzet odgovor.
 // Začetni rokovalniki imajo najnižjo prednost – vsak `server.use` v testu jih preglasi.
@@ -68,6 +69,26 @@ export const server = setupServer(
     const body = (await request.json()) as { contactIds: string[] };
     return HttpResponse.json({ deleted: body.contactIds.length });
   }),
+  // Od 011 imajo privzet odgovor tudi endpointi dvojnikov: brez dvojnikov, primerjava brez kontaktov, združitev uspe.
+  http.get('/api/groups/:groupId/duplicates/compare', () => HttpResponse.json({ contacts: [] })),
+  http.get('/api/groups/:groupId/duplicates', ({ request }) => {
+    const url = new URL(request.url);
+    return HttpResponse.json({
+      category: url.searchParams.get('category') ?? 'name',
+      total: 0,
+      page: Number(url.searchParams.get('page') ?? 0),
+      size: Number(url.searchParams.get('size') ?? 25),
+      groups: [],
+    });
+  }),
+  http.post('/api/groups/:groupId/duplicates/merge', () =>
+    HttpResponse.json({
+      keptContactId: '0193c4a2-7a1f-7c3e-9b1a-c0ffee000001',
+      keptDisplayName: 'Janez Novak',
+      mergedCount: 2,
+      auditEntryId: '0193c4a2-7a1f-7c3e-9b1a-a0d170000099',
+    }),
+  ),
   http.get('/api/groups/:groupId/contacts', ({ request }) => {
     const url = new URL(request.url);
     return HttpResponse.json({

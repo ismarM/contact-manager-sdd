@@ -283,4 +283,59 @@ public final class ContactFixtures {
                 userId,
                 contact);
     }
+
+    /**
+     * Kontakt z nadzorovanim {@code created_at} (011): vrednosti se shranijo dobesedno (brez obrezovanja, z velikimi
+     * črkami in večkratnimi presledki), da se preizkusi normalizacija pri iskanju dvojnikov. Kontaktov, ki jih test
+     * briše, ne ustvarjaj s to metodo (sled bi manjkala): zanje uporabi API 004.
+     */
+    public UUID insertContact(
+            UUID group,
+            long userId,
+            String first,
+            String last,
+            String email,
+            String phone,
+            java.time.Instant createdAt) {
+        return jdbc.queryForObject(
+                "insert into contact (group_id, first_name, last_name, email, phone, sort_first, sort_last, updated_by,"
+                        + " created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) returning id",
+                UUID.class,
+                group,
+                first,
+                last,
+                email,
+                phone,
+                key(first),
+                key(last),
+                userId,
+                java.sql.Timestamp.from(createdAt),
+                java.sql.Timestamp.from(createdAt));
+    }
+
+    /**
+     * {@code count} kontaktov z enakim e-naslovom, z naraščajočim {@code created_at} (po eno sekundo narazen, od
+     * {@code 2026-01-01T00:00:00Z}); vrne id-je po vrstnem redu ustvarjanja (prvi je najstarejši).
+     */
+    public List<UUID> insertDuplicates(UUID group, long userId, int count, String email) {
+        java.time.Instant start = java.time.Instant.parse("2026-01-01T00:00:00Z");
+        List<UUID> ids = new java.util.ArrayList<>();
+        for (int i = 1; i <= count; i++) {
+            ids.add(insertContact(
+                    group,
+                    userId,
+                    "Ime" + String.format("%02d", i),
+                    "Priimek" + String.format("%02d", i),
+                    email,
+                    null,
+                    start.plusSeconds(i)));
+        }
+        return ids;
+    }
+
+    /** Čas ustvarjanja kontakta (za preverjanje, da združitev ne spremeni {@code created_at}). */
+    public java.time.Instant createdAt(UUID contact) {
+        return jdbc.queryForObject("select created_at from contact where id = ?", java.sql.Timestamp.class, contact)
+                .toInstant();
+    }
 }

@@ -115,7 +115,7 @@ V skupini (zavihek *Dvojniki*, samo EDITOR+ v nearhivirani skupini) urednik izbe
 | Toast | link | »Odpri revizijsko sled« / "Open the audit trail" | `/groups/:groupId/audit` (O-2) | FR-011-17 |
 
 - Sklanjanje (sl `one`/`two`/`few`/`other`, en `one`/`other`; R-13): »Združim 2 kontakta?«, »Združim 3 kontakte?«, »Združim 5 kontaktov?«; »ostala 2 bosta izbrisana«, »ostali 3 bodo izbrisani«, »ostalih 5 bo izbrisanih«; »Še 1 kontakt«, »Še 2 kontakta«, »Še 4 kontakti«, »Še 5 kontaktov«.
-- Napake brez kod: `403` »Za to dejanje nimaš več pravic.«, `409 GROUP_ARCHIVED` »Skupina je arhivirana. Spreminjanje ni mogoče.« (kot 004/009), brez povezave »Strežnik ni dosegljiv. Poskusi znova.« + *Poskusi znova*.
+- Napake brez kod (prikazane kot `alert`, design.md 8.13): `403` »Za to dejanje nimaš več pravic.«, `409 GROUP_ARCHIVED` »Skupina je arhivirana. Spreminjanje ni mogoče.« (kot 004/009), brez povezave »Strežnik ni dosegljiv. Poskusi znova.« + *Poskusi znova*.
 - Testi uporabljajo `within(listitem …)` za kartice, `within(group »Janez Novak«)` za glavo stolpca in `within(dialog)` za potrditev (*Prekliči* je na več mestih).
 
 ### Pokritost zahtev po ravneh testov
