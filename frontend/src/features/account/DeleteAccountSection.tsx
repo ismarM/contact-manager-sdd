@@ -28,13 +28,24 @@ export function DeleteAccountSection() {
   const heading = useRef<HTMLHeadingElement>(null);
   const focusHeading = useRef(false);
 
+  // Zahtevek se ob odhodu s strani prekine (ne uhaja v naslednjo stran ali test); prekinjen odgovor se ne upošteva.
+  const request = useRef<AbortController | null>(null);
+
   const fetchBlockers = useCallback(() => {
+    request.current?.abort();
+    const abort = new AbortController();
+    request.current = abort;
     api
-      .deletionBlockers()
-      .then((result) => setBlockers({ state: 'ready', groups: result.groups, changed: false }))
+      .deletionBlockers(abort.signal)
+      .then((result) => {
+        if (!abort.signal.aborted) {
+          setBlockers({ state: 'ready', groups: result.groups, changed: false });
+        }
+      })
       .catch((error: unknown) => {
         // 401 je izguba seje (obravnava authFetch).
-        if (!(error instanceof ApiError && error.status === 401)) setBlockers({ state: 'failed' });
+        if (abort.signal.aborted || (error instanceof ApiError && error.status === 401)) return;
+        setBlockers({ state: 'failed' });
       });
   }, [api]);
 
@@ -45,6 +56,7 @@ export function DeleteAccountSection() {
 
   useEffect(() => {
     fetchBlockers();
+    return () => request.current?.abort();
   }, [fetchBlockers]);
 
   useEffect(() => {

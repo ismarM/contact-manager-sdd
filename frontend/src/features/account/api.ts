@@ -6,7 +6,7 @@ import type { DeletionBlockers, DeletionOutcome, MyData } from './types';
 
 export interface MyDataApi {
   exportData(): Promise<MyData>;
-  deletionBlockers(): Promise<DeletionBlockers>;
+  deletionBlockers(signal?: AbortSignal): Promise<DeletionBlockers>;
   deleteAccount(email: string): Promise<DeletionOutcome>;
 }
 
@@ -14,7 +14,7 @@ export interface MyDataApi {
 export function createMyDataApi(authFetch: AuthFetch): MyDataApi {
   return {
     exportData: () => authFetch<MyData>('/me/export'),
-    deletionBlockers: () => authFetch<DeletionBlockers>('/me/deletion-blockers'),
+    deletionBlockers: (signal) => authFetch<DeletionBlockers>('/me/deletion-blockers', { signal }),
     deleteAccount: async (email) => {
       const result = await authFetch<{ code?: string } | undefined>('/me/deletion', {
         method: 'POST',
