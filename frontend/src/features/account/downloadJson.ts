@@ -1,12 +1,20 @@
-/** Prenos JSON kot datoteke (FR-012-02). Ogrodje – vedenje pride z implementacijo. */
+/** Prenos JSON kot datoteke (FR-012-02): `Blob` + `<a download>`; ob zaključku se začasni URL sprosti. */
 export function downloadJson(data: unknown, fileName: string): void {
-  void data;
-  void fileName;
-  throw new Error('not implemented: downloadJson (FR-012-02)');
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
-/** Datum v obliki `YYYY-MM-DD` po lokalnem času brskalnika (spec, Predpostavke). */
+/** Datum v obliki `YYYY-MM-DD` po lokalnem času brskalnika (spec, Predpostavke; ne `toISOString`, ki je UTC). */
 export function localDateStamp(date: Date): string {
-  void date;
-  throw new Error('not implemented: localDateStamp (FR-012-02)');
+  const year = String(date.getFullYear()).padStart(4, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }

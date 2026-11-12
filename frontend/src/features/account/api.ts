@@ -12,10 +12,9 @@ export interface MyDataApi {
 
 /** Odjemalec API funkcionalnosti 012 prek `authFetch`. Ogrodje – vedenje pride z implementacijo. */
 export function createMyDataApi(authFetch: AuthFetch): MyDataApi {
-  void authFetch;
   const notImplemented = () => Promise.reject(new Error('not implemented: MyDataApi (012)'));
   return {
-    exportData: notImplemented,
+    exportData: () => authFetch<MyData>('/me/export'),
     deletionBlockers: notImplemented,
     deleteAccount: notImplemented,
   };
