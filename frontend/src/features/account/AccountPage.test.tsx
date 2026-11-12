@@ -4,6 +4,7 @@ import { axe } from 'vitest-axe';
 
 import { i18n } from '../../i18n';
 import { ANA, createAuthFake } from '../../test/authFake';
+import { renderAccountApp } from '../../test/myDataApi';
 import { ANA_PROFILE, currentLocation, mockProfileApi, renderApp } from '../../test/renderApp';
 
 function renderAccount(options: Parameters<typeof mockProfileApi>[0] = {}) {
@@ -142,4 +143,61 @@ describe('AccountPage', () => {
       expect((await axe(container)).violations).toEqual([]);
     },
   );
+});
+
+describe('AccountPage – Moji podatki in Izbris računa', () => {
+  beforeEach(async () => {
+    await i18n.changeLanguage('sl');
+  });
+
+  it('FR-012-01 FR-012-05: razdelki si sledijo Profil → Videz → Moji podatki → Izbris računa → Odjava', async () => {
+    renderAccountApp();
+
+    await screen.findByRole('heading', { level: 1, name: 'Moj račun' });
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
+      'Profil',
+      'Videz',
+      'Moji podatki',
+      'Izbris računa',
+    ]);
+    const regions = [
+      screen.getByRole('heading', { level: 2, name: 'Moji podatki' }),
+      screen.getByRole('heading', { level: 2, name: 'Izbris računa' }),
+      screen.getByRole('button', { name: 'Odjava' }),
+    ];
+    const follows = (a: Element, b: Element) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(
+      follows(screen.getByRole('heading', { level: 2, name: 'Videz' }), regions[0] as Element),
+    ).toBe(true);
+    expect(follows(regions[0] as Element, regions[1] as Element)).toBe(true);
+    expect(follows(regions[1] as Element, regions[2] as Element)).toBe(true);
+  });
+
+  it('FR-012-01 FR-012-05: obstoječi razdelki delujejo ob novih (profil in videz še vedno prikazana)', async () => {
+    const { user, profile } = renderAccountApp();
+
+    const theme = await screen.findByRole('group', { name: 'Tema' });
+    await user.click(within(theme).getByRole('radio', { name: 'Temna' }));
+
+    await waitFor(() =>
+      expect(profile.requests.filter((r) => r.path === '/api/me/preferences')).toHaveLength(1),
+    );
+    expect(screen.getByRole('region', { name: 'Profil' })).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: 'Moji podatki' })).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: 'Izbris računa' })).toBeInTheDocument();
+  });
+
+  it('FR-012-01: stran Moj račun z novima razdelkoma nima kršitev axe', async () => {
+    const { container } = renderAccountApp();
+    await screen.findByRole('region', { name: 'Izbris računa' });
+    await within(await screen.findByRole('region', { name: 'Izbris računa' })).findByRole(
+      'button',
+      {
+        name: 'Izbriši račun',
+      },
+    );
+
+    expect((await axe(container)).violations).toEqual([]);
+  });
 });

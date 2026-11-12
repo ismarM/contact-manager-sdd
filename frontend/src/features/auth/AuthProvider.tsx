@@ -154,6 +154,18 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
     await gateway.signOut();
   }, [clearSession, gateway]);
 
+  // Račun je izbrisan (012, FR-012-14, FR-012-17): seja se počisti PRED preusmeritvijo, zato ni sporočila o poteku seje.
+  // `pending` = 202 (brisanje identitete pri ponudniku še čaka).
+  const accountDeleted = useCallback(
+    async (pending: boolean) => {
+      expectingSignOut.current = true;
+      setExitTo(`/login?reason=${pending ? 'account-deleted-pending' : 'account-deleted'}`);
+      clearSession();
+      await gateway.signOut();
+    },
+    [clearSession, gateway],
+  );
+
   const savePreferences = useCallback(
     async (preferences: { language: Language | null; theme: Theme | null }) => {
       if (statusRef.current !== 'signedIn') return;
@@ -200,6 +212,7 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
       consumeExit: () => setExitTo(null),
       signIn,
       signOut,
+      accountDeleted,
       authFetch,
       theme,
       changeLanguage,
@@ -214,6 +227,7 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
       exitTo,
       signIn,
       signOut,
+      accountDeleted,
       authFetch,
       theme,
       changeLanguage,

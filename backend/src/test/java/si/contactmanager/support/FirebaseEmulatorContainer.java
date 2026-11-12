@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -108,6 +109,73 @@ public final class FirebaseEmulatorContainer extends GenericContainer<FirebaseEm
         Map<String, Object> body =
                 Map.of("idToken", idToken, "displayName", displayName, "email", email, "returnSecureToken", true);
         return post("accounts:update", body).get("idToken").asString();
+    }
+
+    /** Ustavi vsebnik emulatorja (zamrznitev procesov; omrežje ostane). Vedno v paru z {@link #unpause()}. */
+    public void pause() {
+        if (!isPaused()) {
+            getDockerClient().pauseContainerCmd(getContainerId()).exec();
+        }
+    }
+
+    public void unpause() {
+        if (isPaused()) {
+            getDockerClient().unpauseContainerCmd(getContainerId()).exec();
+        }
+    }
+
+    public boolean isPaused() {
+        return Boolean.TRUE.equals(getDockerClient()
+                .inspectContainerCmd(getContainerId())
+                .exec()
+                .getState()
+                .getPaused());
+    }
+
+    /** Izvede dejanje, medtem ko je emulator zamrznjen; vedno ga odmrzne (nikoli zamrznjen emulator po neuspelem testu). */
+    public void paused(ThrowingRunnable action) throws Exception {
+        pause();
+        try {
+            action.run();
+        } finally {
+            unpause();
+        }
+    }
+
+    /** Dejanje, ki sme vreči izjemo. */
+    @FunctionalInterface
+    public interface ThrowingRunnable {
+        void run() throws Exception;
+    }
+
+    /** Ali identiteta z danim UID-jem v emulatorju (še) obstaja ({@code accounts:lookup} z lastniškim žetonom). */
+    public boolean identityExists(String uid) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder(URI.create(
+                        baseUrl() + "/identitytoolkit.googleapis.com/v1/projects/" + PROJECT_ID + "/accounts:lookup"))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer owner")
+                .POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(Map.of("localId", List.of(uid)))))
+                .build();
+        HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new IllegalStateException("accounts:lookup failed: " + response.statusCode() + " " + response.body());
+        }
+        JsonNode users = JSON.readTree(response.body()).get("users");
+        return users != null && users.isArray() && users.size() > 0;
+    }
+
+    /** Neposredno izbriše identiteto v emulatorju kot administrator (priprava testnih stanj). */
+    public void deleteIdentityAsOwner(String uid) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder(URI.create(
+                        baseUrl() + "/identitytoolkit.googleapis.com/v1/projects/" + PROJECT_ID + "/accounts:delete"))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer owner")
+                .POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(Map.of("localId", uid))))
+                .build();
+        HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200 && !response.body().contains("USER_NOT_FOUND")) {
+            throw new IllegalStateException("accounts:delete failed: " + response.statusCode() + " " + response.body());
+        }
     }
 
     private JsonNode post(String method, Map<String, Object> body) throws IOException, InterruptedException {

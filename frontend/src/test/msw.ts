@@ -8,10 +8,13 @@ import { setupServer } from 'msw/node';
 // admina pa naložijo čakajoča povabila skupine (`GET …/invitations` → prazna stran); tudi ta dva imata privzet odgovor.
 // Od 007 *Nastavitve* naložijo člane skupine (`GET …/members` → ena stran z lastnikom); tudi to ima privzet odgovor.
 // Od 009 imajo privzet odgovor tudi `contact-ids`, `selection-check`, `bulk-update` in `bulk-delete`.
+// Od 012 *Moj račun* naloži blokade izbrisa računa (`GET /api/me/deletion-blockers` → prazen seznam), zato imajo tudi obstoječi
+// testi strani *Moj račun* privzet odgovor.
 // Začetni rokovalniki imajo najnižjo prednost – vsak `server.use` v testu jih preglasi.
 export const server = setupServer(
   http.get('/api/groups', () => HttpResponse.json({ sections: [] })),
   http.get('/api/invitations/count', () => HttpResponse.json({ count: 0 })),
+  http.get('/api/me/deletion-blockers', () => HttpResponse.json({ groups: [] })),
   http.get('/api/groups/:groupId/invitations', ({ request }) => {
     const url = new URL(request.url);
     return HttpResponse.json({

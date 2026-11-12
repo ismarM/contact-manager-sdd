@@ -19,6 +19,15 @@ firebase:
   project-id: ${FIREBASE_PROJECT_ID:demo-contact-manager}
   auth-emulator-host: ${FIREBASE_AUTH_EMULATOR_HOST:}
 
+# Brisanje identitete pri ponudniku prijave in nadgrobniki (012, research R-07, R-16). Brez skrivnosti: poverilnice samo iz okolja.
+identity-deletion:
+  scheduler-enabled: true
+  interval: 30s
+  lease: 30s
+  request-timeout: 5s
+  connect-timeout: 2s
+  tombstone-retention: 2h
+
 management:
   endpoints:
     web:
