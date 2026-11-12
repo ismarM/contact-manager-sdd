@@ -23,7 +23,7 @@ import {
 } from '../../../test/selection';
 
 // Akcijska vrstica izbora (FR-009-03, FR-009-04, FR-009-05, FR-009-15; specs/009-mnozicno-urejanje/plan.md – Key
-// elements). »Izvozi v Excel« doda šele 010: 009 ga ne izriše.
+// elements). »Izvozi v Excel« je dodala 010 (FR-010-01, D-91): izriše se vsem vlogam, tudi v arhivirani skupini.
 
 const IDS_PATH = `/api/groups/${GROUP_ID}/contact-ids`;
 const RESULTS = [JANEZ, ...contactSummaries(24, 2)];
@@ -49,7 +49,7 @@ describe('SelectionActionBar', () => {
     await i18n.changeLanguage('sl');
   });
 
-  it('FR-009-05: urednik v nearhivirani skupini vidi vse štiri akcije, brez »Izvozi v Excel«', async () => {
+  it('FR-009-05: urednik v nearhivirani skupini vidi vse akcije, tudi »Izvozi v Excel«', async () => {
     const { user } = app();
     await listReady();
     await pick(user, 'Janez Novak');
@@ -61,10 +61,10 @@ describe('SelectionActionBar', () => {
     expect(bar.getByRole('button', { name: 'Uredi izbrane' })).toBeInTheDocument();
     expect(bar.getByRole('button', { name: 'Izbriši' })).toBeInTheDocument();
     expect(bar.getByRole('button', { name: 'Počisti izbor' })).toBeInTheDocument();
-    expect(bar.queryByRole('button', { name: 'Izvozi v Excel' })).not.toBeInTheDocument();
+    expect(bar.getByRole('button', { name: 'Izvozi v Excel' })).toBeInTheDocument();
   });
 
-  it('FR-009-05: bralec vidi samo »Izberi vse zadetke (N)«, »Počisti izbor« in število izbranih', async () => {
+  it('FR-009-05: bralec vidi samo »Izberi vse zadetke (N)«, »Izvozi v Excel«, »Počisti izbor« in število izbranih', async () => {
     const { user } = app(LIST, { role: 'VIEWER' });
     await listReady();
     await pick(user, 'Janez Novak');
@@ -76,7 +76,7 @@ describe('SelectionActionBar', () => {
     expect(bar.getByRole('button', { name: 'Počisti izbor' })).toBeInTheDocument();
     expect(bar.queryByRole('button', { name: 'Uredi izbrane' })).not.toBeInTheDocument();
     expect(bar.queryByRole('button', { name: 'Izbriši' })).not.toBeInTheDocument();
-    expect(bar.queryByRole('button', { name: 'Izvozi v Excel' })).not.toBeInTheDocument();
+    expect(bar.getByRole('button', { name: 'Izvozi v Excel' })).toBeInTheDocument();
   });
 
   it.each(['VIEWER', 'EDITOR', 'ADMIN', 'OWNER'] as const)(
@@ -93,6 +93,7 @@ describe('SelectionActionBar', () => {
       expect(bar.getByRole('button', { name: 'Počisti izbor' })).toBeInTheDocument();
       expect(bar.queryByRole('button', { name: 'Uredi izbrane' })).not.toBeInTheDocument();
       expect(bar.queryByRole('button', { name: 'Izbriši' })).not.toBeInTheDocument();
+      expect(bar.getByRole('button', { name: 'Izvozi v Excel' })).toBeInTheDocument();
     },
   );
 

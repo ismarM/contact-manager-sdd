@@ -39,3 +39,19 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
+
+/** Uspešen odgovor z datoteko (010): telo kot `Blob` in glave odgovora. */
+export interface BlobResponse {
+  blob: Blob;
+  headers: Headers;
+}
+
+/** Kot {@link apiFetch}, vendar telo uspešnega odgovora ni JSON, temveč datoteka; napake so enake (`ApiError`). */
+export async function apiFetchBlob(path: string, init?: RequestInit): Promise<BlobResponse> {
+  const response = await fetch(`/api${path}`, init);
+  if (!response.ok) {
+    const body = await errorBody(response);
+    throw new ApiError(response.status, codeOf(body), body);
+  }
+  return { blob: await response.blob(), headers: response.headers };
+}
