@@ -66,7 +66,7 @@ V skupini (zavihek *Dvojniki*, samo EDITOR+ v nearhivirani skupini) urednik izbe
 | Primerjava in združitev; `?category=&page=&size=&ids=‹uuid,…›&total=‹N›` | /groups/:groupId/duplicates/compare | EDITOR (bralec in arhivirana skupina: razlaga kot zgoraj) | FR-011-08 … FR-011-18, FR-011-21 |
 
 - Obe poti sta razdelka v `GroupLayout` (`duplicates`, `duplicates/compare`); druge podpoti → »Te strani ni«. Skupina, ki je ni ali v kateri uporabnik ni član → »Te strani ni« (obstoječe vedenje).
-- `category`, `page`, `size` v naslovu omogočajo osvežitev in *Nazaj* (FR-011-02) ter vrnitev na iste rezultate po združitvi (FR-011-18). `ids` (≤ 10) so trenutno vključeni kontakti; `total` je velikost skupine ob iskanju (samo prikaz »od N«). Prazen ali neveljaven `ids` (< 2) → preusmeritev na rezultate.
+- `category`, `page`, `size` v naslovu omogočajo osvežitev in *Nazaj* (FR-011-02) ter vrnitev na iste rezultate po združitvi (FR-011-18). `ids` (≤ 10) so trenutno vključeni kontakti; `total` je velikost skupine ob iskanju (samo prikaz »od N«; razlaga o prvih 10 se prikaže samo pri `total` > 10). Prazen ali neveljaven `ids` (< 2) → preusmeritev na rezultate.
 
 ### Key elements and accessible names
 
@@ -93,7 +93,7 @@ V skupini (zavihek *Dvojniki*, samo EDITOR+ v nearhivirani skupini) urednik izbe
 | Dvojniki | navigation | »Strani rezultatov« / "Result pages" (obstoječa `SectionPagination`; gumba »Prejšnja« / »Naslednja«, izbira velikosti 25/50/100) | paginacija | FR-011-07 |
 | Primerjava | heading (2) | »Primerjava dvojnikov« / "Compare duplicates" | naslov strani | FR-011-08 |
 | Primerjava | link | »Nazaj na rezultate« / "Back to results" | vrne na rezultate iste kategorije in strani | FR-011-18 |
-| Primerjava | status | »Prikazanih je prvih 10 od 14 kontaktov. Ostali ostanejo nespremenjeni in jih lahko združiš v naslednjem koraku.« / "Showing the first 10 of 14 contacts. The others stay unchanged and you can merge them in the next step." | samo ko je `total` > število kontaktov | FR-011-21 |
+| Primerjava | status | »Prikazanih je prvih 10 od 14 kontaktov. Ostali ostanejo nespremenjeni in jih lahko združiš v naslednjem koraku.« / "Showing the first 10 of 14 contacts. The others stay unchanged and you can merge them in the next step." | samo ko je `total` > 10 (tudi po izločitvah; število v besedilu je vedno 10) | FR-011-21 |
 | Primerjava | group | ime kontakta, npr. »Janez Novak« (naslov stolpca) | glava stolpca; vsebuje oznako »Ostane« / "Kept" (prvi) in gumb | FR-011-08, FR-011-11 |
 | Glava stolpca | button | »Izloči iz združevanja« / "Exclude from merge" (pri > 2 kontaktih) | izloči kontakt; stolpec izgine | FR-011-11 |
 | Primerjava | note | »Združiti je treba vsaj 2 kontakta.« / "At least 2 contacts are needed to merge." (pri 2 kontaktih namesto gumba) | razlaga | FR-011-11 |
