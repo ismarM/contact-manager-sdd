@@ -207,7 +207,7 @@ describe('ContactListUrl', () => {
     const { user } = app(PATH);
     const search = await area();
     await screen.findByRole('table', { name: TABLE });
-    await user.click(search.getByRole('button', { name: 'Smer razvrščanja: naraščajoče' }));
+    await user.click(await search.findByRole('button', { name: 'Smer razvrščanja: naraščajoče' }));
     await waitFor(() => expect(urlParams().get('dir')).toBe('desc'));
     await user.selectOptions(
       within(pagination()).getByRole('combobox', { name: 'Velikost strani' }),
@@ -218,12 +218,14 @@ describe('ContactListUrl', () => {
     window.history.back();
     await waitFor(() => expect(urlParams().get('size')).toBeNull());
     expect(urlParams().get('dir')).toBe('desc');
-    expect(search.getByRole('button', { name: 'Smer razvrščanja: padajoče' })).toBeInTheDocument();
+    expect(
+      await search.findByRole('button', { name: 'Smer razvrščanja: padajoče' }),
+    ).toBeInTheDocument();
 
     window.history.back();
     await waitFor(() => expect(urlParams().get('dir')).toBeNull());
     expect(
-      search.getByRole('button', { name: 'Smer razvrščanja: naraščajoče' }),
+      await search.findByRole('button', { name: 'Smer razvrščanja: naraščajoče' }),
     ).toBeInTheDocument();
 
     window.history.forward();
