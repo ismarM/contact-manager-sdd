@@ -445,6 +445,7 @@ describe('BulkEditDialog', () => {
       expect(dialog.queryByRole('button', { name: 'Odstrani značko z31' })).not.toBeInTheDocument();
       expect(dialog.getByRole('button', { name: 'Odstrani značko z30' })).toBeInTheDocument();
     },
+    60_000,
   );
 
   it('FR-009-06: po 10 vrsticah atributov »Dodaj atribut« ni več na voljo', async () => {

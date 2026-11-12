@@ -1,5 +1,6 @@
 package si.contactmanager.audit;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -11,9 +12,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.core.simple.JdbcClient.StatementSpec;
 import org.springframework.stereotype.Repository;
@@ -30,6 +29,9 @@ class AuditRepository {
                     + " e.contact_name, t.id AS target_id, t.created_at AS target_at, e.target_initial"
                     + " FROM audit_entry e LEFT JOIN app_user u ON u.id = e.actor_id"
                     + " LEFT JOIN audit_entry t ON t.id = e.target_entry_id";
+
+    /** Največ sprememb v enem stavku {@code unnest}. */
+    private static final int AUDIT_CHUNK = 1000;
 
     /** Filtri seznama: vrste dejanj in kontakt (oboje neobvezno). */
     record Filter(List<AuditAction> actions, UUID contact) {}
@@ -79,21 +81,38 @@ class AuditRepository {
                 .param("target", targetEntry)
                 .param("initial", targetInitial)
                 .update();
-        SqlParameterSource[] rows = new SqlParameterSource[changes.size()];
-        for (int i = 0; i < rows.length; i++) {
-            ContactChange change = changes.get(i);
-            rows[i] = new MapSqlParameterSource()
-                    .addValue("entry", id)
-                    .addValue("position", i)
-                    .addValue("contact", change.contactId())
-                    .addValue("name", change.displayName())
-                    .addValue("before", write(change.before()))
-                    .addValue("after", write(change.after()));
+        // Večvrstični stavki (unnest) po AUDIT_CHUNK vrstic: en klic na kos namesto na spremembo (SC-002).
+        for (int from = 0; from < changes.size(); from += AUDIT_CHUNK) {
+            List<ContactChange> chunk = changes.subList(from, Math.min(changes.size(), from + AUDIT_CHUNK));
+            int offset = from;
+            Integer[] positions = new Integer[chunk.size()];
+            UUID[] contacts = new UUID[chunk.size()];
+            String[] names = new String[chunk.size()];
+            String[] befores = new String[chunk.size()];
+            String[] afters = new String[chunk.size()];
+            for (int i = 0; i < chunk.size(); i++) {
+                ContactChange change = chunk.get(i);
+                positions[i] = offset + i;
+                contacts[i] = change.contactId();
+                names[i] = change.displayName();
+                befores[i] = write(change.before());
+                afters[i] = write(change.after());
+            }
+            batch.getJdbcOperations()
+                    .update(
+                            "INSERT INTO audit_change (entry_id, position, contact_id, display_name, before, after)"
+                                    + " SELECT ?, v.pos, v.cid, v.dname, CAST(v.bef AS jsonb), CAST(v.aft AS jsonb)"
+                                    + " FROM unnest(?::int[], ?::uuid[], ?::text[], ?::text[], ?::text[])"
+                                    + " AS v(pos, cid, dname, bef, aft)",
+                            (PreparedStatement ps) -> {
+                                ps.setObject(1, id);
+                                ps.setArray(2, ps.getConnection().createArrayOf("int4", positions));
+                                ps.setArray(3, ps.getConnection().createArrayOf("uuid", contacts));
+                                ps.setArray(4, ps.getConnection().createArrayOf("text", names));
+                                ps.setArray(5, ps.getConnection().createArrayOf("text", befores));
+                                ps.setArray(6, ps.getConnection().createArrayOf("text", afters));
+                            });
         }
-        batch.batchUpdate(
-                "INSERT INTO audit_change (entry_id, position, contact_id, display_name, before, after)"
-                        + " VALUES (:entry, :position, :contact, :name, CAST(:before AS jsonb), CAST(:after AS jsonb))",
-                rows);
         return id;
     }
 
