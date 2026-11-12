@@ -1,4 +1,4 @@
-import { type RefObject, useRef, useState } from 'react';
+import { type RefObject, useLayoutEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -46,6 +46,26 @@ export function SelectionActionBar({
   const [dialog, setDialog] = useState<'edit' | 'delete' | null>(null);
   const [loading, setLoading] = useState(false);
   const editButton = useRef<HTMLButtonElement>(null);
+  const bar = useRef<HTMLDivElement>(null);
+
+  // Pod 640 px je vrstica `fixed`; višino (ki se ob več vrsticah gumbov spreminja) objavimo kot spremenljivko, da seznam
+  // dobi dovolj spodnjega odmika in vrstica ne pokrije paginacije (SC-005).
+  useLayoutEffect(() => {
+    const element = bar.current;
+    if (!element) return undefined;
+    const root = document.documentElement;
+    const publish = () =>
+      root.style.setProperty('--selection-bar-height', `${element.offsetHeight + 16}px`);
+    publish();
+    if (typeof ResizeObserver === 'undefined')
+      return () => root.style.removeProperty('--selection-bar-height');
+    const observer = new ResizeObserver(publish);
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--selection-bar-height');
+    };
+  }, []);
   const deleteButton = useRef<HTMLButtonElement>(null);
   const editable = canEditContacts(group);
 
@@ -77,6 +97,7 @@ export function SelectionActionBar({
   return (
     <>
       <div
+        ref={bar}
         role="toolbar"
         aria-label={t('contacts.selection.toolbar')}
         className="fixed inset-x-0 bottom-0 z-10 flex flex-wrap items-center gap-3 border-t border-border bg-card p-3 shadow-float sm:static sm:rounded-md sm:border sm:shadow-none"

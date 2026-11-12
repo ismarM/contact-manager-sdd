@@ -265,7 +265,7 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
   return (
     <section
       aria-labelledby={headingId}
-      className={`flex min-w-0 flex-col gap-4 ${selection.count > 0 ? 'pb-28 sm:pb-0' : ''}`}
+      className={`flex min-w-0 flex-col gap-4 ${selection.count > 0 ? 'pb-[var(--selection-bar-height,14rem)] sm:pb-0' : ''}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id={headingId} ref={heading} tabIndex={-1} className="text-xl font-bold outline-none">
