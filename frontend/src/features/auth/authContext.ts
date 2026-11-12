@@ -25,6 +25,8 @@ export interface AuthContextValue {
   consumeExit: () => void;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
+  /** Račun je izbrisan (012): lokalna seja se počisti, uporabnik gre na prijavo s potrdilom; `pending` = 202 (FR-012-17). */
+  accountDeleted: (pending: boolean) => Promise<void>;
   authFetch: AuthFetch;
   theme: Theme | null;
   changeLanguage: (language: Language) => void;

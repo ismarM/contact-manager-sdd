@@ -154,6 +154,15 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
     await gateway.signOut();
   }, [clearSession, gateway]);
 
+  // Ogrodje 012: samo lokalna odjava; sporočilo in izbris seje pridejo z implementacijo.
+  const accountDeleted = useCallback(
+    async (pending: boolean) => {
+      void pending;
+      await gateway.signOut();
+    },
+    [gateway],
+  );
+
   const savePreferences = useCallback(
     async (preferences: { language: Language | null; theme: Theme | null }) => {
       if (statusRef.current !== 'signedIn') return;
@@ -200,6 +209,7 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
       consumeExit: () => setExitTo(null),
       signIn,
       signOut,
+      accountDeleted,
       authFetch,
       theme,
       changeLanguage,
@@ -214,6 +224,7 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
       exitTo,
       signIn,
       signOut,
+      accountDeleted,
       authFetch,
       theme,
       changeLanguage,

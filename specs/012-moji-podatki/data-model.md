@@ -47,7 +47,7 @@ CREATE INDEX group_member_updated_by ON group_member (updated_by);
 | `firebase_uid` | Firebase UID izbrisanega uporabnika (`sub` iz žetona) | PK; vir: `app_user.firebase_uid` v trenutku izbrisa; nikoli ne vsebuje imena ali e-naslova |
 | `deleted_at` | čas potrditve izbrisa v aplikaciji | samo za diagnostiko |
 | `provider_deleted_at` | čas uspešnega brisanja identitete pri ponudniku | `NULL` dokler ne uspe; nastavi ga `IdentityDeletionJob` ali hitra pot po izbrisu |
-| `attempts`, `next_attempt_at` | ponavljanje in zakup (R-07) | `next_attempt_at` je hkrati čas naslednjega poskusa in **zakup**: ob vstavitvi `now() + lease` (privzeto 30 s), ob prevzemu v opravilu `now() + lease`, po neuspehu `now() + min(30 s · 2^attempts, 1 h)`; prevzem je en kratek `UPDATE … WHERE firebase_uid IN (SELECT … FOR UPDATE SKIP LOCKED) RETURNING` |
+| `attempts`, `next_attempt_at` | ponavljanje in zakup (R-07) | `next_attempt_at` je hkrati čas naslednjega poskusa in **zakup**: ob vstavitvi `now() + lease` (privzeto 30 s), ob prevzemu v opravilu `now() + lease`, po neuspehu `now() + min(30 s · 2^attempts, 1 h)`, kjer je `attempts` **vrednost pred povečanjem** (prvi neuspeh: `attempts = 0` → 30 s, drugi: `1` → 60 s, šesti: `5` → 960 s); prevzem je en kratek `UPDATE … WHERE firebase_uid IN (SELECT … FOR UPDATE SKIP LOCKED) RETURNING` |
 | `last_error` | kratka koda zadnjega neuspeha (`TIMEOUT`, `HTTP_5XX`, `HTTP_401` …) | brez uporabnikovih podatkov, ne UID-a |
 
 Vstavitev je `INSERT … ON CONFLICT (firebase_uid) DO NOTHING`: podvojen zapis ni nikoli vzrok za `500` (sočasni izbris istega uporabnika, R-04). Shema migracije se zaradi tega ne spreminja.

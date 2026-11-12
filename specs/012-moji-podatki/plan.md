@@ -142,7 +142,7 @@ ponavljanje in čiščenje po ponovnem zagonu aplikacije (drugi kontekst nad ist
 brez skrivnosti v kodi in konfiguraciji (gitleaks v pre-commit je že vrata), zavrnitev `tombstone-retention` < 70 min; `MigrationVersionsUniqueTest` – brez podvojenih različic migracij (R-14). Pristnost produkcijskega OAuth dostopa ni avtomatski test, ampak **ročna vrata pred združitvijo** (quickstart, T-naloga).
 Merljiva merila: SC-001 – `MyDataExportIT` (100 članstev + 50 povabil, ≤ 5 s); SC-002 – `MyDataExportIT`, `MyDataIsolationMatrixSecurityIT`; SC-003 – `moji-podatki.spec` (izbris < 1 min);
 SC-004 – `DeletedUserLeakSecurityIT`; SC-005 – `AccountDeletionAuditIT`, `AccountDeletionIT`, `moji-podatki.spec`; SC-006 – `AccountDeletionConcurrencyIT`; SC-007 – `DeleteAccountSection.test`, `moji-podatki.spec`; SC-008 – `AccountDeletionIT`, `IdentityDeletionIT`, `IdentityDeletionRestartIT`; SC-009 – `IdentityDeletionIT`, `IdentityDeletionRestartIT`, `DeletedIdentityTokenSecurityIT`.
-Regresija 000–008: `./verify.sh full` (obstoječi testi se ne spreminjajo; dotaknjena sta le `ApiTest` – ena lastnost – in `AccountPage.test.tsx` – nova `describe`).
+Regresija 000–008: `./verify.sh full` (obstoječi testi se ne spreminjajo; dotaknjeni so le `ApiTest` – ena lastnost –, `AccountPage.test.tsx`, `AuthProvider.test.tsx`, `LoginPage.test.tsx` – nove `describe` – in `frontend/src/test/msw.ts` – privzeti rokovalnik `GET /api/me/deletion-blockers`, D-76).
 
 ## Project Structure
 

@@ -19,6 +19,7 @@
         <java.version>21</java.version>
         <maven.compiler.release>21</maven.compiler.release>
         <spotless.version>3.11.0</spotless.version>
+        <google-auth.version>1.49.0</google-auth.version>
     </properties>
 
     <dependencies>
@@ -54,6 +55,13 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
+        </dependency>
+
+        <!-- 012 (D-73, D-74): OAuth 2.0 dostopni žeton storitvenega računa za brisanje identitete v Firebase (samo produkcija). -->
+        <dependency>
+            <groupId>com.google.auth</groupId>
+            <artifactId>google-auth-library-oauth2-http</artifactId>
+            <version>${google-auth.version}</version>
         </dependency>
 
         <dependency>

@@ -32,6 +32,7 @@ export function LoginPage() {
   }
 
   const sessionExpired = params.get('reason') === 'session-expired';
+  // Ogrodje 012: razlog `account-deleted` / `account-deleted-pending` – sporočilo pride z implementacijo.
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-4 py-8">
