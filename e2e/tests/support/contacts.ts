@@ -257,3 +257,20 @@ export function removeTagInDb(contactId: string, tag: string): void {
     `update contact set version = version + 1, updated_at = now() where id = ${literal(contactId)}::uuid`,
   );
 }
+
+/** Kontakt z dodatnimi atributi (ključ, vrednost) in značkami; vrne id (010). Brisanje gre prek API 004 (vnos sledi). */
+export function createContactWithAttributes(
+  groupId: string,
+  name: string,
+  attributes: [key: string, value: string][],
+  tags: string[] = [],
+): string {
+  const id = createContactWithTags(groupId, name, tags);
+  attributes.forEach(([key, value], position) => {
+    sql(
+      `insert into contact_attribute (contact_id, position, key, key_norm, value)
+       values (${literal(id)}::uuid, ${position}, ${literal(key)}, lower(${literal(key)}), ${literal(value)})`,
+    );
+  });
+  return id;
+}

@@ -9,6 +9,7 @@ import type {
   ContactInput,
   ContactPage,
   ContactSummary,
+  ExportRequest,
   SelectionCheckRequest,
   SelectionCheckResult,
 } from '../features/contacts/types';
@@ -133,6 +134,8 @@ export function mockContactsApi(
     bulkUpdate?: Handler<[BulkUpdateRequest, string]>;
     /** 009: `POST …/contacts/bulk-delete`; privzeto `{deleted: število identitet}`. */
     bulkDelete?: Handler<[BulkDeleteRequest, string]>;
+    /** 010: `POST …/contacts/export`; privzeto datoteka z `X-Export-Count` = število identitet in `X-Export-Skipped` 0. */
+    export?: (request: ExportRequest, group: string) => ExportOutcome | Promise<ExportOutcome>;
   } = {},
 ) {
   const requests: RecordedContactRequest[] = [];
@@ -252,6 +255,26 @@ export function mockContactsApi(
           : bulkDeleteReply(target.contactIds.length),
       );
     }),
+    http.post('/api/groups/:groupId/contacts/export', async ({ request, params }) => {
+      const { body } = await record(request);
+      const exported = body as ExportRequest;
+      const group = String(params.groupId);
+      const outcome = handlers.export
+        ? await handlers.export(exported, group)
+        : exportReply({ count: exported.contactIds.length });
+      if (typeof outcome === 'object' && 'file' in outcome) {
+        return new HttpResponse(new Blob(['xlsx'], { type: XLSX_TYPE }), {
+          status: 200,
+          headers: {
+            'Content-Type': XLSX_TYPE,
+            'Content-Disposition': 'attachment; filename="contacts.xlsx"',
+            'X-Export-Count': String(outcome.file.count),
+            'X-Export-Skipped': String(outcome.file.skipped),
+          },
+        });
+      }
+      return respond(outcome);
+    }),
     http.get('/api/groups/:groupId/tags', async ({ request, params }) => {
       await record(request);
       const url = new URL(request.url);
@@ -267,6 +290,12 @@ export function mockContactsApi(
     /** Zahtevki z dano metodo in potjo (brez poizvedbe). */
     of(method: string, path: string) {
       return requests.filter((r) => r.method === method && r.path === path);
+    },
+    /** Telesa zahtevkov `POST …/contacts/export` (010), po vrstnem redu. */
+    exportRequests(): ExportRequest[] {
+      return requests
+        .filter((r) => r.method === 'POST' && r.path.endsWith('/contacts/export'))
+        .map((r) => r.body as ExportRequest);
     },
     /** Telesa zahtevkov POST na dano pot (npr. `/api/groups/<id>/contacts/bulk-update`), po vrstnem redu. */
     recordedBodies(path: string): unknown[] {
@@ -448,4 +477,39 @@ export function archivedReply(): Reply {
 
 export function forbiddenReply(): Reply {
   return { status: 403, body: { code: 'FORBIDDEN' } };
+}
+
+// --- 010: izvoz v Excel --------------------------------------------------------------------------------------------
+
+const XLSX_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+/** Uspešen izvoz: datoteka `.xlsx` z glavama `X-Export-Count` in `X-Export-Skipped`. */
+export interface ExportFile {
+  file: { count: number; skipped: number };
+}
+
+export type ExportOutcome = Reply | ExportFile;
+
+export function exportReply({
+  count,
+  skipped = 0,
+}: {
+  count: number;
+  skipped?: number;
+}): ExportFile {
+  return { file: { count, skipped } };
+}
+
+/** Napaka izvoza (`400`, `404`, `409 EXPORT_EMPTY`, `5xx`) ali omrežna napaka. */
+export function exportError(status: number, body?: JsonBodyType): Reply {
+  return body === undefined ? { status } : { status, body };
+}
+
+export function exportEmptyReply(): Reply {
+  return { status: 409, body: { code: 'EXPORT_EMPTY' } };
+}
+
+/** `400 VALIDATION_FAILED` izvoza (npr. `contactIds` `TOO_MANY`, `TOO_MANY_COLUMNS`). */
+export function exportValidationReply(...errors: { field: string; code: string }[]): Reply {
+  return { status: 400, body: { code: 'VALIDATION_FAILED', errors } };
 }

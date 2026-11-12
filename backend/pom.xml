@@ -20,6 +20,7 @@
         <maven.compiler.release>21</maven.compiler.release>
         <spotless.version>3.11.0</spotless.version>
         <google-auth.version>1.49.0</google-auth.version>
+        <fastexcel.version>0.20.2</fastexcel.version>
     </properties>
 
     <dependencies>
@@ -64,6 +65,13 @@
             <version>${google-auth.version}</version>
         </dependency>
 
+        <!-- 010 (D-89): zapis datoteke .xlsx (izvoz izbranih kontaktov). -->
+        <dependency>
+            <groupId>org.dhatim</groupId>
+            <artifactId>fastexcel</artifactId>
+            <version>${fastexcel.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc-test</artifactId>
@@ -97,6 +105,13 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- 010 (D-89): testi preberejo izvoženo datoteko nazaj. -->
+        <dependency>
+            <groupId>org.dhatim</groupId>
+            <artifactId>fastexcel-reader</artifactId>
+            <version>${fastexcel.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

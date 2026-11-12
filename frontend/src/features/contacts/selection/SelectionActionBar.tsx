@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { focusRing, primaryButton, secondaryButton } from '../../../shared/ui/styles';
 import { useGroup } from '../../groups/groupContext';
 import { canEditContacts } from '../contactRouting';
+import { ExportButton } from '../export/ExportButton';
 import { useSelectionApi } from './api';
 import { BulkDeleteDialog } from './BulkDeleteDialog';
 import { BulkEditDialog } from './BulkEditDialog';
@@ -135,6 +136,7 @@ export function SelectionActionBar({
             </button>
           </>
         )}
+        <ExportButton />
         <button type="button" className={`ml-auto px-2 underline ${focusRing}`} onClick={onClear}>
           {t('contacts.selection.clear')}
         </button>

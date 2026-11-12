@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { ApiError } from '../../shared/api/client';
 import { errorAlert, primaryButton, secondaryButton } from '../../shared/ui/styles';
 import { useMyDataApi } from './api';
-import { downloadJson, localDateStamp } from './downloadJson';
+import { localDateStamp } from '../../shared/download';
+import { downloadJson } from './downloadJson';
 
 type ExportState = 'idle' | 'busy' | 'done' | 'failed';
 
