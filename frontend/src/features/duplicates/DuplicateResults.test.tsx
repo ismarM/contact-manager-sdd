@@ -242,7 +242,11 @@ describe('DuplicateResults', () => {
     });
 
     await waitFor(() => expect(new URLSearchParams(window.location.search).get('page')).toBe('2'));
-    expect(duplicatesApi.gets('').at(-1)?.search.toString()).toBe('category=email&page=1&size=25');
+    await waitFor(() =>
+      expect(duplicatesApi.gets('').at(-1)?.search.toString()).toBe(
+        'category=email&page=1&size=25',
+      ),
+    );
     expect(
       await within(await screen.findByRole('list', { name: 'Skupine dvojnikov' })).findAllByRole(
         'listitem',
