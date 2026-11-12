@@ -606,6 +606,95 @@
       "restoredInitial": "Skupina je povrnjena na začetno stanje."
     }
   },
+  "duplicates": {
+    "tab": "Dvojniki",
+    "heading": "Dvojniki",
+    "viewerNote": "Dvojnike lahko išče in združuje urednik ali višja vloga.",
+    "archivedNote": "Skupina je arhivirana – iskanje dvojnikov ni na voljo.",
+    "backToContacts": "Na kontakte skupine",
+    "category": "Kategorija",
+    "categories": {
+      "name": "Ime in priimek",
+      "email": "E-naslov",
+      "phone": "Telefon"
+    },
+    "search": "Poišči dvojnike",
+    "loading": "Nalagam…",
+    "resultsCount_one": "Skupin dvojnikov: {{count}}",
+    "resultsCount_two": "Skupin dvojnikov: {{count}}",
+    "resultsCount_few": "Skupin dvojnikov: {{count}}",
+    "resultsCount_other": "Skupin dvojnikov: {{count}}",
+    "groupsList": "Skupine dvojnikov",
+    "contactsList": "Kontakti v skupini",
+    "reason": {
+      "name": "Enako ime in priimek: {{value}}",
+      "email": "Enak e-naslov: {{value}}",
+      "phone": "Enak telefon: {{value}}"
+    },
+    "more_one": "Še {{count}} kontakt",
+    "more_two": "Še {{count}} kontakta",
+    "more_few": "Še {{count}} kontakti",
+    "more_other": "Še {{count}} kontaktov",
+    "compareAndMerge": "Primerjaj in združi",
+    "empty": "Ni dvojnikov po kategoriji {{category}}.",
+    "gone": "Te skupine dvojnikov ni več.",
+    "loadFailed": "Dvojnikov ni bilo mogoče naložiti. Poskusi znova.",
+    "retry": "Poskusi znova",
+    "pages": "Strani rezultatov",
+    "compare": {
+      "heading": "Primerjava dvojnikov",
+      "back": "Nazaj na rezultate",
+      "showing": "Prikazanih je prvih 10 od {{total}} kontaktov. Ostali ostanejo nespremenjeni in jih lahko združiš v naslednjem koraku.",
+      "kept": "Ostane",
+      "exclude": "Izloči iz združevanja",
+      "minTwo": "Združiti je treba vsaj 2 kontakta.",
+      "emptyValue": "(prazno)",
+      "identical_one": "Enaka polja ({{count}})",
+      "identical_two": "Enaka polja ({{count}})",
+      "identical_few": "Enaka polja ({{count}})",
+      "identical_other": "Enaka polja ({{count}})",
+      "preview": "Predogled združenega kontakta",
+      "fields": {
+        "firstName": "Ime",
+        "lastName": "Priimek",
+        "address": "Naslov",
+        "email": "E-naslov",
+        "phone": "Telefon"
+      },
+      "tags": "Značke",
+      "errors": {
+        "nameRequired": "Vsaj ime ali priimek mora biti izpolnjen.",
+        "tooManyTags": "Kontakt ima lahko največ 30 značk – odkljukaj vsaj {{count}}.",
+        "tooManyAttributes": "Kontakt ima lahko največ 50 dodatnih atributov – izberi »(prazno)« pri vsaj {{count}}."
+      },
+      "merge": "Združi kontakte",
+      "conflict": "Kontakti so se medtem spremenili. Primerjava je osvežena – preglej izbire in znova združi.",
+      "mergeFailed": "Kontaktov ni bilo mogoče združiti. Poskusi znova.",
+      "archived": "Skupina je arhivirana. Spreminjanje ni mogoče.",
+      "forbidden": "Za to dejanje nimaš več pravic.",
+      "offline": "Strežnik ni dosegljiv. Poskusi znova."
+    },
+    "dialog": {
+      "title_one": "Združim {{count}} kontakt?",
+      "title_two": "Združim {{count}} kontakta?",
+      "title_few": "Združim {{count}} kontakte?",
+      "title_other": "Združim {{count}} kontaktov?",
+      "body_one": "Nastal bo en kontakt ‹{{name}}›, ostal {{count}} bo izbrisan. Združevanje bo zabeleženo v revizijski sledi.",
+      "body_two": "Nastal bo en kontakt ‹{{name}}›, ostala {{count}} bosta izbrisana. Združevanje bo zabeleženo v revizijski sledi.",
+      "body_few": "Nastal bo en kontakt ‹{{name}}›, ostali {{count}} bodo izbrisani. Združevanje bo zabeleženo v revizijski sledi.",
+      "body_other": "Nastal bo en kontakt ‹{{name}}›, ostalih {{count}} bo izbrisanih. Združevanje bo zabeleženo v revizijski sledi.",
+      "confirm_one": "Združi {{count}} kontakt",
+      "confirm_two": "Združi {{count}} kontakta",
+      "confirm_few": "Združi {{count}} kontakte",
+      "confirm_other": "Združi {{count}} kontaktov",
+      "cancel": "Prekliči",
+      "merging": "Združujem…"
+    },
+    "toast": {
+      "merged": "Združenih kontaktov: {{count}}. Ostal je kontakt {{name}}.",
+      "openAudit": "Odpri revizijsko sled"
+    }
+  },
   "invitations": {
     "link": {
       "text": "Povabila",

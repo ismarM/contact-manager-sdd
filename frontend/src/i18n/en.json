@@ -606,6 +606,95 @@
       "restoredInitial": "The group was restored to the initial state."
     }
   },
+  "duplicates": {
+    "tab": "Duplicates",
+    "heading": "Duplicates",
+    "viewerNote": "Duplicates can be searched and merged by an editor or higher role.",
+    "archivedNote": "The group is archived – searching for duplicates is not available.",
+    "backToContacts": "Go to group contacts",
+    "category": "Category",
+    "categories": {
+      "name": "Name and surname",
+      "email": "Email",
+      "phone": "Phone"
+    },
+    "search": "Find duplicates",
+    "loading": "Loading…",
+    "resultsCount_one": "{{count}} group of duplicates",
+    "resultsCount_two": "{{count}} groups of duplicates",
+    "resultsCount_few": "{{count}} groups of duplicates",
+    "resultsCount_other": "{{count}} groups of duplicates",
+    "groupsList": "Duplicate groups",
+    "contactsList": "Contacts in the group",
+    "reason": {
+      "name": "Same name and surname: {{value}}",
+      "email": "Same email: {{value}}",
+      "phone": "Same phone: {{value}}"
+    },
+    "more_one": "{{count}} more contact",
+    "more_two": "{{count}} more contacts",
+    "more_few": "{{count}} more contacts",
+    "more_other": "{{count}} more contacts",
+    "compareAndMerge": "Compare and merge",
+    "empty": "No duplicates in category {{category}}.",
+    "gone": "This group of duplicates no longer exists.",
+    "loadFailed": "Duplicates could not be loaded. Try again.",
+    "retry": "Try again",
+    "pages": "Result pages",
+    "compare": {
+      "heading": "Compare duplicates",
+      "back": "Back to results",
+      "showing": "Showing the first 10 of {{total}} contacts. The others stay unchanged and you can merge them in the next step.",
+      "kept": "Kept",
+      "exclude": "Exclude from merge",
+      "minTwo": "At least 2 contacts are needed to merge.",
+      "emptyValue": "(empty)",
+      "identical_one": "Identical fields ({{count}})",
+      "identical_two": "Identical fields ({{count}})",
+      "identical_few": "Identical fields ({{count}})",
+      "identical_other": "Identical fields ({{count}})",
+      "preview": "Merged contact preview",
+      "fields": {
+        "firstName": "First name",
+        "lastName": "Last name",
+        "address": "Address",
+        "email": "Email",
+        "phone": "Phone"
+      },
+      "tags": "Tags",
+      "errors": {
+        "nameRequired": "At least a first or last name is required.",
+        "tooManyTags": "A contact can have at most 30 tags – uncheck at least {{count}}.",
+        "tooManyAttributes": "A contact can have at most 50 custom attributes – choose \"(empty)\" for at least {{count}}."
+      },
+      "merge": "Merge contacts",
+      "conflict": "The contacts changed in the meantime. The comparison has been refreshed – review your choices and merge again.",
+      "mergeFailed": "The contacts could not be merged. Try again.",
+      "archived": "The group is archived. Changes are not possible.",
+      "forbidden": "You no longer have permission for this action.",
+      "offline": "The server is unreachable. Try again."
+    },
+    "dialog": {
+      "title_one": "Merge {{count}} contact?",
+      "title_two": "Merge {{count}} contacts?",
+      "title_few": "Merge {{count}} contacts?",
+      "title_other": "Merge {{count}} contacts?",
+      "body_one": "One contact ‹{{name}}› will remain and the other {{count}} will be deleted. The merge will be recorded in the audit trail.",
+      "body_two": "One contact ‹{{name}}› will remain and the other {{count}} will be deleted. The merge will be recorded in the audit trail.",
+      "body_few": "One contact ‹{{name}}› will remain and the other {{count}} will be deleted. The merge will be recorded in the audit trail.",
+      "body_other": "One contact ‹{{name}}› will remain and the other {{count}} will be deleted. The merge will be recorded in the audit trail.",
+      "confirm_one": "Merge {{count}} contact",
+      "confirm_two": "Merge {{count}} contacts",
+      "confirm_few": "Merge {{count}} contacts",
+      "confirm_other": "Merge {{count}} contacts",
+      "cancel": "Cancel",
+      "merging": "Merging…"
+    },
+    "toast": {
+      "merged": "Merged contacts: {{count}}. Contact {{name}} was kept.",
+      "openAudit": "Open the audit trail"
+    }
+  },
   "invitations": {
     "link": {
       "text": "Invitations",

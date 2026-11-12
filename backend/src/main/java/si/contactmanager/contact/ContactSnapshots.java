@@ -309,4 +309,37 @@ public class ContactSnapshots {
                 rs.getTimestamp("updated_at").toInstant(),
                 rs.getObject("updated_by", Long.class));
     }
+
+    /**
+     * Zapis združenega ohranjenega kontakta (FR-011-15, research R-09): vrednosti polj, ključi razvrščanja,
+     * {@code version + 1} (tudi ob nespremenjenih vrednostih, O-3), izvajalec, {@code updated_at = now()}, brez oznake
+     * rollbacka; atributi in značke se zamenjajo. Vrstica je že zaklenjena; vedno s pogojem {@code group_id}.
+     */
+    public void replaceMerged(UUID groupId, long actor, UUID keeperId, ContactState after) {
+        int rows = jdbc.sql("UPDATE contact SET first_name = :first, last_name = :last, address = :address,"
+                        + " email = :email, phone = :phone, sort_last = :sortLast, sort_first = :sortFirst,"
+                        + " version = version + 1, updated_by = :actor, updated_at = now(), reverted_entry_id = NULL"
+                        + " WHERE group_id = :group AND id = :id")
+                .param("first", after.firstName())
+                .param("last", after.lastName())
+                .param("address", after.address())
+                .param("email", after.email())
+                .param("phone", after.phone())
+                .param("sortLast", sortKey(after.lastName()))
+                .param("sortFirst", sortKey(after.firstName()))
+                .param("actor", actor)
+                .param("group", groupId)
+                .param("id", keeperId)
+                .update();
+        if (rows != 1) {
+            throw new IllegalStateException("ohranjeni kontakt ni v skupini");
+        }
+        jdbc.sql("DELETE FROM contact_attribute WHERE contact_id = :id")
+                .param("id", keeperId)
+                .update();
+        jdbc.sql("DELETE FROM contact_tag WHERE contact_id = :id")
+                .param("id", keeperId)
+                .update();
+        insertChildren(List.of(new Target(keeperId, after, true)));
+    }
 }

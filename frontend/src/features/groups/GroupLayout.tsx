@@ -10,6 +10,8 @@ import { AuditEntryPage } from '../audit/AuditEntryPage';
 import { AuditPage } from '../audit/AuditPage';
 import { ContactsPage } from '../contacts/ContactsPage';
 import { SelectionProvider } from '../contacts/selection/SelectionProvider';
+import { ComparePage } from '../duplicates/ComparePage';
+import { DuplicatesPage } from '../duplicates/DuplicatesPage';
 import { useGroupsApi } from './api';
 import { ArchivedBanner } from './ArchivedBanner';
 import { GroupContext, type GroupContextValue } from './groupContext';
@@ -18,8 +20,11 @@ import { SettingsPage } from './SettingsPage';
 import type { GroupDetail } from './types';
 import { useDelayed } from './useDelayed';
 
-/** Razdelki skupine (plan.md 004, 005 – Pages and routes): *Kontakti* (privzeti, s podpotmi), *Revizijska sled* in *Nastavitve*. */
-const SECTIONS = ['contacts', 'audit', 'settings'] as const;
+/**
+ * Razdelki skupine (plan.md 004, 005, 011 – Pages and routes): *Kontakti* (privzeti, s podpotmi), *Dvojniki*
+ * (`duplicates`, `duplicates/compare`), *Revizijska sled* in *Nastavitve*.
+ */
+const SECTIONS = ['contacts', 'duplicates', 'audit', 'settings'] as const;
 
 /**
  * Okvir skupine `/groups/:groupId/*` (FR-002-07, -08): `/groups/:id` odpre prvi razdelek, neznan razdelek in skupina, za
@@ -43,18 +48,28 @@ export function GroupLayout() {
   // Podpoti kontaktov (`contacts/new`, `contacts/:id`, `contacts/:id/edit`) razreši ContactsPage.
   const first = section.split('/')[0] ?? '';
   const rest = section.split('/').slice(1);
-  if (
+  const unknown =
     first === 'audit'
       ? rest.length > 1 || rest[0] === ''
-      : section !== 'settings' && first !== 'contacts'
-  ) {
-    return <NotFoundPage />;
-  }
+      : first === 'duplicates'
+        ? section !== 'duplicates' && section !== 'duplicates/compare'
+        : section !== 'settings' && first !== 'contacts';
+  if (unknown) return <NotFoundPage />;
   return (
     <GroupScreen
       key={groupId}
       groupId={groupId}
-      screen={first === 'contacts' ? 'contacts' : first === 'audit' ? 'audit' : 'settings'}
+      screen={
+        first === 'contacts'
+          ? 'contacts'
+          : first === 'duplicates'
+            ? section === 'duplicates'
+              ? 'duplicates'
+              : 'compare'
+            : first === 'audit'
+              ? 'audit'
+              : 'settings'
+      }
       entryId={first === 'audit' ? rest[0] : undefined}
     />
   );
@@ -72,7 +87,7 @@ function GroupScreen({
   entryId,
 }: {
   groupId: string;
-  screen: 'contacts' | 'audit' | 'settings';
+  screen: 'contacts' | 'duplicates' | 'compare' | 'audit' | 'settings';
   entryId: string | undefined;
 }) {
   const { t } = useTranslation();
@@ -152,6 +167,10 @@ function GroupScreen({
         <ArchivedBanner />
         {screen === 'contacts' ? (
           <ContactsPage />
+        ) : screen === 'duplicates' ? (
+          <DuplicatesPage />
+        ) : screen === 'compare' ? (
+          <ComparePage />
         ) : screen === 'audit' ? (
           entryId === undefined ? (
             <AuditPage />
