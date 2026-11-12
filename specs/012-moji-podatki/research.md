@@ -9,8 +9,8 @@ Pretekle odločitve, na katere se plan opira: D-27 (2), D-55 (2), D-58 (7: »izb
 Admin SDK). ID žeton je samostojen in brez stanja: veljaven je do izteka (do 1 ura) tudi potem, ko je identiteta v Firebase že izbrisana. Zaledje ne more
 niti izbrisati identitete niti zanesljivo razveljaviti žetona brez nove zmožnosti. Zato R-01 … R-08 skupaj določajo, kako 012 to varno doda.
 
-Odprta odločitev, ki jo potrdita razvijalca pred implementacijo: **R-06 (knjižnica za brisanje identitete)**; zapisana je kot predlog v D-73.
-Ostale nejasnosti (`NEEDS CLARIFICATION`) ni.
+Odločitvi D-72 (nadgrobnik) in D-73 (knjižnica) sta potrjeni (D-74); po potrditvi je bil `accounts:delete` **preverjen proti Firebase emulatorju** (R-06) in je v specifikaciji dodano stanje `202` (CR-03, R-16).
+Odprtih odločitev in nejasnosti (`NEEDS CLARIFICATION`) ni.
 
 ---
 
@@ -19,8 +19,8 @@ Ostale nejasnosti (`NEEDS CLARIFICATION`) ni.
 - **Decision:** izbris računa poteka v dveh korakih **brez skupne transakcije**:
   1. **ena transakcija PostgreSQL** (R-04, R-05): preveri pogoje, izbriše podatke, izbriše uporabnika **in zapiše nadgrobnik** `deleted_identity` (R-02) – vse ali nič (FR-012-13);
   2. **po potrditvi** (commit) klic Firebase za izbris identitete (R-06); uspeh označi nadgrobnik (`provider_deleted_at`); neuspeh ga pusti odprtega, ponavlja ga opravilo (R-07).
-  Odgovor `204` se vrne po koraku 1 **ne glede na izid koraka 2**: od potrditve naprej račun v aplikaciji ne obstaja in žeton ne deluje (R-02, R-08); identiteta
-  pri ponudniku je zgolj še »osirotela« in se odstrani brez sodelovanja uporabnika.
+  Po koraku 1 sledi **takojšen poskus** koraka 2 (omejen na 5 s); izid določa odgovor (R-16, FR-012-17): `204`, če je identiteta izbrisana (ali je ni bilo več), sicer `202 Accepted`. V obeh primerih
+  od potrditve naprej račun v aplikaciji ne obstaja in žeton ne deluje (R-02, R-08); ob `202` je identiteta pri ponudniku zgolj še »osirotela« in se odstrani brez sodelovanja uporabnika.
 - **Rationale:** (a) če korak 2 odpove, je stanje varno in popravljivo (osirotela identiteta, ki je zaradi nadgrobnika neuporabna); (b) če bi bil Firebase prvi in bi
   nato odpovedala baza, bi uporabnik izgubil dostop, podatki pa bi ostali (nepopravljivo za uporabnika: ne more se več prijaviti, da bi poskusil znova);
   (c) pogoj `OWNS_ACTIVE_GROUPS` in zaklepi skupin so v bazi – brez njih Firebase sploh ne sme biti poklican; (d) spec (Predpostavke) to izrecno predvideva:
@@ -100,9 +100,21 @@ Ostale nejasnosti (`NEEDS CLARIFICATION`) ni.
 - **Alternatives:** *`com.google.firebase:firebase-admin`* (uradni, z ponavljanjem in obravnavo napak, `deleteUser`; velik, vleče grpc/guava; konfiguracija poverilnic v emulatorju manj očitna) – **sprejemljiva zamenjava, če razvijalca
   želita uradni SDK**; *lastna izvedba OAuth2 (JWT bearer) z `nimbus-jose-jwt`, ki je že v razredni poti* (brez nove knjižnice, a ročna varnostna koda in ni podpore za metapodatkovni strežnik GCE);
   *zahtevek brez poverilnic* (produkcija ga zavrne).
-- **Tveganje in preverjanje:** točno obliko emulatorjeve končne točke `accounts:delete` (`localId` + `Bearer owner`) potrdi **prva naloga implementacije** (`FirebaseIdentityProviderIT` v fazi Foundational, ki pred vsem
-  ostalim preveri tudi, da je po klicu ponoven vpis z isto Google identiteto nova identiteta z drugim UID). Če emulator oblike ne podpira, se klic zamenja z različico z ID žetonom uporabnika (`accounts:delete` z `idToken`);
-  plan se ne spremeni (vmesnik `IdentityProvider` skrije razliko).
+- **Preverjeno proti emulatorju (2026-11-12, firebase-tools 15.35, `auth` emulator, projekt `demo-contact-manager`):**
+
+  | Klic | Izid |
+  |---|---|
+  | `POST /identitytoolkit.googleapis.com/v1/projects/demo-contact-manager/accounts:delete`, `Authorization: Bearer owner`, `{"localId": "<uid>"}` | `200 {"kind":"identitytoolkit#DeleteAccountResponse"}` |
+  | isti klic znova (identitete ni več) | `400 USER_NOT_FOUND` → v kodi **uspeh** (idempotentnost) |
+  | `accounts:lookup` s starim ID žetonom po izbrisu | `400 USER_NOT_FOUND` |
+  | ponovna prijava z istim Google `sub` po izbrisu | **nov `localId`** (drug UID) – FR-012-14 |
+  | klic brez `Authorization` | `400 INSUFFICIENT_PERMISSION` (z `?key=`) / `403` (brez ključa); ni brisanja |
+  | `Authorization: Bearer nonsense` | `401 UNAUTHENTICATED` |
+  | `Bearer owner` za drug projekt (`/projects/other/…`) | `400 USER_NOT_FOUND` (emulator je v `singleProjectMode`) – **past:** napačen `projectId` bi v emulatorju izgledal kot uspeh; `FirebaseIdentityProviderIT` zato brisanje preveri tudi z `accounts:lookup`, produkcijska konfiguracija pa `firebase.project-id` obvezno nastavi (že zahteva `SecurityConfig`) |
+
+  Ugotovitve pogojujejo izvedbo: poziv je **izključno z OAuth 2.0 dostopom (v emulatorju `Bearer owner`)**, nikoli z uporabnikovim ID žetonom kot nadomestilom za administrativno pooblastilo; `google-auth-library-oauth2-http`
+  poverilnice pridobi iz `GOOGLE_APPLICATION_CREDENTIALS` (ali metapodatkovnega strežnika); skrivnosti niso v kodi ali Gitu (gitleaks v pre-commit, poverilnice samo okoljska spremenljivka / mount).
+  Če bi `FirebaseIdentityProviderIT` v katerem koli trenutku pokazal, da REST klic ni zanesljiv, je dovoljena zamenjava z `firebase-admin` za vmesnikom `IdentityProvider` (D-74).
   Produkcijskega žetona testi ne preverijo (brez pravih zunanjih storitev); ročno preverjanje je v quickstart.md.
 
 ## R-07 Ponavljanje, zrušitve in idempotentnost
@@ -111,7 +123,8 @@ Ostale nejasnosti (`NEEDS CLARIFICATION`) ni.
   `SELECT … FROM deleted_identity WHERE provider_deleted_at IS NULL AND next_attempt_at <= now() ORDER BY next_attempt_at LIMIT 20 FOR UPDATE SKIP LOCKED` → `IdentityProvider.delete` → uspeh: `provider_deleted_at = now()`;
   neuspeh: `attempts + 1`, `next_attempt_at = now() + min(30 s · 2^attempts, 1 h)`, `last_error` (kratka koda, brez uporabnikovih podatkov). Isto opravilo izbriše nadgrobnike s `provider_deleted_at < now() - 2 h` (R-02).
   Pot izbrisa po potrditvi **takoj poskusi enkrat** (hitra pot, tipično uspe v ~100 ms), nato prepusti nadaljevanje opravilu. `SKIP LOCKED` omogoča več primerkov zaledja brez podvajanja. Brez omejitve števila poskusov:
-  ob `attempts ≥ 10` dnevnik `WARN` na vsak poskus (opazljivost; brez UID-a v sporočilu).
+  ob `attempts ≥ 10` dnevnik `WARN` na vsak poskus (opazljivost; brez UID-a v sporočilu). **Stanje je v celoti v bazi** (`deleted_identity`), ne v pomnilniku: po ponovnem zagonu opravilo najde odprte vrstice (prvi zagon takoj,
+  ne šele po 30 s) in zastarele zaprte vrstice, zato ponavljanje in čiščenje preživita zagon (R-16).
 - **Obnašanje ob zrušitvi:**
 
   | Trenutek zrušitve | Stanje po zrušitvi | Izid |
@@ -120,7 +133,8 @@ Ostale nejasnosti (`NEEDS CLARIFICATION`) ni.
   | po potrditvi, pred klicem Firebase | podatki izbrisani, nadgrobnik odprt | opravilo ob zagonu nadaljuje |
   | med klicem Firebase (izid neznan) | nadgrobnik odprt | ponovni klic: uspeh ali `USER_NOT_FOUND` = uspeh |
   | po uspehu Firebase, pred posodobitvijo nadgrobnika | nadgrobnik odprt | ponovni klic: `USER_NOT_FOUND` = uspeh |
-  | dolg izpad Firebase | podatki izbrisani, žeton 401, nova registracija blokirana (R-03), identiteta osirotela | ponavljanje z odmikom do uspeha; `WARN` |
+  | dolg izpad Firebase | podatki izbrisani, žeton 401, nova registracija blokirana (R-03), identiteta osirotela; odgovor je bil `202` | ponavljanje z odmikom do uspeha; `WARN` |
+  | zrušitev ali ponovni zagon med ponavljanjem ali po uspehu pred čiščenjem | stanje v bazi | novo opravilo prvič teče takoj in dokonča ponovitev oziroma čiščenje (R-16) |
 
 - **Rationale:** vsako vmesno stanje je trajno zapisano in vsak korak je idempotenten, zato ni stanja, ki bi zahtevalo ročni poseg razen dolgotrajne napake poverilnic (`401/403`), ki jo operater vidi v dnevniku.
 - **Alternatives:** *zunanja čakalna vrsta (Redis/RabbitMQ)* (nova infrastruktura); *izvajanje klica znotraj transakcije baze* (zadrži zaklepe skupin med zunanjim klicem; vsaka počasnost Firebase bi blokirala sočasne operacije).
@@ -168,9 +182,9 @@ Ostale nejasnosti (`NEEDS CLARIFICATION`) ni.
 
 ## R-11 Pogodba `POST /api/me/deletion`
 
-- **Decision:** `POST /api/me/deletion`, telo `{"email": "<lastni e-naslov>"}`; `204` brez telesa. Vrstni red: **401** (neprijavljen, žeton izbrisanega, uporabnik v bazi ne obstaja – drugi zahtevek ob dvojnem kliku) →
+- **Decision:** `POST /api/me/deletion`, telo `{"email": "<lastni e-naslov>"}`; uspeh `204` (lokalni račun in identiteta izbrisana) ali `202 {"code":"IDENTITY_DELETION_PENDING"}` (R-16). Vrstni red: **401** (neprijavljen, žeton izbrisanega, uporabnik v bazi ne obstaja – drugi zahtevek ob dvojnem kliku) →
   **400 VALIDATION_FAILED** (`email`: `REQUIRED`, `MISMATCH`; primerjava po obrezu in brez velikosti črk; neznano polje `UNKNOWN_FIELD`; neveljaven JSON `body: MALFORMED`, kot 007) →
-  **409 OWNS_ACTIVE_GROUPS** (pod zaklepi, R-04) → 204. E-naslov se primerja z vrednostjo iz baze pod zaklepi (ne iz žetona).
+  **409 OWNS_ACTIVE_GROUPS** (pod zaklepi, R-04) → 204 ali 202. E-naslov se primerja z vrednostjo iz baze pod zaklepi (ne iz žetona).
   Poti `/api/users/{id}/export`, `/api/users/{id}`, `/api/me/{id}/export`, `DELETE /api/me` → `404`/`405` (operacije ni, FR-012-16); testirano.
 - **Rationale:** POST z `…/deletion` namesto `DELETE /api/me` z telesom: telo pri DELETE posredniki (nginx, CDN) lahko odstranijo, potrditev e-naslova pa je del zahtevka (FR-012-07). Izbris računa ne beleži v revizijsko sled (§2.7).
 - **Alternatives:** *`DELETE /api/me` z glavo ali telesom* (krhko), *dva koraka z enkratno kodo* (neutemeljena zapletenost, spec zahteva vpis e-naslova).
@@ -181,17 +195,22 @@ Ostale nejasnosti (`NEEDS CLARIFICATION`) ni.
   `DeleteAccountDialog` po vzoru `DeleteGroupDialog` (design.md 8.11: fokus na *Prekliči*, Esc, vrnitev fokusa, vpis e-naslova, primerjava po obrezu brez velikosti črk; napaka ob polju; zahtevek se ne pošlje ob neujemanju).
   Podatki: `useMyDataApi` (`export`, `blockers`, `deleteAccount`) prek `authFetch`. Stanja: izvoz – *Prenesi* (zasedeno med klicem, `aria-busy`), napaka `alert` + *Poskusi znova* (FR-012-04, design.md 8.13), uspeh `status`;
   blokade – nalaganje, napaka z *Poskusi znova*, seznam povezav (`/groups/:id`) z navodilom ali gumb. 409 `OWNS_ACTIVE_GROUPS` zapre dialog, osveži seznam iz telesa in prikaže navodilo;
-  400 `MISMATCH` (zaledje) → napaka ob polju; omrežna napaka → `alert` v dialogu, dialog ostane odprt, nič se ni zgodilo; `204` → `AuthProvider.accountDeleted()` (nova funkcija: izbriše lokalno sejo,
-  `gateway.signOut()`, `exitTo = /login?reason=account-deleted`) → `LoginPage` prikaže `status` »Tvoj račun je izbrisan.« (nov `reason` poleg `session-expired`, FR-012-14).
+  400 `MISMATCH` (zaledje) → napaka ob polju; omrežna napaka → `alert` v dialogu, dialog ostane odprt, nič se ni zgodilo; `204`/`202` → `AuthProvider.accountDeleted(pending)` (nova funkcija: izbriše lokalno sejo,
+  `gateway.signOut()`, `exitTo = /login?reason=account-deleted` ob `204` oziroma `…=account-deleted-pending` ob `202`) → `LoginPage` prikaže `status` »Tvoj račun je izbrisan.« oziroma ob `202` razširjeno besedilo, da brisanje povezave z Google računom še poteka in ponovna registracija z istim Google računom nekaj časa morda ne bo mogoča (novi `reason`-a poleg `session-expired`, FR-012-14, FR-012-17).
   Dostopnost: razdelka sta `region` z naslovom ravni 2; gumb ≥ 44 px (48 px na groben kazalec); dialog ujame fokus; besedila sl/en (`account.data.*`, `account.delete.*`, `login.accountDeleted`); barve samo žetoni (`dangerButton`).
 - **Rationale:** celotna 012 se omeji na dve novi komponenti, en nov razdelek v `AuthProvider` in en nov `reason`; obstoječi testi 001 ostanejo nespremenjeni.
 
 ## R-13 Testna strategija (podrobnosti za faze Testi in Pregled testov)
 
 - **Izpad Firebase med brisanjem:** `FirebaseEmulatorContainer` ustavimo z `docker pause` (Testcontainers `getDockerClient().pauseContainerCmd`) za čas klica: klic se izteče (5 s), nadgrobnik ostane odprt,
-  odgovor je `204`, žeton `401`, `PUT /api/me` istega UID `401`; `unpause` + `job.runOnce()` → `provider_deleted_at` nastavljen, identiteta v emulatorju ne obstaja. Brez ponaredka: pravi emulator, pravi izpad.
+  odgovor je `202`, žeton `401`, `PUT /api/me` istega UID `401`; `unpause` + `job.runOnce()` → `provider_deleted_at` nastavljen, identiteta v emulatorju ne obstaja. Brez ponaredka: pravi emulator, pravi izpad.
 - **Ponovitev nedokončanega brisanja:** (1) ponoven `runOnce()` po uspehu je nični (idempotentno); (2) ročno vstavljen nadgrobnik z identiteto, ki je v emulatorju že ni → uspeh (`USER_NOT_FOUND`); (3) `runOnce()` v ločenem
   kontekstu aplikacije nad isto bazo (simulira ponovni zagon) dokonča vrstico prejšnjega.
+- **202/204:** `AccountDeletionIT` pokrije `204` (emulator dosegljiv, identiteta izbrisana), `202 {"code":"IDENTITY_DELETION_PENDING"}` (emulator `docker pause`, odgovor do ~7 s po potrditvi baze) in da v obeh stanjih
+  ni nobenih lokalnih podatkov; `IdentityDeletionIT` pokrije odmik, `USER_NOT_FOUND` = uspeh, `401/403` poverilnic (neuspeh z `last_error`), čiščenje po 2 urah in da se nadgrobnik pred tem ne izbriše.
+- **Ponovni zagon aplikacije:** `IdentityDeletionRestartIT` zažene **drugi, neodvisen kontekst aplikacije** nad isto bazo in istim emulatorjem po zaustavitvi prvega: (1) odprt nadgrobnik (izbris
+  med `pause`) se po zagonu novega konteksta dokonča brez novega zahtevka; (2) nadgrobnik z `provider_deleted_at` starejšim od 2 uri in drug mlajši od 2 ur: po zagonu je prvi odstranjen, drugi ostane; (3) po zagonu sledi
+  nov izbris z drugim uporabnikom (opravilo ne ovira novih izbrisov). Čas se simulira z vnosom vrstic z zgodovinskim `provider_deleted_at` (opravilo uporablja `now()` baze), brez spanja in brez ponaredka ure.
 - **Opravilo v testih:** `identity-deletion.scheduler-enabled=false` v osnovnem razredu testov (`ApiTest`), da opravilo ne tekmuje s testom; testi kličejo `runOnce()` neposredno (deterministično).
 - **Sočasnost:** `AccountDeletionConcurrencyIT`: 100 ponovitev izbrisa vs prenos lastništva na istega uporabnika (SC-006) – po vsaki ponovitvi invariante (`nearhivirana skupina brez OWNER` ne obstaja,
   ni delno izbrisanega stanja: `app_user` izbrisan ⇔ nadgrobnik obstaja ⇔ vsa članstva izbrisana); `AccountDeletionLockingIT`: deterministična varianta z zadržanim zaklepom vrstice skupine (kot `MemberLockingIT`)
@@ -210,8 +229,9 @@ Ostale nejasnosti (`NEEDS CLARIFICATION`) ni.
   (množične operacije nad obstoječimi tabelami), na `origin` vejo 009 ne obstaja, zato V9 ni zagotovo prost – preverjanje je obvezno **dvakrat**: ob začetku implementacije in tik pred PR
   (`git fetch && ls backend/src/main/resources/db/migration`). Če je medtem na `main` prišel `V9__*` ali višja, se naša preimenuje v naslednjo prosto številko (testi se sklicujejo na ime datoteke samo v komentarjih; brez
   trde številke). Podvojena različica Flyway ne preživi neopaženo: zaledje se ne zažene, `HealthAndMigrationIT` in vsi integracijski testi padejo – nikoli tiha poškodba. Vrstni red združitve odloči, kdo preštevilči.
-- **`DECISIONS.md`:** D-72 in D-73 sta naslednji prosti številki; Patrikov plan 009 lahko vzame iste. Vnosa sta na koncu datoteke (isti prostor kot Patrikova) → konflikt ob združevanju je vsebinsko trivialen
-  (obe vrstici obstaneta, številki se preštevilčita; sklici v `specs/012-*` se posodobijo s `grep D-72`). Vnosa sta namenoma samo **dva**, da je preštevilčenje majhno.
+- **`DECISIONS.md`:** D-72 … D-74 so naslednje proste številke; Patrikov plan 009 lahko vzame iste. Vnosi so na koncu datoteke (isti prostor kot Patrikovi) → konflikt ob združevanju je vsebinsko trivialen
+  (vse vrstice obstanejo, številke se preštevilčijo; sklici v `specs/012-*` se posodobijo z `grep -rn "D-7[234]" specs/012-moji-podatki`). Vnosov je namenoma malo (trije), da je preštevilčenje majhno.
+  Isto za številko `CR-03` (CR je skupna številka projekta): pred PR preveri `grep -rhno "CR-[0-9][0-9]" specs/*/spec.md | sort -u`.
 - **Skupne datoteke:** sprememba ostane omejena na (a) `SecurityConfig` (ovitje dekoderja, 3 vrstice), (b) `AccountPage.tsx` (dva uvoza in dve komponenti), (c) `AuthProvider`/`authContext` (`accountDeleted`),
   (d) `LoginPage` (nov `reason`), (e) `i18n/sl.json` in `en.json` (novi ključi pod `account.data`, `account.delete`, `login.accountDeleted` – ločen blok, na koncu razdelka `account`), (f) `ApiTest` (ena lastnost), (g) `ApiExceptionHandler` (1 metoda).
   009 (množično urejanje kontaktov, iskalnik) teh datotek običajno ne dotakne, razen i18n (različni ključi). Datoteke `feature-map.md`, workflow, konstitucija se **ne** spreminjajo (`OWNS_ACTIVE_GROUPS` je že v §2.10).
@@ -222,3 +242,25 @@ Ostale nejasnosti (`NEEDS CLARIFICATION`) ni.
 Konstitucija VI zahteva izvoz in izbris, da je izbrisan uporabnik povsod prikazan kot »izbrisan uporabnik« in da se ne hranijo nepotrebni osebni podatki. Plan to izpolni z izjemo, ki jo
 zapisuje D-72: **Firebase UID izbrisanega uporabnika ostane v `deleted_identity`** (a) do uspešnega brisanja pri ponudniku in (b) še 2 uri po njem. Ni ime ali e-naslov, služi pa varnosti (razveljavitev žetona) –
 brez nje FR-012-15 ni izpolnljiv. Razvijalca potrdita to odstopanje s potrditvijo D-72.
+
+## R-16 Dve uspešni stanji: `204` in `202 Accepted` (CR-03, FR-012-17, FR-012-18)
+
+- **Decision:** po potrditvi transakcije baze `AccountDeletionService` takoj kliče `IdentityProvider.delete` (skupni časovni okvir 5 s; povezava 2 s). Izid → odgovor:
+
+  | Izid klica | Nadgrobnik | Odgovor | Vmesnik |
+  |---|---|---|---|
+  | `200` ali `400 USER_NOT_FOUND` | `provider_deleted_at = now()` | **`204`** | `/login?reason=account-deleted` → »Tvoj račun je izbrisan.« |
+  | časovna omejitev, omrežna napaka, `5xx`, `429` | ostane odprt (`attempts`, `next_attempt_at`, `last_error`) | **`202 {"code":"IDENTITY_DELETION_PENDING"}`** | `/login?reason=account-deleted-pending` → »Tvoj račun je izbrisan. Brisanje povezave z Google računom še poteka …« |
+  | `401`/`403` (napačne poverilnice) | ostane odprt, `last_error = HTTP_401/403`, `ERROR` dnevnik | **`202`** (račun je lokalno izbrisan; popravek poverilnic je naloga operaterja) | kot zgoraj |
+
+- **Pomen za uporabnika:** `204` pomeni, da je »vse izbrisano«, `202` pa »tvoji podatki so izbrisani, a povezava z Google računom še ni odstranjena«. V stanju `202` je ponovna prijava z istim Google računom odvisna od
+  uspeha brisanja: dokler identiteta v Firebase obstaja, je njen UID v nadgrobniku in zaledje zavrne vsak njen žeton (`401`, vmesnik pokaže obstoječe sporočilo o neuspeli prijavi, FR-001-04); šele po uspešnem
+  brisanju (tipično v nekaj sekundah ali minutah; pri dolgem izpadu pozneje) prijava ustvari nov račun. Sporočilo na strani za prijavo to izrecno pove (spec FR-012-17).
+  Zaledje ne razlikuje vzroka 401 pri prijavi (ne razkriva, ali je UID v nadgrobniku).
+- **Čiščenje (FR-012-18):** `IdentityDeletionJob` izbriše `deleted_identity` vrstice z `provider_deleted_at < now() - :retention`, `retention = 2 h` (`identity-deletion.tombstone-retention`; ob zagonu se zavrne vrednost
+  manj kot 70 min = veljavnost ID žetona 1 h + 60 s zamika + rezerva). Čiščenje teče v istem opravilu kot ponavljanje, prvič ob zagonu aplikacije, nato vsakih 30 s; nobeno stanje ni v pomnilniku, zato
+  preživi zrušitev in ponovni zagon. Nadgrobnik z odprtim brisanjem se ne izbriše nikoli (`provider_deleted_at IS NULL`).
+- **Rationale:** uporabnik mora vedeti, kdaj ponovna registracija še ne bo delovala (sicer bi ob uspešnem izbrisu in takojšnji prijavi videl nerazumljivo napako); API pa ne sme trditi »vse izbrisano«, če ni (GDPR
+  izjava). `202` namesto `5xx` je pravilen, ker se lokalni izbris ni vrnil nazaj in ponovitev zahtevka ni smiselna (uporabnika ni več; drugi zahtevek bi dobil 401).
+- **Alternatives:** *vedno `204`* (prvotni predlog, zavrnjeno: ne pove, da identiteta še obstaja); *`500` ob napaki Firebase* (zavajajoče – podatki so izbrisani, ponovitev ni mogoča); *čakanje v zahtevku do uspeha Firebase*
+  (blokira odjemalca in zadrži povezavo ob dolgem izpadu).

@@ -56,7 +56,9 @@ CREATE INDEX group_member_updated_by ON group_member (updated_by);
 |---|---|---|
 | odprt | `provider_deleted_at IS NULL` | ID žetoni UID-a: 401; nova registracija: zavrnjena (sprožilec); opravilo ponavlja brisanje pri ponudniku |
 | zaprt | `provider_deleted_at` nastavljen | ID žetoni UID-a: 401 do izbrisa vrstice (žeton lahko velja še do 1 ure) |
-| izbrisan | `provider_deleted_at < now() - 2 h` | opravilo izbriše vrstico; do takrat so vsi žetoni potekli |
+| izbrisan | `provider_deleted_at < now() - 2 h` (`identity-deletion.tombstone-retention`, najmanj 70 min) | opravilo izbriše vrstico (tudi po ponovnem zagonu; prvi zagon takoj); do takrat so vsi žetoni potekli. Odprta vrstica (`provider_deleted_at IS NULL`) se ne izbriše nikoli |
+
+Stanje **odprt** ustreza odgovoru `202`, stanje **zaprt** ob potrditvi pa `204` (R-16, FR-012-17); vrstica je v obeh stanjih že zapisana, preden odjemalec dobi odgovor.
 
 ## Obstoječe tabele: vpliv izbrisa računa (brez sprememb sheme)
 

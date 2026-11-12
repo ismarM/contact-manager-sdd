@@ -42,15 +42,17 @@ SELECT firebase_uid, provider_deleted_at, attempts, last_error FROM deleted_iden
 | 8 | Pravilen e-naslov (tudi z drugačnimi velikimi črkami) | odjava, stran za prijavo: »Tvoj račun je izbrisan.« | FR-012-14 |
 | 9 | Pia je bila lastnica arhivirane skupine B z dvema članoma in edina članica arhivirane C; drug član odpre B in revizijsko sled | B: »izbrisan uporabnik« kot lastnik, trajno arhivirana, člani nespremenjeni; C ne obstaja; sled kaže »izbrisan uporabnik« | FR-012-09, -12 |
 | 10 | Admin je poslal povabilo X pred izbrisom; X odpre povabila | povabilo veljavno, pošiljatelj »izbrisan uporabnik« | FR-012-11 |
-| 11 | Dva zavihka: potrdi izbris v obeh | en uspe, drugi 401 → prijava | FR-012-15 |
+| 11 | Dva zavihka: potrdi izbris v obeh | en uspe (204 ali 202), drugi 401 → prijava | FR-012-15 |
 | 12 | Druga naprava (drug brskalnik) z isto sejo po izbrisu | prvi zahtevek 401 → prijava | FR-012-15 |
 | 13 | Ponovna prijava z istim Google računom | nov prazen račun brez skupin in povabil | FR-012-14 |
-| 14 | Izpad Firebase: `docker compose pause auth`, izbris računa, `unpause auth`, počakaj ≤ 1 min | izbris uspe (204); `deleted_identity.provider_deleted_at` se nastavi po `unpause`; do takrat prijava istega UID: 401 | R-01, R-07 |
-| 15 | Tipkovnica, bralnik zaslona (design.md §10), 320 px | dialog ujame fokus, Esc zapre; brez vodoravnega drsenja | design.md §10 |
+| 14 | Izpad Firebase: `docker compose pause auth`, izbris računa (traja do ~7 s), `unpause auth`, počakaj ≤ 1 min | API vrne **202**, vmesnik odjavi in na prijavi pove, da brisanje povezave z Google računom še poteka; po `unpause` se `deleted_identity.provider_deleted_at` nastavi; do takrat prijava istega Google računa: neuspešna (401); potem: nov prazen račun | FR-012-17, -18 |
+| 15 | Ponovni zagon med čakanjem: ponovi 14, vendar pred `unpause` naredi `docker compose restart backend` | po zagonu in `unpause` brisanje dokončano brez novega zahtevka | FR-012-18, SC-008 |
+| 16 | Čiščenje: `UPDATE deleted_identity SET provider_deleted_at = now() - interval '3 hours'`, počakaj ≤ 30 s (ali `restart backend`) | vrstica odstranjena; vrstica z `provider_deleted_at` 1 h ostane | FR-012-18, SC-009 |
+| 17 | Tipkovnica, bralnik zaslona (design.md §10), 320 px | dialog ujame fokus, Esc zapre; brez vodoravnega drsenja | design.md §10 |
 
 ## Produkcija (ročno, ni del testov – R-06)
 
-Zaledje v produkciji za brisanje identitete potrebuje poverilnice storitvenega računa (vloga *Firebase Authentication Admin*) prek `GOOGLE_APPLICATION_CREDENTIALS`; poverilnice niso v Gitu
+Zaledje v produkciji za brisanje identitete potrebuje poverilnice storitvenega računa (vloga *Firebase Authentication Admin*) prek `GOOGLE_APPLICATION_CREDENTIALS` (OAuth 2.0 dostop; nikoli ID žeton uporabnika); poverilnice niso v Gitu
 (konstitucija VI). Preverjanje: z izbrisom testnega računa mora `deleted_identity.provider_deleted_at` dobiti vrednost, `last_error` mora biti `NULL`; vrednost `HTTP_401`/`HTTP_403` pomeni napačne poverilnice.
 
 Endpointi: [contracts/openapi.yaml](contracts/openapi.yaml) · podatki: [data-model.md](data-model.md) · odločitve: [research.md](research.md).

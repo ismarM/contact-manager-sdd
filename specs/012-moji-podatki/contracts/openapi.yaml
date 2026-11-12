@@ -74,11 +74,13 @@ paths:
   /api/me/deletion:
     post:
       operationId: deleteMyAccount
-      summary: Izbris računa (FR-012-05 … FR-012-15)
+      summary: Izbris računa (FR-012-05 … FR-012-15, FR-012-17, FR-012-18)
       description: >
         Potrditev z vpisom lastnega e-naslova (po obrezu, brez velikosti črk; primerja se z e-naslovom v bazi). Ena transakcija: zaklep vseh skupin uporabnika po naraščajočem `id`, preverjanje pod zaklepom,
-        izbris podatkov in uporabnika, zapis nadgrobnika; po potrditvi klic Firebase (neuspeh se ponavlja v ozadju – odgovor je vseeno 204, ker je račun v aplikaciji že izbrisan in žeton neuporaben).
-        Drugi sočasni zahtevek istega uporabnika dobi 401.
+        izbris podatkov in uporabnika, zapis nadgrobnika; po potrditvi (commit) takojšen klic Firebase `accounts:delete` (OAuth 2.0 dostop storitvenega računa; nikoli ID žeton uporabnika).
+        **Dve uspešni stanji (FR-012-17):** `204` – lokalni račun IN identiteta pri Firebase sta izbrisana (tudi če je identiteta že izbrisana); `202` – lokalni račun je izbrisan, brisanje identitete pa
+        čaka (Firebase nedosegljiv ali začasna napaka) in se ponavlja v ozadju, dokler ne uspe. V obeh stanjih so lokalni podatki izbrisani in žeton neuporaben (401); v stanju 202 se uporabnik z istim
+        Google računom morda še ne more znova registrirati (prijava = 401), dokler brisanje pri Firebase ne uspe. Drugi sočasni zahtevek istega uporabnika dobi 401.
       requestBody:
         required: true
         content:
@@ -86,7 +88,15 @@ paths:
             schema: { $ref: "#/components/schemas/DeleteAccount" }
       responses:
         "204":
-          description: Račun je izbrisan (podatki aplikacije v celoti; identiteta pri ponudniku takoj ali po ponovnih poskusih). Odjemalec uporabnika odjavi.
+          description: Lokalni račun in identiteta pri Firebase sta izbrisana. Odjemalec uporabnika odjavi in prikaže »Tvoj račun je izbrisan.«.
+        "202":
+          description: >
+            Lokalni račun je izbrisan in ostane izbrisan; brisanje identitete pri Firebase čaka na ponavljanje (nedosegljiv ali začasna napaka). Odjemalec uporabnika odjavi in prikaže, da je račun izbrisan,
+            brisanje povezave z Google računom pa še poteka, zato ponovna registracija z istim Google računom nekaj časa morda ne bo mogoča.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/IdentityDeletionPending" }
+              example: { code: IDENTITY_DELETION_PENDING }
         "400": { $ref: "#/components/responses/ValidationFailed" }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "409":
@@ -145,6 +155,11 @@ components:
       required: [groups]
       properties:
         groups: { type: array, items: { $ref: "#/components/schemas/BlockingGroup" } }
+    IdentityDeletionPending:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, const: IDENTITY_DELETION_PENDING }
     OwnsActiveGroups:
       type: object
       required: [code, groups]

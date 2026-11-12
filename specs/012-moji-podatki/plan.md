@@ -11,16 +11,17 @@ Zaledje dobi tri endpointe, vezane na prijavljenega uporabnika (brez identifikat
 presodi na ponovno prebranem stanju (`409 OWNS_ACTIVE_GROUPS`, izbris arhiviranih skupin, v katerih je edini član), izbriše `app_user` (obstoječe `ON DELETE` kaskade iz V3–V7 že izvedejo izbris članstev in prejetih povabil
 ter »izbrisan uporabnik« v sledi, povabilih in zadnjih izvajalcih) in zapiše **nadgrobnik** `deleted_identity` z Firebase UID (R-02, R-05). Šele po potrditvi sledi klic Firebase `accounts:delete` (R-06);
 neuspeh ostane trajno zapisan in ga ponavlja opravilo `IdentityDeletionJob` (R-07), zato zrušitev ali izpad Firebase ne pusti nobenega stanja, ki bi ga bilo treba popravljati ročno.
+**Odgovor ima dve uspešni stanji (CR-03, R-16):** `204` = lokalni račun in identiteta pri Firebase izbrisana; `202 Accepted` (`IDENTITY_DELETION_PENDING`) = lokalni izbris zaključen, brisanje identitete čaka na ponavljanje; vmesnik v obeh primerih odjavi uporabnika, ob `202` pa na strani za prijavo pove, da se z istim Google računom nekaj časa morda ni mogoče znova registrirati. Nadgrobnik se po uspehu in 2 urah izbriše (R-16), ponavljanje in čiščenje preživita ponovni zagon.
 Ker ID žetona ni mogoče razveljaviti, dekoder žetonov zavrne UID iz nadgrobnika (401 na vseh napravah, FR-012-15; R-08), odloženi sprožilec na `app_user` pa prepreči, da bi sočasna prijava račun znova ustvarila (R-03).
 Migracija `V9__moji_podatki.sql` doda nadgrobnik, sprožilec in štiri indekse za `ON DELETE SET NULL` (ne spreminja obstoječih tabel). Vmesnik dobi razdelka *Moji podatki* in *Izbris računa* v `AccountPage`, dialog z vpisom
-e-naslova in stran za prijavo s potrdilom o izbrisu. Odločitve: [research.md](research.md) (D-72; knjižnica za Firebase v D-73 čaka potrditev razvijalcev).
+e-naslova in stran za prijavo s potrdilom o izbrisu. Odločitve: [research.md](research.md) (D-72, D-73, D-74 – potrjene).
 
 ## Technical Context
 
 **Language/Version**: Java 21 · Spring Boot 4.1.2 · TypeScript 6.0 (strict) · React 19.3 · Node.js ≥ 22.22
 
 **Primary Dependencies**: obstoječe (zaledje: Web MVC, Security, JDBC `JdbcClient`, Flyway, `java.net.http`; vmesnik: `react-router`, `radix-ui` Dialog, `sonner`, `@tabler/icons-react`, `react-i18next`, `firebase`).
-**Ena nova knjižnica (predlog D-73, čaka potrditev):** `com.google.auth:google-auth-library-oauth2-http` samo za OAuth2 žeton storitvenega računa v produkciji (R-06); emulator in testi je ne potrebujejo.
+**Ena nova knjižnica (D-73, potrjena z D-74):** `com.google.auth:google-auth-library-oauth2-http` samo za OAuth2 žeton storitvenega računa v produkciji (R-06); emulator in testi je ne potrebujejo.
 
 **Storage**: PostgreSQL 18; migracija `V9__moji_podatki.sql` (1 tabela, 1 sprožilec, 4 indeksi; [data-model.md](data-model.md))
 
@@ -42,15 +43,14 @@ brez AI dnevnikov, skrivnosti (poverilnice storitvenega računa) izven Gita
 | Principle (constitution) | How this plan complies |
 |---|---|
 | I. Specification is the contract | Pokriti vsi FR-012-01 … FR-012-16 (tabela pokritosti spodaj); *Public Interfaces* določajo endpointe, poti in dostopna imena; `OWNS_ACTIVE_GROUPS` je že v feature-map §2.10 (nove kode ni); nova koda polja pri 400: `email: MISMATCH`. Specifikacija se ne spreminja. |
-| II. Test-first | BE: unit (`ExportAssemblerTest`, `DeleteAccountInputParserTest`, `IdentityRetryBackoffTest`), integracijski (`MyDataExportIT`, `DeletionBlockersIT`, `AccountDeletionIT`, `AccountDeletionGroupsIT`, `AccountDeletionConcurrencyIT`, `AccountDeletionLockingIT`, `IdentityDeletionIT` (izpad, ponovitev, zrušitev), `FirebaseIdentityProviderIT`, `AccountDeletionMigrationIT`, `AccountDeletionAuditIT`), varnostni (`MyDataIsolationMatrixSecurityIT`, `DeletedIdentityTokenSecurityIT`, `DeletedUserLeakSecurityIT`, `ReRegistrationGuardSecurityIT`). FE: funkcionalni z MSW in `vitest-axe`. E2E `moji-podatki.spec.ts`. Pregled testov opravi agent `pregled-testov` pred kodo (workflow §4.2). |
+| II. Test-first | BE: unit (`ExportAssemblerTest`, `DeleteAccountInputParserTest`, `IdentityRetryBackoffTest`), integracijski (`MyDataExportIT`, `DeletionBlockersIT`, `AccountDeletionIT`, `AccountDeletionGroupsIT`, `AccountDeletionConcurrencyIT`, `AccountDeletionLockingIT`, `IdentityDeletionIT` (izpad, ponovitev, odmik, čiščenje), `IdentityDeletionRestartIT` (ponavljanje in čiščenje po ponovnem zagonu), `FirebaseIdentityProviderIT`, `AccountDeletionMigrationIT`, `AccountDeletionAuditIT`), varnostni (`MyDataIsolationMatrixSecurityIT`, `DeletedIdentityTokenSecurityIT`, `DeletedUserLeakSecurityIT`, `ReRegistrationGuardSecurityIT`). FE: funkcionalni z MSW in `vitest-axe`. E2E `moji-podatki.spec.ts`. Pregled testov opravi agent `pregled-testov` pred kodo (workflow §4.2). |
 | III. Group isolation and roles | Vsi trije endpointi so v matriki izolacije za uporabniško vezane vire (workflow 2.5): 401 (brez, neveljaven, potekel žeton, žeton izbrisanega uporabnika), 404 za tuj identifikator (poti ne obstajajo). Izbris pod zaklepi skupin ne more pustiti nearhivirane skupine brez lastnika (SC-006). Avtorizacija ostaja na zaledju (`OWNS_ACTIVE_GROUPS` presoja strežnik, vmesnik le skrije gumb). |
 | IV. Accessible, bilingual, responsive UI | design.md 8.11 (dialog z vpisom), 8.13 (napaka s *Poskusi znova*), 9.9 (točki 3 in 4); fokus na *Prekliči*, Esc, vrnitev fokusa; sl/en (`account.data.*`, `account.delete.*`, `login.accountDeleted`); axe v FE testih in E2E; 320 px; gumbi ≥ 44 px. |
 | V. Data integrity | Izbris je atomaren (ena transakcija); odločitev pod zaklepom (R-04); izbris ni skupna transakcija z Firebase, a je vsako vmesno stanje trajno zapisano in idempotentno (R-01, R-07); sled ostane nespremenljiva (R-05). Izvoz je `REPEATABLE READ` posnetek. Izvoz ni seznam v vmesniku, zato ni paginiran (R-09). |
 | VI. Privacy and GDPR | Izvoz in izbris sta jedro te funkcionalnosti. **Odstopanje (D-72):** Firebase UID izbrisanega uporabnika ostane v `deleted_identity` do uspešnega brisanja pri ponudniku in še 2 uri (razveljavitev žetona); ni ime ali e-naslov (SC-004). Brez novih osebnih podatkov. Poverilnice storitvenega računa niso v Gitu. |
-| VII. One verification path | Novi testi tečejo v obstoječih korakih `verify.sh`. Nova knjižnica potrebuje vnos: D-73 (predlog). Brez utišanj (`@SuppressWarnings`, `eslint-disable`). |
+| VII. One verification path | Novi testi tečejo v obstoječih korakih `verify.sh`. Nova knjižnica ima vnos D-73 (potrjena z D-74). Brez utišanj (`@SuppressWarnings`, `eslint-disable`). |
 
-**Rezultat (pred raziskavo):** PASS. **Ponovno preverjanje po fazi 1:** PASS. Opombe: (1) VI dopušča odstopanje samo z vnosom → D-72; (2) VII zahteva vnos za novo knjižnico → D-73 je zapisan kot
-*predlog, čaka potrditev*; implementacija Firebase odjemalca (T-nalogi) se ne začne pred potrditvijo; (3) migracijska številka V9 ni zagotovo prosta (R-14).
+**Rezultat (pred raziskavo):** PASS. **Ponovno preverjanje po fazi 1:** PASS. Opombe: (1) VI dopušča odstopanje samo z vnosom → D-72; (2) VII zahteva vnos za novo knjižnico → D-73, potrjen z D-74 (razvijalec); (3) migracijska številka V9 ni zagotovo prosta (R-14).
 
 ## Public Interfaces *(mandatory)*
 
@@ -60,15 +60,15 @@ brez AI dnevnikov, skrivnosti (poverilnice storitvenega računa) izven Gita
 |---|---|---|---|---|---|
 | GET | /api/me/export | — | ni vezano na skupino | 200; telo `MyData` (JSON), glave `Content-Disposition`, `Cache-Control: no-store`, `X-Content-Type-Options: nosniff` | FR-012-01, FR-012-02, FR-012-03, FR-012-16 |
 | GET | /api/me/deletion-blockers | — | ni vezano na skupino | 200; telo `{"groups":[{"id","title"}]}` | FR-012-06 |
-| POST | /api/me/deletion | — | ni vezano na skupino (arhivirane skupine ne blokirajo) | 204 | FR-012-06 … FR-012-15, FR-012-16 |
+| POST | /api/me/deletion | — | ni vezano na skupino (arhivirane skupine ne blokirajo) | 204 (lokalni račun in identiteta izbrisana) ali 202 `{"code":"IDENTITY_DELETION_PENDING"}` (lokalni izbris zaključen, brisanje identitete čaka) | FR-012-06 … FR-012-18 |
 
 - `GET /api/me/export`: 401 (neprijavljen, neveljaven, potekel žeton, žeton izbrisanega uporabnika; tudi če uporabnika v posnetku ni več). Vsebina po FR-012-02: `formatVersion`, `exportedAt`, `profile`, `memberships`, `receivedInvitations`,
   `sentInvitations`, `ownedGroups`; seznami brez vnosov so prazni (`[]`). Brez kontaktov, sledi, imen in e-naslovov drugih članov (izjema: ime pošiljatelja prejetega povabila, `inviteeEmail` poslanega).
   Ime datoteke s strežnika (UTC): `moji-podatki-YYYY-MM-DD.json`; vmesnik datoteko poimenuje po lokalnem datumu (R-09).
 - `GET /api/me/deletion-blockers`: 401; sicer 200 s seznamom nearhiviranih skupin v lasti (lahko prazen).
 - `POST /api/me/deletion` telo `{"email": "…"}`. Vrstni red: **401** (neprijavljen, žeton izbrisanega, uporabnik ne obstaja več) → **400 `VALIDATION_FAILED`** (`email`: `REQUIRED`, `MISMATCH`; neznano polje `UNKNOWN_FIELD`;
-  neveljaven JSON `body: MALFORMED`) → **409 `OWNS_ACTIVE_GROUPS`** s telesom `{"code","groups":[{"id","title"}]}` (preverjeno pod zaklepi, FR-012-13) → **204**. Primerjava e-naslova: obrez, brez velikosti črk, z e-naslovom v bazi.
-  Po 204: podatki aplikacije so v celoti izbrisani; brisanje identitete pri ponudniku teče po potrditvi in se ponavlja do uspeha (odgovor od tega ni odvisen).
+  neveljaven JSON `body: MALFORMED`) → **409 `OWNS_ACTIVE_GROUPS`** s telesom `{"code","groups":[{"id","title"}]}` (preverjeno pod zaklepi, FR-012-13) → **204** ali **202**. Primerjava e-naslova: obrez, brez velikosti črk, z e-naslovom v bazi.
+  **204** – takojšen poskus brisanja identitete (omejen na 5 s) je uspel ali identiteta ni več obstajala. **202** – podatki aplikacije so v celoti izbrisani, brisanje identitete pa ni uspelo (nedosegljiv, `5xx`, `429`, `401/403` poverilnic) in se ponavlja do uspeha; ponovitev zahtevka ni mogoča (uporabnika ni več, žeton → 401) in ni potrebna. V obeh stanjih je žeton neuporaben (401); ob `202` se uporabnik z istim Google računom morda še ne more znova registrirati (prijava 401, dokler brisanje pri Firebase ne uspe).
 - **Ne obstajajo** (FR-012-16): `/api/users/{id}/export`, `/api/users/{id}`, `/api/me/{id}/export`, `DELETE /api/me` → `404`/`405`; testirano.
 - Napake: `401 {"code":"UNAUTHENTICATED"}`; `400 {"code":"VALIDATION_FAILED","errors":[{"field","code"}]}`; `409 {"code":"OWNS_ACTIVE_GROUPS","groups":[…]}`. Podrobnosti: [contracts/openapi.yaml](contracts/openapi.yaml).
 - Posledice ob dokončanem izbrisu za druge funkcionalnosti (brez sprememb njihovih pogodb): `GET …/audit` in `GET …/members`, `GET /api/groups/archived`, `GET /api/invitations` in `GET …/invitations` že prikazujejo
@@ -79,7 +79,7 @@ brez AI dnevnikov, skrivnosti (poverilnice storitvenega računa) izven Gita
 | Page | Route | Lowest role | FR-ID |
 |---|---|---|---|
 | Moj račun (+ razdelka *Moji podatki*, *Izbris računa*) (001) | /account | — | FR-012-01 … FR-012-07, FR-012-13 … FR-012-14 |
-| Prijava (001) – potrdilo po izbrisu (`/login?reason=account-deleted`) | /login | javno | FR-012-14 |
+| Prijava (001) – potrdilo po izbrisu (`/login?reason=account-deleted` ob `204`, `/login?reason=account-deleted-pending` ob `202`) | /login | javno | FR-012-14, FR-012-17 |
 | Skupina (002) – cilj povezav blokirnih skupin | /groups/:groupId | — | FR-012-06 |
 
 - Nove poti ni. Po uspešnem izbrisu vmesnik uporabnika odjavi (lokalno iz Firebase JS SDK), počisti sejo in preusmeri na `/login?reason=account-deleted`.
@@ -106,7 +106,8 @@ brez AI dnevnikov, skrivnosti (poverilnice storitvenega računa) izven Gita
 | Dialog izbrisa | button | »Prekliči« / "Cancel"; »Izbriši račun« / "Delete account" (nevarni, `aria-busy` med klicem) | gumba | FR-012-07 |
 | Dialog izbrisa | alert | »Računa ni bilo mogoče izbrisati. Poskusi znova.« / "Your account could not be deleted. Please try again." | napaka omrežja ali strežnika; dialog ostane odprt, nič se ni izbrisalo | FR-012-07 |
 | Izbris računa | alert | »Račun ne more biti izbrisan, ker si medtem postal lastnik nearhivirane skupine. Prenesi lastništvo ali arhiviraj te skupine.« / "Your account cannot be deleted because you have become the owner of an active group. Transfer ownership or archive these groups." | 409 `OWNS_ACTIVE_GROUPS` (dialog se zapre, seznam se osveži iz telesa) | FR-012-13 |
-| Prijava | status | »Tvoj račun je izbrisan.« / "Your account has been deleted." | potrdilo po izbrisu | FR-012-14 |
+| Prijava | status | »Tvoj račun je izbrisan.« / "Your account has been deleted." | potrdilo po izbrisu (`204`) | FR-012-14, FR-012-17 |
+| Prijava | status | »Tvoj račun je izbrisan. Brisanje povezave z Google računom še poteka, zato se z istim Google računom nekaj časa morda ne boš mogel znova registrirati. Poskusi znova čez nekaj minut.« / "Your account has been deleted. Removing the link to your Google account is still in progress, so you may not be able to register again with the same Google account for a while. Please try again in a few minutes." | potrdilo ob `202` (stanje čakanja) | FR-012-17 |
 
 - Razdelka sta v `/account` v vrstnem redu design.md 9.9: *Profil* → *Videz* → **Moji podatki** → **Izbris računa** → *Odjava*.
 - Po uspešnem izbrisu fokus preide na naslov strani za prijavo (obstoječe obnašanje `LoginPage`); stanje seje je počiščeno **pred** preusmeritvijo, da se ne sproži sporočilo o poteku seje (FR-001-10).
@@ -131,13 +132,16 @@ brez AI dnevnikov, skrivnosti (poverilnice storitvenega računa) izven Gita
 | FR-012-12 | `AccountDeletionAuditIT`, `DeletedUserLeakSecurityIT`, `AccountDeletionMigrationIT` (`SET NULL` brez kopije imena; indeksi) | – | `moji-podatki.spec` (sled) |
 | FR-012-13 | `AccountDeletionConcurrencyIT` (100 ponovitev, SC-006), `AccountDeletionLockingIT` | `DeleteAccountSection.test` (409 po odprtem dialogu) | – |
 | FR-012-14 | `IdentityDeletionIT` (identiteta v emulatorju izbrisana; ponovna prijava = nov UID, prazen račun), `ReRegistrationGuardSecurityIT` | `AuthProvider.test` (`accountDeleted`), `LoginPage.test` | `moji-podatki.spec` (ponovna prijava) |
-| FR-012-15 | `DeletedIdentityTokenSecurityIT` (vsi endpointi 401, `PUT /api/me` 401), `AccountDeletionLockingIT` (dvojni zahtevek: 204 + 401) | – | `moji-podatki.spec` (druga naprava) |
+| FR-012-17 | `AccountDeletionIT` (204; 202 ob `docker pause`; v obeh stanjih brez lokalnih podatkov), `IdentityDeletionIT` (`USER_NOT_FOUND` = uspeh; `401/403` → 202 z `last_error`) | `DeleteAccountDialog.test` (204 in 202 → `accountDeleted(pending)`), `LoginPage.test` (obe sporočili) | `moji-podatki.spec` (202 z ustavljenim emulatorjem) |
+| FR-012-18 | `IdentityDeletionIT` (odmik, hramba do 2 h, odstranitev po 2 h, nikoli odprtega), `IdentityDeletionRestartIT` (ponovni zagon: dokončanje in čiščenje), `DeletedIdentityTokenSecurityIT`, `ReRegistrationGuardSecurityIT` (tekma prijava/izbris, prijava med čakanjem → 401, po uspehu nov račun), `AccountDeletionMigrationIT` | – | `moji-podatki.spec` |
+| FR-012-15 | `DeletedIdentityTokenSecurityIT` (vsi endpointi 401, `PUT /api/me` 401), `AccountDeletionLockingIT` (dvojni zahtevek: 204 ali 202 + 401) | – | `moji-podatki.spec` (druga naprava) |
 | FR-012-16 | `MyDataIsolationMatrixSecurityIT` (poti s tujim id → 404/405, izvoz samo lastni) | – | – |
 
-Dodatno (R-01, R-07, R-13; brez lastnega FR-ID, a zahtevano po tem planu): `IdentityDeletionIT` – izpad Firebase med brisanjem (`docker pause`), ponovitev nedokončanega brisanja, idempotentnost (`USER_NOT_FOUND` = uspeh),
-nadaljevanje po ponovnem zagonu; `FirebaseIdentityProviderIT` – dejanska izmenjava z emulatorjem (prva naloga implementacije).
+Dodatno (R-01, R-06, R-07, R-13, R-16): `IdentityDeletionIT` – izpad Firebase med brisanjem (`docker pause`), ponovitev nedokončanega brisanja, idempotentnost (`USER_NOT_FOUND` = uspeh), odmik; `IdentityDeletionRestartIT` –
+ponavljanje in čiščenje po ponovnem zagonu aplikacije (drugi kontekst nad isto bazo); `FirebaseIdentityProviderIT` – dejanska izmenjava z emulatorjem (vključno s pastjo napačnega projekta, R-06); `ConfigurationSecurityTest` –
+brez skrivnosti v kodi in konfiguraciji (gitleaks v pre-commit je že vrata), zavrnitev `tombstone-retention` < 70 min.
 Merljiva merila: SC-001 – `MyDataExportIT` (100 članstev + 50 povabil, ≤ 5 s); SC-002 – `MyDataExportIT`, `MyDataIsolationMatrixSecurityIT`; SC-003 – `moji-podatki.spec` (izbris < 1 min);
-SC-004 – `DeletedUserLeakSecurityIT`; SC-005 – `AccountDeletionAuditIT`, `AccountDeletionIT`, `moji-podatki.spec`; SC-006 – `AccountDeletionConcurrencyIT`; SC-007 – `DeleteAccountSection.test`, `moji-podatki.spec`.
+SC-004 – `DeletedUserLeakSecurityIT`; SC-005 – `AccountDeletionAuditIT`, `AccountDeletionIT`, `moji-podatki.spec`; SC-006 – `AccountDeletionConcurrencyIT`; SC-007 – `DeleteAccountSection.test`, `moji-podatki.spec`; SC-008 – `AccountDeletionIT`, `IdentityDeletionIT`, `IdentityDeletionRestartIT`; SC-009 – `IdentityDeletionIT`, `IdentityDeletionRestartIT`, `DeletedIdentityTokenSecurityIT`.
 Regresija 000–008: `./verify.sh full` (obstoječi testi se ne spreminjajo; dotaknjena sta le `ApiTest` – ena lastnost – in `AccountPage.test.tsx` – nova `describe`).
 
 ## Project Structure
@@ -168,7 +172,7 @@ backend/src/main/java/si/contactmanager/
 │   ├── AccountDeletionRepository.java   # NOVO: zaklep skupin, stanje, izbris skupin, izbris uporabnika, nadgrobnik
 │   ├── DeleteAccountInputParser.java    # NOVO: telo { "email" }; napake po poljih (kot 007)
 │   ├── DeletedIdentities.java           # NOVO: nadgrobniki (contains, pending, markDeleted, fail, purge)
-│   ├── IdentityProvider.java            # NOVO: vmesnik delete(uid) → izid {DELETED, NOT_FOUND, RETRY, MISCONFIGURED}
+│   ├── IdentityProvider.java            # NOVO: vmesnik delete(uid) → izid {DELETED, NOT_FOUND, RETRY, MISCONFIGURED}; DELETED/NOT_FOUND → 204, ostalo → 202
 │   ├── FirebaseIdentityProvider.java    # NOVO: REST accounts:delete (emulator: Bearer owner; produkcija: OAuth2, R-06)
 │   ├── IdentityDeletionJob.java         # NOVO: @Scheduled, SKIP LOCKED, odmik, purge (R-07); runOnce() za teste
 │   └── IdentityRetryBackoff.java        # NOVO: čista funkcija odmika (unit test)
@@ -176,13 +180,13 @@ backend/src/main/java/si/contactmanager/
 │   ├── DeletedIdentityJwtDecoder.java   # NOVO: ovije FirebaseJwtDecoder, zavrne UID iz nadgrobnika (R-08)
 │   └── SecurityConfig.java              # SPREMEMBA: ovitje dekoderja (3 vrstice)
 └── shared/error/{OwnsActiveGroupsException, UnauthenticatedException}.java + ApiExceptionHandler (409 s telesom, 401, SQLSTATE CM401 → 401)
-backend/src/main/resources/application.yaml                          # SPREMEMBA: identity-deletion.* (interval, timeouti, scheduler-enabled)
+backend/src/main/resources/application.yaml                          # SPREMEMBA: identity-deletion.* (interval 30 s, request-timeout 5 s, tombstone-retention 2 h – min. 70 min, scheduler-enabled); brez skrivnosti
 backend/pom.xml                                                      # SPREMEMBA: google-auth-library-oauth2-http (D-73, po potrditvi)
 backend/src/test/java/si/contactmanager/account/
 ├── {MyDataExportIT, DeletionBlockersIT, AccountDeletionIT, AccountDeletionGroupsIT, AccountDeletionConcurrencyIT, AccountDeletionLockingIT}.java
-├── {AccountDeletionAuditIT, AccountDeletionMigrationIT, IdentityDeletionIT, FirebaseIdentityProviderIT}.java
+├── {AccountDeletionAuditIT, AccountDeletionMigrationIT, IdentityDeletionIT, IdentityDeletionRestartIT, FirebaseIdentityProviderIT}.java
 ├── {MyDataIsolationMatrixSecurityIT, DeletedIdentityTokenSecurityIT, DeletedUserLeakSecurityIT, ReRegistrationGuardSecurityIT}.java
-├── {ExportAssemblerTest, DeleteAccountInputParserTest, IdentityRetryBackoffTest}.java
+├── {ExportAssemblerTest, DeleteAccountInputParserTest, IdentityRetryBackoffTest, ConfigurationSecurityTest}.java
 └── support/AccountFixtures.java         # deleteViaApi, tombstone(uid), isIdentityInEmulator, reRegister(sameGoogleId), dumpTextExceptContacts
 backend/src/test/java/si/contactmanager/support/{ApiTest, FirebaseEmulatorContainer}.java   # SPREMEMBA: scheduler-enabled=false; pause/unpause, lookup, signInWithIdp z istim sub
 
@@ -195,8 +199,8 @@ frontend/src/features/account/
 ├── accountMessages.ts                   # NOVO: koda napake → sporočilo
 ├── AccountPage.tsx                      # SPREMEMBA: dva razdelka med Videz in Odjavo
 └── *.test.tsx (MyDataSection, DeleteAccountSection, DeleteAccountDialog; AccountPage.test – nova describe)
-frontend/src/features/auth/{AuthProvider.tsx, authContext.ts, LoginPage.tsx}   # SPREMEMBA: accountDeleted(), reason=account-deleted
-frontend/src/i18n/{sl,en}.json           # ključi account.data.*, account.delete.*, login.accountDeleted (ločen blok)
+frontend/src/features/auth/{AuthProvider.tsx, authContext.ts, LoginPage.tsx}   # SPREMEMBA: accountDeleted(pending), reason=account-deleted | account-deleted-pending
+frontend/src/i18n/{sl,en}.json           # ključi account.data.*, account.delete.*, login.accountDeleted, login.accountDeletedPending (ločen blok)
 frontend/src/test/myDataApi.ts           # NOVO: MSW rokovalniki
 
 e2e/tests/moji-podatki.spec.ts, e2e/tests/support/{myData.ts}   # NOVO (pomožni SQL: povabila, arhiviranje, trajno arhivirana skupina; nadgrobniki)
@@ -206,14 +210,15 @@ e2e/tests/moji-podatki.spec.ts, e2e/tests/support/{myData.ts}   # NOVO (pomožni
 `features/account`, ne v novem paketu. Dostop do skupin za izbris je neposredna poizvedba (kot `InvitationRepository`) in ne prek `GroupAccess` (ta je za skupino vezane endpointe z vlogo). Firebase je za vmesnikom
 `IdentityProvider`, da zamenjava izvedbe (R-06) ne zadene ostale kode. Odjemalec izvoza ne spreminja `shared/api` (uporablja `authFetch`).
 
-## Odprte odločitve za razvijalca (pred implementacijo)
+## Potrjene odločitve (D-74)
 
-| # | Odločitev | Priporočilo | Posledica odločitve |
-|---|---|---|---|
-| 1 | **D-73: knjižnica za brisanje identitete v Firebase** | REST `accounts:delete` + `google-auth-library-oauth2-http` (samo za produkcijski OAuth2 žeton) | alternativa `firebase-admin`: manj lastne kode, a ~30 MB in grpc/guava; plan se ne spremeni (vmesnik `IdentityProvider`) |
-| 2 | **D-72: hramba Firebase UID v nadgrobniku** do uspeha brisanja pri ponudniku + 2 uri | sprejeti (brez nje FR-012-15 ni izpolnljiv) | če bi razvijalca želela »nič sledi«, bi bilo treba FR-012-15 omiliti na »401 po poteku žetona (≤ 1 h)« → sprememba spec po workflow §4.5 |
+| # | Odločitev | Izid |
+|---|---|---|
+| 1 | **D-73:** REST `accounts:delete` + `google-auth-library-oauth2-http` (samo za produkcijski OAuth 2.0 dostop); brez `firebase-admin`, razen če `FirebaseIdentityProviderIT` pokaže, da REST ni zanesljiv | **potrjeno**; klic je bil pred načrtom preverjen proti emulatorju (R-06, tabela) |
+| 2 | **D-72:** `deleted_identity` hrani samo Firebase UID do uspešnega brisanja pri Firebase + 2 uri; preprečuje stare žetone in ponovno ustvarjanje računa; po izteku se dejansko odstrani | **potrjeno**; FR-012-18 |
+| 3 | `204` = lokalni račun in identiteta izbrisana; `202 Accepted` (`IDENTITY_DELETION_PENDING`) = lokalni izbris zaključen, identiteta čaka; jasno sporočilo v vmesniku | **potrjeno**; CR-03, FR-012-17, R-16 |
 
-Obe odločitvi sta zapisani v `DECISIONS.md` (D-72 *odločitev*, D-73 *predlog – čaka potrditev*); nobena ne blokira načrtovanja, blokirata samo implementacijo Firebase odjemalca in odločitev o nadgrobniku.
+Skrivnosti: poverilnice storitvenega računa samo prek okoljske spremenljivke (`GOOGLE_APPLICATION_CREDENTIALS`), nikoli v kodi, `application.yaml` ali Gitu; ID žeton uporabnika se nikoli ne uporabi kot administrativno pooblastilo.
 
 ## Vzporedni razvoj s 009
 

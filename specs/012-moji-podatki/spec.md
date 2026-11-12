@@ -60,6 +60,10 @@ Uporabnik, ki ni lastnik nobene nearhivirane skupine, v razdelku *Izbris računa
 12. **[FR-012-14]** **Given** uporabnik je izbrisal račun, **When** se znova prijavi z istim Google računom, **Then** se ustvari nov račun brez članstev, povabil in skupin, prejšnji vnosi revizijskih sledi pa ostanejo prikazani kot »izbrisan uporabnik«.
 13. **[FR-012-15]** **Given** uporabnik je izbrisal račun na eni napravi, **When** z drugo napravo, kjer je bil še prijavljen, pošlje katerikoli zahtevek, **Then** je zavrnjen kot neprijavljen in naprava prikaže stran za prijavo.
 14. **[FR-012-16]** **Given** prijavljena uporabnika A in B, **When** A poskusi izvoziti podatke ali izbrisati račun uporabnika B z navedbo njegovega identifikatorja, **Then** takšne operacije ni (404), izvoz vedno vrne samo podatke uporabnika A in račun B ostane nespremenjen.
+15. **[FR-012-17]** **Given** uporabnik izbriše račun in je Firebase dosegljiv, **When** se izbris zaključi, **Then** API vrne `204`, lokalni račun in identiteta pri ponudniku prijave sta izbrisana, vmesnik prikaže stran za prijavo s potrdilom »Tvoj račun je izbrisan.« [CR-03].
+16. **[FR-012-17]** **Given** uporabnik izbriše račun, Firebase pa takrat ni dosegljiv, **When** se lokalni izbris zaključi, **Then** API vrne `202 Accepted`, vsi lokalni podatki so že izbrisani, vmesnik odjavi uporabnika in na strani za prijavo prikaže »Tvoj račun je izbrisan. Brisanje povezave z Google računom še poteka, zato se z istim Google računom nekaj časa morda ne boš mogel znova registrirati. Poskusi znova čez nekaj minut.« / "Your account has been deleted. Removing the link to your Google account is still in progress, so you may not be able to register again with the same Google account for a while. Please try again in a few minutes." [CR-03].
+17. **[FR-012-18]** **Given** brisanje identitete je v čakanju (stanje 202), **When** se uporabnik z istim Google računom prijavi ali kdorkoli z njegovim starim ID žetonom pošlje zahtevek, **Then** je zahtevek zavrnjen s `401`, lokalni račun se ne ustvari znova; ko se brisanje pri ponudniku uspešno ponovi, ponovna prijava ustvari nov prazen račun [CR-03].
+18. **[FR-012-18]** **Given** je brisanje identitete uspelo (takoj ali po ponovnih poskusih), **When** od uspeha mine več kot 2 uri, **Then** zapis o izbrisanem UID-ju več ne obstaja; po vmesnem ponovnem zagonu aplikacije ponavljanje in čiščenje tečeta naprej [CR-03].
 
 ---
 
@@ -93,6 +97,8 @@ Uporabnik, ki je lastnik vsaj ene nearhivirane skupine, računa ne more izbrisat
 | FR-012-07 | prijavljen uporabnik v potrditvenem dialogu | vpiše napačen ali prazen e-naslov | napaka ob polju, zahtevek se ne pošlje, nič se ne spremeni |
 | FR-012-07 | prijavljen uporabnik | zahtevek za izbris mimo vmesnika brez e-naslova ali z napačnim e-naslovom | 400 VALIDATION_FAILED, nič se ne spremeni |
 | FR-012-15 | izbrisan uporabnik s še veljavnim žetonom (druga naprava, drug zavihek) | katerikoli zahtevek (tudi ponovni izbris ali izvoz) | 401 |
+| FR-012-17 | uporabnik izbriše račun, Firebase ni dosegljiv ali odgovori z napako | izbris računa | lokalni izbris ostane zaključen, `202 Accepted`; naloga za Firebase se ponavlja [CR-03] |
+| FR-012-18 | uporabnik z računom, katerega brisanje pri Firebase še čaka | prijava z istim Google računom (`PUT /api/me`) ali katerikoli zahtevek s starim žetonom | 401; lokalni račun se ne ustvari [CR-03] |
 | FR-012-11 | prejemnik povabila izbrisanega pošiljatelja | sprejem povabila v arhivirani skupini | po pravilih 006 (sprejem uspe, FR-006-09); izbris pošiljatelja tega ne spremeni |
 
 ### Edge Cases
@@ -109,6 +115,9 @@ Uporabnik, ki je lastnik vsaj ene nearhivirane skupine, računa ne more izbrisat
 - Kontakt v neki skupini ima ime ali e-naslov izbrisanega uporabnika kot podatek kontakta → to so podatki skupine, ne uporabnika; ostanejo nespremenjeni.
 - Izvoz med izbrisom računa v drugem zavihku → izvoz vrne bodisi popolne podatke pred izbrisom bodisi 401, nikoli delnih.
 - Izvoz med povezavo z napako ali brez povezave (PWA) → vidna napaka (FR-012-04), datoteka se ne ustvari.
+- Firebase je ob izbrisu nedosegljiv → lokalno brisanje ostane zaključeno, API vrne `202` (FR-012-17); brisanje pri Firebase se ponavlja, dokler ne uspe, tudi po zrušitvi ali ponovnem zagonu aplikacije [CR-03].
+- Identiteta pri Firebase je že izbrisana (npr. ob ponovnem poskusu) → šteje za uspeh, ne za napako [CR-03].
+- Uporabnik se med čakanjem na brisanje pri Firebase poskusi prijaviti z istim Google računom → prijava ne uspe (FR-012-18); po uspešnem brisanju pri Firebase se ustvari nov račun [CR-03].
 
 ## Requirements *(mandatory)*
 
@@ -127,8 +136,10 @@ Uporabnik, ki je lastnik vsaj ene nearhivirane skupine, računa ne more izbrisat
 - **FR-012-11**: Sistem MORA povabila, ki jih je izbrisani uporabnik poslal, ohraniti veljavna (prejemnik jih lahko sprejme ali zavrne po pravilih 006); kot pošiljatelj MORA biti prikazano »izbrisan uporabnik«. *(najnižja vloga: —)*
 - **FR-012-12**: Sistem MORA po izbrisu računa povsod, kjer bi bil prikazan izbrisani uporabnik (izvajalec v revizijskih sledeh, lastnik trajno arhivirane skupine, pošiljatelj povabila, izvoz podatkov drugih uporabnikov in vsa druga mesta), prikazati »izbrisan uporabnik« / "deleted user" in ne sme več hraniti njegovega imena ali e-naslova (feature-map §2.5). *(najnižja vloga: —)*
 - **FR-012-13**: Sistem MORA izbris računa izvesti atomarno – vse posledice (FR-012-08 do FR-012-12) se zgodijo v celoti ali pa nobena – in pogoj iz FR-012-06 preveriti v trenutku izbrisa, tako da sočasna operacija (npr. prenos lastništva aktivne skupine na uporabnika, odarhiviranje) ne more pustiti nearhivirane skupine brez lastnika. *(najnižja vloga: —)*
-- **FR-012-14**: Sistem MORA po uspešnem izbrisu izbrisati tudi uporabnikovo identiteto pri ponudniku prijave, uporabnika odjaviti in prikazati stran za prijavo s potrdilom »Tvoj račun je izbrisan.« / "Your account has been deleted."; ponovna prijava z istim Google računom MORA ustvariti nov račun brez kakršne koli povezave s prejšnjim. *(najnižja vloga: —)*
+- **FR-012-14**: Sistem MORA po uspešnem izbrisu podatkov aplikacije izbrisati tudi uporabnikovo identiteto pri ponudniku prijave (FR-012-17 določa, kaj pomenita uspeh in čakanje), uporabnika odjaviti in prikazati stran za prijavo s potrdilom »Tvoj račun je izbrisan.« / "Your account has been deleted."; ponovna prijava z istim Google računom MORA po izbrisu identitete ustvariti nov račun brez kakršne koli povezave s prejšnjim [CR-03]. *(najnižja vloga: —)*
 - **FR-012-15**: Sistem MORA vsak zahtevek z žetonom izbrisanega uporabnika (tudi z drugih naprav in zavihkov) zavrniti s `401`. *(najnižja vloga: —)*
+- **FR-012-17** [CR-03]: Sistem MORA odgovoriti na izbris računa z `204`, **samo** če sta izbrisana lokalni račun (FR-012-08 do FR-012-13) **in** identiteta pri ponudniku prijave. Če je lokalni izbris zaključen, identitete pri ponudniku pa ni bilo mogoče izbrisati (ponudnik ni dosegljiv ali vrne začasno napako), MORA lokalni izbris ostati zaključen, brisanje pri ponudniku MORA ostati v ponavljanju (FR-012-18) in odgovor MORA biti `202 Accepted` s kodo `IDENTITY_DELETION_PENDING`. Vmesnik MORA v stanju `202` jasno povedati, da je račun izbrisan, brisanje povezave z Google računom pa še poteka, zato se z istim Google računom nekaj časa morda ni mogoče znova registrirati. Identiteta, ki je pri ponudniku že izbrisana, šteje za uspešno izbrisano (`204`). *(najnižja vloga: —)*
+- **FR-012-18** [CR-03]: Sistem MORA za vsakega izbrisanega uporabnika hraniti samo njegov Firebase UID (brez imena in e-naslova), dokler identiteta pri ponudniku ni izbrisana in še 2 uri po tem. V tem času MORA zavrniti (`401`) vsak ID žeton s tem UID-jem in preprečiti, da bi se lokalni račun z istim UID-jem znova ustvaril. Neizpolnjeno brisanje pri ponudniku MORA ponavljati (z naraščajočim odmikom, največ 1 uro), tudi po zrušitvi in ponovnem zagonu aplikacije; po izteku 2 ur od uspešnega brisanja MORA biti zapis dejansko odstranjen. *(najnižja vloga: —)*
 - **FR-012-16**: Sistem NE SME ponujati nobene operacije, s katero bi uporabnik izvozil podatke drugega uporabnika ali izbrisal račun drugega uporabnika; izvoz in izbris veljata vedno samo za prijavljenega uporabnika (poskus z identifikatorjem drugega uporabnika → `404`). *(najnižja vloga: —)*
 
 ### Key Entities *(include if feature involves data)*
@@ -137,6 +148,7 @@ Uporabnik, ki je lastnik vsaj ene nearhivirane skupine, računa ne more izbrisat
 - **Uporabnik (račun)**: ime, e-naslov, datum registracije, nastavitve; ob izbrisu se odstrani v celoti, vse reference nanj (revizijska sled, lastnik, pošiljatelj povabila) pa kažejo na »izbrisan uporabnik«.
 - **Članstvo**: povezava uporabnik–skupina z vlogo in datumom včlanitve; ob izbrisu računa se odstrani.
 - **Povabilo**: prejeto (izbriše se z računom) ali poslano (ostane, pošiljatelj postane »izbrisan uporabnik«).
+- **Nadgrobnik izbrisane identitete** [CR-03]: Firebase UID izbrisanega uporabnika, čas uspešnega brisanja pri ponudniku in stanje ponavljanja; ne vsebuje imena ali e-naslova; odstrani se 2 uri po uspešnem brisanju identitete.
 - **Trajno arhivirana skupina**: arhivirana skupina, katere lastnik je izbrisal račun; nima lastnika (pravila v 003).
 
 ## Success Criteria *(mandatory)*
@@ -150,6 +162,8 @@ Uporabnik, ki je lastnik vsaj ene nearhivirane skupine, računa ne more izbrisat
 - **SC-005**: Na vseh mestih, kjer je bil uporabnik prikazan (revizijska sled, lastnik, pošiljatelj povabila), je v 100 % primerov prikazano »izbrisan uporabnik«.
 - **SC-006**: V 100 ponovitvah sočasnega izbrisa računa in prenosa lastništva na istega uporabnika ne nastane nobena nearhivirana skupina brez lastnika in nobeno delno izbrisano stanje.
 - **SC-007**: Uporabnik, ki je lastnik aktivne skupine, iz razdelka *Izbris računa* v enem kliku pride do vsake skupine, ki mu izbris preprečuje.
+- **SC-008** [CR-03]: V 100 % izbrisov, pri katerih Firebase odgovori, API vrne `204` in identiteta ne obstaja več; v 100 % izbrisov, pri katerih Firebase ne odgovori, API vrne `202`, lokalnih podatkov ni več in brisanje identitete se po vrnitvi Firebase dokonča brez posega uporabnika (tudi po ponovnem zagonu aplikacije).
+- **SC-009** [CR-03]: Po izteku 2 ur od uspešnega brisanja identitete pri ponudniku ni v bazi nobenega zapisa o izbrisanem UID-ju; do takrat noben star ID žeton izbrisanega uporabnika ni sprejet.
 
 ## Assumptions
 
@@ -157,7 +171,7 @@ Uporabnik, ki je lastnik vsaj ene nearhivirane skupine, računa ne more izbrisat
 - **Oblika izvoza** (odločitev): datoteka je strojno berljiva, z ustaljeno strukturo, neodvisno od jezika vmesnika (vloge in stanja kot kode, npr. `OWNER`, datumi v mednarodnem zapisu z uro in časovnim pasom); datum v imenu datoteke je datum izvoza po lokalnem času uporabnika. Natančna struktura je stvar `plan.md` / `contracts/`.
 - **Prejeta in poslana povabila v izvozu** so povabila, ki v trenutku izvoza obstajajo (čakajoča); sprejeta, zavrnjena in umaknjena povabila po 006 prenehajo obstajati in niso v izvozu. Pri poslanih povabilih je e-naslov povabljenega edini podatek drugega uporabnika v izvozu – uporabnik ga je sam vpisal ob vabljenju (006, Clarifications 2026-11-08).
 - **Datum registracije** shranjuje 001 ob prvi prijavi; **datum včlanitve** shranjujeta 002 (ustvarjalec) in 006 (sprejem povabila).
-- **Identiteta pri ponudniku prijave** (odločitev, GDPR): ob izbrisu se izbriše tudi identiteta v Firebase Authentication. Brisanje podatkov aplikacije je atomarna enota (FR-012-13); če brisanje identitete pri ponudniku začasno ne uspe, se ponavlja, dokler ne uspe – zaradi FR-012-15 in FR-012-14 izbrisan račun v nobenem primeru ne more ponovno pridobiti dostopa do starih podatkov.
+- **Identiteta pri ponudniku prijave** (odločitev, GDPR; CR-03): ob izbrisu se izbriše tudi identiteta v Firebase Authentication. Brisanje podatkov aplikacije je atomarna enota (FR-012-13); brisanje identitete je ločen korak po njem (skupna transakcija ne obstaja). Če ne uspe, lokalni izbris ostane, API vrne `202` (FR-012-17), brisanje pa se ponavlja, dokler ne uspe (FR-012-18). ID žetona ni mogoče razveljaviti, zato nadgrobnik z UID-jem (FR-012-18) zavrača stare žetone in prepreči ponovno ustvarjanje računa; izbrisan račun v nobenem primeru ne more ponovno pridobiti dostopa do starih podatkov (FR-012-14, FR-012-15). Dostop do Firebase v produkciji uporablja OAuth 2.0 dostop storitvenega računa, nikoli ID žetona uporabnika; poverilnice niso v Gitu.
 - **Potrditev z e-naslovom** (odločitev): preverja jo vmesnik in tudi zaledje (FR-012-07), kot dodatna zaščita pred nenamernim izbrisom.
 - **Koda poslovnega pravila**: `OWNS_ACTIVE_GROUPS` (409); odgovor vsebuje seznam skupin, ki preprečujejo izbris, da ga vmesnik lahko prikaže (FR-012-06, FR-012-13).
 - **Povabila v skupine, ki se ob izbrisu izbrišejo**, se izbrišejo skupaj s skupino (pravila izbrisa skupine v 003).
@@ -169,4 +183,4 @@ Uporabnik, ki je lastnik vsaj ene nearhivirane skupine, računa ne more izbrisat
 
 | CR | Date | Affected FR-IDs | Summary | DECISIONS |
 |---|---|---|---|---|
-| – | – | – | Ni sprememb | – |
+| CR-03 | 2026-11-12 | FR-012-14, FR-012-17 (novo), FR-012-18 (novo) | Izbris računa ima dve stanji: `204` (lokalni račun in identiteta pri Firebase izbrisana) in `202 Accepted` (lokalni izbris zaključen, brisanje identitete čaka na ponavljanje; uporabnik morda še ne more znova ustvariti računa z istim Google računom). Nadgrobnik z Firebase UID (do uspeha + 2 uri) zavrača stare žetone, prepreči ponovno ustvarjanje računa in se po izteku odstrani; ponavljanje in čiščenje preživita ponovni zagon. Dodani scenariji 15–18, SC-008, SC-009. | D-72, D-74 |
