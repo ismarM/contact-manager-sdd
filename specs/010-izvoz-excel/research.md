@@ -73,7 +73,7 @@ Vhod: [spec.md](spec.md) (Clarify 2026-11-12: izbor po 009 s preverjanjem FR-009
   - Uspeh: `downloadBlob(blob, exportFileName(…))`, nato toast (`sonner`, `role="status"`) »Izvoženih kontaktov: N.« in po potrebi stavek o izpuščenih s sklanjatvami (`one`/`two`/`few`/`other`). Izbor se ne spremeni (FR-010-14).
   - Neuspeh: `role="alert"` nad seznamom (design.md 8.13) z gumbom *Poskusi znova* (ponovi celoten potek s preverjanjem). Besedila: `409 EXPORT_EMPTY` → »Nobeden od izbranih kontaktov ne obstaja več.«; `400` z več kot 10 000 → sporočilo meje; `TOO_MANY_COLUMNS` (R-09); brez povezave ali `5xx` → »Izvoz ni uspel. Poskusi znova.« oziroma obstoječi `groups.offline` (8.15: gumb ostane viden, ob kliku pojasni).
 - **Rationale:** ponovna uporaba `useSelectionCheck` pomeni eno samo pot za FR-009-18 v vseh treh akcijah. `aria-disabled` z oznako sledi 009 (»Uporabljam…«).
-- `apiFetchBlob` v `shared/api/client.ts`: enaka obdelava napak kot `apiFetch` (`ApiError` z `code` iz telesa JSON), ob uspehu vrne `{ blob, headers }`.
+- `apiFetchBlob` v `shared/api/client.ts`: enaka obdelava napak kot `apiFetch` (`ApiError` z `code` iz telesa JSON), ob uspehu vrne `{ blob, headers }`. Zahtevek pošlje `authFetchBlob` (`shared/api/authFetch.ts`, izpostavljen prek `useAuth`), ki doda `Authorization` in obravnava izgubljeno sejo kot `authFetch`; `apiFetchBlob` sam žetona ne pošilja (D-92). Zapis razvrstitve po dodatnem atributu: odjemalec pošlje `attr:‹ključ›` (dobesedni ključ), strežnik sprejme tudi `x.‹ključ›` kot 008.
 
 ## R-11 Zmogljivost (SC-002) in testi
 

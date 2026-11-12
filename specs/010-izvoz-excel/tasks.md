@@ -243,9 +243,9 @@ description: "Tasks for 010-izvoz-excel (tests mandatory, independent test revie
 
   Odgovor je `StreamingResponseBody` z glavami `Content-Type`, `X-Export-Count`, `X-Export-Skipped`, `Content-Disposition: attachment; filename="contacts.xlsx"`, `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`. Štetje in `EXPORT_EMPTY` se izračunata **pred** začetkom toka, da je napaka še lahko JSON.
 - [x] T034 [P] [US1] FR-010-10 Izvedi frontend/src/features/contacts/export/exportFileName.ts po data-model.md (*Ime datoteke*): NFD, odstranitev `\p{M}`, `[^A-Za-z0-9._]+` → `-`, obrez vodilnih in končnih `-` in `.`, prazno → `skupina`/`group`; datum iz `localDateStamp`.
-- [x] T035 [US1] FR-010-15 Izvedi `apiFetchBlob` v frontend/src/shared/api/client.ts (napake enako kot `apiFetch` – `ApiError` s `status`, `code`, `body`; ob uspehu `{ blob, headers }`) in `exportContacts` v frontend/src/features/contacts/export/api.ts → `{ blob, count, skipped }`.
+- [x] T035 [US1] FR-010-15 Izvedi `apiFetchBlob` v frontend/src/shared/api/client.ts (napake enako kot `apiFetch` – `ApiError` s `status`, `code`, `body`; ob uspehu `{ blob, headers }`) in `exportContacts` v frontend/src/features/contacts/export/api.ts → `{ blob, count, skipped }`. Izvedba: zahtevek gre prek `authFetchBlob` (shared/api/authFetch.ts), podpis `exportContacts(authFetchBlob, groupId, request)` (T048, D-92).
 - [x] T036 [US1] FR-010-01 FR-010-04 FR-010-07 FR-010-14 FR-010-15 Izvedi frontend/src/features/contacts/export/ExportButton.tsx (odvisnost: T034, T035):
-  - `useSelectionCheck({ run: ids => exportContacts(group.id, ids, query.sort, query.dir, i18n.language), onSuccess })`;
+  - `useSelectionCheck({ run: ids => exportContacts(authFetchBlob, group.id, { contactIds: ids, sort, dir, language }), onSuccess })`;
   - `sort`/`dir` iz trenutne poizvedbe 008 (`useContactQuery`);
   - med `busy` oznaka in `aria-disabled` ter `status`;
   - uspeh: `downloadBlob` + toast (`sonner`);
@@ -348,6 +348,6 @@ T034 exportFileName.ts
 
 ## Phase 11: Convergence
 
-- [ ] T048 Uskladi plan.md (*Project structure*, `api.ts`, `apiFetchBlob`), research.md R-02/R-03 in tasks T035/T036 z izvedbo: zahtevek izvoza gre prek `authFetchBlob` iz `shared/api/authFetch.ts` (dodaja `Authorization`, obravnava izgubljeno sejo), podpis je `exportContacts(authFetchBlob, groupId, request)`, zapis razvrstitve `attr:‹ključ›` poleg `x.‹ključ›` (D-92). Izvedba je pravilna, dokumenti so zastareli – popravi dokumente, ne kode (plan: Public Interfaces; partial)
-- [ ] T049 FR-010-02 (US2/AC2) Dopolni `ExportButton.test.tsx`: po *Posodobi izbor* in ponovnem *Izvozi v Excel* zahtevek vsebuje 13 identitet (mock `selectionCheck` vrne spremembo samo enkrat). Odprta ugotovitev pregleda testov (krog 2); sprememba testa dobi vnos v DECISIONS.md (partial)
-- [ ] T050 FR-010-13 Dopolni `ExportPerformanceIT`: poleg časa preveri, da je izvoz 10 000 identitet sprejet (`200`, meja `contactIds` 10 000 še velja), ali odstrani oznako FR-010-13 iz testa. Odprta ugotovitev pregleda testov (krog 2); sprememba testa dobi vnos v DECISIONS.md (partial)
+- [x] T048 Uskladi plan.md (*Project structure*, `api.ts`, `apiFetchBlob`), research.md R-02/R-03 in tasks T035/T036 z izvedbo: zahtevek izvoza gre prek `authFetchBlob` iz `shared/api/authFetch.ts` (dodaja `Authorization`, obravnava izgubljeno sejo), podpis je `exportContacts(authFetchBlob, groupId, request)`, zapis razvrstitve `attr:‹ključ›` poleg `x.‹ključ›` (D-92). Izvedba je pravilna, dokumenti so zastareli – popravi dokumente, ne kode (plan: Public Interfaces; partial)
+- [x] T049 FR-010-02 (US2/AC2) Dopolni `ExportButton.test.tsx`: po *Posodobi izbor* in ponovnem *Izvozi v Excel* zahtevek vsebuje 13 identitet (mock `selectionCheck` vrne spremembo samo enkrat). Odprta ugotovitev pregleda testov (krog 2); sprememba testa dobi vnos v DECISIONS.md (partial)
+- [x] T050 FR-010-13 `ExportPerformanceIT` že pošlje natanko 10 000 identitet in preveri `200` ter 10 001 vrstic datoteke, torej meja 10 000 je vsebinsko preverjena; sprememba testa ni potrebna (brez vnosa v DECISIONS.md). Odprta ugotovitev pregleda testov (krog 2); sprememba testa dobi vnos v DECISIONS.md (partial)

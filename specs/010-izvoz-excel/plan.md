@@ -156,12 +156,13 @@ backend/src/test/java/si/contactmanager/contact/
 
 frontend/src/
 ├── shared/api/client.ts                   # + apiFetchBlob (napake kot apiFetch)
+├── shared/api/authFetch.ts                # + authFetchBlob (Authorization, izguba seje); AuthProvider/authContext ga izpostavita (`useAuth`)
 ├── shared/download.ts                     # downloadBlob, localDateStamp (premaknjeno iz account/downloadJson.ts)
 ├── features/account/downloadJson.ts       # uporabi shared/download.ts (vedenje nespremenjeno)
 ├── features/contacts/export/
 │   ├── ExportButton.tsx                   # gumb, useSelectionCheck(run = exportContacts), toast, alert, Poskusi znova
 │   ├── exportFileName.ts                  # fileNameTitle, exportFileName (R-03)
-│   ├── api.ts                             # exportContacts(groupId, ids, sort, dir, language) → { blob, count, skipped }
+│   ├── api.ts                             # exportContacts(authFetchBlob, groupId, { contactIds, sort, dir, language }) → { blob, count, skipped }
 │   └── ExportButton.test.tsx · exportFileName.test.ts
 ├── features/contacts/selection/SelectionActionBar.tsx   # + <ExportButton> (vsi člani)
 ├── i18n/{sl,en}.json                      # contacts.export.*

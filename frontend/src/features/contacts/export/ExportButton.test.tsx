@@ -218,11 +218,20 @@ describe('ExportButton', () => {
     await waitFor(() => expect(toasts()).toHaveTextContent(text), OPTIONS);
   });
 
-  it('FR-010-02: spremenjen izbor (nov zadetek) – obvestilo, izvoz ni poslan; »Posodobi izbor« izvoza ne sproži', async () => {
+  it('FR-010-02: spremenjen izbor (nov zadetek) – obvestilo, izvoz ni poslan; »Posodobi izbor« izvoza ne sproži, ponovni izvoz pošlje 13 identitet', async () => {
+    const downloads = captureDownloads();
+    let checks = 0;
     const { user, api } = renderMatches({
       contacts: {
-        selectionCheck: () =>
-          selectionCheckReply({ queries: [{ newMatches: [contactId(30)], noLongerMatching: [] }] }),
+        selectionCheck: () => {
+          checks += 1;
+          return checks === 1
+            ? selectionCheckReply({
+                queries: [{ newMatches: [contactId(30)], noLongerMatching: [] }],
+              })
+            : selectionCheckReply();
+        },
+        export: () => exportReply({ count: 13 }),
       },
     });
     await selectAllMatches(user);
@@ -239,6 +248,15 @@ describe('ExportButton', () => {
     );
     expect(api.exportRequests()).toHaveLength(0);
     await expectCount('Izbranih: 13');
+
+    await runExport(user);
+
+    await waitFor(() => expect(api.exportRequests()).toHaveLength(1));
+    const exported = api.exportRequests()[0]?.contactIds ?? [];
+    expect(exported).toHaveLength(13);
+    expect(new Set(exported)).toEqual(new Set([...MATCHES, contactId(30)]));
+    await waitFor(() => expect(toasts()).toHaveTextContent('Izvoženih kontaktov: 13.'), OPTIONS);
+    expect(downloads.names).toHaveLength(1);
   });
 
   it('FR-010-02: nov zadetek + »Nadaljuj z obstoječim izborom« izvozi prvotnih 12 kontaktov, toast in prenos', async () => {
