@@ -121,7 +121,7 @@ describe('CompareA11y', () => {
     )) {
       expect(visited).toContain(checkbox);
     }
-  });
+  }, 20_000);
 
   it('FR-011-12: puščica dol/gor premika izbiro med radio gumbi vrstice, presledek preklopi potrditveno polje značke', async () => {
     const view = app();

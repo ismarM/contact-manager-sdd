@@ -126,18 +126,23 @@ describe('DuplicateResults', () => {
 
     const janez = await card('Enak e-naslov: janez@primer.si');
     const more = janez.getByRole('button', { name: 'Še 4 kontakti' });
-    const items = within(janez.getByRole('list', { name: 'Kontakti v skupini' })).getAllByRole(
-      'listitem',
-    );
-    expect(items.map((item) => item.textContent)).toEqual(
-      Array.from({ length: 14 }, (_, i) => `Kontakt ${i + 1}`),
-    );
-    for (const item of items.slice(0, 10)) expect(item).toBeVisible();
-    for (const item of items.slice(10)) expect(item).not.toBeVisible();
+    const list = janez.getByRole('list', { name: 'Kontakti v skupini' });
+    const names = (count: number) => Array.from({ length: count }, (_, i) => `Kontakt ${i + 1}`);
+
+    // Zaprto: v seznamu (tudi za bralnike zaslona) je samo prvih 10 kontaktov, ki gredo v primerjavo.
+    expect(
+      within(list)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent),
+    ).toEqual(names(10));
+    expect(more).toHaveAttribute('aria-expanded', 'false');
 
     await user.click(more);
 
-    for (const item of items.slice(10)) expect(item).toBeVisible();
+    expect(more).toHaveAttribute('aria-expanded', 'true');
+    const items = within(list).getAllByRole('listitem');
+    expect(items.map((item) => item.textContent)).toEqual(names(14));
+    for (const item of items) expect(item).toBeVisible();
   });
 
   it('FR-011-21: »Primerjaj in združi« odpre primerjavo prvih 10 kontaktov z total=14', async () => {

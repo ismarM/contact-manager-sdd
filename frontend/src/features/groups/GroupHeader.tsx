@@ -59,6 +59,14 @@ export function GroupHeader({ group, focusTitle }: { group: GroupDetail; focusTi
         >
           {t('groups.header.contacts')}
         </NavLink>
+        {!group.archived && group.role !== 'VIEWER' && (
+          <NavLink
+            to={`/groups/${group.id}/duplicates`}
+            className={`-mb-px border-b-4 border-transparent px-1 pb-2 font-bold aria-[current=page]:border-primary ${focusRing}`}
+          >
+            {t('duplicates.tab')}
+          </NavLink>
+        )}
         <NavLink
           to={`/groups/${group.id}/audit`}
           className={`-mb-px border-b-4 border-transparent px-1 pb-2 font-bold aria-[current=page]:border-primary ${focusRing}`}

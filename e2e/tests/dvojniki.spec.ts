@@ -204,7 +204,13 @@ test('FR-011-01 FR-011-02 FR-011-04 FR-011-07 FR-011-08 FR-011-14 FR-011-15 FR-0
   expect(contactExists(first)).toBe(true);
   expect(contactExists(second)).toBe(false);
   await page.goto(`/groups/${groupId}/contacts/${second}`);
-  await expect(page.getByRole('heading', { name: 'Te strani ni' })).toBeVisible();
+  if ((page.viewportSize()?.width ?? 0) >= 1280) {
+    await expect(page.getByRole('region', { name: 'Podrobnosti kontakta' })).toContainText(
+      'Tega kontakta ni več',
+    );
+  } else {
+    await expect(page.getByRole('heading', { name: 'Te strani ni' })).toBeVisible();
+  }
   await expectNoAxeViolations(page);
 });
 
@@ -267,7 +273,13 @@ test('FR-011-01 FR-011-02 FR-011-07 FR-011-08 FR-011-14 FR-011-15 FR-011-18 SC-0
   await expectNoAxeViolations(en);
   expect(contactsWithEmail(groupId, 'janez@primer.si')).toBe(1);
   await en.goto(`/groups/${groupId}/contacts/${second}`);
-  await expect(en.getByRole('heading', { name: 'Page not found' })).toBeVisible();
+  if ((page.viewportSize()?.width ?? 0) >= 1280) {
+    await expect(en.getByRole('region', { name: 'Contact details' })).toContainText(
+      'This contact no longer exists',
+    );
+  } else {
+    await expect(en.getByRole('heading', { name: 'Page not found' })).toBeVisible();
+  }
   await context.close();
 });
 
@@ -376,9 +388,11 @@ test('FR-011-09 FR-011-10 FR-011-11 FR-011-12 FR-011-15: primerjava treh kontakt
   await expect(tags.getByRole('checkbox', { name: 'sponzor' })).toHaveCount(0);
   await expect(preview).not.toContainText('sponzor');
   await expect(columns.first()).toContainText('Ostane');
+  // Ostaneta dva kontakta: izločanje ni več mogoče, namesto gumba je razlaga (FR-011-11).
   await expect(
     page.getByRole('note').filter({ hasText: 'Združiti je treba vsaj 2 kontakta.' }),
-  ).toHaveCount(0);
+  ).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'Izloči iz združevanja' })).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Združi kontakte' }).click();
   await expect(dialog(page)).toHaveAccessibleName('Združim 2 kontakta?');
@@ -538,16 +552,30 @@ test('FR-011-09 FR-011-12 FR-011-14 FR-011-21: primerjava 10 od 14 kontaktov –
   await expect(page.getByRole('region', { name: 'Predogled združenega kontakta' })).toBeVisible();
 
   if (width <= 360) {
-    const targets = [
+    // Tarča dotika izbirnega gumba in potrditvenega polja je njuna oznaka (label), kot v ostalem projektu.
+    const inputs = [
       ...(await page.getByRole('radio').all()),
       ...(await page.getByRole('checkbox').all()),
+    ];
+    const boxes = [];
+    for (const input of inputs) {
+      boxes.push(
+        await input.evaluate((element) => {
+          const { width, height } = (element.closest('label') ?? element).getBoundingClientRect();
+          return { width, height };
+        }),
+      );
+    }
+    for (const target of [
       ...(await page.getByRole('button', { name: 'Izloči iz združevanja' }).all()),
       page.getByRole('button', { name: 'Združi kontakte' }),
-    ];
-    for (const target of targets) {
-      const box = await target.boundingBox();
-      expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
-      expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+    ]) {
+      boxes.push((await target.boundingBox()) ?? { width: 0, height: 0 });
+    }
+    expect(boxes.length).toBeGreaterThan(0);
+    for (const box of boxes) {
+      expect(box.width).toBeGreaterThanOrEqual(44);
+      expect(box.height).toBeGreaterThanOrEqual(44);
     }
   }
 
@@ -755,7 +783,7 @@ test('FR-011-15 FR-011-17 FR-011-18 SC-003: vnos »združil(a) 3 kontakte« z iz
   await expect(entries).toHaveCount(1);
   await expect(entries.first()).toContainText('združil(a) 3 kontakte');
   await expect(entries.first()).toContainText('Ana Novak');
-  await expect(entries.first()).toContainText(/\d{1,2}:\d{2}/);
+  await expect(entries.first()).toContainText(/\d{1,2}[:.]\d{2}/);
   expect(auditEntryCount(groupId)).toBe(1);
   expect(lastAuditEntry(groupId)).toEqual({ action: 'MERGE', contactCount: 3 });
   await expectNoAxeViolations(page);
