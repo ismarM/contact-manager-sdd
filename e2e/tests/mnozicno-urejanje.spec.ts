@@ -15,6 +15,10 @@ import {
 } from './support/contacts';
 import { archive, createGroup, setRole, sql } from './support/groups';
 
+// Priprava podatkov (SQL prek Dockerja), več uporabnikov in axe nad dialogi pod obremenitvijo `verify.sh full` presežejo
+// privzetih 30 s (D-79).
+test.describe.configure({ timeout: 90_000 });
+
 // 009 izbor in množično urejanje kontaktov (plan.md – Public Interfaces). Vsak test teče pri 360, 768 in 1280 px.
 // Podatke pripravi SQL (D-27); izbris, ki mora pustiti sled (R-02), naredi drug član prek vmesnika.
 
