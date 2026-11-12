@@ -32,7 +32,16 @@ public class IdentityDeletionJob {
     public void runOnce() {
         deleted.purge(properties.tombstoneRetention());
         for (Leased row : deleted.lease(BATCH, properties.lease())) {
-            Result result = identities.deleteWithDetail(row.uid());
+            Result result;
+            try {
+                result = identities.deleteWithDetail(row.uid());
+            } catch (RuntimeException e) {
+                // Ena vrstica z nepričakovano napako ne sme ustaviti obhoda; ostane odprta in se ponovi (zakup poteče).
+                LOG.error(
+                        "Nepričakovana napaka pri brisanju identitete ({})",
+                        e.getClass().getSimpleName());
+                result = new Result(IdentityProvider.Outcome.RETRY, "INTERNAL");
+            }
             if (result.outcome().success()) {
                 deleted.markDeleted(row.uid());
             } else {

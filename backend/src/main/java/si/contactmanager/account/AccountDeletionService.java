@@ -55,13 +55,28 @@ class AccountDeletionService {
             throw new ValidationException(List.of(new FieldError("email", "MISMATCH")));
         }
         String uid = executeLocally(user.id(), parsed.email());
-        Result result = identities.deleteWithDetail(uid);
+        Result result = deleteAtProvider(uid);
         if (result.outcome().success()) {
             deleted.markDeleted(uid);
             return DeletionResult.DELETED;
         }
         deleted.markFailed(uid, result.error(), IdentityRetryBackoff.delay(0));
         return DeletionResult.PENDING;
+    }
+
+    /**
+     * Klic ponudnika; vsaka nepričakovana napaka je samo »ponovi pozneje«: lokalni izbris je že potrjen, zato mora
+     * odgovor ostati {@code 202} in ne {@code 500} (FR-012-17); nadgrobnik ostane odprt za ponavljanje.
+     */
+    private Result deleteAtProvider(String uid) {
+        try {
+            return identities.deleteWithDetail(uid);
+        } catch (RuntimeException e) {
+            LOG.error(
+                    "Nepričakovana napaka pri brisanju identitete ({})",
+                    e.getClass().getSimpleName());
+            return new Result(IdentityProvider.Outcome.RETRY, "INTERNAL");
+        }
     }
 
     /** Lokalna transakcija; ob mrtvem objemu (SQLSTATE 40P01) en ponovni poskus celotne transakcije. */
