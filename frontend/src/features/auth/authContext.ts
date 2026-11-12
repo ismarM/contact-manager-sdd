@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 
-import type { AuthFetch } from '../../shared/api/authFetch';
+import type { AuthFetch, AuthFetchBlob } from '../../shared/api/authFetch';
 import type { Language, Theme } from '../account/preferences';
 import type { SignInErrorCode } from './AuthGateway';
 
@@ -28,6 +28,8 @@ export interface AuthContextValue {
   /** Račun je izbrisan (012): lokalna seja se počisti, uporabnik gre na prijavo s potrdilom; `pending` = 202 (FR-012-17). */
   accountDeleted: (pending: boolean) => Promise<void>;
   authFetch: AuthFetch;
+  /** Kot `authFetch`, za odgovore z datoteko (010). */
+  authFetchBlob: AuthFetchBlob;
   theme: Theme | null;
   changeLanguage: (language: Language) => void;
   changeTheme: (theme: Theme | null) => void;

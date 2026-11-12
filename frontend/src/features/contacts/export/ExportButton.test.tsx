@@ -344,7 +344,6 @@ describe('ExportButton', () => {
     await i18n.changeLanguage('en');
     const downloads = captureDownloads();
     const { user, api } = render(SORTED, { contacts: { export: () => exportReply({ count: 3 }) } });
-    await listReady();
     for (const name of [displayName(1), displayName(2), displayName(3)]) {
       await user.click(await screen.findByRole('checkbox', { name: `Select ${name}` }));
     }
@@ -356,7 +355,13 @@ describe('ExportButton', () => {
       ),
     );
 
-    await waitFor(() => expect(toasts()).toHaveTextContent('Contacts exported: 3.'), OPTIONS);
+    await waitFor(
+      () =>
+        expect(screen.getByRole('region', { name: 'Notifications' })).toHaveTextContent(
+          'Contacts exported: 3.',
+        ),
+      OPTIONS,
+    );
     expect(api.exportRequests()[0]?.language).toBe('en');
     expect(downloads.names).toEqual([`Projekt-FERI-contacts-${localDateStamp(new Date())}.xlsx`]);
   });

@@ -198,25 +198,25 @@ description: "Tasks for 010-izvoz-excel (tests mandatory, independent test revie
 
 ## Phase 5: Implementation core (skupno vsem zgodbam)
 
-- [ ] T026 [P] FR-010-08 FR-010-09 Izvedi backend/src/main/java/si/contactmanager/contact/CellText.java po research R-07: `null`/`""` → `Optional.empty()`. Prvi znak `=`, `+`, `-`, `@`, `\t`, `\r` → predpona `'`. Sicer je vrednost nespremenjena.
-- [ ] T027 [P] FR-010-03 FR-010-04 Izvedi backend/src/main/java/si/contactmanager/contact/ExportLabels.java po R-08 (zaprta preslikava `sl`/`en`, besedila dobesedno iz plan.md).
-- [ ] T028 [P] FR-010-07 FR-010-13 Izvedi backend/src/main/java/si/contactmanager/contact/ExportRequestParser.java in ExportRequest.java po data-model.md (*ExportRequest*):
+- [x] T026 [P] FR-010-08 FR-010-09 Izvedi backend/src/main/java/si/contactmanager/contact/CellText.java po research R-07: `null`/`""` → `Optional.empty()`. Prvi znak `=`, `+`, `-`, `@`, `\t`, `\r` → predpona `'`. Sicer je vrednost nespremenjena.
+- [x] T027 [P] FR-010-03 FR-010-04 Izvedi backend/src/main/java/si/contactmanager/contact/ExportLabels.java po R-08 (zaprta preslikava `sl`/`en`, besedila dobesedno iz plan.md).
+- [x] T028 [P] FR-010-07 FR-010-13 Izvedi backend/src/main/java/si/contactmanager/contact/ExportRequestParser.java in ExportRequest.java po data-model.md (*ExportRequest*):
   - »`contactIds` 1–10 000 po zlitju podvojenih«;
   - `sort`/`dir` razčleni z obstoječo logiko `ContactQueryParser` (`parseSort`/`parseDirection` – po potrebi postaneta paketno vidni, brez spremembe vedenja 008);
   - »`language` `sl` | `en` (obvezno)«; neznana polja `UNKNOWN_FIELD`; nikoli ne vrže.
 
   Vrne tudi `identities(body)` za korak 404 (vzorec `BulkInputParser.identities`, pri več kot 10 000 `null`).
-- [ ] T029 FR-010-05 FR-010-06 FR-010-07 FR-010-11 Izvedi backend/src/main/java/si/contactmanager/contact/ExportRepository.java po R-06:
+- [x] T029 FR-010-05 FR-010-06 FR-010-07 FR-010-11 Izvedi backend/src/main/java/si/contactmanager/contact/ExportRepository.java po R-06:
   - `rows(group, ids, query)` – `… WHERE c.group_id = :group AND c.id = ANY(:ids) ORDER BY ‹ContactSearch.orderBy›`;
   - `attributes(ids)` – po kosih 5000;
   - `tags(ids)` – `ORDER BY contact_id, tag_norm COLLATE sort_sl, tag_norm`;
   - `keyOrder(ids)` – različni `key_norm`, `ORDER BY key_norm COLLATE sort_sl, key_norm`.
-- [ ] T030 FR-010-03 FR-010-05 FR-010-08 Izvedi backend/src/main/java/si/contactmanager/contact/ExportWriter.java (`fastexcel`, odvisnost: T026, T027):
+- [x] T030 FR-010-03 FR-010-05 FR-010-08 Izvedi backend/src/main/java/si/contactmanager/contact/ExportWriter.java (`fastexcel`, odvisnost: T026, T027):
   - en list z imenom iz `ExportLabels`;
   - vrstica 1 je glava (`CellText` tudi za ključe), sledijo vrstice v podanem vrstnem redu;
   - vse vrednosti prek `value(String)` (nikoli `formula`), slog stolpcev `format("@")`, `wrapText` za naslov;
   - pisanje neposredno v `OutputStream`.
-- [ ] T031 FR-010-11 Rokovalnik v backend/src/main/java/si/contactmanager/shared/error/ApiExceptionHandler.java: `ExportEmptyException` → `409 {code: EXPORT_EMPTY}`. Kodo dodaj v enum ali seznam kod, če obstaja (feature-map §2.10 jo že ima).
+- [x] T031 FR-010-11 Rokovalnik v backend/src/main/java/si/contactmanager/shared/error/ApiExceptionHandler.java: `ExportEmptyException` → `409 {code: EXPORT_EMPTY}`. Kodo dodaj v enum ali seznam kod, če obstaja (feature-map §2.10 jo že ima).
 
 **Checkpoint**: T011, T012 in T013 so zeleni; `./verify.sh quick` je zelen.
 
@@ -228,23 +228,23 @@ description: "Tasks for 010-izvoz-excel (tests mandatory, independent test revie
 
 **Independent Test**: T014, T017, T022 in del T023 (vidnost, potek, uspeh, jezik) ter E2E osnovni izvoz so zeleni.
 
-- [ ] T032 [US1] FR-010-02 … FR-010-08 FR-010-14 Izvedi backend/src/main/java/si/contactmanager/contact/ExportService.java (odvisnost: T028 … T031):
+- [x] T032 [US1] FR-010-02 … FR-010-08 FR-010-14 Izvedi backend/src/main/java/si/contactmanager/contact/ExportService.java (odvisnost: T028 … T031):
   - `@Transactional(readOnly = true, isolation = REPEATABLE_READ)`;
   - vrstice, atributi in značke iz `ExportRepository`;
   - glava ključa je `key` iz prve vrstice datoteke s tem `key_norm`;
   - `ExportRow` za vsak kontakt, nato `ExportWriter`.
 
   Brez zaklepov, brez pisanja.
-- [ ] T033 [US1] FR-010-02 FR-010-16 Izvedi backend/src/main/java/si/contactmanager/contact/ExportController.java po R-04:
+- [x] T033 [US1] FR-010-02 FR-010-16 Izvedi backend/src/main/java/si/contactmanager/contact/ExportController.java po R-04:
   - `access.require(jwt, groupId, Role.VIEWER, false)`;
   - `BulkService.requireKnown` nad veljavnimi identitetami (404);
   - razčlenitev (400); `ContactService.requireKnownKeys` se **ne** kliče (ključ razvrščanja brez kontaktov ni napaka, D-90);
   - `ExportService`.
 
   Odgovor je `StreamingResponseBody` z glavami `Content-Type`, `X-Export-Count`, `X-Export-Skipped`, `Content-Disposition: attachment; filename="contacts.xlsx"`, `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`. Štetje in `EXPORT_EMPTY` se izračunata **pred** začetkom toka, da je napaka še lahko JSON.
-- [ ] T034 [P] [US1] FR-010-10 Izvedi frontend/src/features/contacts/export/exportFileName.ts po data-model.md (*Ime datoteke*): NFD, odstranitev `\p{M}`, `[^A-Za-z0-9._]+` → `-`, obrez vodilnih in končnih `-` in `.`, prazno → `skupina`/`group`; datum iz `localDateStamp`.
-- [ ] T035 [US1] FR-010-15 Izvedi `apiFetchBlob` v frontend/src/shared/api/client.ts (napake enako kot `apiFetch` – `ApiError` s `status`, `code`, `body`; ob uspehu `{ blob, headers }`) in `exportContacts` v frontend/src/features/contacts/export/api.ts → `{ blob, count, skipped }`.
-- [ ] T036 [US1] FR-010-01 FR-010-04 FR-010-07 FR-010-14 FR-010-15 Izvedi frontend/src/features/contacts/export/ExportButton.tsx (odvisnost: T034, T035):
+- [x] T034 [P] [US1] FR-010-10 Izvedi frontend/src/features/contacts/export/exportFileName.ts po data-model.md (*Ime datoteke*): NFD, odstranitev `\p{M}`, `[^A-Za-z0-9._]+` → `-`, obrez vodilnih in končnih `-` in `.`, prazno → `skupina`/`group`; datum iz `localDateStamp`.
+- [x] T035 [US1] FR-010-15 Izvedi `apiFetchBlob` v frontend/src/shared/api/client.ts (napake enako kot `apiFetch` – `ApiError` s `status`, `code`, `body`; ob uspehu `{ blob, headers }`) in `exportContacts` v frontend/src/features/contacts/export/api.ts → `{ blob, count, skipped }`.
+- [x] T036 [US1] FR-010-01 FR-010-04 FR-010-07 FR-010-14 FR-010-15 Izvedi frontend/src/features/contacts/export/ExportButton.tsx (odvisnost: T034, T035):
   - `useSelectionCheck({ run: ids => exportContacts(group.id, ids, query.sort, query.dir, i18n.language), onSuccess })`;
   - `sort`/`dir` iz trenutne poizvedbe 008 (`useContactQuery`);
   - med `busy` oznaka in `aria-disabled` ter `status`;
@@ -265,8 +265,8 @@ description: "Tasks for 010-izvoz-excel (tests mandatory, independent test revie
 
 **Independent Test**: T018, T021, del T023 (spremenjen izbor, meja) in E2E »vsi zadetki« so zeleni.
 
-- [ ] T037 [US2] FR-010-02 FR-010-13 frontend/src/features/contacts/export/ExportButton.tsx (odvisnost: T036): preslikava `400` `contactIds` `TOO_MANY` → besedilo meje in `TOO_MANY_COLUMNS` → besedilo R-09; *Posodobi izbor* izvoza ne sproži, *Nadaljuj z obstoječim izborom* ga sproži brez manjkajočih (obstoječi `useSelectionCheck`).
-- [ ] T038 [US2] FR-010-13 SC-002 backend/src/main/java/si/contactmanager/contact/ExportService.java (odvisnost: T032): preverjanje `6 + število ključev ≤ 16 384` pred začetkom toka → `400` `contactIds` `TOO_MANY_COLUMNS` (R-09). Po potrebi optimizacija za `ExportPerformanceIT` (kosi, `= ANY` polja, brez N+1).
+- [x] T037 [US2] FR-010-02 FR-010-13 frontend/src/features/contacts/export/ExportButton.tsx (odvisnost: T036): preslikava `400` `contactIds` `TOO_MANY` → besedilo meje in `TOO_MANY_COLUMNS` → besedilo R-09; *Posodobi izbor* izvoza ne sproži, *Nadaljuj z obstoječim izborom* ga sproži brez manjkajočih (obstoječi `useSelectionCheck`).
+- [x] T038 [US2] FR-010-13 SC-002 backend/src/main/java/si/contactmanager/contact/ExportService.java (odvisnost: T032): preverjanje `6 + število ključev ≤ 16 384` pred začetkom toka → `400` `contactIds` `TOO_MANY_COLUMNS` (R-09). Po potrebi optimizacija za `ExportPerformanceIT` (kosi, `= ANY` polja, brez N+1).
 
 ---
 
@@ -276,8 +276,8 @@ description: "Tasks for 010-izvoz-excel (tests mandatory, independent test revie
 
 **Independent Test**: T015, T016, T020 (tuja identiteta) in del T023 (izpuščeni, `EXPORT_EMPTY`) so zeleni.
 
-- [ ] T039 [US3] FR-010-11 FR-010-12 backend/src/main/java/si/contactmanager/contact/ExportService.java (odvisnost: T032): `skipped = število različnih identitet − število prebranih vrstic`; `0` vrstic → `ExportEmptyException`; tuje identitete so izločene že v koraku 404 (T033).
-- [ ] T040 [US3] FR-010-11 frontend/src/features/contacts/export/ExportButton.tsx (odvisnost: T036): toast z dodanim stavkom o izpuščenih (i18next množine); `409 EXPORT_EMPTY` → `alert`.
+- [x] T039 [US3] FR-010-11 FR-010-12 backend/src/main/java/si/contactmanager/contact/ExportService.java (odvisnost: T032): `skipped = število različnih identitet − število prebranih vrstic`; `0` vrstic → `ExportEmptyException`; tuje identitete so izločene že v koraku 404 (T033).
+- [x] T040 [US3] FR-010-11 frontend/src/features/contacts/export/ExportButton.tsx (odvisnost: T036): toast z dodanim stavkom o izpuščenih (i18next množine); `409 EXPORT_EMPTY` → `alert`.
 
 ---
 
@@ -287,15 +287,15 @@ description: "Tasks for 010-izvoz-excel (tests mandatory, independent test revie
 
 **Independent Test**: T019, T020 (arhivirana), del T023 (arhivirana) in E2E arhivirana so zeleni.
 
-- [ ] T041 [US4] FR-010-01 FR-010-16 Preveri, da ExportController.java nima preverjanja `membership.archived()` in da je `ExportButton` v SelectionActionBar.tsx izrisan neodvisno od `canEditContacts`. Popravi samo, če T019 ali T023 padeta.
+- [x] T041 [US4] FR-010-01 FR-010-16 Preveri, da ExportController.java nima preverjanja `membership.archived()` in da je `ExportButton` v SelectionActionBar.tsx izrisan neodvisno od `canEditContacts`. Popravi samo, če T019 ali T023 padeta.
 
 ---
 
 ## Phase 10: Polish & Cross-Cutting Concerns
 
-- [ ] T042 FR-010-01 … FR-010-16 `/speckit-converge` do »Converged«; manjkajoče doda kot naloge in jih izvede.
-- [ ] T043 SC-001 … SC-006 Posodobi specs/010-izvoz-excel/traceability.md: vsak FR-ID → testi → stanje; matrika izolacije za `POST …/contacts/export`; *Meritve*: SC-002 (`ExportPerformanceIT` p50/p95/največ in okolje).
-- [ ] T044 — `./verify.sh full` zelen (vključno z vsemi testi 000–009).
+- [x] T042 FR-010-01 … FR-010-16 `/speckit-converge` do »Converged«; manjkajoče doda kot naloge in jih izvede.
+- [x] T043 SC-001 … SC-006 Posodobi specs/010-izvoz-excel/traceability.md: vsak FR-ID → testi → stanje; matrika izolacije za `POST …/contacts/export`; *Meritve*: SC-002 (`ExportPerformanceIT` p50/p95/največ in okolje).
+- [x] T044 — `./verify.sh full` zelen (vključno z vsemi testi 000–009).
 - [ ] T045 — Ročni pregled skrivnosti cele veje (`gitleaks` nad `git diff main...`), izid v opisu PR.
 - [ ] T046 — Push veje `izvoz-excel` in PR v `main`. Opis PR navede:
   - predpostavke: R-03 (ime datoteke in datum na odjemalcu), R-05 (izpust namesto `SELECTION_CHANGED`), R-09 (`TOO_MANY_COLUMNS`, potrjeno v FR-010-13);

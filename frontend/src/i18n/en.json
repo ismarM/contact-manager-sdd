@@ -401,6 +401,8 @@
       "busy": "Preparing export…",
       "success": "Contacts exported: {{count}}.",
       "skipped_one": "{{count}} selected contact was deleted in the meantime and is not in the file.",
+      "skipped_two": "{{count}} selected contacts were deleted in the meantime and are not in the file.",
+      "skipped_few": "{{count}} selected contacts were deleted in the meantime and are not in the file.",
       "skipped_other": "{{count}} selected contacts were deleted in the meantime and are not in the file.",
       "empty": "None of the selected contacts exists anymore.",
       "tooMany": "You can export at most 10,000 contacts at once. Narrow the search with filters.",

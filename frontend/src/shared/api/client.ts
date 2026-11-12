@@ -47,8 +47,11 @@ export interface BlobResponse {
 }
 
 /** Kot {@link apiFetch}, vendar telo uspešnega odgovora ni JSON, temveč datoteka; napake so enake (`ApiError`). */
-export function apiFetchBlob(path: string, init?: RequestInit): Promise<BlobResponse> {
-  void path;
-  void init;
-  return Promise.reject(new Error('not implemented'));
+export async function apiFetchBlob(path: string, init?: RequestInit): Promise<BlobResponse> {
+  const response = await fetch(`/api${path}`, init);
+  if (!response.ok) {
+    const body = await errorBody(response);
+    throw new ApiError(response.status, codeOf(body), body);
+  }
+  return { blob: await response.blob(), headers: response.headers };
 }

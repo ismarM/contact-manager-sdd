@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** Vrstica izvoza: kontakt, atributi po {@code key_norm} in značke po slovenski abecedi (010, data-model.md). */
+/** Vrstica izvoza: kontakt, vrednosti atributov po {@code key_norm} in značke po slovenski abecedi (010, data-model.md). */
 record ExportRow(
         UUID id,
         String firstName,

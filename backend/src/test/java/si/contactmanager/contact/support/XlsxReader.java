@@ -49,12 +49,19 @@ public final class XlsxReader {
             if (!names.isEmpty()) {
                 int width = 0;
                 for (Row row : workbook.getFirstSheet().read()) {
-                    List<String> texts = new ArrayList<>();
-                    List<CellType> kinds = new ArrayList<>();
-                    for (int column = 0; column < row.getPhysicalCellCount(); column++) {
-                        Cell cell = row.hasCell(column) ? row.getCell(column) : null;
-                        texts.add(cell == null || cell.getType() == CellType.EMPTY ? "" : cell.getText());
-                        kinds.add(cell == null ? CellType.EMPTY : cell.getType());
+                    int size = 0;
+                    for (Cell cell : row) {
+                        if (cell != null) {
+                            size = Math.max(size, cell.getColumnIndex() + 1);
+                        }
+                    }
+                    List<String> texts = new ArrayList<>(java.util.Collections.nCopies(size, ""));
+                    List<CellType> kinds = new ArrayList<>(java.util.Collections.nCopies(size, CellType.EMPTY));
+                    for (Cell cell : row) {
+                        if (cell != null && cell.getType() != CellType.EMPTY) {
+                            texts.set(cell.getColumnIndex(), cell.getText());
+                            kinds.set(cell.getColumnIndex(), cell.getType());
+                        }
                     }
                     while (!texts.isEmpty() && texts.get(texts.size() - 1).isEmpty()) {
                         texts.remove(texts.size() - 1);

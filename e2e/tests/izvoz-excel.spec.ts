@@ -93,7 +93,7 @@ test('FR-010-01 FR-010-02 FR-010-03 FR-010-10 FR-010-14 FR-010-15 SC-001 SC-003:
   await pick(v, 'Ana Kos').check();
   await expect(exportButton(v)).toBeVisible();
   await pagination(v).getByRole('button', { name: 'Naslednja' }).click();
-  await expect(pagination(v).getByRole('status')).toHaveText('26–50 od 32');
+  await expect(pagination(v).getByRole('status')).toHaveText('26–32 od 32');
   await pick(v, 'Bor Zupan').check();
   await expect(status(v)).toHaveText('Izbrana: 2');
   await expectNoAxeViolations(v);

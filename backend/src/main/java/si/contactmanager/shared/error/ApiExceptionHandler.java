@@ -38,6 +38,12 @@ class ApiExceptionHandler {
     /** Telo {@code 409 SELECTION_CHANGED}. */
     record SelectionChanged(String code, java.util.List<java.util.UUID> missing) {}
 
+    /** Noben izbrani kontakt ne obstaja več (010, FR-010-11). */
+    @ExceptionHandler(ExportEmptyException.class)
+    ResponseEntity<ErrorResponse> exportEmpty() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("EXPORT_EMPTY"));
+    }
+
     /** Nečlan ali neobstoječ vir: 404 s praznim telesom, enako kot neobstoječa pot (feature-map §2.2, 002 R-01). */
     @ExceptionHandler(NotFoundException.class)
     ResponseEntity<Void> notMember() {
