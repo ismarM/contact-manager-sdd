@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataAccessException;
 import si.contactmanager.account.support.AccountApiTest;
 import si.contactmanager.support.FirebaseEmulatorContainer.SignedIn;
@@ -27,6 +28,7 @@ import si.contactmanager.support.FirebaseEmulatorContainer.SignedIn;
  */
 @Tag("FR-012-14")
 @Tag("FR-012-18")
+@Import(SwitchableAccessTokens.class)
 class ReRegistrationGuardSecurityIT extends AccountApiTest {
 
     @Autowired
@@ -41,6 +43,7 @@ class ReRegistrationGuardSecurityIT extends AccountApiTest {
 
     @AfterEach
     void closePool() {
+        SwitchableAccessTokens.reset();
         pool.shutdownNow();
     }
 
@@ -102,9 +105,10 @@ class ReRegistrationGuardSecurityIT extends AccountApiTest {
         assertThat(put("/api/me", first.idToken(), null).statusCode()).isEqualTo(201);
         int[] status = new int[1];
 
-        emulator()
-                .paused(() -> status[0] = post("/api/me/deletion", first.idToken(), deletionBody(email))
-                        .statusCode());
+        // D-77: stanje čakanja z neveljavnimi poverilnicami (resnični 401 emulatorja): identiteta zanesljivo ostane.
+        SwitchableAccessTokens.useInvalidCredentials();
+        status[0] =
+                post("/api/me/deletion", first.idToken(), deletionBody(email)).statusCode();
 
         assertThat(status[0]).isEqualTo(202);
         assertThat(put("/api/me", first.idToken(), null).statusCode()).isEqualTo(401);
@@ -113,6 +117,7 @@ class ReRegistrationGuardSecurityIT extends AccountApiTest {
         assertThat(put("/api/me", again.idToken(), null).statusCode()).isEqualTo(401);
         assertThat(account.appUserExists(first.uid())).isFalse();
 
+        SwitchableAccessTokens.reset();
         account.makeDue(first.uid());
         job.runOnce();
 

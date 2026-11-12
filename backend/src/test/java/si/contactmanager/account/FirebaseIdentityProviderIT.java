@@ -72,9 +72,11 @@ class FirebaseIdentityProviderIT {
 
         assertThat(outcome[0]).isEqualTo(Outcome.RETRY);
         assertThat((System.nanoTime() - started) / 1_000_000).isLessThanOrEqualTo(9000);
-        assertThat(emulator.identityExists(identity.uid()))
-                .as("po odmrznitvi identiteta še obstaja")
-                .isTrue();
+        // D-77: zamrznjen emulator po odmrznitvi obdela že vmesnjeni zahtevek, zato identiteta po izteku časovne
+        // omejitve
+        // odjemalca lahko že ne obstaja več. Ponovitev je zato varna (idempotentna): DELETED ali NOT_FOUND.
+        assertThat(provider(() -> "owner").delete(identity.uid())).isIn(Outcome.DELETED, Outcome.NOT_FOUND);
+        assertThat(emulator.identityExists(identity.uid())).isFalse();
     }
 
     @Test

@@ -122,7 +122,8 @@ class IdentityDeletionIT extends AccountApiTest {
                         identity.uid()))
                 .as("odmik 30 s po prvem neuspehu")
                 .isTrue();
-        assertThat(emulator().identityExists(identity.uid())).isTrue();
+        // D-77: identitete po odmrznitvi ne preverjamo (emulator obdela vmesnjeni zahtevek); stanje v čakanju določa
+        // nadgrobnik.
         Map<String, Object> leasedRow = account.tombstone(leased.uid()).getFirst();
         assertThat(leasedRow.get("attempts")).as("zakup: vrstica še ni zapadla").isEqualTo(0);
         assertThat(emulator().identityExists(leased.uid())).isTrue();

@@ -5,8 +5,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.Import;
 import si.contactmanager.account.support.AccountApiTest;
 import si.contactmanager.support.FirebaseEmulatorContainer.SignedIn;
 import si.contactmanager.support.Http;
@@ -17,7 +19,13 @@ import si.contactmanager.support.Http;
  */
 @Tag("FR-012-15")
 @Tag("FR-012-18")
+@Import(SwitchableAccessTokens.class)
 class DeletedIdentityTokenSecurityIT extends AccountApiTest {
+
+    @AfterEach
+    void resetCredentials() {
+        SwitchableAccessTokens.reset();
+    }
 
     private record Endpoint(String method, String path, String body) {}
 
@@ -78,9 +86,9 @@ class DeletedIdentityTokenSecurityIT extends AccountApiTest {
         groups.addMember(group, id(pia), "VIEWER");
         int[] status = new int[1];
 
-        emulator()
-                .paused(() -> status[0] = post("/api/me/deletion", pia.idToken(), deletionBody(email))
-                        .statusCode());
+        // D-77: stanje čakanja z neveljavnimi poverilnicami (resnični 401 emulatorja): identiteta zanesljivo ostane.
+        SwitchableAccessTokens.useInvalidCredentials();
+        status[0] = post("/api/me/deletion", pia.idToken(), deletionBody(email)).statusCode();
 
         assertThat(status[0]).isEqualTo(202);
         assertEverythingIsUnauthenticated(pia.idToken(), group);

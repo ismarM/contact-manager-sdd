@@ -4,7 +4,6 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -14,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Izvoz mojih podatkov (012, FR-012-01 … FR-012-04, FR-012-16) in blokade izbrisa. Poti nimajo identifikatorja
- * uporabnika, zato tujega računa ni mogoče nasloviti. Blokade izbrisa: {@code 501} do implementacije US2.
+ * uporabnika, zato tujega računa ni mogoče nasloviti.
  */
 @RestController
 @RequestMapping("/api/me")
@@ -40,7 +39,7 @@ class MyDataController {
     }
 
     @GetMapping("/deletion-blockers")
-    ResponseEntity<DeletionBlockers> deletionBlockers() {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    DeletionBlockers deletionBlockers(@AuthenticationPrincipal Jwt jwt) {
+        return service.deletionBlockers(jwt);
     }
 }

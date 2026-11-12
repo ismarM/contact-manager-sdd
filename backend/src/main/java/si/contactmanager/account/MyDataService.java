@@ -18,9 +18,21 @@ import si.contactmanager.shared.error.UnauthenticatedException;
 class MyDataService {
 
     private final MyDataRepository repository;
+    private final AccountDeletionRepository deletion;
 
-    MyDataService(MyDataRepository repository) {
+    MyDataService(MyDataRepository repository, AccountDeletionRepository deletion) {
         this.repository = repository;
+        this.deletion = deletion;
+    }
+
+    /** Nearhivirane skupine v lasti, ki preprečujejo izbris računa (FR-012-06); ista poizvedba kot za {@code 409}. */
+    @Transactional(readOnly = true)
+    DeletionBlockers deletionBlockers(Jwt jwt) {
+        long user = repository
+                .profile(jwt.getSubject())
+                .orElseThrow(UnauthenticatedException::new)
+                .id();
+        return new DeletionBlockers(deletion.blockingGroups(user));
     }
 
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)

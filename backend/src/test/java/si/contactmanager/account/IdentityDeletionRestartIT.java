@@ -121,7 +121,7 @@ class IdentityDeletionRestartIT {
         assertThat(status[0]).isEqualTo(202);
         assertThat(tombstone(x.uid())).isNotNull();
         assertThat(tombstone(x.uid()).get("provider_deleted_at")).isNull();
-        assertThat(emulator.identityExists(x.uid())).isTrue();
+        // D-77: identitete po odmrznitvi ne preverjamo (emulator obdela vmesnjeni zahtevek); nadgrobnik je odprt.
         first.close();
         first = null;
 
