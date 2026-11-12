@@ -197,12 +197,12 @@ class MergeLargeGroupIT extends MergeApiTest {
         current = found();
         UUID round2 = mergeRound(new ArrayList<>(current.subList(0, 10)), 2);
         Map<UUID, Map<String, Object>> afterRound2 = contentOfAll();
-        assertThat(afterRound2).hasSize(1 + 22 + others.size());
+        assertThat(afterRound2).hasSize(22 + others.size());
         current = found();
         mergeRound(new ArrayList<>(current.subList(0, 10)), 3);
         current = found();
         mergeRound(new ArrayList<>(current.subList(0, 10)), 4);
-        assertThat(contacts.count(s.group())).isEqualTo(1 + 4 + others.size());
+        assertThat(contacts.count(s.group())).isEqualTo(4 + others.size());
 
         rollbackTo(s, round2);
 

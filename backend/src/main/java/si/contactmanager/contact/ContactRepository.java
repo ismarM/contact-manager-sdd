@@ -434,8 +434,18 @@ class ContactRepository {
                 revert(rs));
     }
 
-    /** Kontakti skupine za iskanje dvojnikov, razvrščeni po {@code created_at}, {@code id} (FR-011-07). Ogrodje. */
+    /** Kontakti skupine za iskanje dvojnikov, razvrščeni po {@code created_at}, {@code id} (FR-011-07). */
     List<DuplicateCandidate> duplicateCandidates(UUID group) {
-        throw new UnsupportedOperationException("ni implementirano");
+        return jdbc.sql("SELECT id, first_name, last_name, email, phone, created_at FROM contact"
+                        + " WHERE group_id = :group ORDER BY created_at, id")
+                .param("group", group)
+                .query((rs, row) -> new DuplicateCandidate(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("first_name"),
+                        rs.getString("last_name"),
+                        rs.getString("email"),
+                        rs.getString("phone"),
+                        rs.getTimestamp("created_at").toInstant()))
+                .list();
     }
 }

@@ -71,7 +71,7 @@ class MergeValidationIT extends DuplicateApiTest {
                                 Map.of("result.tags[1]", "DUPLICATE")),
                         new Case(
                                 "rezerviran ključ atributa",
-                                with("attributes", List.of(attribute("firstName", "x"))),
+                                with("attributes", List.of(attribute("Ime", "x"))),
                                 Map.of("result.attributes[0].key", "RESERVED_KEY")))
                 .map(Arguments::of);
     }
