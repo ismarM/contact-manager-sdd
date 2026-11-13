@@ -27,6 +27,16 @@ docker compose up --build     # whole system on http://localhost:8080 (health: /
 No `.env` is needed; `.env.example` lists the variables and their development defaults.
 The Firebase Auth Emulator UI is disabled; the emulator listens on `127.0.0.1:9099`.
 
+Showcase mode (separate project, in-memory data that is lost on every restart):
+```bash
+# Start the demo stack on http://localhost:8080
+docker compose -f compose.yaml -f compose.override.yaml -f compose.demo.yaml up --build -d --wait
+# Seed demo data; sign in as ana@demo.si (also bor@, cvetka@, david@demo.si)
+docker compose -f compose.yaml -f compose.override.yaml -f compose.demo.yaml run --rm seed
+# Stop the demo stack (plain `docker compose down` only stops the dev project)
+docker compose -p contact-manager-demo down
+```
+
 ## Quality gate
 ```bash
 ./verify.sh quick   # format, lint, types, suppressions, translations, tool self-tests, unit and FE tests (~30 s)
