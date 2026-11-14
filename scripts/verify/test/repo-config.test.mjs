@@ -40,6 +40,33 @@ describe('Docker Compose', () => {
   });
 });
 
+describe('Pravi Firebase (lokalni razvoj)', () => {
+  it('compose.firebase.yaml izklopi emulator, ne objavlja vrat in nima vdelanih skrivnosti', () => {
+    const file = read('compose.firebase.yaml');
+    assert.match(file, /auth:\s*\n\s*profiles: \[emulator\]/);
+    assert.match(file, /FIREBASE_AUTH_EMULATOR_HOST: ""/);
+    assert.match(file, /VITE_FIREBASE_EMULATOR: "false"/);
+    assert.match(file, /user: "\$\{FIREBASE_CONTAINER_UID:-1000\}:\$\{FIREBASE_CONTAINER_GID:-1000\}"/);
+    assert.match(file, /firebase-admin\.json:ro/);
+    assert.doesNotMatch(file, /^\s*ports:/m);
+    assert.doesNotMatch(file, /AIza[\w-]{20,}/);
+    for (const variable of ['FIREBASE_PROJECT_ID', 'FIREBASE_API_KEY', 'FIREBASE_SERVICE_ACCOUNT_FILE']) {
+      assert.match(file, new RegExp(`\\$\\{${variable}:\\?`), `${variable} mora biti obvezen`);
+    }
+  });
+
+  it('.env.firebase je v .gitignore, primer ne vsebuje ključev', () => {
+    assert.match(read('.gitignore'), /^\.env\.firebase$/m);
+    const example = read('.env.firebase.example');
+    assert.match(example, /^FIREBASE_API_KEY=$/m);
+    assert.match(example, /^FIREBASE_SERVICE_ACCOUNT_FILE=$/m);
+  });
+
+  it('nginx razrešuje emulator leno, da deluje brez storitve auth', () => {
+    assert.match(read('frontend/nginx.conf'), /resolver 127\.0\.0\.11[\s\S]*proxy_pass \$auth_upstream;/);
+  });
+});
+
 describe('Konfiguracija brez skrivnosti', () => {
   it('FR-000-04: .env.example navede spremenljivke s privzetki iz compose.yaml', () => {
     const compose = read('compose.yaml');

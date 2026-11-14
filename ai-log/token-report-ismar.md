@@ -20,6 +20,7 @@ Token usage per AI session run by Ismar. One row per session (each row has a mat
 |---|---|---|---|---|---|---|---|---|---|---|
 | 1 | *‹kratek opis seje› (`‹prvih 8 znakov ID seje›`) – **main session*** | | | | | | | | | |
 | 1a | *└ subagent: ‹opis›* | | | | | | | | | |
+| 2 | integracija pravega Firebase (`76225259`) – **main session** | T3 Code, Claude Code | claude-sonnet-5-5 | 3 / 25 (stanje ob pisanju, seja še teče) | – | 54 | 20 933 | 73 408 | 1 659 345 | 1 753 740 |
 | | **Session 1 total (main + subagents)** | | | | | | | | | |
 | | **Total – Ismar** | | | | | | | | | |
 

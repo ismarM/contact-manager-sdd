@@ -1,0 +1,30 @@
+# Lokalni razvoj s PRAVIM Firebase projektom (namesto emulatorja). Emulator ostaja privzet za teste in CI.
+# Zagon: glej README (razdelek »Real Firebase«). Vrednosti pridejo iz .env.firebase (v .gitignore), nikoli iz Gita.
+name: contact-manager-firebase
+services:
+  auth:
+    profiles: [emulator] # brez profila se ne zažene; nginx ga razrešuje leno, zato ga ne potrebuje
+
+  backend:
+    # Ključ ostane chmod 600 (lastnik = razvijalec); zaledje zato teče kot ta uporabnik, ne kot uporabnik »app« iz slike.
+    user: "${FIREBASE_CONTAINER_UID:-1000}:${FIREBASE_CONTAINER_GID:-1000}"
+    depends_on: !override
+      db:
+        condition: service_healthy
+    environment:
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:?nastavi FIREBASE_PROJECT_ID v .env.firebase}
+      FIREBASE_AUTH_EMULATOR_HOST: "" # prazno = produkcijski način (JWK ključi Googla, accounts:delete na Googlu)
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/firebase-admin.json
+    volumes:
+      - ${FIREBASE_SERVICE_ACCOUNT_FILE:?nastavi FIREBASE_SERVICE_ACCOUNT_FILE v .env.firebase}:/run/secrets/firebase-admin.json:ro
+
+  frontend:
+    build:
+      args:
+        VITE_FIREBASE_API_KEY: ${FIREBASE_API_KEY:?nastavi FIREBASE_API_KEY v .env.firebase}
+        VITE_FIREBASE_AUTH_DOMAIN: ${FIREBASE_AUTH_DOMAIN:?nastavi FIREBASE_AUTH_DOMAIN v .env.firebase}
+        VITE_FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+        VITE_FIREBASE_EMULATOR: "false"
+    depends_on: !override
+      backend:
+        condition: service_healthy
