@@ -6,7 +6,7 @@ Spremembe testov, predpostavke in manjše izbire sodijo v opis commita ali PR.
 
 - Ena datoteka na odločitev: `LLLL-MM-DD-kratko-ime.md`. Brez številčenja.
 - Odločitev se ne popravlja za nazaj; če jo nova nadomesti, nova datoteka to pove v vrstici *Nadomešča*.
-- Odločitve prve različice (`D-01` … `D-104`) so v zaprtem arhivu [`DECISIONS.md`](../../DECISIONS.md); novih vnosov ne dobiva.
+- Odločitve prve različice (`D-01` … `D-104`) so v zgodovini Gita: `git show 2365b23:DECISIONS.md`.
 
 ## Predloga
 

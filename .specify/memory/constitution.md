@@ -110,8 +110,7 @@ podatkovni model, jo povišaj.
 - Nastajajo **samo artefakti Spec Kit**: `spec.md`, `checklists/requirements.md`, `plan.md`,
   `research.md`, `data-model.md`, `quickstart.md`, `contracts/`, `tasks.md`. Predloge so v
   `.specify/templates/overrides/` (spec, plan, tasks).
-- **Ne nastajajo:** `traceability.md`, vnosi v `DECISIONS.md` za spremembe testov ali specifikacij
-  in oznake `[CR-NN]`. Zahteva se spremeni neposredno v `spec.md`, v istem PR kot koda; zgodovino
+- **Ne nastajajo:** `traceability.md`, `DECISIONS.md` in oznake `[CR-NN]`. Zahteva se spremeni neposredno v `spec.md`, v istem PR kot koda; zgodovino
   hrani Git.
 - Artefakti so kratki: odločitve in dejstva, ki jih izvedba potrebuje. Dostopna imena elementov
   niso predpisana v `plan.md`; njihov vir so prevodi (§3.3).
@@ -169,8 +168,8 @@ Agent dela sam od naloge do PR. Ustavi se in vpraša samo, če:
   teh pravil.
 - Ena datoteka na odločitev v `docs/decisions/LLLL-MM-DD-kratko-ime.md` (predloga v
   `docs/decisions/README.md`). Brez skupnega številčenja, zato ni konfliktov med vejami.
-- `DECISIONS.md` v korenu je **zaprt arhiv** prve različice (`D-01` … `D-104`): nanj se sklicujejo
-  komentarji v kodi in obstoječe specifikacije, novih vnosov ne dobiva.
+- Dnevnik `DECISIONS.md` prve različice (`D-01` … `D-104`) je odstranjen in ostaja v zgodovini Gita
+  (§6); dnevnika odločitev, sprememb testov in utišanj ni več.
 - Vse drugo (spremembe testov, predpostavke, manjše izbire) sodi v opis commita ali PR.
 
 ### 2.7 Seje z agentom in `ai-log/`
@@ -287,11 +286,12 @@ gre za arhitekturno odločitev (§2.6).
 
 - Specifikacije 000–012 ostajajo v `specs/` kot zapis prve različice in vzorec za nove. Vzdržujejo
   se po §1 I: popravijo se, ko se njihova funkcionalnost spremeni.
-- `DECISIONS.md` je zaprt arhiv (§2.6). Datoteke `traceability.md` in dokument `workflow.md` so
-  odstranjeni; ostajajo v zgodovini Gita (`git show 2365b23:.specify/memory/workflow.md`).
+- `DECISIONS.md`, datoteke `traceability.md` in dokument `workflow.md` so odstranjeni; ostajajo v
+  zgodovini Gita (`git show 2365b23:DECISIONS.md`, `git show 2365b23:.specify/memory/workflow.md`).
 - Prvotni dokumenti v `original_documentation/` so zgodovinski arhiv in se ne spreminjajo.
 - Oznake v komentarjih kode in imenih testov (`FR-NNN-XX`, `SC-NNN`, `D-NN`, `R-NN`, `T0NN`) kažejo
-  v `specs/NNN-ime/` in `DECISIONS.md`. Sklici na `traceability.md` in `workflow.md` so zgodovinski.
+  v `specs/NNN-ime/`. Oznake `D-NN` ter sklici na `DECISIONS.md`, `traceability.md` in `workflow.md`
+  so zgodovinski in kažejo v zgodovino Gita.
 
 ## 7. Upravljanje
 

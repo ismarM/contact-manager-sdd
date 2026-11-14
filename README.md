@@ -53,7 +53,7 @@ Protect `main` manually in GitHub: *Settings → Branches → Branch protection*
 - [Product map](.specify/memory/feature-map.md) – features and shared rules (roles, order of checks, error codes, data dictionary)
 - [Design system »Kartoteka«](.specify/memory/design.md) – UI look and behaviour
 - [Specifications](specs/) – one Spec Kit folder per feature (`spec.md`, `plan.md`, `tasks.md`, …)
-- [Decisions](docs/decisions/) – architecture decisions, one file each; [`DECISIONS.md`](DECISIONS.md) is the closed log of the first version
+- [Decisions](docs/decisions/) – architecture decisions, one file each (the first version's log: `git show 2365b23:DECISIONS.md`)
 - [AI log](ai-log/) – one entry per AI session and token usage (`node scripts/token-report.mjs`)
 - [Original documentation](original_documentation/) – historical, not maintained
 

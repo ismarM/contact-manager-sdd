@@ -4,7 +4,7 @@
 - Pravila in potek dela: .specify/memory/constitution.md (edini dokument s pravili)
 - Skupna pravila izdelka (vloge, vrstni red preverjanj, kode napak, slovar podatkov): .specify/memory/feature-map.md
 - Oblikovanje: .specify/memory/design.md · arhitekturne odločitve: docs/decisions/
-- Zahteve funkcionalnosti: specs/NNN-ime/ (artefakti Spec Kit) · DECISIONS.md je zaprt arhiv · original_documentation/ je zgodovinski arhiv – ne spreminjaj ga
+- Zahteve funkcionalnosti: specs/NNN-ime/ (artefakti Spec Kit) · original_documentation/ je zgodovinski arhiv – ne spreminjaj ga
 - Trenutna funkcionalnost: .specify/feature.json (veja `ime` brez številke; `scripts/feature.sh ime`)
 
 ## Preverjanje
@@ -25,4 +25,4 @@
 - Utišanje ali izklop testa samo s komentarjem `utišanje: <razlog>`; brez skrivnosti v Gitu; barve samo iz žetonov design.md.
 - Samodejno uvajanje ene ali več funkcionalnosti: `/rollout` (§2.8) – nadzornik vodi delavce `izvajalec` skozi cikel, se posvetuje enkrat in ob zelenem CI združi PR.
 - Poraba žetonov za ai-log: `node scripts/token-report.mjs` (ne ocenjuj).
-- Ne ustvarjaj traceability.md, novih vnosov v DECISIONS.md in oznak [CR-NN].
+- Ne ustvarjaj traceability.md, DECISIONS.md in oznak [CR-NN]; stari sklici D-NN kažejo v zgodovino Gita (`2365b23`).
