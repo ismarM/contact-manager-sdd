@@ -19,7 +19,7 @@ import si.contactmanager.support.Http;
 import si.contactmanager.support.Tokens;
 
 /**
- * Matrika izolacije vseh petih endpointov 007 (konstitucija III, workflow.md §2.5): seznam, sprememba vloge, odstranitev,
+ * Matrika izolacije vseh petih endpointov 007 (konstitucija III in §3.1): seznam, sprememba vloge, odstranitev,
  * zapuščanje, prenos lastništva × akter × stanje skupine. Neprijavljen 401, nečlan 404 brez telesa, VIEWER/EDITOR 403
  * pri pisanju (tudi v arhivirani), ADMIN/OWNER uspeh ali 409; pričakovanja so ročno določena (spec.md, negativni scenariji).
  */

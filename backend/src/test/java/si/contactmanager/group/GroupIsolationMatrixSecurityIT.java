@@ -21,7 +21,7 @@ import si.contactmanager.support.Http;
 import si.contactmanager.support.Tokens;
 
 /**
- * Matrika izolacije endpointov skupine (konstitucija III, workflow.md §2.5; FR-002-07, FR-002-08, FR-002-10,
+ * Matrika izolacije endpointov skupine (konstitucija III in §3.1; FR-002-07, FR-002-08, FR-002-10,
  * FR-002-11): {@code GET} in {@code PUT /api/groups/{groupId}} × akter × stanje skupine. Neprijavljen 401, nečlan 404
  * brez telesa, vloga pod najnižjo 403 FORBIDDEN (D-25), pisanje v arhivirani skupini 409 GROUP_ARCHIVED (vloga se
  * preveri pred stanjem, feature-map §2.2). Uporabniška endpointa {@code POST}/{@code GET /api/groups}: 401.

@@ -1,4 +1,4 @@
 # gitleaks (FR-000-19): privzeta pravila, brez izjem.
-# Vsaka izjema (allowlist) zahteva vnos vrste "utišanje" v DECISIONS.md.
+# Vsaka izjema (allowlist) zahteva komentar "utišanje: <razlog>" ob vnosu (konstitucija VII).
 [extend]
 useDefault = true

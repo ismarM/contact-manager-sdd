@@ -19,7 +19,7 @@ import si.contactmanager.support.Http;
 import si.contactmanager.support.Tokens;
 
 /**
- * Matrika izolacije endpointov 005 (konstitucija III, workflow.md §2.5): vseh pet endpointov × akter × stanje skupine,
+ * Matrika izolacije endpointov 005 (konstitucija III in §3.1): vseh pet endpointov × akter × stanje skupine,
  * nato vnos druge skupine. Neprijavljen 401, nečlan 404 brez telesa, bralec in urednik pri rollbacku 403, admin in
  * lastnik uspeh ali 409 GROUP_ARCHIVED (§2.2); PUT/PATCH/DELETE vnosa 405 brez telesa.
  */

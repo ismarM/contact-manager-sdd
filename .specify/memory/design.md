@@ -1,10 +1,10 @@
 # Oblikovni jezik »Kartoteka« – Contact Manager
 
-**Status:** v1.1 (2026-11-02) – implementacija s Tailwind CSS v4 in (neobvezno) shadcn/ui, glej 13. Živi dokument; spremembe se beležijo v `DECISIONS.md`.  
+**Status:** v1.1 (2026-11-02) – implementacija s Tailwind CSS v4 in (neobvezno) shadcn/ui, glej 13. Živi dokument; spreminja se s pull requestom (`constitution.md` §7).  
 **Velja za:** celoten React frontend (namizje, tablica, mobilni telefon, nameščen PWA).  
-**Povezano:** [`constitution.md`](constitution.md) (načela), [`workflow.md`](workflow.md) (potek razvoja), [`feature-map.md`](feature-map.md) (funkcionalnosti), `specs/*/spec.md` (zahteve)
+**Povezano:** [`constitution.md`](constitution.md) (pravila in potek dela), [`feature-map.md`](feature-map.md) (funkcionalnosti in skupna pravila)
 
-> Ta dokument določa **videz in vedenje vmesnika**. *Kaj* aplikacija počne, določajo `specs/*/spec.md`. Pri navzkrižju velja `spec.md`. Točne poti in dostopna imena elementov določi `plan.md` posamezne funkcionalnosti; imena v tem dokumentu so izhodišče zanj.
+> Ta dokument določa **videz in vedenje vmesnika**. *Kaj* aplikacija počne, določajo koda, testi in skupna pravila v `feature-map.md`; pri navzkrižju veljajo ti. Točna dostopna imena elementov so v prevodih (`frontend/src/i18n/`); imena v tem dokumentu so izhodišče zanje.
 
 ---
 
@@ -406,7 +406,7 @@ Akcije spreminjanja se ne izrišejo; v *Nastavitvah* ostaneta *Zapusti skupino* 
 - [ ] Deluje pri povečavi 200 %, pri 400 % in 320 px brez vodoravnega drsenja.
 - [ ] Spremembe stanja (shranjeno, napaka, izbranih N, število zadetkov, nova stran) so sporočene bralniku zaslona.
 - [ ] `<html lang>` se ujema z izbranim jezikom; vsaka stran ima edinstven `<title>`.
-- [ ] Vsak element, na katerega se sklicuje test, ima dostopno ime iz tabele v `plan.md` (testi iščejo samo po vlogah in dostopnih imenih).
+- [ ] Vsak element, na katerega se sklicuje test, ima dostopno ime (testi iščejo samo po vlogah in dostopnih imenih; `constitution.md` §3.3).
 - [ ] axe (pravila WCAG 2.1 A in AA) brez kršitev v testih strani in v E2E.
 - [ ] Ročni preizkus s tipkovnico in z bralnikom zaslona (NVDA na namizju, TalkBack ali VoiceOver na telefonu) pred sprejemom funkcionalnosti.
 
@@ -549,7 +549,7 @@ Akcije spreminjanja se ne izrišejo; v *Nastavitvah* ostaneta *Zapusti skupino* 
 | *Select* | **ne** – nativni `<select>` | razvrščanje, velikost strani |
 | *Card*, *Sidebar*, *Tooltip*, *Carousel*, *Chart* | **ne** | – (kartice in stranski pas so preprosti lastni elementi; pomembne informacije niso v namigih) |
 
-Za vsak vzorec se v funkcionalnosti 000 izbere **en** način (nativni element ali shadcn) in zabeleži v `DECISIONS.md`; mešanja ni.
+Za vsak vzorec se v funkcionalnosti 000 izbere **en** način (nativni element ali shadcn) in zabeleži v `docs/decisions/` (trenutna izbira: `2026-11-04-shadcn-ui-po-vzorcih.md`); mešanja ni.
 
 **Obvezna prilagoditev vsake prevzete komponente** (preveri se pri pregledu kode):
 

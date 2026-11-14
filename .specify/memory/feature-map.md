@@ -1,71 +1,36 @@
-# Zemljevid funkcionalnosti – Contact Manager
+# Zemljevid izdelka – Contact Manager
 
-**Namen:** razdelitev zahtev na funkcionalnosti Spec Kit in skupna pravila, ki veljajo čez vse `spec.md`. Vsaka zahteva iz prvotnega seznama zahtev (`original_documentation/zahteve-raw.txt`, zgodovinski dokument) je dodeljena **natanko eni** funkcionalnosti. Od zdaj naprej so vir resnice `specs/*/spec.md`; ta dokument se posodobi ob vsaki novi funkcionalnosti ali spremembi meje med funkcionalnostmi (vnos v `DECISIONS.md`).
+**Namen:** pregled funkcionalnosti in **skupna pravila izdelka**, ki veljajo čez vse funkcionalnosti (vloge, vrstni red preverjanj, arhivirane skupine, slovar podatkov, kode napak). Podrobno vedenje posamezne funkcionalnosti določajo koda in testi. Dokument se posodobi v istem PR kot koda, ki spremeni katero od skupnih pravil ali doda funkcionalnost.
 
-**Povezano:** [`constitution.md`](constitution.md) · [`workflow.md`](workflow.md) · [`design.md`](design.md)
+**Povezano:** [`constitution.md`](constitution.md) (pravila in potek dela) · [`design.md`](design.md) (vmesnik)
 
 ---
 
 ## 1. Funkcionalnosti
 
-Mape so oštevilčene (številka je del FR-ID `FR-NNN-XX`), **veje niso**: veja se imenuje kot mapa brez številke (`specs/004-kontakti/` → veja `kontakti`). Vejo in kazalec na trenutno funkcionalnost nastavi `scripts/feature.sh kontakti` (workflow.md §0.3).
+Številke 000–012 so oznake prve različice; uporabljajo jih oznake `FR-NNN-XX` v testih in komentarjih (arhiv: `constitution.md` §6). Nove funkcionalnosti številke ne dobijo – dodajo se z imenom.
 
-| Mapa | Veja | Obseg | Odvisna od |
+| Oznaka | Funkcionalnost | Obseg | Koda |
 |---|---|---|---|
-| `000-ogrodje` | `ogrodje` | ogrodje BE/FE/E2E, Docker Compose, žetoni Kartoteke v Tailwindu, i18n sl/en, PWA ogrodje, `verify.sh`, CI, gitleaks, odločitev o shadcn/ui, ročni samopreizkus | – |
-| `001-prijava` | `prijava` | prijava in registracija z Googlom (Firebase), odjava, zaščitene poti, ogrodje aplikacije (zgornja vrstica, meni računa, *Preskoči na vsebino*), stran za neobstoječe poti, *Moj račun* – razdelka *Profil* in *Videz* (jezik, tema) | 000 |
-| `002-skupine` | `skupine` | ustvarjanje skupine (naslov, opis, barva; ustvarjalec postane lastnik), seznam mojih skupin ločeno po vlogah, glava in zavihki skupine, ogled podatkov skupine, urejanje skupine (lastnik, admin) | 001 |
-| `003-arhiviranje` | `arhiviranje` | arhiviranje in odarhiviranje (lastnik), seznam arhiviranih skupin, pasica in način samo za branje, splošno pravilo zavračanja pisanja v arhivirani skupini, stanje »trajno arhivirana«, izbris skupine (edini član) | 002 |
-| `004-kontakti` | `kontakti` | ustvarjanje, ogled, urejanje in izbris kontakta (predefinirani in dodatni atributi, značke), seznam kontaktov skupine s paginacijo, optimistično zaklepanje in konflikt verzij | 002, 003 |
-| `005-revizijska-sled` | `revizijska-sled` | beleženje vseh sprememb kontaktov skupine, pregled sledi (filtri, po kontaktu), rollback na poljubno točko (admin, lastnik) | 004 |
-| `006-povabila` | `povabila` | povabilo registriranega uporabnika po e-naslovu z vlogo, nižjo od lastne (admin in višje); prikaz prejetih povabil; sprejem in zavrnitev; pregled in umik poslanih povabil skupine (admin in višje) | 002, 003 |
-| `007-clani` | `clani` | seznam članov, sprememba vloge in odstranitev člana (le nižjim od sebe), zapuščanje skupine, prenos lastništva | 006 |
-| `008-iskanje` | `iskanje` | iskanje in filtri v skupini (predefinirani in dodatni atributi, značke), razvrščanje naraščajoče/padajoče, stanje v URL | 004 |
-| `009-mnozicno-urejanje` | `mnozicno-urejanje` | izbor kontaktov (tudi čez strani in »vsi zadetki«), akcijska vrstica izbora, množično dodajanje/odstranjevanje značk, nastavljanje/odstranjevanje atributa, množični izbris | 005, 008 |
-| `010-izvoz-excel` | `izvoz-excel` | izvoz izbranih kontaktov v `.xlsx` | 009 |
-| `011-dvojniki` | `dvojniki` | iskanje podvojenih kontaktov po kategorijah, tabela razlik, združevanje | 005 |
-| `012-moji-podatki` | `moji-podatki` | izvoz lastnih podatkov (JSON), izbris računa z vsemi posledicami (»izbrisan uporabnik«, trajno arhivirane skupine) | 003, 007 |
+| 000 | ogrodje | ogrodje BE/FE/E2E, Docker Compose, žetoni v Tailwindu, i18n sl/en, PWA ogrodje, `verify.sh`, CI, gitleaks | `scripts/verify/`, `verify.sh`, `compose*.yaml` |
+| 001 | prijava | prijava in registracija z Googlom (Firebase), odjava, zaščitene poti, ogrodje aplikacije, stran za neobstoječe poti, *Moj račun* – *Profil* in *Videz* (jezik, tema) | `features/auth`, `features/account`, `shared/layout` |
+| 002 | skupine | ustvarjanje skupine (naslov, opis, barva; ustvarjalec postane lastnik), seznam mojih skupin po vlogah, glava in zavihki skupine, urejanje skupine (lastnik, admin) | `features/groups`, paket `group` |
+| 003 | arhiviranje | arhiviranje in odarhiviranje (lastnik), seznam arhiviranih skupin, način samo za branje, stanje »trajno arhivirana«, izbris skupine (edini član) | `features/groups`, paket `group` |
+| 004 | kontakti | ustvarjanje, ogled, urejanje in izbris kontakta (predefinirani in dodatni atributi, značke), seznam s paginacijo, optimistično zaklepanje | `features/contacts`, paket `contact` |
+| 005 | revizijska sled | beleženje vseh sprememb kontaktov skupine, pregled sledi (filtri, po kontaktu), rollback na poljubno točko (admin, lastnik) | `features/audit`, paket `audit` |
+| 006 | povabila | povabilo registriranega uporabnika po e-naslovu z vlogo, nižjo od lastne (admin in višje); prejeta povabila, sprejem in zavrnitev; pregled in umik poslanih povabil | `features/invitations`, paket `invitation` |
+| 007 | člani | seznam članov, sprememba vloge in odstranitev člana (le nižjim od sebe), zapuščanje skupine, prenos lastništva | `features/members`, paket `member` |
+| 008 | iskanje | iskanje in filtri v skupini (predefinirani in dodatni atributi, značke), razvrščanje, stanje v URL | `features/contacts`, paket `contact` |
+| 009 | množično urejanje | izbor kontaktov (tudi čez strani in »vsi zadetki«), akcijska vrstica izbora, množične značke, atributi in izbris | `features/contacts`, paket `contact` |
+| 010 | izvoz v Excel | izvoz izbranih kontaktov v `.xlsx` (viewer in višje, tudi v arhivirani skupini) | `features/contacts`, paket `contact` |
+| 011 | dvojniki | iskanje podvojenih kontaktov po kategorijah, tabela razlik, združevanje (editor in višje) | `features/duplicates`, paket `contact` |
+| 012 | moji podatki | izvoz lastnih podatkov (JSON), izbris računa z vsemi posledicami (»izbrisan uporabnik«, trajno arhivirane skupine) | `features/account` |
 
-### 1.1 Pokritost prvotnih zahtev
-
-| Prvotna zahteva | Funkcionalnost |
-|---|---|
-| registracija & prijava (Google), odjava | 001 |
-| ustvarjanje skupine (naslov, opis, barva; owner) | 002 |
-| ustvarjanje kontaktov (predefinirani + ključ=vrednost + značke; editor+) | 004 |
-| urejanje kontaktov (editor+) | 004 |
-| urejanje skupine (owner, admin) | 002 |
-| prikaz skupin, katerih član je uporabnik, ločeno po vlogah | 002 |
-| zapuščanje skupine (z izjemo trajno arhivirane) | 007 |
-| dodajanje registriranih članov po e-naslovu, povabilo, odziv (admin+) | 006 |
-| odstranjevanje članov (owner, admin; le nižje) | 007 |
-| spreminjanje vloge članov (owner, admin; le nižjim) | 007 |
-| izbris kontaktov (editor+) | 004 (posamezen), 009 (množičen) |
-| verzioniranje sprememb kontaktov (revizijska sled po skupini) | 005 |
-| pregled revizijske sledi (viewer+) | 005 |
-| rollback na poljubno točko (admin, owner) | 005 |
-| iskanje podvojenih kontaktov (editor+) | 011 |
-| združevanje podvojenih kontaktov (tabela razlik; editor+) | 011 |
-| iskanje s filtri in razvrščanjem (viewer+) | 008 |
-| izvoz izbranih kontaktov v Excel (viewer+) | 010 |
-| arhiviranje skupine (owner) | 003 |
-| prikaz arhiviranih skupin | 003 |
-| prikaz kontaktov v skupini (viewer+) | 004 |
-| množično urejanje kontaktov (editor+) | 009 |
-| prenos lastništva | 007 |
-| odarhiviranje (owner) | 003 |
-| potrditvena okna za nevarne operacije | vsaka funkcionalnost za svoje operacije (§2.8) |
-| stran za neobstoječe poti | 001 |
-| arhivirana skupina samo za branje | 003 (splošno pravilo) + vsaka funkcionalnost v negativnih scenarijih |
-| prikaz prejetih povabil; sprejem/zavrnitev | 006 |
-| izvoz svojih podatkov (JSON) | 012 |
-| izbris računa | 012 |
-| izbris skupine (edini član; trajno arhivirana) | 003 |
-| nefunkcionalne zahteve | konstitucija (vse funkcionalnosti) |
+Poti: `features/*` je `frontend/src/features/*`, paketi so `backend/src/main/java/si/contactmanager/*`, E2E scenariji so v `e2e/tests/*.spec.ts`.
 
 ---
 
-## 2. Skupna pravila (veljajo za vse `spec.md`)
+## 2. Skupna pravila (veljajo za vse funkcionalnosti)
 
 ### 2.1 Vloge
 
@@ -85,7 +50,7 @@ Pri vsakem zahtevku nad podatki skupine se preverja v tem vrstnem redu; prvi neu
 | 4 | pisanje v arhivirani skupini (§2.4) | `409` s kodo `GROUP_ARCHIVED` |
 | 5 | poslana verzija ni več trenutna (optimistično zaklepanje) | `409` s kodo `VERSION_CONFLICT` |
 | 6 | neveljavni podatki | `400` s kodo `VALIDATION_FAILED` in napakami po poljih |
-| 7 | kršitev poslovnega pravila (npr. lastnik zapušča skupino, izbris skupine z več člani) | `409` z imenovano kodo, ki jo določi `spec.md` |
+| 7 | kršitev poslovnega pravila (npr. lastnik zapušča skupino, izbris skupine z več člani) | `409` z imenovano kodo, ki jo določi funkcionalnost (register v §2.10) |
 
 - Viri, vezani na uporabnika (povabila, moji podatki, moj račun): `401` brez prijave, `404` za tuj vir (npr. tuje povabilo).
 - Napake imajo strojno berljivo kodo; vmesnik jo prevede v razumljivo sporočilo v sl/en (brez tehničnih kod v vmesniku).
@@ -146,7 +111,7 @@ Potrditveni dialog (design.md 8.11) je obvezen za: izbris kontakta (tudi množi�
 
 ### 2.10 Register kod napak
 
-Skupne kode (§2.2): `UNAUTHENTICATED` (401), `FORBIDDEN` (403, D-25), `GROUP_ARCHIVED`, `VERSION_CONFLICT` (409), `VALIDATION_FAILED` (400). Kode poslovnih pravil (409), ki so jih uvedle specifikacije – nova koda se doda sem, obstoječa se ne preimenuje:
+Skupne kode (§2.2): `UNAUTHENTICATED` (401), `FORBIDDEN` (403, D-25), `GROUP_ARCHIVED`, `VERSION_CONFLICT` (409), `VALIDATION_FAILED` (400). Kode poslovnih pravil (409), ki so jih uvedle funkcionalnosti – nova koda se doda sem, obstoječa se ne preimenuje:
 
 | Koda | Funkcionalnost | Pomen |
 |---|---|---|

@@ -19,7 +19,7 @@ import si.contactmanager.support.Http;
 import si.contactmanager.support.Tokens;
 
 /**
- * Matrika izolacije endpointov 004 (konstitucija III, workflow.md §2.5; FR-004-01, -04, -06, -08, -10, -12, -14, -15):
+ * Matrika izolacije endpointov 004 (konstitucija III in §3.1; FR-004-01, -04, -06, -08, -10, -12, -14, -15):
  * vseh šest endpointov × akter × stanje skupine, nato kontakt druge skupine. Neprijavljen 401, nečlan 404 brez
  * telesa, bralec pri pisanju in predlogih 403 FORBIDDEN, urednik in višje uspeh ali 409 GROUP_ARCHIVED (§2.2).
  */
