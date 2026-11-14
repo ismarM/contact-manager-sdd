@@ -21,7 +21,7 @@ import si.contactmanager.support.Http;
 import si.contactmanager.support.Tokens;
 
 /**
- * Matrika izolacije endpointov 011 (konstitucija III, workflow.md §2.5; FR-011-19, FR-011-20, FR-011-21): trije
+ * Matrika izolacije endpointov 011 (konstitucija III in §3.1; FR-011-19, FR-011-20, FR-011-21): trije
  * endpointi × akter × stanje skupine, nato identitete kontaktov druge skupine. Neprijavljen 401, nečlan 404 brez
  * telesa, bralec 403 (tudi v arhivirani skupini), urednik in višje 200 ali 409 GROUP_ARCHIVED.
  */

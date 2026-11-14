@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Prepreči commit skrivnosti (FR-000-19): gitleaks pregleda staged spremembe; vrednosti so v izpisu skrite.
-# Namestitev: scripts/install-hooks.sh. Izjeme samo v .gitleaks.toml z vnosom v DECISIONS.md.
+# Namestitev: scripts/install-hooks.sh. Izjeme samo v .gitleaks.toml s komentarjem »utišanje: <razlog>«.
 #
 # Kavelj NE sme poročati lažnega uspeha: če gitleaks ne pregleda ničesar (npr. v Git worktreeju Docker ne vidi
 # repozitorija) ali javi napako, commit odpove. Worktree in skupna mapa .git se priklopita na enaki absolutni poti.

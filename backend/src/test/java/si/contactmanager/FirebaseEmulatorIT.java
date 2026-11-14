@@ -13,7 +13,7 @@ import si.contactmanager.support.Http;
 
 /**
  * Veriga emulatorja (FR-000-04): emulator izda ID žeton brez pravih ključev. Od 001 zaledje veljaven žeton sprejme
- * (FR-001-07); prej je ta test preverjal začasno vedenje 000 (vedno 401) – sprememba v DECISIONS.md (D-22).
+ * (FR-001-07); prej je ta test preverjal začasno vedenje 000 (vedno 401) (arhiv D-22).
  */
 @Tag("FR-000-04")
 @Tag("FR-001-07")

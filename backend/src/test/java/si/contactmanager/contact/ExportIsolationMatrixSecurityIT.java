@@ -19,7 +19,7 @@ import si.contactmanager.support.Http;
 import si.contactmanager.support.Tokens;
 
 /**
- * Matrika izolacije izvoza (konstitucija III, workflow.md §2.5; FR-010-02, FR-010-12, FR-010-16; SC-006):
+ * Matrika izolacije izvoza (konstitucija III in §3.1; FR-010-02, FR-010-12, FR-010-16; SC-006):
  * {@code POST …/contacts/export} × akter × stanje skupine, nato identiteta kontakta druge skupine ali izmišljena.
  * Neprijavljen 401, nečlan 404 brez telesa, vsi člani 200 (tudi v arhivirani skupini).
  */

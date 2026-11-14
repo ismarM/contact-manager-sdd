@@ -1,129 +1,59 @@
 # Implementation Plan: [FEATURE]
 
-**Branch**: `[feature-slug]` | **Date**: [DATE] | **Spec**: [link]
-
-**Input**: Feature specification from `/specs/[NNN-feature-slug]/spec.md`
-
-**Note**: This template is filled in by the `/speckit-plan` command; its definition describes the execution workflow.
+**Branch**: `[feature-slug]` | **Date**: [DATE] | **Spec**: `specs/[feature-slug]/spec.md`
 
 <!--
-  PROJECT RULES (override of the core plan template – see .specify/memory/workflow.md §1.4):
-  - The "Public Interfaces" section is MANDATORY. Tests reference these tables, so the agent
-    MUST NOT invent endpoints, routes or accessible names during implementation.
-  - UI decisions follow .specify/memory/design.md (Kartoteka). Reference its sections.
-  - Content in Slovenian, headings in English.
+  PROJECT RULES (override of the core plan template – .specify/memory/constitution.md §2.2):
+  - A plan is written ONLY for risky changes (auth, new kind of caller, schema migration of
+    existing data, external services, personal data).
+  - SINGLE FILE. Do NOT generate research.md, data-model.md, quickstart.md or contracts/ –
+    whatever is really needed from them goes into the sections below. Where the /speckit-plan
+    command text asks for those files, this rule wins.
+  - Keep it short: decisions and their reasons, not tutorials. Content in Slovenian, headings in English.
+  - Accessible names are not specified here; they live in frontend/src/i18n/.
+  - This file is deleted before the merge to main.
 -->
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+[What is being built and the chosen technical approach, in a few sentences]
 
-## Technical Context
+## Decisions
 
-**Language/Version**: Java 21 (Spring Boot 3.x) · TypeScript (strict) + React
+<!-- Open questions resolved during planning. One line each: decision – reason – rejected alternative. -->
 
-**Primary Dependencies**: Spring Web, Spring Security (Firebase ID token verification), Spring Data JPA, Flyway · React, react-i18next, React Router, Tailwind CSS v4, shadcn/ui (optional, per DECISIONS.md)
+- [decision] – [why] – [alternative rejected because …]
 
-**Storage**: PostgreSQL
+## Data Model & Migration
 
-**Testing**: JUnit 5, Testcontainers (PostgreSQL), Firebase Auth Emulator · Vitest, React Testing Library, MSW, vitest-axe · Playwright + @axe-core/playwright (360/768/1280 px)
+- **Entities / tables**: [new or changed, key fields, constraints]
+- **Migration**: [new `V<n>__name.sql`; how existing rows are handled; is it reversible]
 
-**Target Platform**: Docker Compose (nginx serves the frontend and proxies /api), evergreen browsers, installable PWA
+## REST Endpoints
 
-**Project Type**: web application (backend + frontend + e2e)
+| Method | Path | Lowest role | In archived group | Success | Errors specific to this feature |
+|---|---|---|---|---|---|
+| POST | /api/groups/{groupId}/… | EDITOR | rejected (409 GROUP_ARCHIVED) | 201 | [new error codes] |
 
-**Performance Goals**: [feature-specific or "standard web app expectations"]
+## Pages and Routes
 
-**Constraints**: WCAG 2.1 AA, sl/en i18n, optimistic locking for contact/member edits, paginated lists, group isolation
+| Page | Route | Lowest role |
+|---|---|---|
+| [Page name] | /groups/:groupId/… | VIEWER |
 
-**Scale/Scope**: [feature-specific]
+## Security & Privacy
+
+- [authentication / authorisation changes, new kinds of callers, how the isolation matrix covers them]
+- [personal data touched; effect on data export and account deletion]
+
+## Risks & Rollout
+
+- [what can go wrong, how it is detected, order of PRs if the work is split]
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+<!-- Fill only if the plan deviates from .specify/memory/constitution.md; otherwise write "No deviations". -->
 
-| Principle (constitution) | How this plan complies |
-|---|---|
-| I. Specification is the contract | [FR-IDs covered by this plan] |
-| II. Test-first | [test levels per FR-ID] |
-| III. Group isolation and roles | [every group endpoint is in the isolation matrix] |
-| IV. Accessible, bilingual, responsive UI | [design.md sections used; accessible names below] |
-| V. Data integrity | [optimistic locking, audit trail, pagination where relevant] |
-| VI. Privacy and GDPR | [personal data touched, export/delete impact] |
-| VII. One verification path | [verify.sh levels that cover this feature] |
-
-## Public Interfaces *(mandatory)*
-
-### REST endpoints
-
-<!--
-  Lowest role: VIEWER|EDITOR|ADMIN|OWNER for group-bound endpoints, "—" for user-bound
-  endpoints (invitations, my account), "public" for unauthenticated ones.
-  Archived group: "allowed" or "rejected (409 GROUP_ARCHIVED)".
-  Detailed request/response shapes live in contracts/ (OpenAPI).
--->
-
-| Method | Path | Lowest role | In archived group | Success | FR-ID |
-|---|---|---|---|---|---|
-| POST | /api/groups/{groupId}/contacts | EDITOR | rejected (409 GROUP_ARCHIVED) | 201 | FR-NNN-01 |
-
-### Pages and routes
-
-| Page | Route | Lowest role | FR-ID |
-|---|---|---|---|
-| [Page name] | /groups/:groupId/contacts | VIEWER | FR-NNN-01 |
-
-### Key elements and accessible names
-
-<!-- Tests use only getByRole(name) / getByLabel with these names. -->
-
-| Page | ARIA role | Accessible name (sl / en) | Purpose | FR-ID |
-|---|---|---|---|---|
-| [Page name] | button | »Nov kontakt« / "New contact" | opens the form | FR-NNN-01 |
-
-## Project Structure
-
-### Documentation (this feature)
-
-```text
-specs/[NNN-feature-slug]/
-├── spec.md              # /speckit-specify
-├── plan.md              # This file (/speckit-plan command output)
-├── research.md          # Phase 0 output (/speckit-plan command)
-├── data-model.md        # Phase 1 output (/speckit-plan command)
-├── quickstart.md        # Phase 1 output (/speckit-plan command)
-├── contracts/           # Phase 1 output (/speckit-plan command) – OpenAPI
-├── tasks.md             # Phase 2 output (/speckit-tasks command - NOT created by /speckit-plan)
-└── traceability.md      # after the test review (workflow.md §4.4)
-```
-
-### Source Code (repository root)
-
-<!-- Replace with the concrete paths this feature touches. -->
-
-```text
-backend/
-├── src/main/java/…/      # feature package(s)
-├── src/main/resources/db/migration/
-└── src/test/java/…/      # unit, integration (IT), security matrix
-
-frontend/
-├── src/features/[feature]/
-├── src/shared/ui/
-├── src/i18n/{sl,en}/
-└── src/**/*.test.tsx
-
-e2e/
-└── tests/[feature].spec.ts
-```
-
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
-
-## Complexity Tracking
-
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., new tool] | [current need] | [why existing tools are insufficient] |
+| Deviation | Why needed | Simpler alternative rejected because |
+|---|---|---|
+| – | – | – |

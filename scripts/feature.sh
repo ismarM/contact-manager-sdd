@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Switch to a feature: branch "<slug>" (no number) + .specify/feature.json -> specs/NNN-<slug>.
-# Usage: scripts/feature.sh <slug>   e.g. scripts/feature.sh kontakti
+# Switch to a feature: branch "<slug>" + .specify/feature.json -> specs/<slug> (no numbers).
+# The directory is created only when the change needs a spec (constitution §2.1).
+# Usage: scripts/feature.sh <slug>   e.g. scripts/feature.sh uvoz-excel
 #        scripts/feature.sh          shows the current feature and branch
 set -euo pipefail
 
@@ -15,19 +16,11 @@ if [[ $# -eq 0 ]]; then
 fi
 
 slug="$1"
-if [[ ! "$slug" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
-  echo "error: slug must be lowercase words separated by '-', without a number (e.g. kontakti)" >&2
+if [[ ! "$slug" =~ ^[a-z][a-z0-9]*(-[a-z0-9]+)*$ ]]; then
+  echo "error: slug must be lowercase words separated by '-', starting with a letter (e.g. uvoz-excel)" >&2
   exit 1
 fi
-
-shopt -s nullglob
-matches=(specs/[0-9][0-9][0-9]-"$slug")
-if [[ ${#matches[@]} -ne 1 ]]; then
-  echo "error: expected exactly one directory specs/NNN-$slug, found ${#matches[@]}" >&2
-  echo "       known features: $(ls specs | sed 's/^[0-9]*-//' | tr '\n' ' ')" >&2
-  exit 1
-fi
-dir="${matches[0]}"
+dir="specs/$slug"
 
 if git show-ref --verify --quiet "refs/heads/$slug"; then
   git switch "$slug"
@@ -36,4 +29,8 @@ else
 fi
 
 printf '{\n  "feature_directory": "%s"\n}\n' "$dir" > "$pointer"
-echo "branch $slug -> $dir"
+if [[ -d "$dir" ]]; then
+  echo "branch $slug -> $dir"
+else
+  echo "branch $slug -> $dir (not created yet; for /speckit-specify pass SPECIFY_FEATURE_DIRECTORY=$dir)"
+fi

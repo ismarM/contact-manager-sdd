@@ -1,6 +1,6 @@
-// Prepoved utišanja brez odobritve (FR-000-18, contracts/verify-cli.md – korak utišanja).
-// Utišanje je dovoljeno samo s sklicem "DECISIONS D-NN" v isti ali predhodni vrstici na vnos vrste "utišanje";
-// .only ni dovoljen nikoli.
+// Prepoved utišanja brez razloga (konstitucija VII).
+// Utišanje opozorila ali izklop testa je dovoljen samo s komentarjem "utišanje: <razlog>" v isti ali predhodni
+// vrstici; .only ni dovoljen nikoli.
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -13,15 +13,8 @@ const ts = createRequire(path.join(repoRoot, 'frontend/package.json'))('typescri
 const TEST_FUNCTIONS = new Set(['it', 'test', 'describe']);
 const DISABLED_TESTS = new Set(['xit', 'xdescribe', 'xtest']);
 
-/** ID-ji vnosov vrste "utišanje" iz tabele DECISIONS.md. */
-function approvedIds(decisionsMd) {
-  const ids = new Set();
-  for (const line of decisionsMd.split('\n')) {
-    const cells = line.split('|').map((cell) => cell.trim());
-    if (/^D-\d+$/.test(cells[1] ?? '') && cells[4] === 'utišanje') ids.add(cells[1]);
-  }
-  return ids;
-}
+/** Komentar z razlogom: "utišanje: <vsaj nekaj besedila>". */
+const REASON = /utišanje:[ \t]*\S.{4,}/i;
 
 function typescriptFindings(file, content) {
   const kind = file.endsWith('.tsx') ? ts.ScriptKind.TSX : /\.[cm]?js$/.test(file) ? ts.ScriptKind.JS : ts.ScriptKind.TS;
@@ -84,11 +77,9 @@ function javaFindings(content) {
 
 /**
  * @param {{ path: string, content: string }[]} files
- * @param {string} decisionsMd vsebina DECISIONS.md
  * @returns {{ file: string, line: number, kind: string, message: string }[]}
  */
-export function findSuppressions(files, decisionsMd) {
-  const approved = approvedIds(decisionsMd);
+export function findSuppressions(files) {
   const results = [];
   for (const { path: file, content } of files) {
     let found;
@@ -103,11 +94,8 @@ export function findSuppressions(files, decisionsMd) {
         continue;
       }
       const nearby = `${lines[line - 2] ?? ''}\n${lines[line - 1] ?? ''}`;
-      const reference = nearby.match(/DECISIONS (D-\d+)/);
-      if (!reference) {
-        results.push({ file, line, kind, message: 'manjka sklic DECISIONS D-NN' });
-      } else if (!approved.has(reference[1])) {
-        results.push({ file, line, kind, message: `neveljaven sklic ${reference[1]}` });
+      if (!REASON.test(nearby)) {
+        results.push({ file, line, kind, message: 'manjka komentar »utišanje: <razlog>«' });
       }
     }
   }
@@ -127,13 +115,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     path: file,
     content: readFileSync(path.join(root, file), 'utf8'),
   }));
-  let decisions = '';
-  try {
-    decisions = readFileSync(path.join(root, 'DECISIONS.md'), 'utf8');
-  } catch {
-    // Brez DECISIONS.md ni odobrenih utišanj.
-  }
-  const findings = findSuppressions(files, decisions);
+  const findings = findSuppressions(files);
   for (const { file, line, kind, message } of findings) console.log(`${file}:${line}  ${kind}  ${message}`);
   process.exit(findings.length > 0 ? 1 : 0);
 }

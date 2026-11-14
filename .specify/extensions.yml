@@ -57,33 +57,6 @@ hooks:
     prompt: Commit outstanding changes before implementation?
     description: Auto-commit before implementation
     condition: null
-  before_checklist:
-  - extension: git
-    command: speckit.git.commit
-    enabled: true
-    optional: true
-    priority: 10
-    prompt: Commit outstanding changes before checklist?
-    description: Auto-commit before checklist generation
-    condition: null
-  before_analyze:
-  - extension: git
-    command: speckit.git.commit
-    enabled: true
-    optional: true
-    priority: 10
-    prompt: Commit outstanding changes before analysis?
-    description: Auto-commit before analysis
-    condition: null
-  before_taskstoissues:
-  - extension: git
-    command: speckit.git.commit
-    enabled: true
-    optional: true
-    priority: 10
-    prompt: Commit outstanding changes before issue sync?
-    description: Auto-commit before tasks-to-issues conversion
-    condition: null
   after_constitution:
   - extension: git
     command: speckit.git.commit
@@ -137,31 +110,4 @@ hooks:
     priority: 10
     prompt: Commit implementation changes?
     description: Auto-commit after implementation
-    condition: null
-  after_checklist:
-  - extension: git
-    command: speckit.git.commit
-    enabled: true
-    optional: true
-    priority: 10
-    prompt: Commit checklist changes?
-    description: Auto-commit after checklist generation
-    condition: null
-  after_analyze:
-  - extension: git
-    command: speckit.git.commit
-    enabled: true
-    optional: true
-    priority: 10
-    prompt: Commit analysis results?
-    description: Auto-commit after analysis
-    condition: null
-  after_taskstoissues:
-  - extension: git
-    command: speckit.git.commit
-    enabled: true
-    optional: true
-    priority: 10
-    prompt: Commit after syncing issues?
-    description: Auto-commit after tasks-to-issues conversion
     condition: null

@@ -22,7 +22,7 @@ import si.contactmanager.support.Http;
 import si.contactmanager.support.Tokens;
 
 /**
- * Matrika izolacije endpointov 003 (konstitucija III, workflow.md §2.5; FR-003-01, FR-003-06, FR-003-07, FR-003-09):
+ * Matrika izolacije endpointov 003 (konstitucija III in §3.1; FR-003-01, FR-003-06, FR-003-07, FR-003-09):
  * {@code POST …/archive}, {@code POST …/unarchive}, {@code DELETE} × akter × stanje skupine. Neprijavljen 401, nečlan
  * 404 brez telesa, vloga pod najnižjo 403 FORBIDDEN, lastnik: uspeh ali 409 s kodo poslovnega pravila (§2.2).
  */
