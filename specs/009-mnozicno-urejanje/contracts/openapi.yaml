@@ -1,0 +1,327 @@
+openapi: 3.1.0
+info:
+  title: Contact Manager – izbor in množično urejanje kontaktov (009)
+  version: 0.1.0
+  description: >
+    Izbor vseh zadetkov, preverjanje sprememb izbora, množično urejanje in množični izbris kontaktov skupine. Izbor ima
+    največ 10 000 kontaktov (FR-009-04). Vrstni red preverjanj (feature-map §2.2, research.md R-02): 401 → 404 (nečlan,
+    neobstoječa skupina ali identiteta, ki nikoli ni bila kontakt te skupine) → 403 → 409 GROUP_ARCHIVED → 400
+    VALIDATION_FAILED → 409 SELECTION_CHANGED. Branje (contact-ids, selection-check) je dovoljeno vsem članom tudi v
+    arhivirani skupini; pisanje (bulk-update, bulk-delete) uredniku in višjim v nearhivirani skupini. Vse operacije
+    pisanja so atomarne in ustvarijo največ en vnos revizijske sledi (005).
+servers:
+  - url: /api
+security:
+  - bearerAuth: []
+paths:
+  /groups/{groupId}/contact-ids:
+    parameters:
+      - $ref: '#/components/parameters/GroupId'
+    get:
+      summary: Identitete vseh zadetkov iskanja in filtrov (»Izberi vse zadetke«, FR-009-03, FR-009-04)
+      description: >
+        Parametri q, f, tag imajo pomen in validacijo kot GET /groups/{groupId}/contacts v 008 (research.md 008 R-06,
+        R-07); sort, dir, page, size se validirajo, a ne vplivajo na odgovor. Najnižja vloga VIEWER; v arhivirani
+        skupini enako kot v nearhivirani.
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: f, in: query, schema: { type: array, maxItems: 10, items: { type: string } }, explode: true }
+        - { name: tag, in: query, schema: { type: array, maxItems: 30, items: { type: string } }, explode: true }
+      responses:
+        '200':
+          description: Zadetki; pri več kot 10 000 je ids prazen in truncated true
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContactIds' }
+              example: { total: 312, truncated: false, ids: ['0193a5b0-7c1e-7d4a-9a51-1f2e3d4c5b6a'] }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /groups/{groupId}/contacts/selection-check:
+    parameters:
+      - $ref: '#/components/parameters/GroupId'
+    post:
+      summary: Preverjanje sprememb izbora pred končno akcijo (FR-009-18)
+      description: >
+        Samo branje (nič se ne spremeni). Najnižja vloga VIEWER; dovoljeno v arhivirani skupini (izvoz 010). Javijo se
+        samo spremembe obstoja in ujemanja z iskanjem in filtri, ne spremembe drugih podatkov.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SelectionCheckRequest' }
+            example:
+              contactIds: ['0193a5b0-7c1e-7d4a-9a51-1f2e3d4c5b6a', '0193a5b0-7c1e-7d4a-9a51-1f2e3d4c5b6b']
+              queries:
+                - q: ''
+                  f: []
+                  tag: [konferenca2025]
+                  contactIds: ['0193a5b0-7c1e-7d4a-9a51-1f2e3d4c5b6a']
+                  excludedIds: []
+      responses:
+        '200':
+          description: Izid preverjanja
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SelectionCheckResult' }
+              example:
+                changed: true
+                missing: ['0193a5b0-7c1e-7d4a-9a51-1f2e3d4c5b6b']
+                queries: [{ newMatches: ['0193a5b0-7c1e-7d4a-9a51-1f2e3d4c5b70'], noLongerMatching: [] }]
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /groups/{groupId}/contacts/bulk-update:
+    parameters:
+      - $ref: '#/components/parameters/GroupId'
+    post:
+      summary: Množično urejanje značk in atributov (FR-009-06 … FR-009-12, FR-009-14 … FR-009-16)
+      description: >
+        Vrstni red uporabe: odstrani značke → dodaj značke → nastavi atribute; pravila slovarja (§2.6) nad končnim stanjem
+        vsakega kontakta. Brez verzij v zahtevku; spremenjeni kontakti dobijo verzijo + 1. Uspe za vse ali za nobenega.
+        En vnos revizijske sledi UPDATE s spremenjenimi kontakti; brez sprememb brez vnosa.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BulkUpdateRequest' }
+            example:
+              contactIds: ['0193a5b0-7c1e-7d4a-9a51-1f2e3d4c5b6a']
+              addTags: [konferenca2025]
+              removeTags: [staro]
+              attributes: [{ field: custom, key: podjetje, value: FERI }, { field: phone, value: '01 234 56 78' }]
+      responses:
+        '200':
+          description: Uspeh; changed = število dejansko spremenjenih kontaktov (lahko 0)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BulkUpdateResult' }
+              example: { changed: 10 }
+        '400': { $ref: '#/components/responses/BulkValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/BulkConflict' }
+
+  /groups/{groupId}/contacts/bulk-delete:
+    parameters:
+      - $ref: '#/components/parameters/GroupId'
+    post:
+      summary: Množični izbris (FR-009-13 … FR-009-15)
+      description: >
+        Izbriše vse izbrane kontakte (pomen kot posamezen izbris v 004, brez verzij). Uspe za vse ali za nobenega. En vnos
+        revizijske sledi DELETE s stanjem vseh izbrisanih kontaktov.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BulkDeleteRequest' }
+            example: { contactIds: ['0193a5b0-7c1e-7d4a-9a51-1f2e3d4c5b6a'] }
+      responses:
+        '200':
+          description: Uspeh
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BulkDeleteResult' }
+              example: { deleted: 3 }
+        '400': { $ref: '#/components/responses/BulkValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/BulkConflict' }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer }
+  parameters:
+    GroupId: { name: groupId, in: path, required: true, schema: { type: string, format: uuid } }
+  schemas:
+    ContactIdList:
+      type: array
+      minItems: 1
+      maxItems: 10000
+      description: Identitete kontaktov; podvojene se zlijejo (štejejo se enkrat)
+      items: { type: string, format: uuid }
+    ContactIds:
+      type: object
+      required: [total, truncated, ids]
+      properties:
+        total: { type: integer, format: int64 }
+        truncated: { type: boolean, description: 'total > 10 000; ids je tedaj prazen' }
+        ids: { type: array, items: { type: string, format: uuid } }
+    SelectionQuery:
+      type: object
+      required: [contactIds]
+      properties:
+        q: { type: string, maxLength: 200 }
+        f: { type: array, maxItems: 10, items: { type: string }, description: 'oblika ‹polje›:‹vrednost› kot 008' }
+        tag: { type: array, maxItems: 30, items: { type: string } }
+        contactIds:
+          type: array
+          maxItems: 10000
+          description: Izbrani kontakti, ki jih je dodala ta poizvedba
+          items: { type: string, format: uuid }
+        excludedIds:
+          type: array
+          maxItems: 10000
+          description: Kontakti te poizvedbe, ki jih je uporabnik ročno odznačil (se ne javijo kot novi zadetki)
+          items: { type: string, format: uuid }
+    SelectionCheckRequest:
+      type: object
+      required: [contactIds]
+      additionalProperties: false
+      properties:
+        contactIds: { $ref: '#/components/schemas/ContactIdList' }
+        queries:
+          type: array
+          maxItems: 20
+          description: >
+            Vsota queries[].contactIds ≤ 10 000 in vsota queries[].excludedIds ≤ 10 000 (sicer 400 queries TOO_MANY);
+            vmesnik pošlje vsako identiteto največ v eni poizvedbi (research.md R-10)
+          items: { $ref: '#/components/schemas/SelectionQuery' }
+    SelectionCheckResult:
+      type: object
+      required: [changed, missing, queries]
+      properties:
+        changed: { type: boolean }
+        missing:
+          type: array
+          description: Izbrani kontakti te skupine, ki ne obstajajo več (izbrisani ali združeni)
+          items: { type: string, format: uuid }
+        queries:
+          type: array
+          description: Isti vrstni red kot queries v zahtevku
+          items:
+            type: object
+            required: [newMatches, noLongerMatching]
+            properties:
+              newMatches: { type: array, items: { type: string, format: uuid } }
+              noLongerMatching: { type: array, items: { type: string, format: uuid } }
+    AttributeSet:
+      type: object
+      required: [field, value]
+      additionalProperties: false
+      properties:
+        field:
+          type: string
+          enum: [address, email, phone, custom]
+          description: firstName in lastName nista dovoljena (400, attributes[i].field INVALID_VALUE)
+        key: { type: string, maxLength: 50, description: 'Samo pri custom; ne ime predefiniranega polja. Pri address, email in phone ni dovoljen (400, attributes[i].key INVALID_VALUE)' }
+        value: { type: string, description: 'Prazna (po obrezu) odstrani dodatni atribut oziroma izprazni polje' }
+    BulkUpdateRequest:
+      type: object
+      required: [contactIds]
+      additionalProperties: false
+      properties:
+        contactIds: { $ref: '#/components/schemas/ContactIdList' }
+        addTags: { type: array, maxItems: 30, items: { type: string, minLength: 1, maxLength: 50 } }
+        removeTags: { type: array, maxItems: 30, items: { type: string, minLength: 1, maxLength: 50 } }
+        attributes: { type: array, maxItems: 10, items: { $ref: '#/components/schemas/AttributeSet' } }
+    BulkUpdateResult:
+      type: object
+      required: [changed]
+      properties:
+        changed: { type: integer }
+    BulkDeleteRequest:
+      type: object
+      required: [contactIds]
+      additionalProperties: false
+      properties:
+        contactIds: { $ref: '#/components/schemas/ContactIdList' }
+    BulkDeleteResult:
+      type: object
+      required: [deleted]
+      properties:
+        deleted: { type: integer }
+    FieldError:
+      type: object
+      required: [field, code]
+      properties:
+        field:
+          type: string
+          description: >
+            body, contactIds, contactIds[i], addTags, addTags[i], removeTags, removeTags[i], attributes, attributes[i].field,
+            attributes[i].key, attributes[i].value, queries, queries[i].q, queries[i].f[j], queries[i].tag[j],
+            queries[i].contactIds, queries[i].excludedIds; pri napakah po kontaktih tags ali attributes; pri contact-ids
+            parametri kot 008 (q, f[i], tag[i], sort, dir, page, size)
+        code:
+          type: string
+          enum:
+            [REQUIRED, TOO_LONG, TOO_MANY, INVALID_VALUE, DUPLICATE, RESERVED_KEY, UNKNOWN_FIELD, MALFORMED, EMPTY_OPERATION]
+    ContactErrors:
+      type: object
+      required: [contactId, displayName, errors]
+      properties:
+        contactId: { type: string, format: uuid }
+        displayName: { type: string }
+        errors: { type: array, items: { $ref: '#/components/schemas/FieldError' } }
+    Error:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string }
+  responses:
+    Unauthenticated:
+      description: Ni veljavnega žetona
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, example: { code: UNAUTHENTICATED } } }
+    NotFound:
+      description: >
+        Nečlan, neobstoječa skupina ali identiteta, ki nikoli ni bila kontakt te skupine (kontakt druge skupine ali
+        izmišljena); prazno telo, obstoj se ne razkrije, nič se ne spremeni
+    Forbidden:
+      description: Vloga pod EDITOR (tudi v arhivirani skupini – vloga se preveri pred arhiviranostjo)
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, example: { code: FORBIDDEN } } }
+    ValidationFailed:
+      description: Neveljavni parametri ali telo; napake po poljih
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [code, errors]
+            properties:
+              code: { const: VALIDATION_FAILED }
+              errors: { type: array, items: { $ref: '#/components/schemas/FieldError' } }
+          example: { code: VALIDATION_FAILED, errors: [{ field: 'queries[0].f[0]', code: UNKNOWN_FIELD }] }
+    BulkValidationFailed:
+      description: >
+        Neveljaven zahtevek (errors) ali kršitev slovarja v končnem stanju vsaj enega kontakta (contacts – vsi prizadeti,
+        po slovenski abecedi imena). Nič se ne spremeni, vnos sledi ne nastane.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [code, errors]
+            properties:
+              code: { const: VALIDATION_FAILED }
+              errors: { type: array, items: { $ref: '#/components/schemas/FieldError' } }
+              contacts: { type: array, items: { $ref: '#/components/schemas/ContactErrors' } }
+          examples:
+            request:
+              value: { code: VALIDATION_FAILED, errors: [{ field: 'attributes[0].value', code: INVALID_VALUE }] }
+            perContact:
+              value:
+                code: VALIDATION_FAILED
+                errors: []
+                contacts:
+                  - contactId: '0193a5b0-7c1e-7d4a-9a51-1f2e3d4c5b6a'
+                    displayName: Mojca Kralj
+                    errors: [{ field: tags, code: TOO_MANY }]
+    BulkConflict:
+      description: Skupina je arhivirana ali izbor se je spremenil; nič se ne spremeni
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - type: object
+                required: [code]
+                properties: { code: { const: GROUP_ARCHIVED } }
+              - type: object
+                required: [code, missing]
+                properties:
+                  code: { const: SELECTION_CHANGED }
+                  missing: { type: array, minItems: 1, items: { type: string, format: uuid } }
+          examples:
+            archived: { value: { code: GROUP_ARCHIVED } }
+            selectionChanged: { value: { code: SELECTION_CHANGED, missing: ['0193a5b0-7c1e-7d4a-9a51-1f2e3d4c5b6b'] } }

@@ -2,9 +2,9 @@
 
 **Status:** v1.1 (2026-11-02) – implementacija s Tailwind CSS v4 in (neobvezno) shadcn/ui, glej 13. Živi dokument; spreminja se s pull requestom (`constitution.md` §7).  
 **Velja za:** celoten React frontend (namizje, tablica, mobilni telefon, nameščen PWA).  
-**Povezano:** [`constitution.md`](constitution.md) (pravila in potek dela), [`feature-map.md`](feature-map.md) (funkcionalnosti in skupna pravila)
+**Povezano:** [`constitution.md`](constitution.md) (pravila in potek dela), [`feature-map.md`](feature-map.md) (funkcionalnosti in skupna pravila), `specs/*/spec.md` (zahteve)
 
-> Ta dokument določa **videz in vedenje vmesnika**. *Kaj* aplikacija počne, določajo koda, testi in skupna pravila v `feature-map.md`; pri navzkrižju veljajo ti. Točna dostopna imena elementov so v prevodih (`frontend/src/i18n/`); imena v tem dokumentu so izhodišče zanje.
+> Ta dokument določa **videz in vedenje vmesnika**. *Kaj* aplikacija počne, določajo `specs/*/spec.md` in skupna pravila v `feature-map.md`; pri navzkrižju veljajo ti. Točna dostopna imena elementov so v prevodih (`frontend/src/i18n/`); imena v tem dokumentu so izhodišče zanje.
 
 ---
 

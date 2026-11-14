@@ -1,7 +1,7 @@
 # Contact Manager SDD
 
-Multi-tenant contact management application. The first version was built with Spec-Driven Development;
-ongoing work follows a lighter process (see *Working on a change*).
+Multi-tenant contact management application developed using Spec-Driven Development (SDD)
+with GitHub Spec Kit and Claude Code.
 
 ## Tech Stack
 - Backend: Spring Boot (Java 21)
@@ -10,7 +10,7 @@ ongoing work follows a lighter process (see *Working on a change*).
 - Authentication: Firebase (identity only, Google provider)
 - Authorization: Custom, per-group roles (VIEWER < EDITOR < ADMIN < OWNER) stored in PostgreSQL
 - Excel: export to `.xlsx`
-- Specs: GitHub Spec Kit 1.2.6 (specify, clarify, plan, tasks, implement), used only where a change needs it
+- SDD: GitHub Spec Kit 1.2.6
 - AI Agent: Claude Code
 
 ## Prerequisites
@@ -52,13 +52,12 @@ Protect `main` manually in GitHub: *Settings → Branches → Branch protection*
 - [Project rules](.specify/memory/constitution.md) – principles, workflow, test rules and verification (the only rules document)
 - [Product map](.specify/memory/feature-map.md) – features and shared rules (roles, order of checks, error codes, data dictionary)
 - [Design system »Kartoteka«](.specify/memory/design.md) – UI look and behaviour
-- [Decisions](docs/decisions/) – architecture decisions, one file each
-- [AI log](ai-log/) – one entry per AI session and token usage
+- [Specifications](specs/) – one Spec Kit folder per feature (`spec.md`, `plan.md`, `tasks.md`, …)
+- [Decisions](docs/decisions/) – architecture decisions, one file each; [`DECISIONS.md`](DECISIONS.md) is the closed log of the first version
+- [AI log](ai-log/) – one entry per AI session and token usage (`node scripts/token-report.mjs`)
 - [Original documentation](original_documentation/) – historical, not maintained
 
-Code and tests are the source of truth for behaviour. The first version's specifications (`specs/000–012`) and decision log (`DECISIONS.md`) live in Git history: `git show 2365b23:DECISIONS.md`.
-
 ## Working on a change
-- The size of the change decides the process (rules §2.1): a small change needs no documents, a normal feature a short `specs/<name>/spec.md`, a risky one also `plan.md` and `tasks.md` (`/speckit-plan` → `/speckit-tasks` → `/speckit-implement`, one pass).
-- `scripts/feature.sh <name>` creates the branch; code and tests are written together; one advisory review of the finished diff, then a PR that the developers merge.
-- `/rollout <feature>; <feature>; …` in Claude Code does this autonomously for one or more features: a supervisor consults you once, drives one worker per feature in its own git worktree and merges each PR when CI is green (rules §2.8).
+- **Small change** (fix, UI tweak, small addition): branch → code and tests → `./verify.sh quick` → PR.
+- **Feature:** the Spec Kit cycle in Claude Code – `/speckit-specify` → `/speckit-clarify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-analyze` → `/speckit-implement` → `/speckit-converge` → PR. Implement runs in one pass (code and tests together); before the PR the `pregled-testov` subagent reviews the finished diff once. `scripts/feature.sh <name>` switches to the feature's branch.
+- **`/rollout <feature>; <feature>; …`** runs that cycle autonomously for one or more features: a supervisor consults you once at the clarify step, drives one worker per feature in its own git worktree, has conflicts resolved after every merge and merges each PR when CI is green (rules §2.8).

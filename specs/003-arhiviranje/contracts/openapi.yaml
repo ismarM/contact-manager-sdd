@@ -1,0 +1,177 @@
+openapi: 3.1.0
+info:
+  title: Contact Manager API – arhiviranje in izbris skupine (003)
+  version: 0.1.0
+  description: >
+    Arhiviranje, odarhiviranje, seznam arhiviranih skupin in izbris skupine. Dopolnjuje specs/002-skupine/contracts/openapi.yaml
+    (GroupDetail dobi polji permanentlyArchived in canDelete). Vrstni red preverjanj (feature-map §2.2): 401, 404 (nečlan =
+    neobstoječa skupina, prazno telo), 403 FORBIDDEN, 409 GROUP_ARCHIVED, 409 z imenovano kodo poslovnega pravila.
+servers:
+  - url: http://localhost:8080
+security:
+  - firebaseIdToken: []
+paths:
+  /api/groups/archived:
+    get:
+      operationId: listArchivedGroups
+      summary: Arhivirane skupine, katerih član je uporabnik (FR-003-07, FR-003-08)
+      description: >
+        En seznam (ne po vlogah), urejen po naslovu po pravilih jezika `lang`, nato po `id`. Vsebuje tudi trajno arhivirane
+        skupine. Nearhiviranih in tujih skupin ni. Parametri in napake 400 kot pri GET /api/groups.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+        - { name: lang, in: query, schema: { type: string, enum: [sl, en], default: en } }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ArchivedGroups" }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+  /api/groups/{groupId}/archive:
+    post:
+      operationId: archiveGroup
+      summary: Arhivira skupino (najnižja vloga OWNER; FR-003-01)
+      parameters: [{ $ref: "#/components/parameters/GroupId" }]
+      responses:
+        "200":
+          description: Skupina je arhivirana; telo ima archived true.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GroupDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: Skupina je že arhivirana (GROUP_ARCHIVED).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { code: GROUP_ARCHIVED }
+  /api/groups/{groupId}/unarchive:
+    post:
+      operationId: unarchiveGroup
+      summary: Odarhivira skupino (najnižja vloga OWNER; FR-003-06, FR-003-08)
+      description: Trajno arhivirana skupina nima člana OWNER, zato vsak član dobi 403.
+      parameters: [{ $ref: "#/components/parameters/GroupId" }]
+      responses:
+        "200":
+          description: Skupina ni več arhivirana.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GroupDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: Skupina ni arhivirana (GROUP_NOT_ARCHIVED).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { code: GROUP_NOT_ARCHIVED }
+  /api/groups/{groupId}:
+    delete:
+      operationId: deleteGroup
+      summary: Izbriše skupino z vsemi podatki; samo edini član (FR-003-09, FR-003-11)
+      description: >
+        Dovoljeno tudi v arhivirani skupini. Najnižja vloga OWNER; v trajno arhivirani skupini VIEWER (katera koli vloga).
+        Skupina z več člani: 409 GROUP_HAS_OTHER_MEMBERS.
+      parameters: [{ $ref: "#/components/parameters/GroupId" }]
+      responses:
+        "204": { description: Skupina in vsi njeni podatki so izbrisani. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: Skupina ima še druge člane (GROUP_HAS_OTHER_MEMBERS).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { code: GROUP_HAS_OTHER_MEMBERS }
+components:
+  securitySchemes:
+    firebaseIdToken: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    GroupId:
+      name: groupId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    ValidationFailed:
+      description: Neveljavna poizvedbena spremenljivka (field ∈ page|size|lang).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ValidationFailed" }
+    Unauthenticated:
+      description: Ni žetona, neveljaven ali potekel žeton.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { code: UNAUTHENTICATED }
+    Forbidden:
+      description: Vloga člana je prenizka za to dejanje.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { code: FORBIDDEN }
+    NotFound:
+      description: Skupina ne obstaja ali uporabnik ni član (prazno telo; obstoj se ne razkrije).
+  schemas:
+    Error:
+      type: object
+      required: [code]
+      properties: { code: { type: string } }
+    ValidationFailed:
+      type: object
+      required: [code, errors]
+      properties:
+        code: { type: string, const: VALIDATION_FAILED }
+        errors:
+          type: array
+          items:
+            type: object
+            required: [field, code]
+            properties:
+              field: { type: string }
+              code: { type: string }
+    GroupDetail:
+      description: Kot v 002, z dodanima poljema.
+      type: object
+      required: [id, title, color, role, archived, permanentlyArchived, canDelete, version, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        description: { type: [string, "null"] }
+        color: { type: string }
+        role: { type: string, enum: [OWNER, ADMIN, EDITOR, VIEWER] }
+        archived: { type: boolean }
+        permanentlyArchived:
+          type: boolean
+          description: Arhivirana in brez lastnika (izbrisan račun lastnika, 012).
+        canDelete:
+          type: boolean
+          description: Klicatelj je edini član in je lastnik ali je skupina trajno arhivirana.
+        version: { type: integer, format: int64 }
+        updatedAt: { type: string, format: date-time }
+        updatedBy: { type: [object, "null"] }
+    ArchivedGroupSummary:
+      type: object
+      required: [id, title, color, contactCount, role, permanentlyArchived]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        description: { type: [string, "null"] }
+        color: { type: string }
+        contactCount: { type: integer }
+        role: { type: string, enum: [OWNER, ADMIN, EDITOR, VIEWER] }
+        permanentlyArchived: { type: boolean }
+    ArchivedGroups:
+      type: object
+      required: [total, page, size, items]
+      properties:
+        total: { type: integer, format: int64 }
+        page: { type: integer }
+        size: { type: integer }
+        items: { type: array, items: { $ref: "#/components/schemas/ArchivedGroupSummary" } }

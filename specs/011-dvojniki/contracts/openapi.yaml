@@ -1,0 +1,329 @@
+openapi: 3.1.0
+info:
+  title: Contact Manager – iskanje in združevanje podvojenih kontaktov (011)
+  version: 0.1.0
+  description: >
+    Iskanje skupin podvojenih kontaktov po eni kategoriji, nalaganje kontaktov za tabelo razlik in atomarna združitev.
+    Vsi endpointi zahtevajo vlogo EDITOR ali višjo in so v arhivirani ali trajno arhivirani skupini zavrnjeni
+    (409 GROUP_ARCHIVED, tudi branje; VIEWER dobi 403). Primerjava in združitev imata največ 10 kontaktov (FR-011-21,
+    D-93). Vrstni red preverjanj (feature-map §2.2, research.md R-07): 401 → 404 (skupina, nečlan ali identiteta, ki
+    nikoli ni bila kontakt te skupine) → 403 → 409 GROUP_ARCHIVED → 400 (zgradba zahtevka) → 409 VERSION_CONFLICT → 400
+    (rezultat združitve). Združitev je atomarna in ustvari natanko en vnos revizijske sledi vrste MERGE (005); razveljavi
+    jo rollback iz 005 (POST /groups/{groupId}/audit/{entryId}/rollback, ADMIN+), 011 nima lastnega endpointa za
+    razveljavitev.
+servers:
+  - url: /api
+security:
+  - bearerAuth: []
+paths:
+  /groups/{groupId}/duplicates:
+    parameters:
+      - $ref: '#/components/parameters/GroupId'
+    get:
+      summary: Poišči skupine dvojnikov po izbrani kategoriji (FR-011-02 … FR-011-07)
+      description: >
+        Išče med vsemi kontakti skupine (ne glede na iskanje in filtre seznama). Vsak kontakt je v največ eni skupini;
+        skupine imajo vsaj 2 kontakta. Skupine so razvrščene abecedno po reason.value, kontakti v skupini po času
+        ustvaritve in id. Stran prek zadnje vrne 200 s praznim groups.
+      parameters:
+        - name: category
+          in: query
+          required: true
+          schema: { type: string, enum: [name, email, phone] }
+        - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 }, description: '0-osno kot 008' }
+        - { name: size, in: query, schema: { type: integer, enum: [25, 50, 100], default: 25 } }
+      responses:
+        '200':
+          description: Stran skupin dvojnikov
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DuplicatePage' }
+              example:
+                category: email
+                total: 1
+                page: 0
+                size: 25
+                groups:
+                  - reason: { category: email, value: janez@primer.si }
+                    size: 2
+                    contacts:
+                      - { id: '0193a5b0-7c1e-7d4a-9a51-1f2e3d4c5b6a', displayName: Janez Novak }
+                      - { id: '0193a5b0-7c1e-7d4a-9a51-1f2e3d4c5b6b', displayName: janez novak }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/GroupArchived' }
+
+  /groups/{groupId}/duplicates/compare:
+    parameters:
+      - $ref: '#/components/parameters/GroupId'
+    get:
+      summary: Trenutni podatki kontaktov za tabelo razlik (FR-011-08, FR-011-20, FR-011-21)
+      description: >
+        Vrne trenutne podatke in verzije obstoječih kontaktov te skupine izmed ids, razvrščene po času ustvaritve in id
+        (prvi je tisti, ki ostane). Izbrisan kontakt (je v sledi skupine) je izpuščen, zato je kontaktov lahko manj kot
+        2 – vmesnik tedaj pokaže »Te skupine dvojnikov ni več.«. Identiteta, ki ni nikoli bila kontakt te skupine → 404.
+        Več kot 10 ali manj kot 2 različnih identitet → 400 VALIDATION_FAILED.
+      parameters:
+        - name: ids
+          in: query
+          required: true
+          description: 2–10 različnih UUID; ponovljen parameter ali seznam, ločen z vejicami
+          schema:
+            type: array
+            minItems: 2
+            maxItems: 10
+            uniqueItems: true
+            items: { type: string, format: uuid }
+          style: form
+          explode: false
+      responses:
+        '200':
+          description: Kontakti za primerjavo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Comparison' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/GroupArchived' }
+
+  /groups/{groupId}/duplicates/merge:
+    parameters:
+      - $ref: '#/components/parameters/GroupId'
+    post:
+      summary: Združi kontakte v enega (FR-011-13 … FR-011-17, FR-011-19 … FR-011-21)
+      description: >
+        Ohranjeni kontakt je najstarejši po času ustvaritve in id med contacts; posodobi se z result (verzija + 1,
+        izvajalec in čas spremembe, brez oznake Povrnjeno), ostali se izbrišejo. Vse v eni transakciji z zaklepanjem
+        skupine (FOR SHARE) in kontaktov (FOR UPDATE v vrstnem redu id); nastane natanko en vnos MERGE. Če je katerikoli
+        vključeni kontakt spremenjen ali izbrisan po odprtju primerjave (verzija ne ustreza ali kontakt ne obstaja več,
+        a je v sledi skupine) → 409 VERSION_CONFLICT in nič se ne spremeni. Strežnik ne preverja izvora vrednosti v
+        result, samo slovar podatkov (§2.6).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MergeRequest' }
+            example:
+              contacts:
+                - { id: '0193a5b0-7c1e-7d4a-9a51-1f2e3d4c5b6a', version: 3 }
+                - { id: '0193a5b0-7c1e-7d4a-9a51-1f2e3d4c5b6b', version: 0 }
+              result:
+                firstName: Janez
+                lastName: Novak
+                address: null
+                email: janez@primer.si
+                phone: '041 111 222'
+                attributes: [{ key: Kompetenca, value: web dev }]
+                tags: [vip, konferenca2025, alumni]
+      responses:
+        '200':
+          description: Kontakti so združeni
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MergeResult' }
+              example:
+                keptContactId: '0193a5b0-7c1e-7d4a-9a51-1f2e3d4c5b6a'
+                keptDisplayName: Janez Novak
+                mergedCount: 2
+                auditEntryId: '0193a5b1-0000-7000-8000-000000000001'
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: >
+            GROUP_ARCHIVED (skupina je arhivirana) ali VERSION_CONFLICT (vključeni kontakt je bil po odprtju primerjave
+            spremenjen ali izbrisan; nič se ne spremeni)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - { $ref: '#/components/schemas/ErrorResponse' }
+                  - { $ref: '#/components/schemas/VersionConflict' }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer }
+  parameters:
+    GroupId: { name: groupId, in: path, required: true, schema: { type: string, format: uuid } }
+  responses:
+    ValidationFailed:
+      description: 400 VALIDATION_FAILED – neveljavni parametri, zgradba zahtevka ali rezultat združitve
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ValidationError' }
+          examples:
+            tooManyContacts:
+              summary: Več kot 10 kontaktov (D-93)
+              value: { code: VALIDATION_FAILED, errors: [{ field: contacts, code: TOO_MANY }] }
+            mergedResult:
+              summary: Rezultat krši slovar podatkov
+              value:
+                code: VALIDATION_FAILED
+                errors: [{ field: 'result.firstName', code: REQUIRED }, { field: 'result.tags', code: TOO_MANY }]
+    Unauthenticated:
+      description: 401 UNAUTHENTICATED – brez, neveljaven ali potekel žeton
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Forbidden:
+      description: 403 FORBIDDEN – član z vlogo VIEWER (tudi v arhivirani skupini)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    NotFound:
+      description: 404 – nečlan, neobstoječa skupina ali identiteta, ki nikoli ni bila kontakt te skupine (brez telesa)
+    GroupArchived:
+      description: 409 GROUP_ARCHIVED – EDITOR, ADMIN ali OWNER arhivirane ali trajno arhivirane skupine
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+  schemas:
+    Category:
+      type: string
+      enum: [name, email, phone]
+      description: name = ime in priimek, email = e-naslov, phone = telefon
+    DuplicateContact:
+      type: object
+      required: [id, displayName]
+      properties:
+        id: { type: string, format: uuid }
+        displayName: { type: string, description: 'Ime in priimek brez manjkajočega dela' }
+    DuplicateGroup:
+      type: object
+      required: [reason, size, contacts]
+      properties:
+        reason:
+          type: object
+          required: [category, value]
+          properties:
+            category: { $ref: '#/components/schemas/Category' }
+            value: { type: string, description: 'Vrednost prvega kontakta skupine, nenormalizirano (FR-011-07)' }
+        size: { type: integer, minimum: 2 }
+        contacts:
+          type: array
+          minItems: 2
+          description: Vsi kontakti skupine, po času ustvaritve naraščajoče, nato po id; prvi ostane ob združitvi
+          items: { $ref: '#/components/schemas/DuplicateContact' }
+    DuplicatePage:
+      type: object
+      required: [category, total, page, size, groups]
+      properties:
+        category: { $ref: '#/components/schemas/Category' }
+        total: { type: integer, format: int64, description: 'Število skupin dvojnikov' }
+        page: { type: integer, minimum: 0 }
+        size: { type: integer, enum: [25, 50, 100] }
+        groups:
+          type: array
+          items: { $ref: '#/components/schemas/DuplicateGroup' }
+    Attribute:
+      type: object
+      required: [key, value]
+      properties:
+        key: { type: string, minLength: 1, maxLength: 50 }
+        value: { type: string, minLength: 1, maxLength: 500 }
+    CompareContact:
+      type: object
+      required: [id, version, createdAt, firstName, lastName, address, email, phone, attributes, tags]
+      properties:
+        id: { type: string, format: uuid }
+        version: { type: integer, format: int64, description: 'Verzija, ki jo vmesnik pošlje v merge' }
+        createdAt: { type: string, format: date-time }
+        firstName: { type: [string, 'null'] }
+        lastName: { type: [string, 'null'] }
+        address: { type: [string, 'null'] }
+        email: { type: [string, 'null'] }
+        phone: { type: [string, 'null'] }
+        attributes:
+          type: array
+          items: { $ref: '#/components/schemas/Attribute' }
+        tags:
+          type: array
+          items: { type: string }
+    Comparison:
+      type: object
+      required: [contacts]
+      properties:
+        contacts:
+          type: array
+          maxItems: 10
+          description: Samo obstoječi kontakti te skupine, po času ustvaritve naraščajoče, nato po id; lahko manj kot 2
+          items: { $ref: '#/components/schemas/CompareContact' }
+    MergeContactRef:
+      type: object
+      required: [id, version]
+      additionalProperties: false
+      properties:
+        id: { type: string, format: uuid }
+        version: { type: integer, format: int64, minimum: 0 }
+    MergeResultInput:
+      type: object
+      additionalProperties: false
+      description: >
+        Končne vrednosti združenega kontakta; pravila kot pri ustvarjanju kontakta (004): vsaj ime ali priimek, dolžine,
+        oblika e-naslova in telefona, ≤ 50 atributov (edinstveni ključi brez razlike velikosti črk, brez rezerviranih),
+        ≤ 30 značk (edinstvene brez razlike velikosti črk)
+      properties:
+        firstName: { type: [string, 'null'], maxLength: 100 }
+        lastName: { type: [string, 'null'], maxLength: 100 }
+        address: { type: [string, 'null'], maxLength: 300 }
+        email: { type: [string, 'null'], maxLength: 254 }
+        phone: { type: [string, 'null'], maxLength: 30 }
+        attributes:
+          type: array
+          maxItems: 50
+          items: { $ref: '#/components/schemas/Attribute' }
+        tags:
+          type: array
+          maxItems: 30
+          items: { type: string, minLength: 1, maxLength: 50 }
+    MergeRequest:
+      type: object
+      required: [contacts, result]
+      additionalProperties: false
+      properties:
+        contacts:
+          type: array
+          minItems: 2
+          maxItems: 10
+          description: 2–10 različnih kontaktov z verzijo, ki jo je uporabnik videl; ohranjeni je najstarejši med njimi
+          items: { $ref: '#/components/schemas/MergeContactRef' }
+        result: { $ref: '#/components/schemas/MergeResultInput' }
+    MergeResult:
+      type: object
+      required: [keptContactId, keptDisplayName, mergedCount, auditEntryId]
+      properties:
+        keptContactId: { type: string, format: uuid }
+        keptDisplayName: { type: string }
+        mergedCount: { type: integer, minimum: 2, maximum: 10, description: 'Število vključenih kontaktov, vključno z ohranjenim' }
+        auditEntryId: { type: string, format: uuid, description: 'Vnos MERGE v revizijski sledi (005)' }
+    FieldError:
+      type: object
+      required: [field, code]
+      properties:
+        field: { type: string, description: 'category, page, size, ids, contacts, contacts[i].id, contacts[i].version, result.<polje>' }
+        code:
+          type: string
+          enum: [REQUIRED, TOO_LONG, TOO_MANY, INVALID_VALUE, DUPLICATE, RESERVED_KEY, UNKNOWN_FIELD, MALFORMED]
+    ValidationError:
+      type: object
+      required: [code, errors]
+      properties:
+        code: { type: string, enum: [VALIDATION_FAILED] }
+        errors:
+          type: array
+          items: { $ref: '#/components/schemas/FieldError' }
+    VersionConflict:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, enum: [VERSION_CONFLICT] }
+    ErrorResponse:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, enum: [UNAUTHENTICATED, FORBIDDEN, GROUP_ARCHIVED] }

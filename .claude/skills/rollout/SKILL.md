@@ -1,6 +1,6 @@
 ---
 name: "rollout"
-description: "Samodejno uvajanje ene ali več funkcionalnosti: nadzornik razdeli delo delavcem (podagent izvajalec, vsak v svojem worktreeju), se z razvijalcem posvetuje enkrat, nato vodi delo do združenih PR-jev. Uporabi, ko razvijalec naroči /rollout ali želi funkcionalnosti izpeljati samodejno oziroma vzporedno."
+description: "Samodejno uvajanje ene ali več funkcionalnosti: nadzornik vodi delavce (podagent izvajalec, vsak v svojem worktreeju) skozi cikel Spec Kit – specify, clarify, plan, tasks, analyze, implement, converge –, se z razvijalcem posvetuje enkrat, nato vodi delo do združenih PR-jev. Uporabi, ko razvijalec naroči /rollout ali želi funkcionalnosti izpeljati samodejno oziroma vzporedno."
 argument-hint: "Funkcionalnosti, ločene s podpičjem ali v alinejah (kratek opis vsake)"
 user-invocable: true
 disable-model-invocation: true
@@ -22,8 +22,10 @@ razvijalca, preden karkoli začneš.
 Ti si **nadzornik**. Zagon tega ukaza je razvijalčevo dovoljenje, da delavci commitajo, potiskajo
 veje in odpirajo PR-je ter da ti PR **združiš, ko je CI zelen** (konstitucija §2.8).
 
-- **Ne pišeš kode in je ne bereš.** Delo opravijo delavci. Ti deliš faze, preverjaš dokaze,
-  odločaš o preprostih vprašanjih in usklajuješ vrstni red.
+- **Ne pišeš kode in je ne bereš.** Delo opravijo delavci. Ti jih vodiš skozi cikel Spec Kit
+  (konstitucija §2.3) tako, kot sta to prej ročno počela razvijalca: poveš, kateri korak je na
+  vrsti, preveriš dokaz, da je res opravljen, in šele nato pošlješ naslednjega. Odločaš o
+  preprostih vprašanjih in usklajuješ vrstni red.
 - **Verjameš dokazom, ne trditvam:** obstoj datoteke, `git log`/`git diff --stat`, številka PR,
   izid CI (`gh pr checks`). Vrat `verify.sh` ne poganjaš sam – dokaz je CI.
 - **Kontekst ostane majhen:** bereš samo poročila delavcev (do 15 vrstic), `--stat` in enovrstične
@@ -45,9 +47,9 @@ Razvijalec (ai-log): <ime>
 ## Načrt
 - vrstni red združevanja: A → B → C
 - valovi: 1: A, B · 2: C (po planu A)
-- dodeljeno: migracije A=V9, B=V10 · skupne datoteke: App.tsx (A, B), sl.json/en.json (vsi)
+- dodeljeno: mape A=specs/013-…, B=specs/014-… · migracije A=V9, B=V10 · skupne datoteke: App.tsx (A, B), sl.json/en.json (vsi)
 ## Funkcionalnosti
-| Ime | Velikost | Delavec (id) | Worktree | Veja | Faza | PR | Krogi CI |
+| Ime | Velikost | Delavec (id) | Worktree | Veja | Mapa specs | Faza | PR | Krogi CI |
 ## Odločitve nadzornika
 - <funkcionalnost>: <vprašanje> → <odločitev> (razlog)
 ## Odprta vprašanja za razvijalca
@@ -63,8 +65,11 @@ Razvijalec (ai-log): <ime>
 2. `gh pr list --state open --json number,title,headRefName,files --jq '.[] | {number, title, headRefName, files: [.files[].path]}'`
    in `git branch -r` – delo sodelavca, ki se prekriva z naročenimi funkcionalnostmi, je konflikt,
    ki ga sporočiš v posvetu (korak 2).
-3. Vsako funkcionalnost razvrsti po konstituciji §2.1 (majhna / običajna / tvegana) in ji določi
-   ime (`[a-z][a-z0-9-]*`). Majhna sprememba gre skozi iste faze brez `spec.md`.
+3. Vsako funkcionalnost razvrsti po konstituciji §2.1 (majhna / funkcionalnost / tvegana) in ji
+   določi ime (`[a-z][a-z0-9-]*`). Funkcionalnostim po vrsti dodeli **številke map**
+   (`ls specs | tail -n 1` → naslednje proste), da jih vzporedni delavci ne izberejo enakih; delavec
+   jo poda `/speckit-specify` kot `SPECIFY_FEATURE_DIRECTORY=specs/NNN-ime`. Majhna sprememba nima
+   mape in preskoči fazi SPEC in NAČRT.
 4. Ime razvijalca za `ai-log/<ime>.md` določi iz obstoječih datotek v `ai-log/` in
    `git config user.name`; če ni očitno, ga vprašaj v posvetu.
 
@@ -78,7 +83,8 @@ funkcionalnostmi hkrati. Vrne naj samo tabelo, brez izpisov datotek:
   `frontend/src/shared/**`, `frontend/src/i18n/*.json`, `frontend/src/test/**`,
   `e2e/tests/support/**`, `.specify/memory/feature-map.md`), in odvisnosti od drugih naročenih
   funkcionalnosti;
-- zadnjo številko migracije v `backend/src/main/resources/db/migration/`.
+- zadnjo številko migracije v `backend/src/main/resources/db/migration/`;
+- obstoječe specifikacije (`specs/NNN-ime/`), v katere funkcionalnost posega.
 
 Vsak par funkcionalnosti razvrsti:
 
@@ -86,50 +92,58 @@ Vsak par funkcionalnosti razvrsti:
 |---|---|---|
 | neodvisni | ločene mape, brez skupnih datotek razen prevodov in `ai-log/` | vzporedno, isti val |
 | skupne točke | ista skupna datoteka ali obe z migracijo | vzporedno; dodeli številke migracij in vrstni red združevanja, drugi se uskladi po prvi združitvi |
-| odvisni | B potrebuje model ali endpointe A | A najprej do konca faze SPEC (s `plan.md`), nato B začne s planom A kot vhodom; A se združi pred B |
+| odvisni | B potrebuje model ali endpointe A | A najprej do konca faze NAČRT, nato B začne svojo fazo NAČRT s potjo do `plan.md`, `data-model.md` in `contracts/` funkcionalnosti A; A se združi pred B |
 | prekrivajoči | isti zaslon, ista tabela ali iste datoteke v jedru | **ne vzporedno**: zaporedna valova ali združitev v eno funkcionalnost |
 
 Omejitve števila funkcionalnosti ni; število valov določi ta analiza. Prevodi (`sl.json`,
 `en.json`) in `ai-log/` so vedno skupna točka – konflikt je pričakovan in ga razreši delavec v
 fazi USKLADITEV.
 
-### 2. Specifikacije in posvet (edina načrtovana točka z razvijalcem)
+### 2. Specifikacije in razjasnitev (edina načrtovana točka z razvijalcem)
 
-1. Za vsako funkcionalnost prvega vala zaženi delavca: orodje `Agent`, `subagent_type: "izvajalec"`,
+1. Za vsako funkcionalnost zaženi delavca: orodje `Agent`, `subagent_type: "izvajalec"`,
    `isolation: "worktree"`, `run_in_background`, navodilo po predlogi spodaj, faza **SPEC**. Pri
-   tvegani funkcionalnosti dodaj `model: "opus"`. Vse delavce vala zaženi v enem koraku.
-2. Ko poročila prispejo, preveri dokaz (`git -C <worktree> log --oneline -3`, obstoj `spec.md`) in
-   **razvrsti vprašanja** (spodaj).
+   tvegani funkcionalnosti dodaj `model: "opus"`. Vse delavce zaženi v enem koraku – tudi tiste iz
+   kasnejših valov, ker specifikacija ne potrebuje plana predhodnice.
+2. Ko poročila prispejo, preveri dokaz (`git -C <worktree> log --oneline -2`, obstoj
+   `specs/NNN-ime/spec.md`) in **razvrsti vprašanja** razjasnitve (spodaj).
 3. **Posvet:** razvijalcu v enem sporočilu pokaži
-   - načrt: valovi, vrstni red združevanja, dodeljene številke migracij;
+   - načrt: valovi, vrstni red združevanja, dodeljene številke map in migracij;
    - pričakovane konflikte (med funkcionalnostmi in z odprtim delom sodelavca) in kako bodo rešeni;
    - odločitve, ki si jih sprejel sam (ena vrstica vsaka);
    - vprašanja, ki jih mora odločiti on – z `AskUserQuestion` (do 4 na klic; več klicev, če je treba),
      vsako s tvojim priporočilom kot prvo možnostjo.
-4. Odgovore zapiši v stanje in jih pošlji delavcem skupaj z naslednjo fazo. Od tu naprej razvijalca
-   ne sprašuješ, razen v primerih iz razdelka *Kdaj se obrneš na razvijalca*.
+4. Odgovore (svoje in razvijalčeve) zapiši v stanje; delavec jih dobi z naslednjo fazo in jih vpiše
+   v `spec.md`. Od tu naprej razvijalca ne sprašuješ, razen v primerih iz razdelka *Kdaj se obrneš
+   na razvijalca*.
 
-### 3. Izvedba (za vsako funkcionalnost; funkcionalnosti istega vala vzporedno)
+### 3. Cikel do združitve (za vsako funkcionalnost; funkcionalnosti istega vala vzporedno)
 
 Istega delavca nadaljuješ s `SendMessage` (ohrani kontekst funkcionalnosti); novega zaženeš le, če
-delavec odpove (glej *Odpornost*).
+delavec odpove (glej *Odpornost*). Vsaka vrstica je ena faza; naslednje **ne** pošlješ, dokler vrata
+niso izpolnjena.
 
-| Korak | Kdo | Vrata, preden greš naprej |
+| Faza | Koraki Spec Kit | Vrata, preden greš naprej |
 |---|---|---|
-| **IZVEDBA** | delavec | poročilo KONČANO z `✓ quick OK`; `git -C <worktree> status --short` prazen; `git -C <worktree> diff main...HEAD --stat \| tail -n 1` kaže spremembe v pričakovanih mapah |
-| **Pregled** (običajna, tvegana) | ti zaženeš podagenta `pregled-testov` (svež, `model: "sonnet"`) z vejo in mapo `specs/<ime>/` | pregled se zažene **enkrat**; ugotovitve posreduješ delavcu dobesedno |
-| **POPRAVKI** | delavec | poročilo KONČANO; neodpravljene ugotovitve so naštete (gredo v opis PR) |
-| **PR** | delavec | številka PR; `gh pr view <n> --json state,mergeable,headRefName` |
-| **CI** | ti: `gh pr checks <n> --watch --fail-fast` v ozadju | vsi posli (`quick`, `backend`, `e2e`) uspešni. Ob padcu delavcu pošlji imena padlih poslov in fazo POPRAVKI; največ **3** krogi, nato se obrneš na razvijalca |
-| **Združitev** | ti, po vrstnem redu iz načrta | CI zelen **in** `mergeable == MERGEABLE` → `gh pr merge <n> --merge --delete-branch` |
-| **USKLADITEV** | delavci vseh še odprtih PR-jev, takoj po vsaki združitvi | poročilo KONČANO, nato znova korak CI |
+| **NAČRT** (delavec) | odgovori razjasnitve v `spec.md` → `/speckit-plan` → `/speckit-tasks` → `/speckit-analyze` z enim krogom popravkov | v mapi obstajata `plan.md` in `tasks.md`; `grep -c "NEEDS CLARIFICATION" spec.md` je 0; poročilo navaja izid analize brez odprtih CRITICAL. Pri **tvegani** funkcionalnosti povzetek javnih vmesnikov in podatkovnega modela iz poročila pokaži razvijalcu, preden pošlješ IZVEDBO |
+| **IZVEDBA** (delavec) | `/speckit-implement` v enem prehodu → `./verify.sh quick` → `/speckit-converge` (največ dve ponovitvi) | poročilo z `✓ quick OK` in izidom converge; `grep -c "^- \[ \]" tasks.md` je 0; `git -C <worktree> status --short` prazen; `git -C <worktree> diff main...HEAD --stat \| tail -n 1` kaže spremembe v pričakovanih mapah |
+| **Pregled** (ti) | svež podagent `pregled-testov` (`model: "sonnet"`) z vejo in mapo `specs/NNN-ime/` | zažene se **enkrat**; ugotovitve posreduješ delavcu dobesedno |
+| **POPRAVKI** (delavec) | odprava utemeljenih ugotovitev | poročilo KONČANO; neodpravljene ugotovitve so naštete (gredo v opis PR) |
+| **PR** (delavec) | `feature-map.md`, vnos v `ai-log/`, `push`, `gh pr create` | številka PR; `gh pr view <n> --json state,mergeable,headRefName` |
+| **CI** (ti) | `gh pr checks <n> --watch --fail-fast` v ozadju | vsi posli (`quick`, `backend`, `e2e`) uspešni. Ob padcu delavcu pošlji imena padlih poslov in fazo POPRAVKI; največ **3** krogi, nato se obrneš na razvijalca |
+| **Združitev** (ti) | po vrstnem redu iz načrta | CI zelen **in** `mergeable == MERGEABLE` → `gh pr merge <n> --merge --delete-branch` |
+| **USKLADITEV** (delavci vseh še odprtih vej) | takoj po vsaki združitvi | poročilo KONČANO, nato znova faza CI |
 
-- Funkcionalnost naslednjega vala začne z `git fetch` po združitvi tistih, od katerih je odvisna;
-  odvisna funkcionalnost dobi v navodilu pot do `plan.md` predhodnice.
+- Majhna sprememba začne pri fazi IZVEDBA (brez veščin Spec Kit) in nima pregleda.
+- Odvisna funkcionalnost dobi fazo NAČRT šele, ko jo je predhodnica končala; v navodilu ji podaš
+  pot do artefaktov predhodnice. Fazo IZVEDBA lahko začne, ko je predhodnica združena ali ko
+  njen plan jasno določa vmesnik, na katerega se naslanja.
 - Če `gh pr merge` zavrne združitev zaradi zaščite veje ali zahtevanega pregleda, tega ne obidi:
   sporoči razvijalcu in nadaljuj z drugimi funkcionalnostmi.
 - Če delavec poroča *Datoteke zunaj obsega*, preveri, ali jih ureja tudi drug delavec; če da, določi
   vrstni red in drugemu to sporoči pred njegovo naslednjo fazo.
+- Delavec koraka ne sme preskočiti: če poročilo ne navaja izida koraka (analiza, converge), fazo
+  vrni z navedbo, kaj manjka.
 
 ### 4. Zaključek
 
@@ -147,13 +161,14 @@ Kratko in samostojno – delavec ne vidi tega pogovora:
 
 ```text
 Funkcionalnost: <ime> – <opis v 1–3 stavkih>
-Velikost: <majhna | običajna | tvegana>
-Faza: <SPEC | IZVEDBA | POPRAVKI | PR | USKLADITEV>
+Velikost: <majhna | funkcionalnost | tvegana>
+Faza: <SPEC | NAČRT | IZVEDBA | POPRAVKI | PR | USKLADITEV>
+Mapa: specs/<NNN>-<ime> (SPECIFY_FEATURE_DIRECTORY za /speckit-specify)
 Obseg datotek: <mape in paketi iz analize>
 Skupne datoteke, ki jih smeš spremeniti: <seznam>
 Dodeljeno: migracija V<n> · vrstni red združevanja: <mesto> · ime za ai-log: <ime>
-Odločitve iz posveta: <alineje ali "ni">
-Vhod te faze: <npr. ugotovitve pregleda dobesedno; padli posli CI; pot do plan.md predhodnice>
+Odgovori razjasnitve in odločitve iz posveta: <alineje ali "ni">
+Vhod te faze: <npr. ugotovitve pregleda dobesedno; padli posli CI; pot do artefaktov predhodnice>
 Vrni poročilo v obliki iz svojih navodil.
 ```
 
@@ -185,7 +200,8 @@ Druge funkcionalnosti medtem tečejo naprej.
 
 - **Delavec ne odgovori v obliki ali je zašel iz faze:** enkrat ga popravi s kratkim sporočilom
   (kaj manjka). Če se ponovi, zaženi novega delavca na **isti veji in worktreeju** z navodilom, ki
-  vsebuje `spec.md`, stanje veje (`git log --oneline main..HEAD`) in preostanek faze.
+  vsebuje pot do mape `specs/NNN-ime/`, stanje veje (`git log --oneline main..HEAD`) in preostanek
+  faze – artefakti Spec Kit nosijo ves kontekst, ki ga novi delavec potrebuje.
 - **Delavec presega fazo** (npr. v SPEC že piše kodo): ne zavrzi dela; zabeleži in nadaljuj z vrati
   naslednje faze.
 - **Prekinitev seje:** ob ponovnem zagonu preberi `.rollout/state.md`, preveri resnično stanje

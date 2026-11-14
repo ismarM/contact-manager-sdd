@@ -1,0 +1,141 @@
+openapi: 3.1.0
+info:
+  title: Contact Manager – iskanje, filtri in razvrščanje kontaktov (008)
+  version: 0.1.0
+  description: >
+    Razširitev seznama kontaktov iz 004 (GET /groups/{groupId}/contacts) s parametri iskanja, filtrov in razvrščanja ter
+    nov endpoint z možnostmi filtrov. Samo branje: najnižja vloga VIEWER, dovoljeno tudi v arhivirani in trajno arhivirani
+    skupini (nikoli 403 ali 409). Vrstni red preverjanj (feature-map §2.2): 401 → 404 (nečlan ali neobstoječa skupina)
+    → 400 VALIDATION_FAILED. Privzeto razvrščanje in vsa polja razvrščanja: slovenska abeceda (Č za C, Š za S, Ž za Z),
+    ne glede na velikost črk in jezik vmesnika (D-63). Format parametrov: research.md R-07.
+servers:
+  - url: /api
+security:
+  - bearerAuth: []
+paths:
+  /groups/{groupId}/contacts:
+    parameters:
+      - $ref: '#/components/parameters/GroupId'
+    get:
+      summary: >
+        Stran kontaktov skupine z iskanjem, filtri in razvrščanjem (FR-008-01 … FR-008-09, FR-008-14 … FR-008-16);
+        brez parametrov enako kot v 004
+      parameters:
+        - name: q
+          in: query
+          description: >
+            Prosto iskanje po imenu, priimku, naslovu, e-naslovu in telefonu. Obrez, zaporedni presledki → eden, besede
+            povezane z AND (vsaka v vsaj enem atributu). Brez razlike velikosti črk in strešic. Do 200 znakov.
+          schema: { type: string, maxLength: 200 }
+        - name: f
+          in: query
+          description: >
+            Pogoj atributa `‹polje›:‹vrednost›` (ponovljiv, največ 10, povezani z AND). Polje je firstName, lastName,
+            address, email, phone ali `x.‹ključ›` za dodatni atribut (v ključu `%` → `%25`, `:` → `%3A`); ločilo je prvi
+            `:`; vrednost 1–500 znakov po obrezu, primerjava »vsebuje« brez razlike velikosti črk in strešic.
+          style: form
+          explode: true
+          schema: { type: array, maxItems: 10, items: { type: string } }
+          examples:
+            kombinacija: { value: ['x.kompetenca:web', 'email:feri.si'] }
+        - name: tag
+          in: query
+          description: Značka (ponovljiv, največ 30 različnih); zadetki imajo VSE izbrane značke; brez razlike velikosti črk.
+          style: form
+          explode: true
+          schema: { type: array, maxItems: 30, items: { type: string, minLength: 1, maxLength: 50 } }
+        - name: sort
+          in: query
+          description: Polje razvrščanja; privzeto lastName (priimek, nato ime). `x.‹ključ›` mora obstajati v skupini.
+          schema: { type: string, default: lastName }
+        - name: dir
+          in: query
+          description: >
+            Smer razvrščanja. Kontakti brez vrednosti so v obeh smereh na koncu; enake vrednosti: priimek, ime (naraščajoče),
+            čas nastanka, id.
+          schema: { type: string, enum: [asc, desc], default: asc }
+        - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: size, in: query, schema: { type: integer, enum: [25, 50, 100], default: 25 } }
+      responses:
+        '200':
+          description: >
+            Stran zadetkov; `total` je število zadetkov cele poizvedbe. Stran onkraj zadnje: prazen `items`, pravilen `total`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContactPage' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /groups/{groupId}/contact-filters:
+    parameters:
+      - $ref: '#/components/parameters/GroupId'
+    get:
+      summary: 'Možnosti filtrov skupine – dodatni ključi in značke (FR-008-06, FR-008-16), najnižja vloga VIEWER'
+      responses:
+        '200':
+          description: Samo ključi in značke kontaktov te skupine
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContactFilterOptions' }
+              example: { keys: [podjetje, kompetenca], tags: [konferenca2025, vip] }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404': { $ref: '#/components/responses/NotFound' }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer }
+  parameters:
+    GroupId: { name: groupId, in: path, required: true, schema: { type: string, format: uuid } }
+  schemas:
+    ContactPage:
+      description: Nespremenjeno iz 004 (contracts/openapi.yaml – ContactPage, ContactSummary)
+      type: object
+      required: [total, page, size, items]
+      properties:
+        total: { type: integer, format: int64 }
+        page: { type: integer }
+        size: { type: integer }
+        items: { type: array, items: { type: object } }
+    ContactFilterOptions:
+      type: object
+      required: [keys, tags]
+      properties:
+        keys:
+          type: array
+          description: Različni dodatni ključi kontaktov skupine, v obliki najstarejšega kontakta; slovenska abeceda
+          items: { type: string }
+        tags:
+          type: array
+          description: Različne značke kontaktov skupine, v obliki najstarejšega kontakta; slovenska abeceda
+          items: { type: string }
+    FieldError:
+      type: object
+      required: [field, code]
+      properties:
+        field:
+          type: string
+          description: 'q, f, f[i], tag, tag[i], sort, dir, page, size (i = 0-osni položaj ponovljivega parametra v zahtevi)'
+        code: { type: string, enum: [REQUIRED, TOO_LONG, TOO_MANY, INVALID_VALUE, UNKNOWN_FIELD, MALFORMED] }
+    Error:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string }
+  responses:
+    Unauthenticated: { description: 'Ni veljavnega žetona', content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, example: { code: UNAUTHENTICATED } } } }
+    NotFound: { description: 'Nečlan ali neobstoječa skupina; prazno telo (obstoj se ne razkrije)' }
+    ValidationFailed:
+      description: >
+        Neveljavni parametri (neznano polje ali ključ, ki ne obstaja v tej skupini – enako za ključ druge skupine; neznana
+        smer; q > 200; prazna vrednost pogoja ali > 500; > 10 pogojev; > 30 značk ali značka > 50; neveljavna stran ali
+        velikost; znak U+0000 v q, f, tag → MALFORMED). Napake po poljih; nič ne razkrije podatkov drugih skupin.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [code, errors]
+            properties:
+              code: { const: VALIDATION_FAILED }
+              errors: { type: array, items: { $ref: '#/components/schemas/FieldError' } }
+          example:
+            code: VALIDATION_FAILED
+            errors: [{ field: 'f[0]', code: UNKNOWN_FIELD }, { field: q, code: TOO_LONG }]

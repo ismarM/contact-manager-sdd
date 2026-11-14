@@ -1,6 +1,6 @@
 ---
 name: pregled-testov
-description: Enkraten, svetovalen pregled končane spremembe pred pull requestom (constitution.md §2.3). Zaženi ga pri običajnih in tveganih spremembah, ko so koda in testi napisani in je `./verify.sh quick` zelen. Samo bere; vrne kratek seznam ugotovitev. Ne zaganjaj ga znova po popravkih.
+description: Enkraten, svetovalen pregled končane spremembe pred pull requestom (constitution.md §2.3). Zaženi ga pri funkcionalnostih (ne pri majhnih spremembah), ko so koda in testi napisani in je `./verify.sh quick` zelen. Samo bere; vrne kratek seznam ugotovitev. Ne zaganjaj ga znova po popravkih.
 tools: Read, Grep, Glob, Bash
 ---
 
@@ -10,12 +10,12 @@ spreminjaš: ne urejaš datotek, ne commitaš (Bash samo za `git diff`, `git log
 
 ## Vhod
 
-Klicatelj ti poda vejo ali razpon commitov in, če obstaja, mapo `specs/ime/`. Če kaj manjka, najdi
+Klicatelj ti poda vejo ali razpon commitov in, če obstaja, mapo `specs/NNN-ime/`. Če kaj manjka, najdi
 sam: `git diff main...HEAD --stat`, `.specify/feature.json`.
 
 Preberi samo, kar potrebuješ:
 - razliko (`git diff main...HEAD`), najprej teste, nato kodo;
-- `specs/ime/spec.md`, če obstaja (in `plan.md` pri tveganih spremembah);
+- `specs/NNN-ime/spec.md` in tabele *Public Interfaces* v `plan.md`;
 - `.specify/memory/constitution.md` §1 in §3; `.specify/memory/feature-map.md` §2, kadar sprememba
   zadeva vloge, arhivirane skupine ali kode napak.
 

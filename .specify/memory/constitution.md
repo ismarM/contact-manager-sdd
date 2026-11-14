@@ -5,19 +5,25 @@ dokument s pravili**: načela, potek dela, pravila testov in preverjanja. Dopoln
 [`feature-map.md`](feature-map.md) (skupna pravila izdelka: vloge, vrstni red preverjanj, kode
 napak, slovar podatkov) in [`design.md`](design.md) (videz in vedenje vmesnika).
 
-Prva različica (funkcionalnosti 000–012) je zaključena. Od tu naprej velja: **resnica o vedenju sta
-koda in testi**; dokumenti so kratki in služijo delu, ne dokazovanju.
+Projekt se razvija po metodi Spec-Driven Development z **GitHub Spec Kit**: funkcionalnost gre skozi
+cikel `specify → clarify → plan → tasks → analyze → implement → converge` (§2). Prva različica
+(funkcionalnosti 000–012) je zaključena; od tu naprej je cikel **vitek**: brez vrat pred kodo, brez
+dnevnika sprememb testov in brez dokumentov, ki jih Spec Kit sam ne pozna.
 
 ## 1. Načela
 
-### I. Koda in testi so resnica, specifikacija je delovni dokument
+### I. Specifikacija vodi delo, koda in testi ga dokazujejo
 
-- Vedenje aplikacije določajo koda in testi v `main`. Skupna pravila, ki veljajo čez več
-  funkcionalnosti, so v `feature-map.md` in se posodobijo v istem PR kot koda, ki jih spremeni.
-- Specifikacija (`specs/ime/spec.md`) nastane samo, kadar jo delo potrebuje (§2.1). Je kratka,
-  opisuje *kaj* in *zakaj*, in se po združitvi ne vzdržuje več.
+- Vsaka funkcionalnost ima mapo `specs/NNN-ime/` z artefakti Spec Kit. `spec.md` določa *kaj* in
+  *zakaj*, `plan.md` javne vmesnike (endpointi, poti) in podatkovni model, `tasks.md` delo.
+- Zahteve imajo ID `FR-NNN-XX` in vsaj en scenarij *Given/When/Then*; zahteve nad podatki skupine
+  imajo negativne scenarije (neprijavljen, nečlan, nezadostna vloga, arhivirana skupina).
+- Kadar se specifikacija in koda v `main` razhajata, velja vedenje, ki ga varujejo testi; razhajanje
+  se odpravi v naslednjem PR, ki se funkcionalnosti dotakne (`/speckit-converge` ga pokaže).
+- Skupna pravila, ki veljajo čez več funkcionalnosti, so v `feature-map.md` in se posodobijo v istem
+  PR kot koda, ki jih spremeni.
 - Agent ne ugiba pri odločitvah, ki spremenijo vedenje za uporabnika, varnost ali podatkovni model
-  in jih naloga ne določa: vpraša (§2.4).
+  in jih specifikacija ne določa: vpraša (§2.4).
 
 ### II. Testi so obvezni
 
@@ -87,45 +93,52 @@ koda in testi**; dokumenti so kratki in služijo delu, ne dokazovanju.
 
 ### 2.1 Velikost spremembe določa postopek
 
-| Velikost | Primeri | Dokumenti | Postopek |
-|---|---|---|---|
-| **Majhna** | popravek napake, sprememba besedila ali videza, manjša dopolnitev obstoječega zaslona ali endpointa | nobenih | veja → koda in testi → `./verify.sh quick` → PR |
-| **Običajna** | nova funkcionalnost ali opazna sprememba obstoječe, brez novega načina prijave, nove vrste klicatelja ali tvegane migracije | `specs/ime/spec.md` (1–2 strani) | veja → `spec.md` → koda in testi → `quick` → PR |
-| **Tvegana** | avtentikacija in avtorizacija, nov tip klicatelja (npr. API ključi), sprememba sheme z migracijo obstoječih podatkov, zunanje storitve, osebni podatki | `spec.md` + kratek `plan.md` + `tasks.md` | veja → `spec.md` → razjasnitev → `plan.md` → `tasks.md` → izvedba v enem prehodu → PR |
+| Velikost | Primeri | Postopek |
+|---|---|---|
+| **Majhna** | popravek napake, sprememba besedila ali videza, manjša dopolnitev obstoječega zaslona ali endpointa | veja → koda in testi → `./verify.sh quick` → PR. Brez artefaktov Spec Kit; če sprememba spremeni zahtevo iz obstoječega `spec.md`, se ta popravi v istem PR. |
+| **Funkcionalnost** | nova funkcionalnost ali opazna sprememba obstoječe | celoten cikel Spec Kit (§2.3) v mapi `specs/NNN-ime/` |
+| **Tvegana funkcionalnost** | avtentikacija in avtorizacija, nov tip klicatelja (npr. API ključi), migracija obstoječih podatkov, zunanje storitve, osebni podatki | celoten cikel; vprašanja o varnosti in podatkih vedno odloči razvijalec, `plan.md` se pred nalogami pokaže razvijalcu |
 
 V dvomu izberi manjšo velikost; če se med delom izkaže, da sprememba posega v varnost ali
 podatkovni model, jo povišaj.
 
 ### 2.2 Dokumenti funkcionalnosti
 
-- Mapa je `specs/ime/` in veja `ime` (brez številk); oboje nastavi `scripts/feature.sh ime`.
-- `spec.md`: uporabniške zgodbe, zahteve, pravila po vlogah in v arhivirani skupini, robni primeri.
-  Predloga: `.specify/templates/overrides/spec-template.md`. Napiše se ročno ali s
-  `/speckit-specify` (z `SPECIFY_FEATURE_DIRECTORY=specs/ime`).
-- `plan.md` *(samo tvegane)*: podatkovni model in migracija, endpointi z najnižjo vlogo, varnostne
-  odločitve, tveganja – **vse v eni datoteki** (`/speckit-plan`).
-- `tasks.md` *(samo tvegane)*: naloge po zgodbah, testi so del vsake zgodbe (`/speckit-tasks`).
-- **Ne nastajajo:** `research.md`, `data-model.md`, `quickstart.md`, `contracts/`, `checklists/`,
-  `traceability.md`. Kjer veščina Spec Kit tak artefakt predvideva, velja ta dokument: vsebina, ki
-  je res potrebna, gre v `plan.md`.
-- Ob združitvi v `main` ostane samo `spec.md` kot kratek zapis, kaj funkcionalnost dela; `plan.md`
-  in `tasks.md` se pred združitvijo izbrišeta. Pravila, ki veljajo širše od ene funkcionalnosti
-  (nova koda napake, novo pravilo vlog, nov podatek v slovarju), se prenesejo v `feature-map.md`.
+- Mapa je `specs/NNN-ime/` (zaporedna številka, ki jo dodeli `/speckit-specify`), veja je `ime`
+  brez številke. `scripts/feature.sh ime` ustvari ali preklopi vejo in, če mapa že obstaja, nastavi
+  kazalec `.specify/feature.json`.
+- Nastajajo **samo artefakti Spec Kit**: `spec.md`, `checklists/requirements.md`, `plan.md`,
+  `research.md`, `data-model.md`, `quickstart.md`, `contracts/`, `tasks.md`. Predloge so v
+  `.specify/templates/overrides/` (spec, plan, tasks).
+- **Ne nastajajo:** `traceability.md`, vnosi v `DECISIONS.md` za spremembe testov ali specifikacij
+  in oznake `[CR-NN]`. Zahteva se spremeni neposredno v `spec.md`, v istem PR kot koda; zgodovino
+  hrani Git.
+- Artefakti so kratki: odločitve in dejstva, ki jih izvedba potrebuje. Dostopna imena elementov
+  niso predpisana v `plan.md`; njihov vir so prevodi (§3.3).
+- Mapa funkcionalnosti ostane v repozitoriju po združitvi. Pravila, ki veljajo širše od ene
+  funkcionalnosti (nova koda napake, novo pravilo vlog, nov podatek v slovarju), se prenesejo v
+  `feature-map.md`.
 
-### 2.3 Izvedba v enem prehodu
+### 2.3 Cikel funkcionalnosti
 
-- Koda in testi nastajajo skupaj, zgodba za zgodbo. Ni ločene faze testov, ni vrat pred kodo in ni
-  ločenega commita samo s testi.
-- Majhne in običajne spremembe se izvedejo neposredno iz naloge oziroma `spec.md`. Pri tveganih se
-  `/speckit-implement` požene **enkrat** čez cel `tasks.md`.
-- Pred zaključkom: `./verify.sh quick` in testi, ki jih sprememba zadeva (§4.2).
-- **Pregled:** pri običajnih in tveganih spremembah agent pred PR enkrat zažene podagent
-  `pregled-testov` nad končano razliko (`git diff main...`). Pregled je svetovalen: agent odpravi
-  utemeljene ugotovitve v **enem** krogu, preostale navede v opisu PR. Ponovnega kroga ni.
-- **Pull request:** opis navaja, kaj se je spremenilo, sprejete predpostavke, spremenjene obstoječe
-  teste z razlogom in morebitne neodpravljene ugotovitve pregleda. Razvijalca pregledata kodo in
-  teste ter pri spremembah vmesnika opravita ročni preizkus dostopnosti (`design.md` §10).
-  Združujeta razvijalca; izjema je samodejno uvajanje (§2.8), kjer PR ob zelenem CI združi nadzornik.
+| # | Korak | Rezultat | Pogoj za naprej |
+|---|---|---|---|
+| 1 | `/speckit-specify` | `spec.md` (zgodbe, FR-ID, scenariji, negativni scenariji) | – |
+| 2 | `/speckit-clarify` | nejasnosti razrešene, odgovori v `spec.md` (*Clarifications*) | ni več `[NEEDS CLARIFICATION]`; **edina načrtovana točka z razvijalcem** |
+| 3 | `/speckit-plan` | `plan.md` z javnimi vmesniki, `research.md`, `data-model.md`, `contracts/`, `quickstart.md` | – |
+| 4 | `/speckit-tasks` | `tasks.md`: naloge po zgodbah, testi so del vsake zgodbe | – |
+| 5 | `/speckit-analyze` | poročilo o skladnosti spec/plan/tasks | agent odpravi ugotovitve CRITICAL in HIGH v artefaktih; **en krog** |
+| 6 | `/speckit-implement` | koda in testi, **v enem prehodu** čez cel `tasks.md` | `./verify.sh quick` zelen, vse naloge `[x]` |
+| 7 | `/speckit-converge` | primerjava kode s spec/plan/tasks; manjkajoče doda kot naloge | »Converged«; sicer ponovi 6–7, **največ dvakrat** |
+| 8 | pregled | podagent `pregled-testov` nad končano razliko, svetovalno, **enkrat** | utemeljene ugotovitve odpravljene v enem krogu, preostale v opisu PR |
+| 9 | pull request | opis: kaj se je spremenilo, predpostavke, spremenjeni obstoječi testi z razlogom, odprte ugotovitve | zelen CI (`quick`, `backend`, `e2e`) |
+
+- **En prehod:** koda in testi nastajajo skupaj, zgodba za zgodbo. Ni ločene faze testov, ni
+  pregleda testov pred kodo in ni ločenega commita samo s testi.
+- Koraki 3–9 tečejo brez čakanja na razvijalca; agent se ustavi samo v primerih iz §2.4.
+- Razvijalca pregledata PR in pri spremembah vmesnika opravita ročni preizkus dostopnosti
+  (`design.md` §10). Združujeta razvijalca; izjema je samodejno uvajanje (§2.8), kjer PR ob zelenem
+  CI združi nadzornik.
 
 ### 2.4 Kdaj se agent ustavi
 
@@ -151,10 +164,13 @@ Agent dela sam od naloge do PR. Ustavi se in vpraša samo, če:
 
 ### 2.6 Odločitve
 
-- Zapiše se samo **arhitekturna odločitev**, ki je iz kode ni mogoče razbrati: nova knjižnica ali
-  zunanja storitev, sprememba avtentikacije, pomembna odločitev o shemi, odstop od teh pravil.
+- Zapiše se samo **arhitekturna odločitev**, ki je iz kode in `plan.md` ni mogoče razbrati: nova
+  knjižnica ali zunanja storitev, sprememba avtentikacije, pomembna odločitev o shemi, odstop od
+  teh pravil.
 - Ena datoteka na odločitev v `docs/decisions/LLLL-MM-DD-kratko-ime.md` (predloga v
   `docs/decisions/README.md`). Brez skupnega številčenja, zato ni konfliktov med vejami.
+- `DECISIONS.md` v korenu je **zaprt arhiv** prve različice (`D-01` … `D-104`): nanj se sklicujejo
+  komentarji v kodi in obstoječe specifikacije, novih vnosov ne dobiva.
 - Vse drugo (spremembe testov, predpostavke, manjše izbire) sodi v opis commita ali PR.
 
 ### 2.7 Seje z agentom in `ai-log/`
@@ -174,10 +190,11 @@ Agent dela sam od naloge do PR. Ustavi se in vpraša samo, če:
 Ukaz `/rollout <funkcionalnosti>` (`.claude/skills/rollout/SKILL.md`) izpelje eno ali več
 funkcionalnosti od naročila do združenega PR. Zanj veljajo vsa pravila tega dokumenta in še:
 
-- **Nadzornik** (glavna seja) ne piše kode: razdeli delo, preverja dokaze, odloča o preprostih
-  vprašanjih in usklajuje vrstni red. **Delavci** (podagent `izvajalec`) delajo vsak v svojem
-  worktreeju in veji, eno fazo naenkrat, in vračajo kratka poročila.
-- Z razvijalcem se nadzornik posvetuje **enkrat**, po osnutkih specifikacij: pokaže načrt (valovi,
+- **Nadzornik** (glavna seja) ne piše kode: delavce vodi skozi cikel iz §2.3 – korak za korakom,
+  tako kot sta to prej ročno počela razvijalca –, preverja dokaze, odloča o preprostih vprašanjih
+  in usklajuje vrstni red. **Delavci** (podagent `izvajalec`) delajo vsak v svojem worktreeju in
+  veji, eno fazo naenkrat, in vračajo kratka poročila.
+- Z razvijalcem se nadzornik posvetuje **enkrat**, v koraku razjasnitve: pokaže načrt (valovi,
   vrstni red združevanja, pričakovani konflikti) in vpraša samo, kar je arhitekturno pomembno
   (vedenje za uporabnika, vloge, podatkovni model, nove odvisnosti, osebni podatki). Kasneje se
   obrne nanj le v primerih, ki jih našteva ukaz.
@@ -261,34 +278,28 @@ največ 20 vrstic; celoten izpis zadnjega zagona je v `.verify/last.log`.
   frontend za nginx).
 - **Orodja:** Spotless, JUnit 5, Testcontainers · Prettier, ESLint (`jsx-a11y`), Vitest, React
   Testing Library, MSW, `vitest-axe` · Playwright, `@axe-core/playwright` · gitleaks · GitHub
-  Actions · Spec Kit (`specify`, `clarify`, `plan`, `tasks`, `implement`).
+  Actions · GitHub Spec Kit 1.2.6 (`specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`, `converge`).
 
 Nova knjižnica se uvede s točno različico in omembo v opisu PR; zapis v `docs/decisions/` dobi, če
 gre za arhitekturno odločitev (§2.6).
 
-## 6. Arhiv prve različice
+## 6. Prva različica in arhiv
 
-Specifikacije 000–012 (`specs/`), dnevnik `DECISIONS.md` in `workflow.md` so bili po zaključku prve
-različice odstranjeni iz delovnega drevesa. Ostajajo v zgodovini Gita; zadnji commit, ki jih
-vsebuje, je `2365b23`. Prvotni dokumenti v `original_documentation/` ostajajo v repozitoriju kot
-zgodovinski arhiv in se ne spreminjajo.
-
-```bash
-git show 2365b23:DECISIONS.md
-git show 2365b23:specs/004-kontakti/spec.md
-```
-
-Oznake v komentarjih kode in imenih testov – `FR-NNN-XX`, `SC-NNN`, `D-NN`, `R-NN`, `T0NN`,
-`CR-NN` ter sklici na `spec.md`, `plan.md`, `research.md`, `contracts/` posamezne funkcionalnosti –
-kažejo v ta arhiv. So zgodovinske: novi testi in nova koda jih ne potrebujejo, obstoječih ni treba
-odstranjevati.
+- Specifikacije 000–012 ostajajo v `specs/` kot zapis prve različice in vzorec za nove. Vzdržujejo
+  se po §1 I: popravijo se, ko se njihova funkcionalnost spremeni.
+- `DECISIONS.md` je zaprt arhiv (§2.6). Datoteke `traceability.md` in dokument `workflow.md` so
+  odstranjeni; ostajajo v zgodovini Gita (`git show 2365b23:.specify/memory/workflow.md`).
+- Prvotni dokumenti v `original_documentation/` so zgodovinski arhiv in se ne spreminjajo.
+- Oznake v komentarjih kode in imenih testov (`FR-NNN-XX`, `SC-NNN`, `D-NN`, `R-NN`, `T0NN`) kažejo
+  v `specs/NNN-ime/` in `DECISIONS.md`. Sklici na `traceability.md` in `workflow.md` so zgodovinski.
 
 ## 7. Upravljanje
 
 - Prednost pri navzkrižju: **ta dokument → `feature-map.md` in `design.md` → `spec.md` → `plan.md`
-  → `tasks.md`**; pred veščinami Spec Kit ima prednost ta dokument.
+  → `tasks.md`**. Veščine Spec Kit se uporabljajo nespremenjene; kjer se razhajajo s tem dokumentom
+  (npr. `analyze` samo poroča, tu pa agent ugotovitve tudi odpravi), velja ta dokument.
 - Ta dokument, `feature-map.md`, `design.md`, `CLAUDE.md` in predloge v
   `.specify/templates/overrides/` se spreminjajo s pull requestom, ki ga potrdita oba razvijalca.
 - `CLAUDE.md` je kratek kazalec na ta dokument (do ~25 vrstic) in se vzdržuje ročno.
 
-**Version**: 3.0.0 | **Ratified**: 2026-11-02 | **Last Amended**: 2026-11-14
+**Version**: 3.1.0 | **Ratified**: 2026-11-02 | **Last Amended**: 2026-11-14
