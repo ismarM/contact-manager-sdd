@@ -37,6 +37,26 @@ docker compose -f compose.yaml -f compose.override.yaml -f compose.demo.yaml run
 docker compose -p contact-manager-demo down
 ```
 
+## Real Firebase (Google sign-in in local development)
+The emulator stays the default for tests and CI. To sign in with a real Google account against your own Firebase project:
+```bash
+# 1. Once: create the (git-ignored) config and fill in the values
+cp .env.firebase.example .env.firebase
+#    FIREBASE_API_KEY               – Console → Project settings → General → Your apps → Web app → apiKey
+#    FIREBASE_SERVICE_ACCOUNT_FILE  – absolute path to a service-account JSON key OUTSIDE the repo
+#                                     (Console → Project settings → Service accounts → Generate new private key;
+#                                      the account needs the role "Firebase Authentication Admin"; keep it `chmod 600`)
+#    FIREBASE_CONTAINER_UID / _GID  – owner of that file (`id -u`, `id -g`, default 1000:1000); the backend container runs
+#                                     as this user, so the key never needs to be readable by anyone else
+# 2. Start (separate Compose project and database: contact-manager-firebase), http://localhost:8080
+docker compose --env-file .env.firebase -f compose.yaml -f compose.override.yaml -f compose.firebase.yaml up --build -d --wait
+# 3. Stop (-v also drops the data)
+docker compose -p contact-manager-firebase down -v
+```
+The key is mounted read-only. The `appId` is not needed (only Auth is used). The service account is used by feature 012 (account deletion, `accounts:delete`);
+without it sign-in works, but deleting an account answers `202` and the identity is retried later. The API key is a public
+web identifier, but it still stays in `.env.firebase`, never in Git.
+
 ## Quality gate
 ```bash
 ./verify.sh quick     # format, lint, types, suppressions, translations, tool self-tests, unit and FE tests

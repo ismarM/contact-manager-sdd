@@ -8,6 +8,7 @@ Pravila beleženja: `docs/ai-development-log.md` (v zgodovini Gita, commit `b71c
 | Seja (`token-report-ismar.md`) | Seja Claude Code | Datum, čas | Funkcionalnost | Opomba |
 |---|---|---|---|---|
 | 1 | `00793e9d` (T3 Code, Claude Code) | 2026-11-05 od 20:37 do 2026-11-06 (CET) | `002-skupine` – clarify, plan, pregled plana, uskladitev odločitev, tasks, analyze, implement (testi, pregled testov, koda US1–US4), converge, PR | menjava modela med sejo (Sonnet 5.5 → Opus 5.5); 3 podagenti `pregled-testov` |
+| 2 | `76225259` (T3 Code, Claude Code) | 2026-11-15 | integracija pravega Firebase (brez Spec Kit, majhna sprememba) | `compose.firebase.yaml`, ugotavljanje, kje so necommitirane spremembe, uporabnik kontejnerja za ključ s `chmod 600`, PR |
 
 **Stolpci tabel interakcij**
 
@@ -139,3 +140,22 @@ Kot odgovorni razvijalec za 002 potrjujem:
 ### 5. Končno poročilo […]
 **Pomembno:** Ne izvajaj še `/speckit-tasks`, `/speckit-implement` ali `/speckit-converge`. […]
 ```
+
+---
+
+## Seja 2 — pravi Firebase v lokalnem razvoju
+
+- **Datum:** 2026-11-15
+- **Razvijalec:** Ismar
+- **Agent / model:** Claude Code v T3 Code; `claude-sonnet-5-5`. Brez podagentov (majhna sprememba, konstitucija §2.1).
+- **Veja / commiti:** `t3/integrate-firebase-auth` – glej PR proti `main`
+- **Poraba žetonov:** [token-report-ismar.md](token-report-ismar.md), vrstica 2
+
+| # | Vrsta | Povzetek navodila / odgovora | Faza | Rezultat / spremenjene datoteke | Preverjanje | Težava (kategorija) | Status |
+|---|---|---|---|---|---|---|---|
+| 1 | sporočilo | Firebase projekt je nastavljen; integriraj pravi Firebase za lokalni razvoj, emulator ohrani za teste in CI, preveri 012 | implementacija | `compose.firebase.yaml`, `.env.firebase.example`, `frontend/nginx.conf` (lena razrešitev `auth`), `.gitignore`, README, `repo-config.test.mjs`, odločitev v `docs/decisions/` | `./verify.sh quick` in `e2e` zeleni; zagon z lažnim ključem: zdravje 200, brez žetona 401 | none | accepted |
+| 2 | sporočilo | `cp .env.firebase.example` ne uspe na `main`; poišči spremembe po vseh worktreejih | pregled | spremembe so bile samo necommitirane v worktreeju `t3-79a58c18`; ostali worktreeji čisti | `git worktree list`, `git status` po worktreejih | agent-error (spremembe niso bile commitane, agent je to prej opisal kot »pripravljeno« brez opozorila, da so lokalne) | accepted |
+| 3 | ukaz | preveri Docker dostop do ključa `chmod 600` brez branja vsebine | pregled | ključ `1000:1000`, `600`; uporabnik `app` (uid 100) ga ne more prebrati | `test -r` v kontejnerju | agent-error (README je napačno priporočal `chmod 644`) | accepted |
+| 4 | sporočilo | izbrana možnost: backend kot uporabnik ključa; popravi README, commit, push, PR | implementacija | `user: ${FIREBASE_CONTAINER_UID:-1000}:${FIREBASE_CONTAINER_GID:-1000}`, mount `:ro`, popravljen README in test | kontejner `1000:1000` bere ključ (mode 600), pisanje v mount: *Read-only file system*; `quick` zelen | human-decision | accepted |
+
+**Opombe:** Ključ storitvenega računa ni bil prebran ali izpisan (samo `stat` in `test -r`). Prave prijave z Googlom in izbrisa računa (012) agent ni preizkusil: potrebuje API ključ in ročno preverjanje razvijalca (README, razdelek *Real Firebase*).

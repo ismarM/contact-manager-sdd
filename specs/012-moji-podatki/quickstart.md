@@ -58,4 +58,6 @@ Emulator in unit testi z lažnim transportom ne dokazujejo produkcijske konfigur
 2. Z izbrisom testnega računa mora `deleted_identity.provider_deleted_at` dobiti vrednost, `last_error` mora ostati `NULL`, odgovor je `204`, identiteta v konzoli Firebase pa ne sme več obstajati. `last_error` z `HTTP_401`/`HTTP_403` pomeni napačne poverilnice ali vlogo (odgovor je `202`, v dnevniku `ERROR`).
 3. Poskus z začasno neveljavnimi poverilnicami mora dati `202` in `ERROR` brez uhajanja poverilnic ali UID-ja v dnevnik; po popravku poverilnic se vrstica sama dokonča.
 
+Lokalni zagon s pravim projektom: README, razdelek »Real Firebase« (`compose.firebase.yaml`).
+
 Endpointi: [contracts/openapi.yaml](contracts/openapi.yaml) · podatki: [data-model.md](data-model.md) · odločitve: [research.md](research.md).

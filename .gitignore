@@ -23,5 +23,6 @@ frontend/test-results/
 e2e/test-results/
 e2e/playwright-report/
 
-# Local configuration (see .env.example)
+# Local configuration (see .env.example, .env.firebase.example)
 .env
+.env.firebase
