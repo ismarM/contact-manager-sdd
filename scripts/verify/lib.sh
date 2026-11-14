@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Izvajanje korakov verify.sh (FR-000-07 … FR-000-09, contracts/verify-cli.md).
+# Izvajanje korakov verify.sh (konstitucija §4).
 #
 #   step <ime> <static|test> <vrsta za summarize> <cwd|-> <glob poročil JUnit|-> <ukaz…>
 #   (ukaz teče v mapi cwd glede na $VERIFY_ROOT; glob poročil je relativen na $VERIFY_ROOT)

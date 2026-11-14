@@ -17,7 +17,7 @@ import { readXlsx } from './support/xlsx';
 test.describe.configure({ timeout: 90_000 });
 
 // 010 izvoz izbranih kontaktov v Excel (plan.md – Public Interfaces). Vsak test teče pri 360, 768 in 1280 px. Datoteka se
-// prenese in prebere nazaj z `exceljs` (workflow.md §2.9). Podatke pripravi SQL (D-27).
+// prenese in prebere nazaj z `exceljs` (konstitucija §3.3). Podatke pripravi SQL (D-27).
 
 const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 const HEADER_SL = ['Ime', 'Priimek', 'Naslov', 'E-naslov', 'Telefon'];

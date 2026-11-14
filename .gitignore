@@ -1,3 +1,6 @@
+# /rollout – supervisor state of a running rollout
+.rollout/
+
 # verify.sh – full log of the last run
 .verify/
 

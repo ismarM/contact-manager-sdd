@@ -1,4 +1,5 @@
-# CI (FR-000-11): ista vrata kot lokalno – ./verify.sh full; ob neuspehu priloži .verify/last.log.
+# CI (konstitucija §4.2): ista vrata kot lokalno, razdeljena na tri vzporedne posle –
+# ./verify.sh quick, backend in e2e (skupaj pokrijejo ./verify.sh full); ob neuspehu priloži .verify/last.log.
 name: CI
 
 on:
@@ -13,9 +14,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  verify:
+  quick:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
 
@@ -33,21 +34,69 @@ jobs:
             frontend/package-lock.json
             e2e/package-lock.json
 
-      - name: Odvisnosti npm
-        run: |
-          npm --prefix frontend ci --no-audit --no-fund
-          npm --prefix e2e ci --no-audit --no-fund
-
-      - name: Brskalnik za E2E
-        run: npm --prefix e2e exec -- playwright install --with-deps chromium
-
-      - name: Vrata kakovosti
-        run: ./verify.sh full
+      - name: Vrata kakovosti – quick
+        run: ./verify.sh quick
 
       - name: Dnevnik verify
         if: failure()
         uses: actions/upload-artifact@v5
         with:
-          name: verify-log
+          name: verify-log-quick
+          path: .verify/last.log
+          if-no-files-found: ignore
+
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Vrata kakovosti – backend
+        run: ./verify.sh backend
+
+      - name: Dnevnik verify
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: verify-log-backend
+          path: .verify/last.log
+          if-no-files-found: ignore
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Odvisnosti npm
+        run: npm --prefix e2e ci --no-audit --no-fund
+
+      - name: Brskalnik za E2E
+        run: npm --prefix e2e exec -- playwright install --with-deps chromium
+
+      - name: Vrata kakovosti – e2e
+        run: ./verify.sh e2e
+
+      - name: Dnevnik verify
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: verify-log-e2e
           path: .verify/last.log
           if-no-files-found: ignore

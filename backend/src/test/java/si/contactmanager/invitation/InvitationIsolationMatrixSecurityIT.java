@@ -21,7 +21,7 @@ import si.contactmanager.support.Http;
 import si.contactmanager.support.Tokens;
 
 /**
- * Matrika izolacije endpointov skupine v 006 (konstitucija III, workflow.md §2.5; FR-006-02, FR-006-13, FR-006-14):
+ * Matrika izolacije endpointov skupine v 006 (konstitucija III in §3.1; FR-006-02, FR-006-13, FR-006-14):
  * {@code POST}, {@code GET} {@code …/invitations} in {@code DELETE …/invitations/{invitationId}} × akter × stanje
  * skupine. Neprijavljen 401, nečlan 404 brez telesa, VIEWER/EDITOR 403 (tudi v arhivirani), ADMIN/OWNER: uspeh ali 409.
  */

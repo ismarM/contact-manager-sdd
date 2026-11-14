@@ -187,7 +187,7 @@ class ContactSearchPagingIT extends ContactSearchApiTest {
         assertThat(p95).as("p95 iskanja pri 10.000 kontaktih (ms)").isLessThan(1000);
     }
 
-    /** Okolje in rezultat meritve SC-001 (za traceability.md, razdelek *Meritve*). */
+    /** Okolje in rezultat meritve SC-001 (izpis v dnevniku testa). */
     private void record(List<Long> sorted, long p95) throws IOException {
         String version = jdbc.queryForObject("select version()", String.class);
         String cpu = "?";

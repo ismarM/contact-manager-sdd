@@ -1,6 +1,6 @@
 ---
 
-description: "Task list template for feature implementation (project override: tests mandatory)"
+description: "Task list template for feature implementation (project override: one pass, tests inside each story)"
 ---
 
 # Tasks: [FEATURE NAME]
@@ -9,15 +9,15 @@ description: "Task list template for feature implementation (project override: t
 
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
-**Tests**: Tests are **MANDATORY** for every feature in this project (constitution, principle II). Every FR-ID in spec.md gets at least one test task. Test tasks come BEFORE implementation and are followed by an independent test review by the `pregled-testov` subagent (workflow.md §4.2).
+**Tests**: Tests are **MANDATORY** (constitution, principle II) and are written **together with the code** of each story. There is no separate test phase, no test review before implementation and no test-only commit.
 
-**Organization**: Setup → Foundational → Tests → Test review → implementation per user story → Polish.
+**Organization**: Setup → Foundational → one phase per user story (code + tests) → Polish.
 
 ## Format: `[ID] [P?] [Story] FR-IDs Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies). Tasks marked [P] never share files.
 - **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
-- **FR-IDs**: every task names the FR-IDs it covers (e.g., `FR-004-03`) – setup tasks may use `—`
+- **FR-IDs**: every task names the FR-IDs it covers (e.g., `FR-013-03`) – setup tasks may use `—`
 - Include exact file paths in descriptions
 
 ## Path Conventions
@@ -32,20 +32,17 @@ description: "Task list template for feature implementation (project override: t
 
   The /speckit-tasks command MUST replace these with actual tasks based on:
   - User stories and FR-IDs from spec.md (incl. Negative Scenarios)
-  - Public Interfaces (endpoints, routes, accessible names) from plan.md
+  - Public Interfaces (endpoints, routes) from plan.md
   - Entities from data-model.md
   - Endpoints from contracts/
 
-  Test rules (constitution II, workflow.md §2):
-  - tests carry the FR-ID: JUnit @Tag("FR-004-03"); Vitest/Playwright test name "FR-004-03: …"
-  - every group endpoint gets a parametrised isolation-matrix test (401/404/403/2xx)
-  - UI tests use only getByRole(name)/getByLabel with names from plan.md
+  Test rules (constitution §3):
+  - every group endpoint gets a parametrised isolation-matrix test (401/404/403/2xx, archived 409)
+  - UI tests use getByRole(name)/getByLabel; names come from the translations or shared helpers
   - vitest-axe on every rendered page, @axe-core/playwright on every E2E page
-  - E2E runs at 360, 768 and 1280 px
+  - E2E runs at 360 and 1280 px; tag a scenario @w768 only if its layout differs at that width
   - Firebase Auth Emulator, Testcontainers and MSW only – no real external services
-  - tests must fail for the RIGHT reason before implementation (missing behaviour,
-    not a compile error); test tasks may create minimal scaffolding (DTOs, 501 controllers,
-    empty page components) so the tests compile
+  - keep the list short: one task per coherent change, not per file
 
   DO NOT keep these sample tasks in the generated tasks.md file.
   ============================================================================
@@ -53,54 +50,32 @@ description: "Task list template for feature implementation (project override: t
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Feature-specific setup (migrations, i18n namespaces, routes)
+**Purpose**: Feature-specific setup (migrations, i18n keys, routes)
 
 - [ ] T001 — Create Flyway migration for [entities] in backend/src/main/resources/db/migration/V[n]__[name].sql
-- [ ] T002 [P] — Add i18n namespace [feature] in frontend/src/i18n/{sl,en}/[feature].json
+- [ ] T002 [P] — Add i18n keys for [feature] in frontend/src/i18n/sl.json and en.json
 
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: Core infrastructure that MUST be complete before ANY test or user story
+**Purpose**: Core pieces that MUST be complete before ANY user story
 
-- [ ] T003 FR-NNN-01 Create DTOs and controllers returning 501 in backend/src/main/java/…/[Feature]Controller.java
-- [ ] T004 [P] FR-NNN-01 Create empty page components and routes in frontend/src/features/[feature]/
-
-**Checkpoint**: Tests can now be written and compiled
+- [ ] T003 FR-NNN-01 [shared piece every story needs] in backend/src/main/java/…
 
 ---
 
-## Phase 3: Tests (write FIRST – must FAIL for the right reason)
-
-- [ ] T005 [P] [US1] FR-NNN-01 Integration test (Testcontainers + Firebase Auth Emulator) in backend/src/test/java/…/[Feature]ApiIT.java
-- [ ] T006 [P] [US1] FR-NNN-01 Isolation matrix test (401/404/403/2xx, archived 409) in backend/src/test/java/…/[Feature]SecurityIT.java
-- [ ] T007 [P] [US1] FR-NNN-01 Unit test for [domain rule] in backend/src/test/java/…/[Rule]Test.java
-- [ ] T008 [P] [US1] FR-NNN-01 Page test (RTL + MSW + vitest-axe) in frontend/src/features/[feature]/[Page].test.tsx
-- [ ] T009 [P] [US1] FR-NNN-01 E2E scenario (axe, 3 viewports) in e2e/tests/[feature].spec.ts
-
----
-
-## Phase 4: Test review (independent agent gate)
-
-- [ ] T010 — Test review by a NEW `pregled-testov` subagent (`.claude/agents/pregled-testov.md`), given only the feature folder and the test files: every FR-ID has a test; negative scenarios and isolation matrix covered; interfaces from plan.md; role-based selectors; meaningful assertions; tests fail for the right reason. On ZAVRNJENO fix the tests and run a new reviewer (max 3 rounds, then stop and ask the developers). On SPREJETO record all rounds in `traceability.md` (section *Pregled testov*) and commit `test(NNN): …` (tests and minimal scaffolding only).
-
-**Checkpoint**: No implementation task starts before T010 is checked (reviewer returned SPREJETO). From here on tests change only to match the spec (logged in DECISIONS.md).
-
----
-
-## Phase 5: User Story 1 - [Title] (Priority: P1) 🎯 MVP
+## Phase 3: User Story 1 - [Title] (Priority: P1) 🎯 MVP
 
 **Goal**: [Brief description of what this story delivers]
 
-**Independent Test**: [Which tests from Phase 3 turn green]
+**Independent Test**: [How to verify this story on its own]
 
-- [ ] T011 [P] [US1] FR-NNN-01 Create [Entity] entity and repository in backend/src/main/java/…/
-- [ ] T012 [US1] FR-NNN-01 Implement [Service] in backend/src/main/java/…/ (depends on T011)
-- [ ] T013 [US1] FR-NNN-01 Implement [endpoint] in backend/src/main/java/…/[Feature]Controller.java
-- [ ] T014 [US1] FR-NNN-01 Implement [page] in frontend/src/features/[feature]/
+- [ ] T004 [US1] FR-NNN-01 Implement [endpoint/service] with integration and isolation-matrix tests in backend/src/…
+- [ ] T005 [US1] FR-NNN-01 Implement [page/component] with page test (RTL + MSW + vitest-axe) in frontend/src/features/[feature]/
+- [ ] T006 [US1] FR-NNN-01 E2E scenario for [journey] in e2e/tests/[feature].spec.ts
 
-**Checkpoint**: User Story 1 tests are green; `./verify.sh quick` passes
+**Checkpoint**: User Story 1 works end to end; `./verify.sh quick` passes
 
 ---
 
@@ -110,26 +85,21 @@ description: "Task list template for feature implementation (project override: t
 
 ## Phase N: Polish & Cross-Cutting Concerns
 
-- [ ] TXXX — Update specs/[NNN-feature-slug]/traceability.md (every FR-ID → tests → state)
-- [ ] TXXX — `./verify.sh full` green
-- [ ] TXXX — Push branch and open PR to `main` (assumptions made, test review result, `test(NNN)` commit in the description)
-- [ ] TXXX — Developers: PR review and manual keyboard + screen reader check (design.md §10); merge (agent leaves this unchecked)
+- [ ] TXXX — Move rules that outlive this feature into .specify/memory/feature-map.md
+- [ ] TXXX — `./verify.sh quick` and the affected levels (`backend`, `e2e`) green
 
 ---
 
 ## Dependencies & Execution Order
 
-- **Setup → Foundational → Tests → Test review** are strictly sequential.
-- **User stories** start only after the test review; then in priority order (P1 → P2 → P3).
-- **Polish** after all stories.
-- `/speckit-implement` is run twice: first only up to and including Phase 3 (tests), then – after the
-  `pregled-testov` subagent returns SPREJETO – for the remaining phases (workflow.md §4.2). The agent
-  continues without waiting for the developers; they review in the PR.
+- **Setup → Foundational** are sequential; then user stories in priority order (P1 → P2 → P3); **Polish** last.
+- `/speckit-implement` runs **once** over the whole file, followed by `/speckit-converge`, one advisory
+  review by the `pregled-testov` subagent and the pull request (constitution §2.3). The agent continues
+  without waiting for the developers.
 
 ## Notes
 
 - [P] tasks = different files, no dependencies
-- Every task names its FR-IDs for traceability
-- Never change a test to match the code; any test change after review → DECISIONS.md entry
-- No warning suppressions without an approved D-NN in DECISIONS.md
-- Run `./verify.sh quick` before marking a task done
+- Never weaken an assertion to make wrong code pass; say in the PR why an existing test changed
+- Suppressions and disabled tests need a `utišanje: <razlog>` comment
+- Run `./verify.sh quick` before marking a story done

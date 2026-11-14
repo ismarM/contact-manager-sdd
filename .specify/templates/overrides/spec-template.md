@@ -4,16 +4,15 @@
 
 **Created**: [DATE]
 
-**Status**: Draft
-
 **Input**: User description: "$ARGUMENTS"
 
 <!--
-  PROJECT RULES (override of the core spec template – see .specify/memory/workflow.md §1):
+  PROJECT RULES (override of the core spec template – see .specify/memory/constitution.md §2.2):
+  - Keep it short: what and why, not how. Do not repeat the shared rules of
+    .specify/memory/feature-map.md §2 – reference them and state only what is specific here.
   - Content is written in Slovenian; headings stay in English so Spec Kit commands find them.
   - Every functional requirement has the ID FR-NNN-XX, where NNN is this feature's directory
-    number and XX a running number (FR-004-07). IDs are never reused; a removed requirement
-    stays in the list marked "REMOVED [CR-NN]".
+    number and XX a running number (FR-013-07). Tests may carry the ID but do not have to.
   - Every requirement has at least one Given/When/Then scenario that names its FR-ID.
   - Every requirement that touches group data has negative scenarios (section below).
   - HTTP status codes in negative scenarios are part of the security contract
@@ -118,15 +117,6 @@
 - [Assumption about scope boundaries]
 - [Dependency on another feature, e.g., "Requires 002-skupine (groups and roles)"]
 
-## Changes *(living spec – change requests)*
-
 <!--
-  When an already approved requirement changes (workflow.md §4.5):
-  - mark the new/changed requirement with [CR-NN] (project-wide numbering),
-  - mark a removed requirement "REMOVED [CR-NN]" instead of deleting it,
-  - add a row here and a "sprememba-specifikacije" entry in DECISIONS.md.
+  When a requirement changes later, edit it here in the same PR as the code; Git keeps the history.
 -->
-
-| CR | Date | Affected FR-IDs | Summary | DECISIONS |
-|---|---|---|---|---|
-| – | – | – | No changes yet | – |

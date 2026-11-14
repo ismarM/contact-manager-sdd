@@ -1,4 +1,4 @@
-// FR-000-05 … FR-000-09: vedenje verify.sh in lib.sh (contracts/verify-cli.md).
+// FR-000-05 … FR-000-09: vedenje verify.sh in lib.sh (konstitucija §4).
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, symlinkSync } from 'node:fs';
@@ -10,7 +10,7 @@ const root = path.resolve(import.meta.dirname, '../../..');
 const verify = path.join(root, 'verify.sh');
 const lib = path.join(root, 'scripts/verify/lib.sh');
 const fakePlan = path.join(import.meta.dirname, 'fixtures/fake-plan.sh');
-const USAGE = 'Uporaba: ./verify.sh quick|full';
+const USAGE = 'Uporaba: ./verify.sh quick|backend|e2e|full';
 
 const run = (args, options = {}) => {
   const result = spawnSync('bash', args, { encoding: 'utf8', cwd: root, ...options });
@@ -46,7 +46,9 @@ function pathWithout(excluded) {
 }
 
 const quickSteps = ['format', 'lint', 'tipi', 'utišanja', 'prevodi', 'orodja', 'unit BE', 'unit FE', 'funkcionalni FE'];
-const fullSteps = [...quickSteps, 'integracijski BE', 'varnostni BE', 'sistem', 'E2E'];
+const backendSteps = ['integracijski BE', 'varnostni BE'];
+const e2eSteps = ['sistem', 'E2E'];
+const fullSteps = [...quickSteps, ...backendSteps, ...e2eSteps];
 
 describe('verify.sh – argumenti', () => {
   for (const args of [[], ['foo'], ['quick', 'full']]) {
@@ -76,6 +78,18 @@ describe('verify.sh – seznam korakov', () => {
     assert.equal(result.status, 0);
     assert.deepEqual(result.stdout.trim().split('\n'), fullSteps);
   });
+
+  it('backend prevede zaledje ter izvede integracijske in varnostne teste', () => {
+    const result = run([verify, 'backend'], { env: { ...process.env, VERIFY_LIST_STEPS: '1' } });
+    assert.equal(result.status, 0);
+    assert.deepEqual(result.stdout.trim().split('\n'), ['prevajanje', ...backendSteps]);
+  });
+
+  it('e2e zažene sistem in E2E', () => {
+    const result = run([verify, 'e2e'], { env: { ...process.env, VERIFY_LIST_STEPS: '1' } });
+    assert.equal(result.status, 0);
+    assert.deepEqual(result.stdout.trim().split('\n'), e2eSteps);
+  });
 });
 
 describe('verify.sh – manjkajoča orodja', () => {
@@ -87,13 +101,15 @@ describe('verify.sh – manjkajoča orodja', () => {
     assert.match(result.out, /java/i);
   });
 
-  it('FR-000-06: full brez Dockerja → koda 3 in sporočilo, da potrebuje Docker', () => {
-    assert.ok(process.env.JAVA_HOME, 'JAVA_HOME mora biti nastavljen (verify.sh ga nastavi za korak orodja)');
-    const env = { ...process.env, PATH: pathWithout(['docker']) };
-    const result = run([verify, 'full'], { env });
-    assert.equal(result.status, 3, result.out);
-    assert.ok(result.out.includes('potrebuje Docker'), result.out);
-  });
+  for (const level of ['full', 'backend', 'e2e']) {
+    it(`FR-000-06: ${level} brez Dockerja → koda 3 in sporočilo, da potrebuje Docker`, () => {
+      assert.ok(process.env.JAVA_HOME, 'JAVA_HOME mora biti nastavljen (verify.sh ga nastavi za korak orodja)');
+      const env = { ...process.env, PATH: pathWithout(['docker']) };
+      const result = run([verify, level], { env });
+      assert.equal(result.status, 3, result.out);
+      assert.ok(result.out.includes('potrebuje Docker'), result.out);
+    });
+  }
 });
 
 describe('lib.sh – pravilo ustavljanja in izpis', () => {

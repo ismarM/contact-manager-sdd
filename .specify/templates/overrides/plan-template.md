@@ -7,9 +7,12 @@
 **Note**: This template is filled in by the `/speckit-plan` command; its definition describes the execution workflow.
 
 <!--
-  PROJECT RULES (override of the core plan template – see .specify/memory/workflow.md §1.4):
-  - The "Public Interfaces" section is MANDATORY. Tests reference these tables, so the agent
-    MUST NOT invent endpoints, routes or accessible names during implementation.
+  PROJECT RULES (override of the core plan template – see .specify/memory/constitution.md §2.2):
+  - The "Public Interfaces" section is MANDATORY: endpoints and routes are decided here, not
+    invented during implementation. Accessible names are NOT specified here; their source is
+    frontend/src/i18n/.
+  - Keep research.md, data-model.md, quickstart.md and contracts/ short: decisions and facts the
+    implementation needs, no tutorials.
   - UI decisions follow .specify/memory/design.md (Kartoteka). Reference its sections.
   - Content in Slovenian, headings in English.
 -->
@@ -22,11 +25,11 @@
 
 **Language/Version**: Java 21 (Spring Boot 3.x) · TypeScript (strict) + React
 
-**Primary Dependencies**: Spring Web, Spring Security (Firebase ID token verification), Spring Data JPA, Flyway · React, react-i18next, React Router, Tailwind CSS v4, shadcn/ui (optional, per DECISIONS.md)
+**Primary Dependencies**: Spring Web, Spring Security (Firebase ID token verification), Spring Data JPA, Flyway · React, react-i18next, React Router, Tailwind CSS v4, shadcn/ui (per docs/decisions/)
 
 **Storage**: PostgreSQL
 
-**Testing**: JUnit 5, Testcontainers (PostgreSQL), Firebase Auth Emulator · Vitest, React Testing Library, MSW, vitest-axe · Playwright + @axe-core/playwright (360/768/1280 px)
+**Testing**: JUnit 5, Testcontainers (PostgreSQL), Firebase Auth Emulator · Vitest, React Testing Library, MSW, vitest-axe · Playwright + @axe-core/playwright (360 and 1280 px; 768 px for @w768)
 
 **Target Platform**: Docker Compose (nginx serves the frontend and proxies /api), evergreen browsers, installable PWA
 
@@ -44,10 +47,10 @@
 
 | Principle (constitution) | How this plan complies |
 |---|---|
-| I. Specification is the contract | [FR-IDs covered by this plan] |
-| II. Test-first | [test levels per FR-ID] |
+| I. Specification guides the work | [FR-IDs covered by this plan] |
+| II. Tests are mandatory | [test levels per FR-ID] |
 | III. Group isolation and roles | [every group endpoint is in the isolation matrix] |
-| IV. Accessible, bilingual, responsive UI | [design.md sections used; accessible names below] |
+| IV. Accessible, bilingual, responsive UI | [design.md sections used] |
 | V. Data integrity | [optimistic locking, audit trail, pagination where relevant] |
 | VI. Privacy and GDPR | [personal data touched, export/delete impact] |
 | VII. One verification path | [verify.sh levels that cover this feature] |
@@ -73,14 +76,6 @@
 |---|---|---|---|
 | [Page name] | /groups/:groupId/contacts | VIEWER | FR-NNN-01 |
 
-### Key elements and accessible names
-
-<!-- Tests use only getByRole(name) / getByLabel with these names. -->
-
-| Page | ARIA role | Accessible name (sl / en) | Purpose | FR-ID |
-|---|---|---|---|---|
-| [Page name] | button | »Nov kontakt« / "New contact" | opens the form | FR-NNN-01 |
-
 ## Project Structure
 
 ### Documentation (this feature)
@@ -93,8 +88,7 @@ specs/[NNN-feature-slug]/
 ├── data-model.md        # Phase 1 output (/speckit-plan command)
 ├── quickstart.md        # Phase 1 output (/speckit-plan command)
 ├── contracts/           # Phase 1 output (/speckit-plan command) – OpenAPI
-├── tasks.md             # Phase 2 output (/speckit-tasks command - NOT created by /speckit-plan)
-└── traceability.md      # after the test review (workflow.md §4.4)
+└── tasks.md             # Phase 2 output (/speckit-tasks command - NOT created by /speckit-plan)
 ```
 
 ### Source Code (repository root)

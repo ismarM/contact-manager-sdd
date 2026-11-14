@@ -21,7 +21,7 @@ import si.contactmanager.support.Http;
 import si.contactmanager.support.Tokens;
 
 /**
- * Matrika izolacije obeh endpointov iskanja (konstitucija III, workflow.md §2.5; FR-008-06, -14, -15, -16; SC-004):
+ * Matrika izolacije obeh endpointov iskanja (konstitucija III in §3.1; FR-008-06, -14, -15, -16; SC-004):
  * neprijavljen 401, nečlan 404 brez telesa (tudi pri neveljavnih parametrih), vsak član 200 (tudi v arhivirani skupini),
  * nikoli 403 ali 409; podatki druge skupine nikoli v odgovoru.
  */

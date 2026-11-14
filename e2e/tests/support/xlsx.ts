@@ -1,6 +1,6 @@
 import ExcelJS from 'exceljs';
 
-// Branje prenesene datoteke `.xlsx` nazaj (010, workflow.md §2.9) z `exceljs` – drugo knjižnico, kot jo uporablja zaledje.
+// Branje prenesene datoteke `.xlsx` nazaj (010, konstitucija §3.3) z `exceljs` – drugo knjižnico, kot jo uporablja zaledje.
 
 export interface ReadXlsx {
   sheetNames: string[];
