@@ -240,6 +240,13 @@ class ContactHistoryIT extends HistoryApiTest {
         assertThat(get(versionPath(s.group(), idOf(a), "nonsense"), s.token(Who.VIEWER))
                         .statusCode())
                 .isEqualTo(404);
+        // Vnos drugega kontakta iste skupine ne sme razkriti njegovega stanja tudi prek primerjave in predogleda.
+        assertThat(get(comparePath(s.group(), idOf(a)) + "?from=" + entryOfB + "&to=current", s.token(Who.VIEWER))
+                        .statusCode())
+                .isEqualTo(404);
+        assertThat(get(previewPath(s.group(), idOf(a)) + "?from=" + entryOfB, s.token(Who.VIEWER))
+                        .statusCode())
+                .isEqualTo(404);
     }
 
     @Test
@@ -312,7 +319,16 @@ class ContactHistoryIT extends HistoryApiTest {
             jdbc.update("update audit_entry set action = 'IMPORT' where id = ?", entry);
             Map<String, Object> history = history(s, Who.VIEWER, idOf(a), "");
             assertThat(asObjects(history.get("items")).get(0).get("action")).isEqualTo("IMPORT");
-            assertThat(asObjects(history.get("items")).get(0).get("fields")).isNotNull();
+            Map<String, Object> event = asObjects(history.get("items")).get(0);
+            assertThat(asObjects(event.get("fields")))
+                    .extracting(f -> f.get("field"))
+                    .contains("FIRST_NAME", "PHONE");
+            assertThat(get(versionPath(s.group(), idOf(a), entry), s.token(Who.VIEWER))
+                            .statusCode())
+                    .isEqualTo(200);
+            assertThat(get(comparePath(s.group(), idOf(a)) + "?from=" + entry + "&to=current", s.token(Who.VIEWER))
+                            .statusCode())
+                    .isEqualTo(200);
         } finally {
             jdbc.update("update audit_entry set action = 'CREATE' where id = ?", entry);
             jdbc.update("alter table audit_entry add constraint audit_entry_action_check check (action in"

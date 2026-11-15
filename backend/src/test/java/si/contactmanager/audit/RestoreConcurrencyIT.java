@@ -132,11 +132,6 @@ class RestoreConcurrencyIT extends HistoryApiTest {
                         s.token(Who.ADMIN),
                         body(withVersion(withPhone(edited, "031 555 555"), versionOf(edited))))));
 
-        assertThat(responses)
-                .extracting(HttpResponse::statusCode)
-                .containsExactlyInAnyOrder(
-                        responses.get(0).statusCode() == 201 ? 201 : 409,
-                        responses.get(1).statusCode() == 200 ? 200 : 409);
         assertThat(count(responses, 201) + count(responses, 200)).isEqualTo(1);
         assertThat(count(responses, 409)).isEqualTo(1);
         assertThat(audit.count(s.group())).isEqualTo(entries + 1);
@@ -159,6 +154,9 @@ class RestoreConcurrencyIT extends HistoryApiTest {
 
         assertThat(responses).allSatisfy(r -> assertThat(r.statusCode()).isIn(201, 409));
         assertThat(count(responses, 201)).isGreaterThanOrEqualTo(1);
+        // Kontakt ima eno veljavno stanje: obnovljeno ali po rollbacku je telefon prvotni (vnos 0 je tudi cilj
+        // rollbacka).
+        assertThat(audit.contactState(idOf(a)).get("phone")).isEqualTo("01 111 111");
         assertChainIsConsistent(s.group());
     }
 }

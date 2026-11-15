@@ -319,4 +319,84 @@ class RestoreIT extends HistoryApiTest {
         HttpResponse<String> toRestore = rollback(s, Who.ADMIN, restoreEntry, audit.latestEntryId(s.group()));
         assertThat(toRestore.statusCode()).as(toRestore.body()).isIn(201, 409);
     }
+
+    @Test
+    @Tag("FR-015-12")
+    void aFailureWhileWritingTheEntryChangesNothingAtAll() throws Exception {
+        Scenario s = scenario();
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> edited = update(s, Who.EDITOR, idOf(a), bigEdit(a), versionOf(a));
+        UUID first = entryIds(s).get(0);
+        Map<String, Object> rowBefore = audit.contactState(idOf(a));
+        int entries = audit.count(s.group());
+        jdbc.execute("create function fail_restore() returns trigger language plpgsql as $$ begin"
+                + " raise exception 'zapis vnosa ni uspel'; end $$");
+        jdbc.execute("create trigger fail_restore before insert on audit_entry for each row"
+                + " when (new.action = 'RESTORE') execute function fail_restore()");
+        try {
+            HttpResponse<String> response = restore(s, Who.EDITOR, idOf(a), restoreBody(first, versionOf(edited)));
+            assertThat(response.statusCode()).isEqualTo(500);
+        } finally {
+            jdbc.execute("drop trigger fail_restore on audit_entry");
+            jdbc.execute("drop function fail_restore()");
+        }
+
+        assertThat(audit.contactState(idOf(a))).isEqualTo(rowBefore);
+        assertThat(audit.count(s.group())).isEqualTo(entries);
+    }
+
+    @Test
+    @Tag("FR-015-13")
+    @Tag("FR-015-14")
+    void theTokensOfADeletedAndOfALiveContactAreCheckedAgainstWhatTheContactIsNow() throws Exception {
+        Scenario s = scenario();
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        UUID created = entryIds(s).get(0);
+        remove(s, Who.EDITOR, idOf(a), versionOf(a));
+        Map<String, Object> history = history(s, Who.VIEWER, idOf(a), "");
+        String last = (String) asObject(history.get("contact")).get("lastEntryId");
+        int entries = audit.count(s.group());
+
+        // Izbrisan kontakt: zastarel žeton, manjkajoč žeton, žeton obstoječega kontakta.
+        HttpResponse<String> stale = restore(s, Who.EDITOR, idOf(a), restoreDeletedBody(created, created));
+        assertThat(stale.statusCode()).isEqualTo(409);
+        assertThat(json(stale.body()).get("code")).isEqualTo("VERSION_CONFLICT");
+        HttpResponse<String> missing = restore(s, Who.EDITOR, idOf(a), Map.of("from", created.toString()));
+        assertThat(missing.statusCode()).isEqualTo(400);
+        assertThat(fieldErrors(missing.body())).containsEntry("lastEntryId", "REQUIRED");
+        HttpResponse<String> liveToken = restore(s, Who.EDITOR, idOf(a), restoreBody(created, 0));
+        assertThat(liveToken.statusCode()).isEqualTo(409);
+        assertThat(json(liveToken.body()).get("code")).isEqualTo("VERSION_CONFLICT");
+        assertThat(audit.count(s.group())).isEqualTo(entries);
+
+        // Obstoječ kontakt, ki ga je medtem obnovil drug uporabnik: žeton izbrisanega je konflikt.
+        assertThat(restore(s, Who.ADMIN, idOf(a), restoreDeletedBody(created, last))
+                        .statusCode())
+                .isEqualTo(201);
+        HttpResponse<String> late = restore(s, Who.EDITOR, idOf(a), restoreDeletedBody(created, last));
+        assertThat(late.statusCode()).isEqualTo(409);
+        assertThat(json(late.body()).get("code")).isEqualTo("VERSION_CONFLICT");
+        assertThat(audit.count(s.group())).isEqualTo(entries + 1);
+    }
+
+    @Test
+    @Tag("FR-015-10")
+    void aViewerGetsForbiddenForADeletedContactAndNotFoundForAnUnknownOne() throws Exception {
+        Scenario s = scenario();
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        UUID created = entryIds(s).get(0);
+        remove(s, Who.EDITOR, idOf(a), versionOf(a));
+        String last = (String)
+                asObject(history(s, Who.VIEWER, idOf(a), "").get("contact")).get("lastEntryId");
+        int entries = audit.count(s.group());
+
+        assertThat(restore(s, Who.VIEWER, idOf(a), restoreDeletedBody(created, last))
+                        .statusCode())
+                .isEqualTo(403);
+        assertThat(restore(s, Who.VIEWER, UUID.randomUUID(), restoreDeletedBody(created, last))
+                        .statusCode())
+                .isEqualTo(404);
+        assertThat(audit.count(s.group())).isEqualTo(entries);
+        assertThat(contacts.exists(idOf(a))).isFalse();
+    }
 }

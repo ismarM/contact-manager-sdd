@@ -223,3 +223,17 @@ Predlogi za pohitritev (iz zgornjih meritev):
 - Napaka: `.specify/scripts/bash/resolve-template.sh` ni izvedljiv (permission denied) → zagon z `bash`.
 - Odprta odločitev o vrsti vnosa obnove zahteva razširitev `CHECK` na `audit_entry` (migracija V11); možen trk številke z 014.
 - `speckit-clarify` zaustavljen pred zapisom odgovorov na uporabnikovo zahtevo (odločitve potrdi uporabnik).
+
+## 015 – napredna revizijska sled: potek, odločitve, težave (2026-11-15)
+- **Odločitve uporabnika** (clarify): obnova EDITOR+; nova vrsta dejanja `RESTORE`; zadnja sprememba = pravi izvajalec in čas obnove (brez *Povrnjeno*); obnovljivi so posamično izbrisani in z rollbackom odstranjeni, združeni imajo samo zgodovino; seznam *Izbrisani kontakti* izpeljan iz sledi. Dodatno: opozorilo o podvajanju v predogledu (ne blokira), usklajena številka migracije s 014.
+- **Migracija**: `V11__napredna_revizija.sql`; 014 (Patrik) na `origin` in v lokalnih worktreejih ni bila najdena (preverjeno `git fetch` pred PR); pravilo za združevanje v plan.md (preštevilčenje, unija vrst dejanja v `CHECK`).
+- **Popravljalni promti in napake**:
+  - `resolve-template.sh` ni izvedljiv → `bash` (okolje).
+  - `speckit-specify` bi dodelil 014 → mapa podana izrecno (`SPECIFY_FEATURE_DIRECTORY`).
+  - Analyze: telo `VERSION_CONFLICT` v pogodbi ni ustrezalo kodi (`current`); popravljeno v openapi/research po implementaciji.
+  - Testi: pomočnik `mergeInto` je zapisal fiksna imena (napaka testa), tipi `UUID`/`Long` v primerjavah; `HistoryPerformanceIT` fixture brez obveznih polj `ContactState` (500 pri branju) in vstavljanje zgodovine v neprazno sled.
+  - Najdena prava napaka v kodi: sočasna obnova izbrisanega kontakta je drugi zahtevi vrnila `400 REQUIRED` namesto `409 VERSION_CONFLICT` → popravljeno v `RestoreService` (kontakt je medtem spet živ / izbrisan).
+  - E2E: prvi zagon je padel, ker spec ni nastavil `locale: 'sl-SI'` (aplikacija je bila v angleščini); drugi zagon `e2e` je padel zaradi časovnih omejitev v nepovezanih specih (obremenitev računalnika, load ≈ 11; vir: VM na gostitelju), tretji je zelen.
+  - `pregled-testov` (enkrat): `getByText` v e2e → zamenjano (`getByRole('definition')`, `toContainText`, `getByRole('option')`); dodani testi atomarnosti obnove (sprožilec v bazi), zaporednih konfliktov žetonov, VIEWER pri izbrisanem kontaktu, primerjave/predogleda z vnosom drugega kontakta, neznane vrste dejanja; odpravljena tavtološka asercija v testu sočasnosti.
+- **Odstopanja/odprto**: FE za obnovo iz seznama izbrisanih bere `history` (prvi dogodek z različico), ker `DeletedItem` nima polja za zadnjo različico (možna izboljšava pogodbe); stavki zgodovine uporabljajo isto tabelo kot sled 005 (»dodal(a)«, »izbrisal(a)«); ročni preizkus dostopnosti (design.md §10) ostaja za razvijalca.
+- **Čas faz**: `.verify/timing-015.log` (ni v Gitu); poročilo v opisu PR.

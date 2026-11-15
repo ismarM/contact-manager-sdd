@@ -75,8 +75,8 @@ test('zgodovina kontakta: časovnica, ogled stanja, primerjava in obnova (uredni
     .last()
     .getByRole('link', { name: 'Ogled stanja po tej spremembi' })
     .click();
-  await expect(page.getByText('01 111 111')).toBeVisible();
-  await expect(page.getByText('Ogled je samo za branje.')).toBeVisible();
+  await expect(page.getByRole('definition').filter({ hasText: '01 111 111' })).toBeVisible();
+  await expect(page.getByRole('main')).toContainText('Ogled je samo za branje.');
   await page.getByRole('link', { name: 'Nazaj na zgodovino kontakta' }).click();
 
   // Primerjava s trenutnim stanjem: besedilne oznake vrste spremembe.
@@ -100,10 +100,10 @@ test('zgodovina kontakta: časovnica, ogled stanja, primerjava in obnova (uredni
   const dialog = page.getByRole('dialog', { name: /Obnovim kontakt Janez Novak na stanje/ });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole('button', { name: 'Prekliči' })).toBeFocused();
-  await expect(dialog.getByText('031 999 999')).toBeVisible();
+  await expect(dialog).toContainText('031 999 999');
   await expectNoAxeViolations(page);
   await dialog.getByRole('button', { name: 'Obnovi kontakt' }).click();
-  await expect(toast(page).getByText(/Kontakt je obnovljen na stanje/)).toBeVisible();
+  await expect(toast(page)).toContainText('Kontakt je obnovljen na stanje');
   expect(contactPhone(contactId)).toBe('01 111 111');
   expect(auditCountByAction(groupId, 'RESTORE')).toBe(before + 1);
   await expect(events.getByRole('listitem')).toHaveCount(3);
@@ -141,7 +141,7 @@ test('seznam izbrisanih kontaktov: iskanje, obnova in združen kontakt brez gumb
   const dialog = page.getByRole('dialog', { name: /Obnovim kontakt Dana Izbrisana/ });
   await expect(dialog.getByRole('button', { name: 'Prekliči' })).toBeFocused();
   await dialog.getByRole('button', { name: 'Obnovi kontakt' }).click();
-  await expect(toast(page).getByText(/Kontakt je obnovljen/)).toBeVisible();
+  await expect(toast(page)).toContainText('Kontakt je obnovljen');
   expect(contactExists(deleted)).toBe(true);
   await expect(page.getByRole('list', { name: 'Seznam izbrisanih kontaktov' })).toHaveCount(0);
 });
@@ -173,8 +173,7 @@ test('bralec vidi zgodovino, a ne more obnoviti; filter sledi po izvajalcu', asy
   await page.goto(`/groups/${groupId}/audit`);
   await page.getByRole('button', { name: /^Filtri/ }).click();
   const select = page.getByRole('combobox', { name: 'Izvajalec' });
-  const token = await select.locator('option', { hasText: 'Bojan' }).getAttribute('value');
-  expect(token).toBeTruthy();
+  const token = await select.getByRole('option', { name: /Bojan/ }).getAttribute('value');
   await select.selectOption(token ?? '');
   await page.getByRole('button', { name: 'Uporabi filtre' }).click();
   await expect(page).toHaveURL(/actor=/);
