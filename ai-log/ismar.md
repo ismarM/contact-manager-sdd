@@ -237,3 +237,13 @@ Predlogi za pohitritev (iz zgornjih meritev):
   - `pregled-testov` (enkrat): `getByText` v e2e → zamenjano (`getByRole('definition')`, `toContainText`, `getByRole('option')`); dodani testi atomarnosti obnove (sprožilec v bazi), zaporednih konfliktov žetonov, VIEWER pri izbrisanem kontaktu, primerjave/predogleda z vnosom drugega kontakta, neznane vrste dejanja; odpravljena tavtološka asercija v testu sočasnosti.
 - **Odstopanja/odprto**: FE za obnovo iz seznama izbrisanih bere `history` (prvi dogodek z različico), ker `DeletedItem` nima polja za zadnjo različico (možna izboljšava pogodbe); stavki zgodovine uporabljajo isto tabelo kot sled 005 (»dodal(a)«, »izbrisal(a)«); ročni preizkus dostopnosti (design.md §10) ostaja za razvijalca.
 - **Čas faz**: `.verify/timing-015.log` (ni v Gitu); poročilo v opisu PR.
+
+## 015 – zaključni pregled pred združitvijo PR #20 (2026-11-15)
+- **CI** za `bed881b` (push in PR): quick, backend, e2e zeleni. 014 (Patrik) še vedno ni ne na `origin`, ne v PR-jih, ne v lokalnih worktreejih.
+- **Pravi napaki, najdeni pri pregledu pravil 013** (popravljeni, s testi):
+  1. Obnova je zapisovala `created_at` = 1970 (različica ni vsebovala metapodatkov; test te vrednosti ni preverjal) → `ContactHistoryRepository.fullState` (polno zapisano stanje).
+  2. Obnova stare različice je lahko ustvarila stanje, ki krši 013: nov rezerviran ključ atributa (`Država`), neuradna država, predolgo podjetje, nekanonični ključi/značke → `contact.RestoreRules.conform`; `400 VALIDATION_FAILED` ali predogled `restorable: false`, `INVALID_STATE` + `violations`; zgodovina ostane dobesedna; kanonični zapis za ključe in značke, ki jih kontakt ne hrani dobesedno (research R-11).
+- **UX podvajanja**: poleg opozorila mora uporabnik izrecno potrditi podvajanje (potrditveno polje, gumb *Obnovi kontakt* onemogočen do potrditve); spec FR-015-12/-14 in clarifications dopolnjeni.
+- **aria-current**: razdelek *Kontakti* je bil na `deleted-contacts` neoznačen → `GroupHeader` označi *Kontakti* tudi na poteh `contacts/*` in `deleted-contacts`; testa (Vitest + e2e).
+- **Usklajenost z 014**: brez sprememb; pravilo preštevilčenja migracije in unije `CHECK` ostane v plan.md/PR.
+- Preverjanja po popravkih: `quick` 138 s, `backend` 319 s, `e2e` 274 s (vsi zeleni).

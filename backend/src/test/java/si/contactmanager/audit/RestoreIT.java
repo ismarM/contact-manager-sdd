@@ -8,7 +8,9 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.springframework.transaction.support.TransactionTemplate;
 import si.contactmanager.audit.support.HistoryApiTest;
+import si.contactmanager.contact.ContactState;
 
 /**
  * Obnova enega kontakta (FR-015-10 … FR-015-17): samo ta kontakt se spremeni, stari vnosi ostanejo, nov vnos {@code RESTORE}
@@ -46,6 +48,7 @@ class RestoreIT extends HistoryApiTest {
         Map<String, Object> editedA = update(s, Who.ADMIN, idOf(a), bigEdit(a), versionOf(a));
         UUID createEntry = entryIds(s).get(0);
         Map<String, Object> bBefore = contentOf(idOf(b));
+        Object createdAtBefore = contentOf(idOf(a)).get("created_at");
         List<Map<String, Object>> trailBefore = snapshotOfTrail(s);
 
         HttpResponse<String> response = restore(s, Who.EDITOR, idOf(a), restoreBody(createEntry, versionOf(editedA)));
@@ -62,6 +65,7 @@ class RestoreIT extends HistoryApiTest {
         assertThat(((Number) restored.get("version")).longValue()).isEqualTo(versionOf(editedA) + 1);
         assertThat(((Number) restored.get("updated_by")).longValue()).isEqualTo(s.id(Who.EDITOR));
         assertThat(restored.get("reverted_entry_id")).isNull();
+        assertThat(restored.get("created_at")).isEqualTo(createdAtBefore);
         assertThat(contentOf(idOf(b))).isEqualTo(bBefore);
         List<Map<String, Object>> trailAfter = snapshotOfTrail(s);
         assertThat(trailAfter).hasSize(trailBefore.size() + 1);
@@ -398,5 +402,142 @@ class RestoreIT extends HistoryApiTest {
                 .isEqualTo(404);
         assertThat(audit.count(s.group())).isEqualTo(entries);
         assertThat(contacts.exists(idOf(a))).isFalse();
+    }
+
+    /** Kontakt izpred beleženja z atributom {@code key}, ki ga prvo urejanje odstrani; stanje s ključem je {@code initial}. */
+    private UUID oldContactWithAttribute(Scenario s, String key, String value) throws Exception {
+        UUID old = contacts.insert(s.group(), s.id(Who.OWNER), "Izpred", "Beleženja");
+        contacts.addAttribute(old, 0, key, value);
+        Map<String, Object> detail =
+                json(get(contactPath(s.group(), old), s.token(Who.VIEWER)).body());
+        Map<String, Object> values = withPhone(detail, "031 123 456");
+        values.put("attributes", List.of());
+        update(s, Who.EDITOR, old, values, versionOf(detail));
+        return old;
+    }
+
+    @Test
+    @Tag("FR-015-12")
+    @Tag("FR-013-08")
+    void aVersionWithAReservedAttributeNameIsRejectedButHistoryStaysLiteral() throws Exception {
+        Scenario s = scenario();
+        UUID old = oldContactWithAttribute(s, "Država", "Slovenija");
+        Map<String, Object> current =
+                json(get(contactPath(s.group(), old), s.token(Who.VIEWER)).body());
+        int entries = audit.count(s.group());
+        Map<String, Object> rowBefore = contentOf(old);
+
+        Map<String, Object> preview = json(get(previewPath(s.group(), old) + "?from=initial", s.token(Who.VIEWER))
+                .body());
+        HttpResponse<String> response = restore(s, Who.EDITOR, old, restoreBody("initial", versionOf(current)));
+
+        assertThat(preview.get("restorable")).isEqualTo(false);
+        assertThat(preview.get("reason")).isEqualTo("INVALID_STATE");
+        assertThat(asObjects(preview.get("violations"))).singleElement().satisfies(v -> {
+            assertThat(v.get("field")).isEqualTo("attributes[0].key");
+            assertThat(v.get("code")).isEqualTo("RESERVED_KEY");
+        });
+        assertThat(response.statusCode()).isEqualTo(400);
+        assertThat(fieldErrors(response.body())).containsEntry("attributes[0].key", "RESERVED_KEY");
+        assertThat(audit.count(s.group())).isEqualTo(entries);
+        assertThat(contentOf(old)).isEqualTo(rowBefore);
+        // Zgodovina ostane dobesedna: izhodiščna različica še vedno vsebuje stari atribut.
+        Map<String, Object> initial = json(
+                get(versionPath(s.group(), old, "initial"), s.token(Who.VIEWER)).body());
+        assertThat(asObject(initial.get("state")).get("attributes").toString()).contains("Država");
+    }
+
+    @Test
+    @Tag("FR-015-12")
+    @Tag("FR-013-08")
+    void aReservedNameTheContactStillHoldsIsKept() throws Exception {
+        Scenario s = scenario();
+        UUID old = contacts.insert(s.group(), s.id(Who.OWNER), "Izpred", "Beleženja");
+        contacts.addAttribute(old, 0, "Država", "Slovenija");
+        Map<String, Object> detail =
+                json(get(contactPath(s.group(), old), s.token(Who.VIEWER)).body());
+        Map<String, Object> edited = update(s, Who.EDITOR, old, withPhone(detail, "031 123 456"), versionOf(detail));
+
+        HttpResponse<String> response = restore(s, Who.EDITOR, old, restoreBody("initial", versionOf(edited)));
+
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(201);
+        assertThat(contentOf(old).get("phone")).isNull();
+        assertThat(contentOf(old).get("attributes").toString()).contains("Država");
+    }
+
+    @Test
+    @Tag("FR-015-12")
+    @Tag("FR-013-10")
+    void restoredKeysAndTagsGetTheCanonicalSpellingOfTheGroupWhileTheRecordedVersionStaysLiteral() throws Exception {
+        Scenario s = scenario();
+        for (String name : List.of("Prvi", "Drugi")) {
+            Map<String, Object> input = contactInput(name, "Kompetenten", "01 000 000");
+            input.put("attributes", List.of(Map.of("key", "Kompetenca", "value", "web")));
+            input.put("tags", List.of("VIP"));
+            create(s, Who.EDITOR, input);
+        }
+        UUID old = contacts.insert(s.group(), s.id(Who.OWNER), "Izpred", "Beleženja");
+        contacts.addAttribute(old, 0, "kompetenca", "stara");
+        contacts.addTag(old, 0, "vip");
+        Map<String, Object> detail =
+                json(get(contactPath(s.group(), old), s.token(Who.VIEWER)).body());
+        Map<String, Object> values = withPhone(detail, "031 123 456");
+        values.put("attributes", List.of());
+        values.put("tags", List.of());
+        Map<String, Object> edited = update(s, Who.EDITOR, old, values, versionOf(detail));
+
+        Map<String, Object> preview = json(get(previewPath(s.group(), old) + "?from=initial", s.token(Who.VIEWER))
+                .body());
+        HttpResponse<String> response = restore(s, Who.EDITOR, old, restoreBody("initial", versionOf(edited)));
+
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(201);
+        assertThat(asObjects(preview.get("changes")).toString())
+                .contains("Kompetenca")
+                .doesNotContain("kompetenca");
+        Map<String, Object> state = contentOf(old);
+        assertThat(state.get("attributes").toString()).contains("key=Kompetenca");
+        assertThat(state.get("tags")).isEqualTo(List.of("VIP"));
+        Map<String, Object> initial = json(
+                get(versionPath(s.group(), old, "initial"), s.token(Who.VIEWER)).body());
+        assertThat(asObject(initial.get("state")).get("attributes").toString()).contains("kompetenca");
+        assertThat(asObject(initial.get("state")).get("tags")).isEqualTo(List.of("vip"));
+    }
+
+    @Test
+    @Tag("FR-015-12")
+    @Tag("FR-013-13")
+    void aRecordedStateWithAnInvalidCountryOrTooLongCompanyIsRejected() throws Exception {
+        Scenario s = scenario();
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        ContactState before = snapshots.snapshot(s.group(), idOf(a));
+        ContactState bad = new ContactState(
+                before.firstName(),
+                before.lastName(),
+                before.address(),
+                before.email(),
+                before.phone(),
+                "x".repeat(201),
+                "ZZ",
+                before.attributes(),
+                before.tags(),
+                before.version() + 1,
+                before.createdAt(),
+                before.updatedAt(),
+                before.updatedById());
+        UUID entry = new TransactionTemplate(transactions)
+                .execute(status -> auditLog.record(
+                        s.group(),
+                        s.id(Who.EDITOR),
+                        AuditAction.UPDATE,
+                        List.of(new ContactChange(idOf(a), "Ana Prva", before, bad))));
+        int entries = audit.count(s.group());
+
+        HttpResponse<String> response = restore(s, Who.EDITOR, idOf(a), restoreBody(entry, versionOf(a)));
+
+        assertThat(response.statusCode()).isEqualTo(400);
+        assertThat(fieldErrors(response.body()))
+                .containsEntry("country", "INVALID_VALUE")
+                .containsEntry("company", "TOO_LONG");
+        assertThat(audit.count(s.group())).isEqualTo(entries);
     }
 }

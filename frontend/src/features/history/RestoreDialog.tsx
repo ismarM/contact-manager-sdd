@@ -44,6 +44,25 @@ function requestFor(from: string, preview: RestorePreview): RestoreRequest | nul
   return preview.lastEntryId === null ? null : { from, lastEntryId: preview.lastEntryId };
 }
 
+/** Ključ prevoda polja, v katerem je kršitev (`country`, `company`, `attributes[i].key`). */
+function violationField(
+  field: string,
+):
+  | 'history.restore.fieldCountry'
+  | 'history.restore.fieldCompany'
+  | 'history.restore.fieldAttribute' {
+  if (field === 'country') return 'history.restore.fieldCountry';
+  if (field === 'company') return 'history.restore.fieldCompany';
+  return 'history.restore.fieldAttribute';
+}
+
+/** Kode kršitev z lastnim besedilom; druge dobijo splošno. */
+function violationCode(code: string): 'RESERVED_KEY' | 'INVALID_VALUE' | 'TOO_LONG' | 'default' {
+  return code === 'RESERVED_KEY' || code === 'INVALID_VALUE' || code === 'TOO_LONG'
+    ? code
+    : 'default';
+}
+
 function RestoreBody({
   contactId,
   contactName,
@@ -67,6 +86,8 @@ function RestoreBody({
   const [reloads, setReloads] = useState(0);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<Message | null>(null);
+  // Možno podvajanje: uporabnik ga mora izrecno potrditi (FR-015-14); potrditev velja za prikazani predogled.
+  const [acknowledged, setAcknowledged] = useState(false);
   // `LATEST` (seznam izbrisanih): zadnja zabeležena različica kontakta je stanje pred odstranitvijo, ki ga zgodovina
   // pove kot prvi dogodek z različico (ali izhodiščno stanje); sklic nanjo seznam izbrisanih ne vsebuje.
   const [resolved, setResolved] = useState<string | null>(from === LATEST ? null : from);
@@ -123,6 +144,7 @@ function RestoreBody({
         : t('history.restore.titleLoading', { name });
 
   const refresh = () => {
+    setAcknowledged(false);
     setLoad({ kind: 'loading' });
     setReloads((n) => n + 1);
   };
@@ -177,8 +199,11 @@ function RestoreBody({
     preview && !preview.restorable
       ? preview.reason === 'MERGED'
         ? t('history.restore.merged')
-        : t('history.restore.noChanges')
+        : preview.reason === 'INVALID_STATE'
+          ? t('history.restore.invalid')
+          : t('history.restore.noChanges')
       : null;
+  const duplicated = preview !== null && preview.duplicates.length > 0;
   const canConfirm = preview !== null && preview.restorable && message !== 'archived';
 
   return (
@@ -220,7 +245,20 @@ function RestoreBody({
       {preview && (
         <>
           {explanation ? (
-            <p role="note">{explanation}</p>
+            <>
+              <p role="note">{explanation}</p>
+              {preview.reason === 'INVALID_STATE' && (
+                <ul className="flex flex-col gap-1">
+                  {preview.violations.map((violation) => (
+                    <li key={`${violation.field}:${violation.code}`}>
+                      {t(`history.restore.violation.${violationCode(violation.code)}`, {
+                        field: t(violationField(violation.field)),
+                      })}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           ) : (
             <>
               <p>
@@ -240,7 +278,7 @@ function RestoreBody({
               </section>
             </>
           )}
-          {preview.duplicates.length > 0 && (
+          {duplicated && preview.restorable && (
             <div role="status" className={warningAlert}>
               <p>{t('history.restore.duplicates')}</p>
               <ul className="flex flex-col gap-1">
@@ -256,6 +294,14 @@ function RestoreBody({
                   </li>
                 ))}
               </ul>
+              <label className="mt-3 flex min-h-11 items-center gap-2 font-bold">
+                <input
+                  type="checkbox"
+                  checked={acknowledged}
+                  onChange={(event) => setAcknowledged(event.target.checked)}
+                />
+                {t('history.restore.duplicatesConfirm')}
+              </label>
             </div>
           )}
         </>
@@ -271,7 +317,7 @@ function RestoreBody({
           <button
             type="button"
             className={primaryButton}
-            aria-disabled={busy}
+            disabled={busy || (duplicated && !acknowledged)}
             onClick={() => void confirm()}
           >
             {busy ? t('history.restore.busy') : t('history.restore.confirm')}

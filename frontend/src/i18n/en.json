@@ -1064,7 +1064,18 @@
       "forbidden": "You no longer have permission for this action.",
       "gone": "The contact or version can no longer be found.",
       "toast": "The contact was restored to the state of {{time}}.",
-      "toastInitial": "The contact was restored to its original state."
+      "toastInitial": "The contact was restored to its original state.",
+      "invalid": "This version cannot be restored because it contains data that is no longer valid under current rules. The history stays unchanged; you can edit the contact manually.",
+      "violation": {
+        "RESERVED_KEY": "The attribute name is now reserved for a predefined field ({{field}}).",
+        "INVALID_VALUE": "The value is not valid ({{field}}).",
+        "TOO_LONG": "The value is too long ({{field}}).",
+        "default": "The value is not valid ({{field}})."
+      },
+      "fieldCountry": "Country",
+      "fieldCompany": "Company",
+      "fieldAttribute": "Additional attribute",
+      "duplicatesConfirm": "I understand a duplicate contact may result, and I restore the contact anyway."
     },
     "deleted": {
       "heading": "Deleted contacts",

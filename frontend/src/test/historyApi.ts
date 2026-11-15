@@ -141,6 +141,7 @@ export function restorePreview(overrides: Partial<RestorePreview> = {}): Restore
     currentVersion: 3,
     lastEntryId: entryId(5),
     duplicates: [],
+    violations: [],
     ...overrides,
   };
 }

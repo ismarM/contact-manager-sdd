@@ -90,10 +90,12 @@ export interface RestorePreview {
   changes: ChangeField[];
   status: ContactStatus;
   restorable: boolean;
-  reason: 'MERGED' | 'NO_CHANGES' | null;
+  reason: 'MERGED' | 'NO_CHANGES' | 'INVALID_STATE' | null;
   currentVersion: number | null;
   lastEntryId: string | null;
   duplicates: Duplicate[];
+  /** Kršitve trenutnih pravil v ciljnem stanju (`reason: INVALID_STATE`). */
+  violations: { field: string; code: string }[];
 }
 
 /** Telo obnove: `version` za obstoječ kontakt, `lastEntryId` za izbrisan. */

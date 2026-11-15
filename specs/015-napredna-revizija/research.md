@@ -37,6 +37,13 @@
 - **Učinek**: nova verzija = `max(trenutna verzija, maxVersions v sledi) + 1` (FR-005-13); `updated_by` = obnovitelj, `updated_at = now()` (Q3), `created_at` iz različice, `reverted_entry_id = NULL`; atributi in značke zamenjani (`insertChildren`); ni kanonizacije in ni ponovne validacije vsebine (kot rollback). Vnos: `AuditLog.recordRestore(group, actor, change(before=trenutno|null, after=novo), targetEntry | initial)`; `contact_count = 1`, `contact_name` = prikazno ime. Samo ta kontakt se spremeni; stari vnosi nedotaknjeni (sprožilec nespremenljivosti jih tudi varuje).
 - **Zavrnjeno**: ločen zaklep na kontakt (ne bi izključil sočasnega rollbacka skupine); uporaba `ROLLBACK` z enim kontaktom (zavajajoč stavek, FR-005-12 pomen).
 
+## R-11 Trenutna pravila 013 ob obnovi (zaključni pregled)
+
+- **Odločitev**: obnova zapiše stanje po današnjih pravilih; zgodovina (`audit_change`) ostane dobesedna in nespremenljiva. Javna enota `contact.RestoreRules.conform(group, zapisanoStanje, trenutnoStanje)`: (1) `country` mora biti uradna koda (`CountryNames.isValid`), sicer `INVALID_VALUE`; (2) `company` ≤ 200, sicer `TOO_LONG`; (3) nova rezervirana imena (`država/country/podjetje/company`), ki jih kontakt še nima, → `RESERVED_KEY` (`attributes[i].key`; stara 11 imen kontakt nikoli ne more imeti); (4) ključi in značke, ki jih kontakt ne hrani dobesedno, dobijo kanonični zapis skupine (`CanonicalForms`). Kršitev → `ValidationException` (`400`) po koraku `VERSION_CONFLICT` (kot `PUT` 004), pred `RESTORE_NO_CHANGES`; `RESTORE_NO_CHANGES` se presoja po prilagoditvi.
+- **Predogled** (`restore-preview`): `changes` so razlike med trenutnim stanjem in prilagojenim ciljem; ob kršitvi `restorable: false`, `reason: INVALID_STATE`, `violations: [{field, code}]`.
+- **`created_at`**: obnova vzame prvotni čas ustvarjanja iz polnega zapisanega stanja (`ContactHistoryRepository.fullState`), ne iz pogleda različice (popravek napake, ki jo je odkril ta pregled).
+- **Zavrnjeno**: tiha odstranitev spornih atributov (obnova bi bila drugačna od prikazane različice brez vednosti uporabnika); obnova brez preverjanja (nova neveljavna stanja).
+
 ## R-06 Seznam izbrisanih kontaktov
 
 - **Izpeljava** (brez shranjevanja): vrstice `audit_change c` z `after IS NULL` v skupini, za katere (a) v `contact` ni vrstice z tem `id`, (b) v sledi ni novejše spremembe istega kontakta (`NOT EXISTS … seq > e.seq`). Tako je vsak kontakt enkrat, s stanjem zadnjega odstranjevanja; obnovljen kontakt izgine (živ ali novejša sprememba).

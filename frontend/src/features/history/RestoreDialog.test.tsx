@@ -172,8 +172,46 @@ describe('RestoreDialog', () => {
     );
     expect(warning).toHaveTextContent(tr('history.restore.duplicateEMAIL'));
     expect(warning).toHaveTextContent(tr('history.restore.duplicateNAME'));
-    await user.click(within(dialog).getByRole('button', { name: tr('history.restore.confirm') }));
+    // Podvajanje je treba izrecno potrditi: brez potrditve je gumb onemogočen.
+    const confirmButton = within(dialog).getByRole('button', {
+      name: tr('history.restore.confirm'),
+    });
+    expect(confirmButton).toBeDisabled();
+    await user.click(
+      within(warning).getByRole('checkbox', { name: tr('history.restore.duplicatesConfirm') }),
+    );
+    expect(confirmButton).toBeEnabled();
+    await user.click(confirmButton);
     await waitFor(() => expect(history.of('POST', '/restore')).toHaveLength(1));
+  });
+
+  it('FR-015-12: različica z neveljavnimi podatki ni obnovljiva; razlaga našteje kršitve', async () => {
+    const { user, history } = render({
+      history: {
+        preview: () => ({
+          status: 200,
+          body: preview({
+            restorable: false,
+            reason: 'INVALID_STATE',
+            changes: [],
+            violations: [{ field: 'attributes[0].key', code: 'RESERVED_KEY' }],
+          }) as never,
+        }),
+      },
+    });
+    const dialog = await openDialog(user);
+
+    expect(await within(dialog).findByRole('note')).toHaveTextContent(
+      tr('history.restore.invalid'),
+    );
+    expect(dialog).toHaveTextContent(
+      tr('history.restore.violation.RESERVED_KEY', { field: tr('history.restore.fieldAttribute') }),
+    );
+    expect(
+      within(dialog).queryByRole('button', { name: tr('history.restore.confirm') }),
+    ).not.toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: tr('history.restore.close') }));
+    expect(history.of('POST', '/restore')).toHaveLength(0);
   });
 
   it('FR-015-13: konflikt verzij – opozorilo, osvežen predogled in zgodovina; nova potrditev pošlje novo verzijo', async () => {

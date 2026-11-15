@@ -7,9 +7,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import si.contactmanager.audit.ContactHistoryRepository.Latest;
 import si.contactmanager.audit.HistoryViews.Status;
-import si.contactmanager.audit.HistoryViews.Version;
 import si.contactmanager.contact.ContactSnapshots;
 import si.contactmanager.contact.ContactState;
+import si.contactmanager.contact.RestoreRules;
 import si.contactmanager.group.GroupAccess.Membership;
 import si.contactmanager.shared.error.GroupArchivedException;
 import si.contactmanager.shared.error.NotFoundException;
@@ -34,13 +34,16 @@ class RestoreService {
     private final ContactHistoryService service;
     private final ContactSnapshots snapshots;
     private final AuditLog log;
+    private final RestoreRules rules;
 
     RestoreService(
             AuditRepository audit,
             ContactHistoryRepository history,
             ContactHistoryService service,
             ContactSnapshots snapshots,
-            AuditLog log) {
+            AuditLog log,
+            RestoreRules rules) {
+        this.rules = rules;
         this.audit = audit;
         this.history = history;
         this.service = service;
@@ -55,9 +58,10 @@ class RestoreService {
             throw new GroupArchivedException();
         }
         ContactHistoryService.Known known = service.known(membership, contact);
-        Version target = service.resolve(group, contact, request.from(), false);
+        service.resolve(group, contact, request.from(), false);
         boolean initial = "initial".equals(request.from());
-        ContactState goal = ContactHistoryService.state(target);
+        ContactState recorded =
+                history.fullState(group, contact, request.from()).orElseThrow(NotFoundException::new);
 
         ContactState now = snapshots.snapshot(group, contact);
         UUID latest = known.latest().map(Latest::entryId).orElse(null);
@@ -74,9 +78,6 @@ class RestoreService {
                 throw new VersionConflictException(
                         Map.of("version", now.version(), "latestEntryId", String.valueOf(latest)));
             }
-            if (RollbackService.sameContent(now, goal)) {
-                throw new RestoreNoChangesException();
-            }
         } else {
             if (request.lastEntryId() == null) {
                 // Odjemalec je kontakt videl kot obstoječega, medtem je izbrisan: sočasna sprememba (FR-015-13).
@@ -91,6 +92,14 @@ class RestoreService {
             if (known.status() == Status.MERGED) {
                 throw new RestoreNotAllowedException();
             }
+        }
+
+        // Trenutna pravila 013 (država, podjetje, rezervirani ključi, kanonični zapis): zgodovina ostane dobesedna,
+        // novo
+        // stanje mora biti veljavno (research R-11).
+        ContactState goal = rules.conform(group, recorded, now);
+        if (now != null && RollbackService.sameContent(now, goal)) {
+            throw new RestoreNoChangesException();
         }
 
         long previous = audit.maxVersions(group, List.of(contact)).getOrDefault(contact, -1L);

@@ -63,7 +63,7 @@ paths:
         content: {application/json: {schema: {$ref: '#/components/schemas/RestoreRequest'}}}
       responses:
         '201': {description: nov vnos RESTORE, content: {application/json: {schema: {$ref: '#/components/schemas/AuditEntry'}}}}
-        '400': {description: "from ali version/lastEntryId manjka (REQUIRED) ali neveljaven (INVALID_VALUE)"}
+        '400': {description: "from ali version/lastEntryId manjka (REQUIRED) ali neveljaven (INVALID_VALUE); ciljno stanje krši trenutna pravila 013 (RESERVED_KEY na attributes[i].key, INVALID_VALUE na country, TOO_LONG na company)"}
         '403': {description: VIEWER}
         '404': {description: kontakt ali različica ni v tej skupini}
         '409': {description: "GROUP_ARCHIVED | VERSION_CONFLICT (telo: {code, current: {version?, latestEntryId}} – trenutna verzija obstoječega kontakta in najnovejši vnos njegove zgodovine) | RESTORE_NOT_ALLOWED (združen) | RESTORE_NO_CHANGES"}
@@ -156,7 +156,8 @@ components:
         changes: {type: array, items: {$ref: '#/components/schemas/ChangeField'}}
         status: {type: string, enum: [ACTIVE, DELETED, MERGED]}
         restorable: {type: boolean}
-        reason: {type: string, enum: [MERGED, NO_CHANGES], nullable: true}
+        reason: {type: string, enum: [MERGED, NO_CHANGES, INVALID_STATE], nullable: true}
+        violations: {type: array, items: {type: object, properties: {field: {type: string}, code: {type: string}}}, description: "kršitve trenutnih pravil 013 v ciljnem stanju (reason = INVALID_STATE); isti kodi kot 400"}
         currentVersion: {type: integer, format: int64, nullable: true}
         lastEntryId: {type: string, format: uuid, nullable: true}
         duplicates: {type: array, maxItems: 5, items: {type: object, properties: {contactId: {type: string, format: uuid}, displayName: {type: string}, reason: {type: string, enum: [EMAIL, NAME]}}}}

@@ -1064,7 +1064,18 @@
       "forbidden": "Za to dejanje nimaš več pravic.",
       "gone": "Kontakta ali različice ni več mogoče najti.",
       "toast": "Kontakt je obnovljen na stanje {{time}}.",
-      "toastInitial": "Kontakt je obnovljen na izhodiščno stanje."
+      "toastInitial": "Kontakt je obnovljen na izhodiščno stanje.",
+      "invalid": "Te različice ni mogoče obnoviti, ker vsebuje podatke, ki po današnjih pravilih niso več veljavni. Zgodovina ostane nespremenjena; kontakt lahko uredite ročno.",
+      "violation": {
+        "RESERVED_KEY": "Ime atributa je zdaj rezervirano za predefinirano polje ({{field}}).",
+        "INVALID_VALUE": "Vrednost ni veljavna ({{field}}).",
+        "TOO_LONG": "Vrednost je predolga ({{field}}).",
+        "default": "Vrednost ni veljavna ({{field}})."
+      },
+      "fieldCountry": "Država",
+      "fieldCompany": "Podjetje",
+      "fieldAttribute": "Dodatni atribut",
+      "duplicatesConfirm": "Razumem, da lahko nastane podvojen kontakt, in kontakt kljub temu obnovim."
     },
     "deleted": {
       "heading": "Izbrisani kontakti",

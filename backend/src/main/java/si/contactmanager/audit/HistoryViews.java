@@ -76,6 +76,9 @@ final class HistoryViews {
 
     record Duplicate(UUID contactId, String displayName, String reason) {}
 
+    /** Kršitev trenutnih pravil v ciljnem stanju obnove (polje in koda kot pri {@code 400}). */
+    record Violation(String field, String code) {}
+
     record RestorePreview(
             Version target,
             List<ChangeField> changes,
@@ -84,7 +87,8 @@ final class HistoryViews {
             String reason,
             Long currentVersion,
             UUID lastEntryId,
-            List<Duplicate> duplicates) {}
+            List<Duplicate> duplicates,
+            List<Violation> violations) {}
 
     record DeletedItem(
             UUID contactId,

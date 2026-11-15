@@ -176,6 +176,35 @@ class ContactHistoryRepository {
                 .map(text -> new Version("initial", null, null, null, HistoryViews.StateView.of(read(text))));
     }
 
+    /** Polno stanje (z metapodatki) različice po vnosu ali izhodiščne različice; prazno, če različice ni. */
+    Optional<ContactState> fullState(UUID group, UUID contact, String ref) {
+        if ("initial".equals(ref)) {
+            return jdbc.sql("SELECT c.before::text AS state FROM audit_change c JOIN audit_entry e"
+                            + " ON e.id = c.entry_id WHERE e.group_id = :group AND c.contact_id = :id"
+                            + " ORDER BY e.seq LIMIT 1")
+                    .param("group", group)
+                    .param("id", contact)
+                    .query((rs, row) -> rs.getString("state"))
+                    .optional()
+                    .filter(text -> text != null)
+                    .map(this::read);
+        }
+        UUID entry;
+        try {
+            entry = UUID.fromString(ref);
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
+        return jdbc.sql("SELECT c.after::text AS state FROM audit_change c JOIN audit_entry e ON e.id = c.entry_id"
+                        + " WHERE e.group_id = :group AND c.contact_id = :id AND e.id = :entry AND c.after IS NOT NULL")
+                .param("group", group)
+                .param("id", contact)
+                .param("entry", entry)
+                .query((rs, row) -> rs.getString("state"))
+                .optional()
+                .map(this::read);
+    }
+
     /** Uporabnik zadnje spremembe živega kontakta ({@code null}: izbrisan uporabnik). */
     UserRef userRef(Long userId) {
         if (userId == null) {

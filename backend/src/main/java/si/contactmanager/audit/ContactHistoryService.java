@@ -14,9 +14,11 @@ import si.contactmanager.audit.HistoryViews.RestorePreview;
 import si.contactmanager.audit.HistoryViews.StateView;
 import si.contactmanager.audit.HistoryViews.Status;
 import si.contactmanager.audit.HistoryViews.Version;
+import si.contactmanager.audit.HistoryViews.Violation;
 import si.contactmanager.contact.ContactSnapshots;
 import si.contactmanager.contact.ContactState;
 import si.contactmanager.contact.DuplicateLookup;
+import si.contactmanager.contact.RestoreRules;
 import si.contactmanager.group.GroupAccess.Membership;
 import si.contactmanager.shared.error.NotFoundException;
 import si.contactmanager.shared.error.ValidationError.FieldError;
@@ -32,8 +34,14 @@ class ContactHistoryService {
     private final ContactHistoryRepository repository;
     private final ContactSnapshots snapshots;
     private final DuplicateLookup duplicates;
+    private final RestoreRules rules;
 
-    ContactHistoryService(ContactHistoryRepository repository, ContactSnapshots snapshots, DuplicateLookup duplicates) {
+    ContactHistoryService(
+            ContactHistoryRepository repository,
+            ContactSnapshots snapshots,
+            DuplicateLookup duplicates,
+            RestoreRules rules) {
+        this.rules = rules;
         this.repository = repository;
         this.snapshots = snapshots;
         this.duplicates = duplicates;
@@ -115,10 +123,20 @@ class ContactHistoryService {
         UUID group = membership.groupId();
         Known known = known(membership, contact);
         Version target = resolve(group, contact, from, false);
-        ContactState goal = state(target);
         ContactState now = snapshots.snapshot(group, contact);
+        ContactState goal = state(target);
+        List<Violation> violations = List.of();
+        try {
+            goal = rules.conform(
+                    group, repository.fullState(group, contact, from).orElseThrow(NotFoundException::new), now);
+        } catch (ValidationException e) {
+            violations = e.errors().stream()
+                    .map(f -> new Violation(f.field(), f.code()))
+                    .toList();
+        }
         boolean merged = known.status() == Status.MERGED;
-        boolean same = now != null && RollbackService.sameContent(now, goal);
+        boolean invalid = !violations.isEmpty();
+        boolean same = !invalid && now != null && RollbackService.sameContent(now, goal);
         List<Duplicate> found = now != null
                 ? List.of()
                 : duplicates.find(group, goal, contact).stream()
@@ -129,11 +147,12 @@ class ContactHistoryService {
                 target,
                 ChangeDiff.fields(now, goal),
                 known.status(),
-                !merged && !same,
-                merged ? "MERGED" : same ? "NO_CHANGES" : null,
+                !merged && !same && !invalid,
+                merged ? "MERGED" : invalid ? "INVALID_STATE" : same ? "NO_CHANGES" : null,
                 known.live().map(Live::version).orElse(null),
                 known.latest().map(Latest::entryId).orElse(null),
-                found);
+                found,
+                violations);
     }
 
     /** Vsebina različice kot {@link ContactState} (metapodatki so nepomembni za razlike). */

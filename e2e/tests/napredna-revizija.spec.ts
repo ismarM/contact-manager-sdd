@@ -129,6 +129,11 @@ test('seznam izbrisanih kontaktov: iskanje, obnova in združen kontakt brez gumb
 
   await page.goto(`/groups/${groupId}/deleted-contacts`);
   await expect(page.getByRole('heading', { level: 2, name: 'Izbrisani kontakti' })).toBeVisible();
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Razdelki skupine' })
+      .getByRole('link', { name: 'Kontakti' }),
+  ).toHaveAttribute('aria-current', 'page');
   const list = page.getByRole('list', { name: 'Seznam izbrisanih kontaktov' });
   await expect(list.getByRole('listitem')).toHaveCount(2);
   await expectNoAxeViolations(page);
