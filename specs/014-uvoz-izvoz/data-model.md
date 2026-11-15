@@ -38,7 +38,7 @@ Prehodi: neuspeh (okno poteklo → `failed_count = 1`, novo okno; sicer `+1`; pr
 - **ImportSheet** (razčlenitev Excela): `sheetCount, headers[], suggestedMapping[{column, target, key?}], rows[{rowNumber, cells[]}]`; `target ∈ FIRST_NAME, LAST_NAME, ADDRESS, EMAIL, PHONE, COUNTRY, COMPANY, TAGS, ATTRIBUTE, SKIP`.
 - **PreviewRow**: `index, errors[{field, code}], country{status FOUND|AMBIGUOUS|UNKNOWN|EMPTY, code?, candidates[]}, duplicate{reason NAME|EMAIL|PHONE, contactName, inFileRow?}?, normalized{attributes keys, tags}`.
 - **Vizitka (vCard)**: preslikava v research R-03; ne hrani se.
-- **Imenik CardDAV**: pogled na `contact` skupine + `group_member`; `sync-token`/`getctag` = `audit_head.last_seq`, `getetag` = `version` + `updated_at` (R-08). Brez nove tabele.
+- **Imenik CardDAV**: pogled na `contact` skupine + `group_member`; `sync-token` = jezik + `audit_head.last_seq`, `getctag` = jezik + `last_seq` + `contact_group.version`, `getetag` = `version` + `updated_at` + jezik (R-08). Brez nove tabele in brez novega indeksa (obstoječa `audit_entry_group_seq` in PK `audit_change`).
 
 ## Vpliv na obstoječe funkcionalnosti
 

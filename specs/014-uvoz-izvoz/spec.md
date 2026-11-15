@@ -71,7 +71,7 @@ Urednik ima seznam kontaktov v preglednici (lasten ali izvožen iz 010) in ga ž
 
 **Acceptance Scenarios**:
 
-1. **[FR-014-14]** **Given** član (tudi bralec, tudi v arhivirani skupini) na pogledu kontakta, **When** izbere *Deli s kodo QR*, **Then** se odpre pogovorno okno (design.md 8.11) s kodo QR, imenom kontakta, seznamom polj, ki jih koda vsebuje, in gumboma *Prenesi sliko* in *Zapri*.
+1. **[FR-014-14]** **Given** član (tudi bralec, tudi v arhivirani skupini) na pogledu kontakta, **When** izbere *Deli s kodo QR*, **Then** se odpre pogovorno okno (design.md 8.10) s kodo QR, imenom kontakta, seznamom polj, ki jih koda vsebuje, in gumboma *Prenesi sliko* in *Zapri*.
 2. **[FR-014-15]** **Given** kontakt z imenom, priimkom, e-naslovom in telefonom, **When** se koda QR poskenira z vgrajeno kamero telefona, **Then** telefon kontakt prepozna in ponudi njegovo dodajanje v imenik z imenom, priimkom, e-naslovom in telefonom, ne da bi bila potrebna prijava ali račun v Contact Managerju.
 3. **[FR-014-16]** **Given** kontakt z 30 značkami in dolgim naslovom, katerega podatki ne gredo v eno kodo QR, **When** se odpre pogovorno okno, **Then** koda vsebuje polja po prednostnem vrstnem redu FR-014-16, okno pa pove, katera polja niso vključena (»Ni vključeno: značke.«).
 4. **[FR-014-14]** **Given** odprto pogovorno okno, **When** član izbere *Prenesi sliko*, **Then** se prenese slika `‹ime-priimek›-qr.png`, ki vsebuje isto kodo.
@@ -184,7 +184,7 @@ Uvoz je pisanje (najnižja vloga EDITOR, v arhivirani skupini `409 GROUP_ARCHIVE
 
 **Koda QR**
 
-- **FR-014-14**: Sistem MORA vsem članom (tudi bralcem in v arhivirani skupini) na pogledu kontakta ponuditi *Deli s kodo QR*, ki odpre pogovorno okno s kodo QR, imenom kontakta, seznamom vključenih polj ter gumboma *Prenesi sliko* (`‹ime-priimek›-qr.png`) in *Zapri*; koda ima besedilno alternativo, okno je dostopno s tipkovnico in bralnikom zaslona (design.md 8.11). *(najnižja vloga: VIEWER)*
+- **FR-014-14**: Sistem MORA vsem članom (tudi bralcem in v arhivirani skupini) na pogledu kontakta ponuditi *Deli s kodo QR*, ki odpre pogovorno okno s kodo QR, imenom kontakta, seznamom vključenih polj ter gumboma *Prenesi sliko* (`‹ime-priimek›-qr.png`) in *Zapri*; koda ima besedilno alternativo, okno je dostopno s tipkovnico in bralnikom zaslona (design.md 8.10). *(najnižja vloga: VIEWER)*
 - **FR-014-15**: Sistem MORA v kodo QR zapisati kontakt kot vizitko po FR-014-11, tako da jo vgrajena kamera telefonov iOS in Android prepozna kot kontakt in jo prebere FR-014-18; koda vsebuje podatke kontakta (ne povezave na aplikacijo) in jo je mogoče uporabiti brez računa. Okno pred kodo opozori »Kdor kodo poskenira, vidi vključene podatke.« *(najnižja vloga: VIEWER)*
 - **FR-014-16**: Sistem MORA kodo QR omejiti na velikost, ki jo telefoni zanesljivo preberejo s papirja ali zaslona; če kontakt ne gre v kodo, se polja izpuščajo v tem vrstnem redu, dokler ne gre: dodatni atributi, značke, naslov; ime, priimek, e-naslov, telefon, podjetje in država so vedno vključeni. Okno pove, katera polja niso vključena, in ponudi *Prenesi vizitko (.vcf)* s celotnim kontaktom. *(najnižja vloga: VIEWER)*
 - **FR-014-17**: Sistem MORA urednikom v nearhivirani skupini na seznamu kontaktov ponuditi *Dodaj s kodo QR*, ki zaprosi za dostop do kamere in pokaže sliko kamere z navodilom; kadar kamera ni na voljo ali dostop ni dovoljen, ali na zahtevo uporabnika (*Izberi sliko*), MORA ponuditi branje kode iz izbrane slike (PNG, JPEG, do 10 MB). *(najnižja vloga: EDITOR)*
