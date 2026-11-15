@@ -2,6 +2,8 @@ import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { focusRing } from '../../shared/ui/styles';
+import { countryName } from '../contacts/countries';
+import { useUiLanguage } from '../contacts/useUiLanguage';
 import { contactName, gridFor, startAt } from './CompareColumns';
 import type { CompareRow } from './mergeModel';
 import type { CompareContact } from './types';
@@ -30,11 +32,18 @@ export function CompareField({
   onChange: (value: string | null) => void;
 }) {
   const { t } = useTranslation();
+  const language = useUiLanguage();
   const prefix = useId();
   const errorId = `${id}-error`;
   const legend =
     row.kind === 'field' ? t(`duplicates.compare.fields.${row.key as 'firstName'}`) : row.label;
-  const display = (option: string | null) => option ?? t('duplicates.compare.emptyValue');
+  // Država je v podatkih koda ISO; prikaz je ime v jeziku vmesnika (FR-013-06).
+  const display = (option: string | null) =>
+    option === null
+      ? t('duplicates.compare.emptyValue')
+      : row.key === 'country'
+        ? countryName(option, language)
+        : option;
 
   return (
     <fieldset

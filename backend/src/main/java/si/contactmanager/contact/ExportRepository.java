@@ -21,7 +21,15 @@ class ExportRepository {
     private static final int CHUNK = 5000;
 
     /** Kontakt iz baze brez atributov in značk. */
-    record Contact(UUID id, String firstName, String lastName, String address, String email, String phone) {}
+    record Contact(
+            UUID id,
+            String firstName,
+            String lastName,
+            String address,
+            String email,
+            String phone,
+            String country,
+            String company) {}
 
     /** Atribut kontakta z izvirnim zapisom ključa. */
     record Attribute(UUID contactId, String key, String keyNorm, String value) {}
@@ -36,7 +44,8 @@ class ExportRepository {
     List<Contact> rows(UUID group, Collection<UUID> ids, ContactQuery order) {
         Map<String, Object> parameters = new LinkedHashMap<>();
         String orderBy = ContactSearch.orderBy(order, parameters);
-        var statement = jdbc.sql("SELECT c.id, c.first_name, c.last_name, c.address, c.email, c.phone FROM contact c"
+        var statement = jdbc.sql("SELECT c.id, c.first_name, c.last_name, c.address, c.email, c.phone, c.country,"
+                        + " c.company FROM contact c"
                         + " WHERE c.group_id = :group AND c.id IN (:ids) ORDER BY " + orderBy)
                 .param("group", group)
                 .param("ids", List.copyOf(ids));
@@ -50,7 +59,9 @@ class ExportRepository {
                         rs.getString("last_name"),
                         rs.getString("address"),
                         rs.getString("email"),
-                        rs.getString("phone")))
+                        rs.getString("phone"),
+                        rs.getString("country"),
+                        rs.getString("company")))
                 .list();
     }
 

@@ -40,8 +40,8 @@ describe('ContactEdit', () => {
     await waitFor(() => expect(screen.getByRole('textbox', { name: 'Ime' })).toHaveValue('Janez'));
     expect(screen.getByRole('textbox', { name: 'Priimek' })).toHaveValue('Novak');
     expect(screen.getByRole('textbox', { name: 'Telefon' })).toHaveValue('01 234 5678');
-    expect(screen.getByRole('textbox', { name: 'Ključ' })).toHaveValue('kompetenca');
-    expect(screen.getByRole('textbox', { name: 'Vrednost' })).toHaveValue('web dev');
+    expect(screen.getByRole('combobox', { name: 'Ključ' })).toHaveValue('kompetenca');
+    expect(screen.getByRole('combobox', { name: 'Vrednost' })).toHaveValue('web dev');
     expect(screen.getByRole('button', { name: 'Odstrani značko vip' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Odstrani značko stara' })).toBeInTheDocument();
     await waitFor(() => expect(document.title).toBe('Uredi kontakt – Projekt FERI – Kontakti'));

@@ -26,6 +26,7 @@ public final class ContactInputParser {
     static final int ADDRESS_MAX = 300;
     static final int EMAIL_MAX = 254;
     static final int PHONE_MAX = 30;
+    static final int COMPANY_MAX = 200;
     static final int KEY_MAX = 50;
     static final int VALUE_MAX = 500;
     static final int TAG_MAX = 50;
@@ -52,9 +53,18 @@ public final class ContactInputParser {
             "phone");
 
     private static final Set<String> CREATE_FIELDS =
-            Set.of("firstName", "lastName", "address", "email", "phone", "attributes", "tags");
-    private static final Set<String> UPDATE_FIELDS =
-            Set.of("firstName", "lastName", "address", "email", "phone", "attributes", "tags", "version");
+            Set.of("firstName", "lastName", "address", "email", "phone", "company", "country", "attributes", "tags");
+    private static final Set<String> UPDATE_FIELDS = Set.of(
+            "firstName",
+            "lastName",
+            "address",
+            "email",
+            "phone",
+            "company",
+            "country",
+            "attributes",
+            "tags",
+            "version");
 
     /** Rezultat: {@code input} je {@code null} ob kateri koli napaki; {@code version} je {@code null}, če ga ni. */
     public record Parsed(ContactInput input, Long version, List<FieldError> errors) {
@@ -119,11 +129,16 @@ public final class ContactInputParser {
         if (phone != null && !hasError(errors, "phone") && !PHONE.matcher(phone).matches()) {
             errors.add(new FieldError("phone", "INVALID_VALUE"));
         }
+        String company = text(root, "company", COMPANY_MAX, errors);
+        String country = text(root, "country", 100, errors);
+        if (country != null && !hasError(errors, "country") && !CountryNames.isValid(country)) {
+            errors.add(new FieldError("country", "INVALID_VALUE"));
+        }
         List<Attribute> attributes = attributes(root, errors);
         List<String> tags = tags(root, errors);
         Long version = update ? version(root, errors) : null;
         ContactInput input = errors.isEmpty()
-                ? new ContactInput(firstName, lastName, address, email, phone, attributes, tags)
+                ? new ContactInput(firstName, lastName, address, email, phone, company, country, attributes, tags)
                 : null;
         return new Parsed(input, version, List.copyOf(errors));
     }

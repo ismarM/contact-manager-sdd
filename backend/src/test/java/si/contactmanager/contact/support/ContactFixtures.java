@@ -231,6 +231,16 @@ public final class ContactFixtures {
         jdbc.update("delete from contact where id = ? and group_id = ?", contact, group);
     }
 
+    /** Podjetje in država kontakta (stolpca iz V10); {@code null} vrednosti ostanejo v preslikavi. */
+    public Map<String, Object> companyAndCountry(UUID contact) {
+        return jdbc.queryForMap("select company, country from contact where id = ?", contact);
+    }
+
+    /** Nastavi podjetje in državo neposredno v bazi (kot stanje brez API-ja). */
+    public void setCompanyAndCountry(UUID contact, String company, String country) {
+        jdbc.update("update contact set company = ?, country = ? where id = ?", company, country, contact);
+    }
+
     public boolean exists(UUID contact) {
         Integer count = jdbc.queryForObject("select count(*) from contact where id = ?", Integer.class, contact);
         return count != null && count > 0;

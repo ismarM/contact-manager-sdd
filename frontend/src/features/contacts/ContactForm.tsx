@@ -17,23 +17,32 @@ import { fieldErrors } from '../groups/api';
 import { useGroup } from '../groups/groupContext';
 import { conflictCurrent, type FailureKey, failureKey, useContactsApi } from './api';
 import { ContactConflictAlert } from './ContactConflictAlert';
+import { AttributeTransferDialog, type TransferRequest } from './AttributeTransfer';
+import { CountryField } from './CountryField';
+import { SuggestInput } from './SuggestInput';
 import { TagInput } from './TagInput';
 import type { ContactDetail, ContactInput } from './types';
 import {
   type AttributeRow,
   type ErrorKey,
   type FormValues,
+  isReservedName,
   LIMITS,
+  normalizeKey,
+  reservedFieldOf,
+  reservedKeyError,
   serverErrorKey,
   validate,
 } from './validation';
 
-type Field = 'firstName' | 'lastName' | 'address' | 'email' | 'phone';
+type Field = 'firstName' | 'lastName' | 'company' | 'address' | 'email' | 'phone';
 
 const EMPTY: FormValues = {
   firstName: '',
   lastName: '',
+  company: '',
   address: '',
+  country: '',
   email: '',
   phone: '',
   attributes: [],
@@ -47,10 +56,16 @@ function fromContact(contact: ContactDetail): FormValues {
   return {
     firstName: contact.firstName ?? '',
     lastName: contact.lastName ?? '',
+    company: contact.company ?? '',
     address: contact.address ?? '',
+    country: contact.country ?? '',
     email: contact.email ?? '',
     phone: contact.phone ?? '',
-    attributes: contact.attributes.map((attribute) => ({ id: newRowId(), ...attribute })),
+    attributes: contact.attributes.map((attribute) => ({
+      id: newRowId(),
+      ...attribute,
+      original: attribute.key,
+    })),
     tags: [...contact.tags],
   };
 }
@@ -63,7 +78,9 @@ function toInput(values: FormValues): { input: ContactInput; rows: AttributeRow[
     input: {
       firstName: optional(values.firstName),
       lastName: optional(values.lastName),
+      company: optional(values.company),
       address: optional(values.address),
+      country: optional(values.country),
       email: optional(values.email),
       phone: optional(values.phone),
       attributes: rows.map((row) => ({ key: row.key.trim(), value: row.value.trim() })),
@@ -103,6 +120,8 @@ export function ContactForm({
   const [tooMany, setTooMany] = useState(false);
   const [busy, setBusy] = useState(false);
   const [focusTarget, setFocusTarget] = useState<{ id: string } | null>(null);
+  const [transfer, setTransfer] = useState<TransferRequest | null>(null);
+  const [transferFailed, setTransferFailed] = useState<string | null>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
   const [focusSummary, setFocusSummary] = useState(0);
   const leaving = useRef(false);
@@ -191,16 +210,79 @@ export function ContactForm({
     });
   };
 
+  /** Prenos je samo sprememba stanja obrazca (FR-013-20): vrednost gre v polje, vrstica atributa se odstrani. */
+  const finishTransfer = (rowId: string, field: 'company' | 'country', value: string | null) => {
+    setValues((current) => ({
+      ...current,
+      ...(value === null ? {} : { [field]: value }),
+      attributes: current.attributes.filter((row) => row.id !== rowId),
+    }));
+    setErrors((current) => {
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+    setTransfer(null);
+    setTransferFailed(null);
+    setFocusTarget({ id: domId(field) });
+  };
+
+  const startTransfer = async (rowId: string) => {
+    const row = values.attributes.find((candidate) => candidate.id === rowId);
+    const field = row ? reservedFieldOf(row.key) : null;
+    if (!row || !field) return;
+    const attribute = row.value.trim();
+    setTransferFailed(null);
+    if (field === 'company') {
+      const current = values.company.trim();
+      if (current === '' || current === attribute) finishTransfer(rowId, 'company', attribute);
+      else
+        setTransfer({ rowId, kind: 'company', mode: 'conflict', attribute, fieldValue: current });
+      return;
+    }
+    try {
+      const { results } = await api.resolveCountries([attribute]);
+      const result = results[0];
+      if (result?.status === 'FOUND' && result.code) {
+        if (values.country === '' || values.country === result.code) {
+          finishTransfer(rowId, 'country', result.code);
+        } else {
+          setTransfer({
+            rowId,
+            kind: 'country',
+            mode: 'conflict',
+            attribute,
+            fieldValue: values.country,
+            found: result.code,
+          });
+        }
+      } else {
+        setTransfer({
+          rowId,
+          kind: 'country',
+          mode: 'pick',
+          attribute,
+          candidates: result?.status === 'AMBIGUOUS' ? (result.candidates ?? []) : [],
+        });
+      }
+    } catch {
+      setTransferFailed(rowId);
+    }
+  };
+
   // Vrstice atributov so memoizirane (do 50 vrstic); stabilni vmesnik vedno kliče najnovejše rokovalnike.
-  const latest = useRef({ setRow, blur, removeRow });
+  const latest = useRef({ setRow, blur, removeRow, startTransfer });
   useEffect(() => {
-    latest.current = { setRow, blur, removeRow };
+    latest.current = { setRow, blur, removeRow, startTransfer };
   });
   const [rowActions] = useState<RowActions>(() => ({
     setRow: (id, part, value) => latest.current.setRow(id, part, value),
     blur: (field) => latest.current.blur(field),
     removeRow: (id) => latest.current.removeRow(id),
+    transfer: (id) => void latest.current.startTransfer(id),
   }));
+  // Podpis ključev vseh vrstic: vrstica izloči iz predlogov ključe drugih vrstic (memoizacija ostane veljavna).
+  const keysSignature = values.attributes.map((row) => normalizeKey(row.key.trim())).join('\u0000');
 
   const save = async (sendVersion: number) => {
     if (busy) return;
@@ -228,7 +310,10 @@ export function ContactForm({
           const row = /^attributes\[(\d+)\]\.(key|value)$/.exec(field);
           if (row) {
             const sent = rows[Number(row[1])];
-            if (sent) mapped[`attributes.${sent.id}.${row[2]}`] = key;
+            if (sent) {
+              mapped[`attributes.${sent.id}.${row[2]}`] =
+                code === 'RESERVED_KEY' ? reservedKeyError(sent.key) : key;
+            }
           } else {
             mapped[field.startsWith('tags') ? 'tags' : field] = key;
           }
@@ -261,7 +346,9 @@ export function ContactForm({
   const order = [
     'firstName',
     'lastName',
+    'company',
     'address',
+    'country',
     'email',
     'phone',
     ...values.attributes.flatMap((row) => [
@@ -281,6 +368,7 @@ export function ContactForm({
       </p>
     ) : null;
 
+  const countryList = t('contacts.form.countryList');
   const textField = (field: Field, label: string, props: Record<string, string> = {}) => (
     <div className="flex flex-col gap-1">
       <label htmlFor={domId(field)} className="font-bold">
@@ -388,7 +476,42 @@ export function ContactForm({
           <legend className="mb-2 text-lg font-bold">{t('contacts.form.basic')}</legend>
           {textField('firstName', t('contacts.form.firstName'), { autoComplete: 'given-name' })}
           {textField('lastName', t('contacts.form.lastName'), { autoComplete: 'family-name' })}
+          <div className="flex flex-col gap-1">
+            <label htmlFor={domId('company')} className="font-bold">
+              {t('contacts.form.company')}
+            </label>
+            <SuggestInput
+              id={domId('company')}
+              type="company"
+              value={values.company}
+              onChange={(text) => setField('company', text)}
+              onBlur={() => blur('company')}
+              listLabel={t('contacts.form.companySuggestions')}
+              {...describe('company')}
+            />
+            {message('company')}
+          </div>
           {textField('address', t('contacts.form.address'))}
+          <div className="flex flex-col gap-1">
+            <label htmlFor={domId('country')} className="font-bold">
+              {t('contacts.form.country')}
+            </label>
+            <CountryField
+              id={domId('country')}
+              value={values.country}
+              onChange={(code) => {
+                setValues((current) => ({ ...current, country: code }));
+                setErrors((current) => {
+                  const next = { ...current };
+                  delete next.country;
+                  return next;
+                });
+              }}
+              listLabel={countryList}
+              {...describe('country')}
+            />
+            {message('country')}
+          </div>
           {textField('email', t('contacts.form.email'), { type: 'email', autoComplete: 'off' })}
           {textField('phone', t('contacts.form.phone'), { type: 'tel', autoComplete: 'off' })}
         </fieldset>
@@ -402,6 +525,8 @@ export function ContactForm({
               prefix={prefix}
               keyError={errors[`attributes.${row.id}.key`]}
               valueError={errors[`attributes.${row.id}.value`]}
+              keysSignature={keysSignature}
+              transferFailed={transferFailed === row.id}
               actions={rowActions}
             />
           ))}
@@ -450,6 +575,14 @@ export function ContactForm({
         </div>
       </form>
 
+      {transfer && (
+        <AttributeTransferDialog
+          request={transfer}
+          onDecide={(value) => finishTransfer(transfer.rowId, transfer.kind, value)}
+          onCancel={() => setTransfer(null)}
+        />
+      )}
+
       <DiscardDialog
         open={blocker.state === 'blocked'}
         onKeep={() => blocker.reset?.()}
@@ -466,6 +599,7 @@ interface RowActions {
   setRow: (id: string, part: 'key' | 'value', value: string) => void;
   blur: (field: string) => void;
   removeRow: (id: string) => void;
+  transfer: (id: string) => void;
 }
 
 /** Vrstica dodatnega atributa: ključ, vrednost in odstranitev (FR-004-02); memoizirana zaradi do 50 vrstic. */
@@ -474,12 +608,17 @@ const AttributeFields = memo(function AttributeFields({
   prefix,
   keyError,
   valueError,
+  keysSignature,
+  transferFailed,
   actions,
 }: {
   row: AttributeRow;
   prefix: string;
   keyError: ErrorKey | undefined;
   valueError: ErrorKey | undefined;
+  /** Normalizirani ključi vseh vrstic (ločeni z `\u0000`): vrstica izloči ključe drugih vrstic iz predlogov. */
+  keysSignature: string;
+  transferFailed: boolean;
   actions: RowActions;
 }) {
   const { t } = useTranslation();
@@ -489,6 +628,16 @@ const AttributeFields = memo(function AttributeFields({
   const errorId = (field: string) => `${prefix}-${field}-error`;
   const describe = (field: string, error: ErrorKey | undefined) =>
     error ? { 'aria-invalid': true, 'aria-describedby': errorId(field) } : {};
+  // Predlogi ključev: brez ključev drugih vrstic in rezerviranih imen (FR-013-09).
+  const others = keysSignature.split('\u0000');
+  const own = others.indexOf(normalizeKey(row.key.trim()));
+  if (own >= 0) others.splice(own, 1);
+  const taken = new Set(others.filter((key) => key !== ''));
+  const excludeKey = (text: string) => taken.has(normalizeKey(text.trim())) || isReservedName(text);
+  const transferField =
+    row.original !== undefined && normalizeKey(row.original.trim()) === normalizeKey(row.key.trim())
+      ? reservedFieldOf(row.key)
+      : null;
   const message = (field: string, error: ErrorKey | undefined) =>
     error ? (
       <p id={errorId(field)} className={fieldError}>
@@ -501,13 +650,17 @@ const AttributeFields = memo(function AttributeFields({
         <label htmlFor={domId(keyField)} className="font-bold">
           {t('contacts.form.key')}
         </label>
-        <input
+        <SuggestInput
           id={domId(keyField)}
-          type="text"
+          type="key"
           value={row.key}
-          onChange={(event) => actions.setRow(row.id, 'key', event.target.value)}
+          onChange={(text) => actions.setRow(row.id, 'key', text)}
           onBlur={() => actions.blur(keyField)}
-          className={textInput}
+          exclude={excludeKey}
+          canonical="key"
+          showCount
+          listLabel={t('contacts.form.keySuggestions')}
+          onSelect={() => document.getElementById(domId(valueField))?.focus()}
           {...describe(keyField, keyError)}
         />
         {message(keyField, keyError)}
@@ -516,13 +669,14 @@ const AttributeFields = memo(function AttributeFields({
         <label htmlFor={domId(valueField)} className="font-bold">
           {t('contacts.form.value')}
         </label>
-        <input
+        <SuggestInput
           id={domId(valueField)}
-          type="text"
+          type="value"
+          keyParam={row.key}
           value={row.value}
-          onChange={(event) => actions.setRow(row.id, 'value', event.target.value)}
+          onChange={(text) => actions.setRow(row.id, 'value', text)}
           onBlur={() => actions.blur(valueField)}
-          className={textInput}
+          listLabel={t('contacts.form.valueSuggestions')}
           {...describe(valueField, valueError)}
         />
         {message(valueField, valueError)}
@@ -539,6 +693,24 @@ const AttributeFields = memo(function AttributeFields({
       >
         <IconTrash aria-hidden="true" size={20} stroke={1.75} />
       </button>
+      {transferField && (
+        <div className="flex basis-full flex-col items-start gap-2 rounded-md bg-muted p-3">
+          <p id={`${domId(keyField)}-note`}>{t(`contacts.transfer.note.${transferField}`)}</p>
+          <button
+            type="button"
+            aria-describedby={`${domId(keyField)}-note`}
+            onClick={() => actions.transfer(row.id)}
+            className={secondaryButton}
+          >
+            {t(`contacts.transfer.action.${transferField}`)}
+          </button>
+          {transferFailed && (
+            <p role="alert" className={fieldError}>
+              {t('contacts.transfer.failed')}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 });

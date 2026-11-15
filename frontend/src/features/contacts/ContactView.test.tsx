@@ -4,6 +4,7 @@ import { axe } from 'vitest-axe';
 
 import { i18n } from '../../i18n';
 import { CONTACT_ID, contactDetail, GROUP_ID, renderContactsApp } from '../../test/contactsApi';
+import { name } from '../../test/smartAttributes';
 
 // Pogled kontakta na ločeni strani (< 1280 px; FR-004-08, FR-004-14, FR-004-16; design.md 9.4).
 
@@ -171,6 +172,71 @@ describe('ContactView', () => {
     ).toBeVisible();
     expect(screen.getByRole('link', { name: 'Edit contact' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to contacts' })).toBeInTheDocument();
+    expect((await axe(container)).violations).toEqual([]);
+  });
+
+  it('FR-013-01: pogled prikaže Podjetje in Državo (ime v jeziku vmesnika); brez vrednosti vrstic ni', async () => {
+    const withBoth = contactDetail({ company: 'Acme d.o.o.', country: 'AT' });
+    renderContactsApp(PATH, {
+      role: 'VIEWER',
+      contacts: { get: () => ({ status: 200, body: withBoth }) },
+    });
+
+    const main = await screen.findByRole('main');
+    await within(main).findByRole('heading', { level: 2, name: 'Janez Novak' });
+
+    expect(
+      within(main)
+        .getAllByRole('term')
+        .map((term) => term.textContent),
+    ).toEqual([name.company(), name.country(), 'E-naslov', 'Telefon']);
+    expect(
+      within(main)
+        .getAllByRole('definition')
+        .map((value) => value.textContent)
+        .slice(0, 2),
+    ).toEqual(['Acme d.o.o.', 'Avstrija']);
+
+    await i18n.changeLanguage('en');
+    await waitFor(() =>
+      expect(
+        within(main)
+          .getAllByRole('definition')
+          .map((value) => value.textContent),
+      ).toContain('Austria'),
+    );
+    const terms = within(main)
+      .getAllByRole('term')
+      .map((term) => term.textContent);
+    expect(terms).toContain('Country');
+    expect(terms).toContain('Company');
+  });
+
+  it('FR-013-02: kontakt brez podjetja in države ne pokaže vrstic Podjetje in Država', async () => {
+    renderContactsApp(PATH, {
+      role: 'VIEWER',
+      contacts: { get: () => ({ status: 200, body: contactDetail() }) },
+    });
+
+    const main = await screen.findByRole('main');
+    await within(main).findByRole('heading', { level: 2, name: 'Janez Novak' });
+
+    const terms = within(main)
+      .getAllByRole('term')
+      .map((term) => term.textContent);
+    expect(terms).not.toContain(name.company());
+    expect(terms).not.toContain(name.country());
+  });
+
+  it('FR-013-01: axe brez kršitev s podjetjem in državo', async () => {
+    const { container } = renderContactsApp(PATH, {
+      role: 'VIEWER',
+      contacts: {
+        get: () => ({ status: 200, body: contactDetail({ company: 'Acme', country: 'SI' }) }),
+      },
+    });
+    await screen.findByRole('heading', { level: 2, name: 'Janez Novak' });
+
     expect((await axe(container)).violations).toEqual([]);
   });
 });

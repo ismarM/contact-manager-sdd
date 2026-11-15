@@ -40,9 +40,9 @@ class ExportSkippedIT extends ExportApiTest {
         assertThat(response.headers().firstValue("X-Export-Skipped")).contains("1");
         assertThat(workbook(response).rows())
                 .containsExactly(
-                        List.of("Ime", "Priimek", "Naslov", "E-naslov", "Telefon", "Značke"),
-                        List.of("Ana", "Avsec", "", "", "", ""),
-                        List.of("Cene", "Cerar", "", "", "", ""));
+                        List.of("Ime", "Priimek", "Naslov", "E-naslov", "Telefon", "Država", "Podjetje", "Značke"),
+                        List.of("Ana", "Avsec", "", "", "", "", "", ""),
+                        List.of("Cene", "Cerar", "", "", "", "", "", ""));
     }
 
     @Test

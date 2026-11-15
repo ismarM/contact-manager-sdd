@@ -26,6 +26,8 @@ final class ChangeDiff {
         scalar(fields, Field.ADDRESS, value(before, Field.ADDRESS), value(after, Field.ADDRESS));
         scalar(fields, Field.EMAIL, value(before, Field.EMAIL), value(after, Field.EMAIL));
         scalar(fields, Field.PHONE, value(before, Field.PHONE), value(after, Field.PHONE));
+        scalar(fields, Field.COUNTRY, value(before, Field.COUNTRY), value(after, Field.COUNTRY));
+        scalar(fields, Field.COMPANY, value(before, Field.COMPANY), value(after, Field.COMPANY));
         attributes(
                 fields,
                 before == null ? List.of() : before.attributes(),
@@ -44,6 +46,8 @@ final class ChangeDiff {
             case ADDRESS -> state.address();
             case EMAIL -> state.email();
             case PHONE -> state.phone();
+            case COUNTRY -> state.country();
+            case COMPANY -> state.company();
             default -> null;
         };
     }

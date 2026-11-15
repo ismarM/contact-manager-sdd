@@ -29,7 +29,11 @@ export interface CompareContact {
   createdAt: string;
   firstName: string | null;
   lastName: string | null;
+  /** 013 */
+  company: string | null;
   address: string | null;
+  /** 013: koda ISO 3166-1 alpha-2. */
+  country: string | null;
   email: string | null;
   phone: string | null;
   attributes: { key: string; value: string }[];
@@ -44,7 +48,9 @@ export interface Comparison {
 export interface MergeResultInput {
   firstName: string | null;
   lastName: string | null;
+  company: string | null;
   address: string | null;
+  country: string | null;
   email: string | null;
   phone: string | null;
   attributes: { key: string; value: string }[];

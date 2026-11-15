@@ -23,22 +23,20 @@ import si.contactmanager.group.UserRef;
 @Repository
 class ContactRepository {
 
-    /** Največ predlogov značk (research R-07). */
-    static final int SUGGESTIONS = 20;
-
     /** Največ identitet v enem stavku (meja parametrov PostgreSQL je 32.767). */
     private static final int CHUNK = 5000;
 
-    private static final String DETAIL = "SELECT c.id, c.first_name, c.last_name, c.address, c.email, c.phone,"
-            + " c.version, c.created_at, c.updated_at, u.name AS updated_by_name, u.email AS updated_by_email,"
-            + " r.id AS rollback_id, r.created_at AS rollback_at, ru.name AS rollback_by_name,"
-            + " ru.email AS rollback_by_email, r.target_initial AS rollback_initial, rt.id AS target_id,"
-            + " rt.created_at AS target_at"
-            + " FROM contact c LEFT JOIN app_user u ON u.id = c.updated_by"
-            + " LEFT JOIN audit_entry r ON r.id = c.reverted_entry_id"
-            + " LEFT JOIN app_user ru ON ru.id = r.actor_id"
-            + " LEFT JOIN audit_entry rt ON rt.id = r.target_entry_id"
-            + " WHERE c.group_id = :group AND c.id = :id";
+    private static final String DETAIL =
+            "SELECT c.id, c.first_name, c.last_name, c.address, c.email, c.phone, c.company, c.country,"
+                    + " c.version, c.created_at, c.updated_at, u.name AS updated_by_name, u.email AS updated_by_email,"
+                    + " r.id AS rollback_id, r.created_at AS rollback_at, ru.name AS rollback_by_name,"
+                    + " ru.email AS rollback_by_email, r.target_initial AS rollback_initial, rt.id AS target_id,"
+                    + " rt.created_at AS target_at"
+                    + " FROM contact c LEFT JOIN app_user u ON u.id = c.updated_by"
+                    + " LEFT JOIN audit_entry r ON r.id = c.reverted_entry_id"
+                    + " LEFT JOIN app_user ru ON ru.id = r.actor_id"
+                    + " LEFT JOIN audit_entry rt ON rt.id = r.target_entry_id"
+                    + " WHERE c.group_id = :group AND c.id = :id";
 
     private final JdbcClient jdbc;
 
@@ -222,9 +220,10 @@ class ContactRepository {
     }
 
     UUID insert(UUID group, ContactInput input, long user) {
-        UUID id = jdbc.sql("INSERT INTO contact (group_id, first_name, last_name, address, email, phone,"
-                        + " sort_last, sort_first, updated_by)"
-                        + " VALUES (:group, :first, :last, :address, :email, :phone, :sortLast, :sortFirst, :user)"
+        UUID id = jdbc.sql("INSERT INTO contact (group_id, first_name, last_name, address, email, phone, company,"
+                        + " country, sort_last, sort_first, updated_by)"
+                        + " VALUES (:group, :first, :last, :address, :email, :phone, :company, :country, :sortLast,"
+                        + " :sortFirst, :user)"
                         + " RETURNING id")
                 .param("group", group)
                 .param("first", input.firstName())
@@ -232,6 +231,8 @@ class ContactRepository {
                 .param("address", input.address())
                 .param("email", input.email())
                 .param("phone", input.phone())
+                .param("company", input.company())
+                .param("country", input.country())
                 .param("sortLast", sortKey(input.lastName()))
                 .param("sortFirst", sortKey(input.firstName()))
                 .param("user", user)
@@ -244,7 +245,8 @@ class ContactRepository {
     /** Zamenja vrednosti, poveča verzijo ter zapiše izvajalca in čas (FR-004-10). */
     void update(UUID group, UUID id, ContactInput input, long user) {
         jdbc.sql("UPDATE contact SET first_name = :first, last_name = :last, address = :address, email = :email,"
-                        + " phone = :phone, sort_last = :sortLast, sort_first = :sortFirst, version = version + 1,"
+                        + " phone = :phone, company = :company, country = :country, sort_last = :sortLast,"
+                        + " sort_first = :sortFirst, version = version + 1,"
                         + " updated_by = :user, updated_at = now(), reverted_entry_id = NULL"
                         + " WHERE group_id = :group AND id = :id")
                 .param("group", group)
@@ -254,6 +256,8 @@ class ContactRepository {
                 .param("address", input.address())
                 .param("email", input.email())
                 .param("phone", input.phone())
+                .param("company", input.company())
+                .param("country", input.country())
                 .param("sortLast", sortKey(input.lastName()))
                 .param("sortFirst", sortKey(input.firstName()))
                 .param("user", user)
@@ -317,20 +321,38 @@ class ContactRepository {
     }
 
     /**
-     * Do 20 različnih značk skupine (po normalizirani obliki), ki se začnejo z normaliziranim {@code prefix}; prikazana
-     * je oblika najstarejšega kontakta, razvrščeno po normalizirani obliki (research R-07).
+     * Kanonični zapis ključev (FR-013-10, R-05): za vsak normaliziran ključ iz {@code norms}, ki ga skupina ima, zapis z
+     * največ kontakti; pri izenačenju zapis najstarejšega kontakta, nato po abecedi zapisa.
      */
-    List<String> suggestTags(UUID group, String prefix) {
-        return jdbc.sql("SELECT tag FROM (SELECT DISTINCT ON (t.tag_norm) t.tag_norm, t.tag FROM contact_tag t"
-                        + " JOIN contact c ON c.id = t.contact_id"
-                        + " WHERE c.group_id = :group AND starts_with(t.tag_norm, :prefix)"
-                        + " ORDER BY t.tag_norm, c.created_at, c.id) s"
-                        + " ORDER BY tag_norm COLLATE \"C\" LIMIT :limit")
+    Map<String, String> canonicalKeys(UUID group, Collection<String> norms) {
+        return canonical("contact_attribute", "key", "key_norm", group, norms);
+    }
+
+    /** Kanonični zapis značk (FR-013-10), kot {@link #canonicalKeys}. */
+    Map<String, String> canonicalTags(UUID group, Collection<String> norms) {
+        return canonical("contact_tag", "tag", "tag_norm", group, norms);
+    }
+
+    private Map<String, String> canonical(
+            String table, String column, String normColumn, UUID group, Collection<String> norms) {
+        Map<String, String> result = new LinkedHashMap<>();
+        if (norms.isEmpty()) {
+            return result;
+        }
+        jdbc.sql("SELECT DISTINCT ON (norm) norm, spelling FROM (SELECT t." + normColumn + " AS norm, t." + column
+                        + " AS spelling, count(*) AS uses, min(c.created_at) AS first_at FROM " + table
+                        + " t JOIN contact c ON c.id = t.contact_id WHERE c.group_id = :group AND t." + normColumn
+                        + " IN (:norms) GROUP BY t." + normColumn + ", t." + column + ") s"
+                        + " ORDER BY norm, uses DESC, first_at, spelling COLLATE \"C\"")
                 .param("group", group)
-                .param("prefix", ContactInputParser.normalize(prefix))
-                .param("limit", SUGGESTIONS)
-                .query(String.class)
-                .list();
+                .param("norms", List.copyOf(norms))
+                .query((ResultSet rs) -> {
+                    while (rs.next()) {
+                        result.put(rs.getString("norm"), rs.getString("spelling"));
+                    }
+                    return result;
+                });
+        return result;
     }
 
     private void insertChildren(UUID id, ContactInput input) {
@@ -388,6 +410,8 @@ class ContactRepository {
                 c.address(),
                 c.email(),
                 c.phone(),
+                c.company(),
+                c.country(),
                 List.copyOf(attributes),
                 List.copyOf(tags),
                 c.version(),
@@ -425,6 +449,8 @@ class ContactRepository {
                 rs.getString("address"),
                 rs.getString("email"),
                 rs.getString("phone"),
+                rs.getString("company"),
+                rs.getString("country"),
                 List.of(),
                 List.of(),
                 rs.getLong("version"),

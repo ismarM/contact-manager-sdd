@@ -20,7 +20,8 @@ import si.contactmanager.contact.support.XlsxReader.Workbook;
 @Tag("FR-010-03")
 class ExportIT extends ExportApiTest {
 
-    private static final List<String> HEADER_SL = List.of("Ime", "Priimek", "Naslov", "E-naslov", "Telefon", "Značke");
+    private static final List<String> HEADER_SL =
+            List.of("Ime", "Priimek", "Naslov", "E-naslov", "Telefon", "Država", "Podjetje", "Značke");
 
     private HttpResponse<byte[]> exportOk(Scenario s, Object body) throws Exception {
         HttpResponse<byte[]> response = export(s.token(Who.EDITOR), s.group(), body);
@@ -69,9 +70,9 @@ class ExportIT extends ExportApiTest {
                 .isEqualTo(table(
                         HEADER_SL,
                         List.of(
-                                row("Cene", "Čeh", "", "", "02 222 222", ""),
-                                row("Ana", "Kos", "Glavni trg 1", "ana@primer.si", "041 111 111", ""),
-                                row("Bor", "Zupan", "", "bor@primer.si", "", ""))));
+                                row("Cene", "Čeh", "", "", "02 222 222", "", "", ""),
+                                row("Ana", "Kos", "Glavni trg 1", "ana@primer.si", "041 111 111", "", "", ""),
+                                row("Bor", "Zupan", "", "bor@primer.si", "", "", "", ""))));
     }
 
     @Test
@@ -85,8 +86,8 @@ class ExportIT extends ExportApiTest {
         assertThat(file.sheetNames()).containsExactly("Contacts");
         assertThat(file.rows())
                 .isEqualTo(table(
-                        List.of("First name", "Last name", "Address", "Email", "Phone", "Tags"),
-                        List.of(row("Ana", "Kos", "", "", "", ""))));
+                        List.of("First name", "Last name", "Address", "Email", "Phone", "Country", "Company", "Tags"),
+                        List.of(row("Ana", "Kos", "", "", "", "", "", ""))));
     }
 
     // --- dodatni atributi -----------------------------------------------------------------------------------------
@@ -113,13 +114,15 @@ class ExportIT extends ExportApiTest {
                                 "Naslov",
                                 "E-naslov",
                                 "Telefon",
+                                "Država",
+                                "Podjetje",
                                 "kompetenca",
                                 "Oddelek",
                                 "podjetje",
                                 "Značke"),
                         List.of(
-                                row("Ana", "Avsec", "", "", "", "web dev", "IT", "", ""),
-                                row("Bor", "Bizjak", "", "", "", "", "", "FERI", ""))));
+                                row("Ana", "Avsec", "", "", "", "", "", "web dev", "IT", "", ""),
+                                row("Bor", "Bizjak", "", "", "", "", "", "", "", "FERI", ""))));
     }
 
     @Test
@@ -138,11 +141,34 @@ class ExportIT extends ExportApiTest {
 
         assertThat(sl.rows().get(0))
                 .containsExactly(
-                        "Ime", "Priimek", "Naslov", "E-naslov", "Telefon", "cena", "čas", "datum", "Šola", "Značke");
-        assertThat(sl.rows().get(1)).containsExactly("Ana", "Avsec", "", "", "", "5", "10:00", "1. 1.", "FERI", "");
+                        "Ime",
+                        "Priimek",
+                        "Naslov",
+                        "E-naslov",
+                        "Telefon",
+                        "Država",
+                        "Podjetje",
+                        "cena",
+                        "čas",
+                        "datum",
+                        "Šola",
+                        "Značke");
+        assertThat(sl.rows().get(1))
+                .containsExactly("Ana", "Avsec", "", "", "", "", "", "5", "10:00", "1. 1.", "FERI", "");
         assertThat(en.rows().get(0))
                 .containsExactly(
-                        "First name", "Last name", "Address", "Email", "Phone", "cena", "čas", "datum", "Šola", "Tags");
+                        "First name",
+                        "Last name",
+                        "Address",
+                        "Email",
+                        "Phone",
+                        "Country",
+                        "Company",
+                        "cena",
+                        "čas",
+                        "datum",
+                        "Šola",
+                        "Tags");
     }
 
     @Test
@@ -158,10 +184,19 @@ class ExportIT extends ExportApiTest {
 
         assertThat(file.rows())
                 .isEqualTo(table(
-                        List.of("Ime", "Priimek", "Naslov", "E-naslov", "Telefon", "Kompetenca", "Značke"),
                         List.of(
-                                row("Ana", "Avsec", "", "", "", "web dev", ""),
-                                row("Zala", "Zorko", "", "", "", "java", ""))));
+                                "Ime",
+                                "Priimek",
+                                "Naslov",
+                                "E-naslov",
+                                "Telefon",
+                                "Država",
+                                "Podjetje",
+                                "Kompetenca",
+                                "Značke"),
+                        List.of(
+                                row("Ana", "Avsec", "", "", "", "", "", "web dev", ""),
+                                row("Zala", "Zorko", "", "", "", "", "", "java", ""))));
     }
 
     @Test
@@ -177,8 +212,17 @@ class ExportIT extends ExportApiTest {
 
         assertThat(file.rows())
                 .isEqualTo(table(
-                        List.of("Ime", "Priimek", "Naslov", "E-naslov", "Telefon", "Značke", "Značke"),
-                        List.of(row("Ana", "Avsec", "", "", "", "ročno", "vip"))));
+                        List.of(
+                                "Ime",
+                                "Priimek",
+                                "Naslov",
+                                "E-naslov",
+                                "Telefon",
+                                "Država",
+                                "Podjetje",
+                                "Značke",
+                                "Značke"),
+                        List.of(row("Ana", "Avsec", "", "", "", "", "", "ročno", "vip"))));
     }
 
     // --- značke ---------------------------------------------------------------------------------------------------
@@ -197,8 +241,8 @@ class ExportIT extends ExportApiTest {
                 .isEqualTo(table(
                         HEADER_SL,
                         List.of(
-                                row("Ana", "Avsec", "", "", "", "Alumni, konferenca2025, ne_obveščaj"),
-                                row("Bor", "Bizjak", "", "", "", ""))));
+                                row("Ana", "Avsec", "", "", "", "", "", "Alumni, konferenca2025, ne_obveščaj"),
+                                row("Bor", "Bizjak", "", "", "", "", "", ""))));
     }
 
     // --- vrstni red -----------------------------------------------------------------------------------------------
@@ -267,7 +311,8 @@ class ExportIT extends ExportApiTest {
         Workbook file = workbook(exportOk(s, exportBody(List.of(a), "sl")));
 
         assertThat(file.rows())
-                .isEqualTo(table(HEADER_SL, List.of(row("007", "Bond", "Trg 1\nMaribor", "", "041 123 456", ""))));
+                .isEqualTo(
+                        table(HEADER_SL, List.of(row("007", "Bond", "Trg 1\nMaribor", "", "041 123 456", "", "", ""))));
         assertThat(file.allText()).isTrue();
         assertThat(file.hasFormula()).isFalse();
     }
@@ -281,7 +326,8 @@ class ExportIT extends ExportApiTest {
 
         Workbook file = workbook(exportOk(s, exportBody(List.of(a), "sl")));
 
-        assertThat(file.rows()).isEqualTo(table(HEADER_SL, List.of(row("Ana", "Kos", "", "", "041 999 999", ""))));
+        assertThat(file.rows())
+                .isEqualTo(table(HEADER_SL, List.of(row("Ana", "Kos", "", "", "041 999 999", "", "", ""))));
     }
 
     // --- zaščita pred formulami (FR-010-09, SC-004) ----------------------------------------------------------------
@@ -305,13 +351,24 @@ class ExportIT extends ExportApiTest {
 
         assertThat(file.rows())
                 .isEqualTo(table(
-                        List.of("Ime", "Priimek", "Naslov", "E-naslov", "Telefon", "opomba", "Značke"),
+                        List.of(
+                                "Ime",
+                                "Priimek",
+                                "Naslov",
+                                "E-naslov",
+                                "Telefon",
+                                "Država",
+                                "Podjetje",
+                                "opomba",
+                                "Značke"),
                         List.of(row(
                                 "'=HYPERLINK(\"http://x\",\"klik\")",
                                 "Test",
                                 "'-Glavni trg 1",
                                 "",
                                 "'+386 41 123 456",
+                                "",
+                                "",
                                 "'@SUM(A1)",
                                 ""))));
         assertThat(file.allText()).isTrue();
@@ -327,7 +384,8 @@ class ExportIT extends ExportApiTest {
 
         Workbook file = workbook(exportOk(s, exportBody(List.of(a), "sl")));
 
-        assertThat(file.rows()).isEqualTo(table(HEADER_SL, List.of(row(" =1", "Test", "'\rx", "", "'\tx", ""))));
+        assertThat(file.rows())
+                .isEqualTo(table(HEADER_SL, List.of(row(" =1", "Test", "'\rx", "", "'\tx", "", "", ""))));
         assertThat(file.allText()).isTrue();
         assertThat(file.hasFormula()).isFalse();
     }
@@ -343,8 +401,9 @@ class ExportIT extends ExportApiTest {
         Workbook file = workbook(exportOk(s, exportBody(List.of(a), "sl")));
 
         assertThat(file.rows().get(0))
-                .containsExactly("Ime", "Priimek", "Naslov", "E-naslov", "Telefon", "'=ključ", "Značke");
-        assertThat(file.rows().get(1)).containsExactly("Ana", "Kos", "", "", "", "x", "");
+                .containsExactly(
+                        "Ime", "Priimek", "Naslov", "E-naslov", "Telefon", "Država", "Podjetje", "'=ključ", "Značke");
+        assertThat(file.rows().get(1)).containsExactly("Ana", "Kos", "", "", "", "", "", "x", "");
         assertThat(file.hasFormula()).isFalse();
     }
 }

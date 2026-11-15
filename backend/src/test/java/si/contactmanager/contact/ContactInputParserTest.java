@@ -289,4 +289,53 @@ class ContactInputParserTest {
         List<String> fields = parsed.errors().stream().map(FieldError::field).toList();
         assertThat(fields).contains("email", "firstName", "lastName");
     }
+
+    @Test
+    @Tag("FR-013-01")
+    @Tag("FR-013-13")
+    void companyAndCountryAreOptionalTrimmedAndValidated() {
+        Parsed ok =
+                parser.parseCreate(json("\"firstName\":\"Janez\",\"company\":\"  Acme d.o.o. \",\"country\":\" SI \""));
+        Parsed empty = parser.parseCreate(json("\"firstName\":\"Janez\",\"company\":\" \",\"country\":\"\""));
+        Parsed absent = parser.parseCreate(json("\"firstName\":\"Janez\""));
+
+        assertThat(ok.valid()).as(ok.errors().toString()).isTrue();
+        assertThat(ok.input().company()).isEqualTo("Acme d.o.o.");
+        assertThat(ok.input().country()).isEqualTo("SI");
+        assertThat(empty.input().company()).isNull();
+        assertThat(empty.input().country()).isNull();
+        assertThat(absent.input().company()).isNull();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"si", "SVN", "XX", "Slovenija", "S", "XK", "1"})
+    @Tag("FR-013-13")
+    void anyCountryThatIsNotAnOfficialAlpha2CodeIsInvalid(String country) {
+        Parsed parsed = parser.parseCreate(json("\"firstName\":\"Janez\",\"country\":\"" + country + "\""));
+
+        assertThat(errors(parsed)).containsEntry("country", "INVALID_VALUE");
+    }
+
+    @Test
+    @Tag("FR-013-01")
+    void companyIsLimitedToTwoHundredCodePoints() {
+        Parsed ok = parser.parseCreate(json("\"firstName\":\"A\",\"company\":\"" + repeat("č", 200) + "\""));
+        Parsed tooLong = parser.parseCreate(json("\"firstName\":\"A\",\"company\":\"" + repeat("č", 201) + "\""));
+        Parsed notText = parser.parseCreate(json("\"firstName\":\"A\",\"company\":5"));
+
+        assertThat(ok.valid()).isTrue();
+        assertThat(errors(tooLong)).containsEntry("company", "TOO_LONG");
+        assertThat(errors(notText)).containsEntry("company", "INVALID_VALUE");
+    }
+
+    @Test
+    @Tag("FR-013-01")
+    void theUpdateBodyAcceptsTheNewFieldsToo() {
+        Parsed parsed =
+                parser.parseUpdate(json("\"firstName\":\"A\",\"company\":\"B\",\"country\":\"AT\",\"version\":3"));
+
+        assertThat(parsed.valid()).as(parsed.errors().toString()).isTrue();
+        assertThat(parsed.input().country()).isEqualTo("AT");
+        assertThat(parsed.version()).isEqualTo(3L);
+    }
 }

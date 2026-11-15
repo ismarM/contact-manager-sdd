@@ -102,7 +102,7 @@ describe('ContactPermissions', () => {
         LIST,
       );
       expect(api.requests.filter((r) => r.method !== 'GET')).toHaveLength(0);
-      expect(api.of('GET', `/api/groups/${GROUP_ID}/tags`)).toHaveLength(0);
+      expect(api.of('GET', `/api/groups/${GROUP_ID}/suggestions`)).toHaveLength(0);
     },
   );
 

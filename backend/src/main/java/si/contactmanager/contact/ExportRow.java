@@ -12,5 +12,7 @@ record ExportRow(
         String address,
         String email,
         String phone,
+        String country,
+        String company,
         Map<String, String> attributes,
         List<String> tags) {}

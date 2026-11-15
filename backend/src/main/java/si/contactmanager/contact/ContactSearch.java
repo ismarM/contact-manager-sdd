@@ -59,9 +59,11 @@ public final class ContactSearch {
             String parameter = "w" + i;
             parameters.put(parameter, words.get(i));
             List<String> columns = new ArrayList<>();
-            for (String column : List.of("first_name", "last_name", "address", "email", "phone")) {
+            for (String column : List.of("first_name", "last_name", "address", "email", "phone", "company")) {
                 columns.add("strpos(coalesce(c." + column + ", '')" + SEARCH + ", :" + parameter + ") > 0");
             }
+            // Država: koda ali ime v slovenščini in angleščini, neodvisno od jezika vmesnika (FR-013-03).
+            columns.add(countryIn("wc" + i, CountryNames.matching(words.get(i)), parameters));
             parts.add("(" + String.join(" OR ", columns) + ")");
         }
         List<Condition> conditions = query.conditions();
@@ -74,6 +76,8 @@ public final class ContactSearch {
                 parameters.put(key, condition.field().keyNorm());
                 parts.add("EXISTS (SELECT 1 FROM contact_attribute a WHERE a.contact_id = c.id AND a.key_norm = :" + key
                         + " AND strpos(a.value" + SEARCH + ", :" + value + ") > 0)");
+            } else if (condition.field().kind() == Kind.COUNTRY) {
+                parts.add(countryIn(value, CountryNames.matching(condition.value()), parameters));
             } else {
                 parts.add("strpos(coalesce(c." + column(condition.field().kind()) + ", '')" + SEARCH + ", :" + value
                         + ") > 0");
@@ -100,6 +104,7 @@ public final class ContactSearch {
         return switch (sort.kind()) {
             case LAST_NAME -> "c.sort_last " + direction + " NULLS LAST, c.sort_first ASC NULLS LAST, " + tail;
             case FIRST_NAME -> "c.sort_first " + direction + " NULLS LAST, c.sort_last ASC NULLS LAST, " + tail;
+            case COMPANY, COUNTRY -> throw new IllegalArgumentException("razvrščanje po tem polju ni podprto");
             case ADDRESS, EMAIL, PHONE ->
                 "c." + column(sort.kind()) + " COLLATE sort_sl " + direction
                         + " NULLS LAST, c.sort_last ASC NULLS LAST, c.sort_first ASC NULLS LAST, " + tail;
@@ -112,6 +117,15 @@ public final class ContactSearch {
         };
     }
 
+    /** Pogoj na državi: seznam kod (prazen seznam ne ujame nič); imenovani parameter se razširi v {@code IN}. */
+    private static String countryIn(String parameter, List<String> codes, Map<String, Object> parameters) {
+        if (codes.isEmpty()) {
+            return "FALSE";
+        }
+        parameters.put(parameter, codes);
+        return "c.country IN (:" + parameter + ")";
+    }
+
     /** Stolpec predefiniranega polja (zaprta preslikava). */
     private static String column(Kind kind) {
         return switch (kind) {
@@ -120,6 +134,8 @@ public final class ContactSearch {
             case ADDRESS -> "address";
             case EMAIL -> "email";
             case PHONE -> "phone";
+            case COMPANY -> "company";
+            case COUNTRY -> "country";
             case ATTRIBUTE -> throw new IllegalArgumentException("dodatni atribut nima stolpca");
         };
     }

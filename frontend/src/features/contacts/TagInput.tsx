@@ -1,18 +1,17 @@
 import { IconX } from '@tabler/icons-react';
-import { type KeyboardEvent, useEffect, useId, useState } from 'react';
+import { type KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { fieldError, focusRing, textInput } from '../../shared/ui/styles';
-import { useGroup } from '../groups/groupContext';
-import { useContactsApi } from './api';
+import { fieldError, focusRing } from '../../shared/ui/styles';
+import { useCanonical } from './api';
+import { SuggestInput } from './SuggestInput';
 import { type ErrorKey, normalizeKey, tagError } from './validation';
 
-const DEBOUNCE_MS = 150;
-
 /**
- * Kombinirano polje za značke po ARIA 1.2 (design.md 8.4, research R-10; FR-004-02, FR-004-04): predlogi samo iz te
- * skupine (`GET …/tags?q=`, zamik 150 ms, prejšnji zahtevek preklican), *Enter* ali vejica doda vpisano značko, *Enter*
- * z izbranim predlogom doda predlog, *Backspace* v praznem polju značk ne briše. Napaka se pokaže ob polju.
+ * Kombinirano polje za značke po ARIA 1.2 (design.md 8.4; FR-004-02, FR-004-04, FR-013-14): predlogi skupine
+ * (`type=tag`, tudi ob praznem fokusu, s številom kontaktov, brez že dodanih značk) prek skupnega `SuggestInput`;
+ * *Enter* ali vejica doda vpisano značko v kanoničnem zapisu skupine (FR-013-10), *Enter* z izbranim predlogom doda
+ * predlog, *Backspace* v praznem polju značk ne briše. Napaka se pokaže ob polju.
  */
 export function TagInput({
   tags,
@@ -30,78 +29,47 @@ export function TagInput({
   listLabel?: string;
 }) {
   const { t } = useTranslation();
-  const api = useContactsApi();
-  const { group } = useGroup();
+  const canonicalOf = useCanonical('tag');
   const inputId = useId();
-  const listId = useId();
   const errorId = useId();
   const [text, setText] = useState('');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [active, setActive] = useState(-1);
   const [error, setError] = useState<ErrorKey | null>(null);
-  const query = text.trim();
   const shownError = error ?? serverError ?? null;
-
+  const latest = useRef({ tags, text, onChange });
   useEffect(() => {
-    if (!query) return undefined;
-    const controller = new AbortController();
-    const timer = setTimeout(() => {
-      api.suggestTags(group.id, query, controller.signal).then(
-        (result) => {
-          setSuggestions(result.tags);
-          setActive(-1);
-        },
-        () => undefined,
-      );
-    }, DEBOUNCE_MS);
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [api, group.id, query]);
+    latest.current = { tags, text, onChange };
+  });
 
-  const options = query
-    ? suggestions.filter(
-        (tag) => !tags.some((existing) => normalizeKey(existing) === normalizeKey(tag)),
-      )
-    : [];
-  const open = options.length > 0;
-  const optionId = (index: number) => `${listId}-${index}`;
-
-  const add = (value: string) => {
-    const tag = value.trim();
-    if (!tag) return;
-    const problem = tagError(tag, tags);
+  /** Doda značko, če je veljavna (po zadnjem stanju); `submitted` je vpis, ki ga dodajanje počisti (`null` = vedno). */
+  const add = (tag: string, submitted: string | null) => {
+    const current = latest.current;
+    const problem = tagError(tag, current.tags);
     if (problem) {
       setError(problem);
       return;
     }
-    onChange([...tags, tag]);
-    setText('');
-    setSuggestions([]);
-    setActive(-1);
+    current.onChange([...current.tags, tag]);
+    latest.current = { ...current, tags: [...current.tags, tag] };
+    if (submitted === null || current.text === submitted) setText('');
     setError(null);
   };
 
+  /** Vpisana značka: najprej preverjanje, nato kanonični zapis skupine (strežnik ga vseeno uveljavi). */
+  const addTyped = (value: string) => {
+    const tag = value.trim();
+    if (!tag) return;
+    const problem = tagError(tag, latest.current.tags);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+    void canonicalOf(tag).then((found) => add(found ?? tag, value));
+  };
+
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'ArrowDown' && open) {
+    if (event.key === ',') {
       event.preventDefault();
-      setActive((index) => (index + 1) % options.length);
-    } else if (event.key === 'ArrowUp' && open) {
-      event.preventDefault();
-      setActive((index) => (index <= 0 ? options.length - 1 : index - 1));
-    } else if (event.key === 'Escape' && open) {
-      event.preventDefault();
-      setSuggestions([]);
-      setActive(-1);
-    } else if (event.key === 'Enter') {
-      // Enter v polju za značke nikoli ne odda obrazca.
-      event.preventDefault();
-      const chosen = open && active >= 0 ? options[active] : undefined;
-      add(chosen ?? text);
-    } else if (event.key === ',') {
-      event.preventDefault();
-      add(text);
+      addTyped(text);
     }
   };
 
@@ -110,57 +78,23 @@ export function TagInput({
       <label htmlFor={inputId} className="font-bold">
         {label ?? t('contacts.form.addTag')}
       </label>
-      <div className="relative">
-        <input
-          id={inputId}
-          type="text"
-          role="combobox"
-          autoComplete="off"
-          aria-autocomplete="list"
-          aria-expanded={open}
-          aria-controls={open ? listId : undefined}
-          aria-activedescendant={open && active >= 0 ? optionId(active) : undefined}
-          aria-invalid={shownError !== null}
-          aria-describedby={shownError ? errorId : undefined}
-          value={text}
-          onChange={(event) => {
-            setText(event.target.value);
-            setError(null);
-            if (!event.target.value.trim()) setSuggestions([]);
-          }}
-          onKeyDown={onKeyDown}
-          onBlur={() => {
-            setSuggestions([]);
-            setActive(-1);
-          }}
-          className={textInput}
-        />
-        {open && (
-          <ul
-            id={listId}
-            role="listbox"
-            aria-label={label ?? t('contacts.form.addTag')}
-            className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-float"
-          >
-            {options.map((tag, index) => (
-              <li
-                key={tag}
-                id={optionId(index)}
-                role="option"
-                aria-selected={index === active}
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => add(tag)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') add(tag);
-                }}
-                className="cursor-pointer rounded-sm px-2 py-2 hover:bg-muted aria-selected:bg-selected"
-              >
-                {tag}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <SuggestInput
+        id={inputId}
+        type="tag"
+        value={text}
+        onChange={(next) => {
+          setText(next);
+          setError(null);
+        }}
+        exclude={(tag) => tags.some((existing) => normalizeKey(existing) === normalizeKey(tag))}
+        showCount
+        listLabel={label ?? t('contacts.form.addTag')}
+        onSelect={(tag) => add(tag, null)}
+        onEnter={addTyped}
+        onKeyDown={onKeyDown}
+        aria-invalid={shownError !== null}
+        aria-describedby={shownError ? errorId : undefined}
+      />
       {shownError && (
         <p id={errorId} className={fieldError}>
           {t(shownError)}

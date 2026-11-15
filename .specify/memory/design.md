@@ -210,11 +210,14 @@ Dodatni atributi
 - Vsak par je vrstica dveh polj z vidnima oznakama *Ključ* in *Vrednost* (v pisavi Mono) in tihim gumbom »Odstrani atribut ‹ključ›«.
 - *Dodaj atribut* doda prazen par in premakne fokus v novo polje *Ključ*. Ključ, ki se ponovi v istem kontaktu, je napaka ob polju.
 - V pogledu kontakta so atributi seznam opredelitev (`dl`): ključ v `muted` Mono, vrednost v `text`.
+- **Predlogi (013):** polji *Ključ* in *Vrednost* sta kombinirani polji (kot v 8.4): ob fokusu praznega polja do 10 najpogostejših ključev oziroma vrednosti tega ključa v skupini, ob vpisu ujemajoči (brez razlike velikosti črk in strešic); prosti vnos ostane mogoč; že uporabljeni in rezervirani ključi niso ponujeni; ob zapustitvi polja ključa se vpis uskladi s kanoničnim zapisom skupine. Ob napaki ali brez predlogov polje deluje kot navadno besedilno polje.
+- **Podjetje in država (013):** *Podjetje* je besedilno polje z istimi predlogi; *Država* je izbirno kombinirano polje brez prostega besedila (ime v jeziku vmesnika, iskanje po imenu in kodi; najprej države, ki jih skupina najpogosteje uporablja).
+- **Prenos starega atributa (013):** ob obstoječem atributu z imenom `Država`, `Podjetje`, `Country` ali `Company` stoji opomba in gumb »Premakni v polje …«; dvoumna ali neprepoznana država, oziroma polje, ki že ima drugačno vrednost, zahteva odločitev v pogovornem oknu; do shranjevanja se na strežniku ne spremeni nič.
 
 ### 8.4 Značke
 
 - Pravokotna oznaka: `sunken`, besedilo `text` velikosti `sm`, zaobljenost 4 px, brez barv – značke so oznake, ne kategorije barv.
-- V obrazcu je vnos značk **kombinirano polje** (`role="combobox"`; shadcn *Combobox*/*Command* ali `useComboBox` iz React Aria, 13.4) s predlogi obstoječih značk skupine; *Enter* ali vejica doda značko. Dodane značke so pod poljem, vsaka z gumbom »Odstrani značko ‹ime›«.
+- V obrazcu je vnos značk **kombinirano polje** (`role="combobox"`; shadcn *Combobox*/*Command* ali `useComboBox` iz React Aria, 13.4) s predlogi obstoječih značk skupine (013: ob fokusu najpogostejše z vidnim številom kontaktov, ob vpisu ujemajoče po predponi ali v sredini; ob dodajanju se zapis uskladi s kanoničnim zapisom skupine); *Enter* ali vejica doda značko. Dodane značke so pod poljem, vsaka z gumbom »Odstrani značko ‹ime›«.
 - V preglednici so vidne največ tri značke in »+N«; vse so v podrobnostih.
 
 ### 8.5 Oznake vlog in stanj

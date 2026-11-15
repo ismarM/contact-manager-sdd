@@ -216,8 +216,8 @@ class ExportIsolationMatrixSecurityIT extends ExportApiTest {
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(workbook(response).rows())
                 .containsExactly(
-                        List.of("Ime", "Priimek", "Naslov", "E-naslov", "Telefon", "Značke"),
-                        List.of("Moj", "Kontakt", "", "", "", ""));
+                        List.of("Ime", "Priimek", "Naslov", "E-naslov", "Telefon", "Država", "Podjetje", "Značke"),
+                        List.of("Moj", "Kontakt", "", "", "", "", "", ""));
         assertThat(new String(response.body(), java.nio.charset.StandardCharsets.ISO_8859_1))
                 .doesNotContain("skrivnost");
     }

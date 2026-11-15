@@ -20,8 +20,10 @@ import { useConflictMessage } from './conflictMessage';
 import { canEditContacts } from './contactRouting';
 import type { ListNavigationState } from './ContactList';
 import { DeleteContactDialog } from './DeleteContactDialog';
+import { countryName } from './countries';
 import { RevertedBadge } from './RevertedBadge';
 import type { ContactDetail } from './types';
+import { useUiLanguage } from './useUiLanguage';
 
 type State =
   | { kind: 'loading' }
@@ -50,6 +52,7 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
   const [state, setState] = useState<State>({ kind: 'loading' });
   const [reloads, setReloads] = useState(0);
   const [conflict, setConflict] = useState<ContactDetail | null>(null);
+  const language = useUiLanguage();
   const showLoader = useDelayed(state.kind === 'loading');
   const conflictMessage = useConflictMessage();
   const editable = canEditContacts(group);
@@ -171,12 +174,26 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
         </div>
       )}
 
-      {(contact.address ?? contact.email ?? contact.phone) !== null && (
+      {[contact.company, contact.address, contact.country, contact.email, contact.phone].some(
+        (value) => value != null,
+      ) && (
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
+          {contact.company != null && (
+            <>
+              <dt className="font-bold">{t('contacts.view.company')}</dt>
+              <dd className="break-words">{contact.company}</dd>
+            </>
+          )}
           {contact.address !== null && (
             <>
               <dt className="font-bold">{t('contacts.view.address')}</dt>
               <dd className="break-words whitespace-pre-line">{contact.address}</dd>
+            </>
+          )}
+          {contact.country != null && (
+            <>
+              <dt className="font-bold">{t('contacts.view.country')}</dt>
+              <dd>{countryName(contact.country, language)}</dd>
             </>
           )}
           {contact.email !== null && (

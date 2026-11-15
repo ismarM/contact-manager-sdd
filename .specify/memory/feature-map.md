@@ -25,6 +25,7 @@
 | 010 | izvoz v Excel | izvoz izbranih kontaktov v `.xlsx` (viewer in višje, tudi v arhivirani skupini) | `features/contacts`, paket `contact` |
 | 011 | dvojniki | iskanje podvojenih kontaktov po kategorijah, tabela razlik, združevanje (editor in višje) | `features/duplicates`, paket `contact` |
 | 012 | moji podatki | izvoz lastnih podatkov (JSON), izbris računa z vsemi posledicami (»izbrisan uporabnik«, trajno arhivirane skupine) | `features/account` |
+| 013 | pametni atributi | predefinirani polji *Podjetje* in *Država* (koda ISO 3166-1), predlogi ključev, vrednosti, podjetij, držav in značk, kanonični zapis ključev in značk, ročni prenos starih atributov | `features/contacts`, paket `contact` |
 
 Poti: `features/*` je `frontend/src/features/*`, paketi so `backend/src/main/java/si/contactmanager/*`, E2E scenariji so v `e2e/tests/*.spec.ts`.
 
@@ -88,10 +89,12 @@ Povsod, kjer bi bilo prikazano ime ali e-naslov uporabnika, ki je izbrisal raču
 | Barva skupine | ena od 8 poimenovanih barv (design.md 4.2: tinta, mah, opeka, oker, sliva, morje, grafit, rja); privzeto *tinta* |
 | Ime, priimek | do 100 znakov; vsaj eno od obeh je obvezno |
 | Naslov (kontakta) | neobvezen, do 300 znakov, večvrstičen |
+| Podjetje | neobvezno, do 200 znakov po obrezu presledkov |
+| Država | neobvezna; shrani se koda ISO 3166-1 alpha-2 (dve veliki črki, uradno dodeljena; `INVALID_VALUE` sicer); vmesnik prikazuje ime v jeziku (sl/en); iskanje po kodi in imenu v obeh jezikih; prepoznavanje iz besedila (npr. uvoz): natančno ujemanje ali odločitev uporabnika, nikoli samodejna popravka |
 | E-naslov (kontakta) | neobvezen, veljavna oblika e-naslova, do 254 znakov |
 | Telefon | neobvezen, do 30 znakov; dovoljeni števke, presledki in `+ - ( ) /` |
-| Dodatni atribut | ključ 1–50 znakov, edinstven v kontaktu (ne glede na velikost črk) in različen od imen predefiniranih atributov; vrednost 1–500 znakov; največ 50 atributov na kontakt |
-| Značka | 1–50 znakov, brez presledkov; edinstvena v kontaktu (ne glede na velikost črk); največ 30 značk na kontakt |
+| Dodatni atribut | ključ 1–50 znakov, edinstven v kontaktu (ne glede na velikost črk) in različen od imen predefiniranih atributov; vrednost 1–500 znakov; največ 50 atributov na kontakt; imena `država`, `country`, `podjetje`, `company` (poleg imen predefiniranih polj) so rezervirana za nove in spremenjene ključe, obstoječi atributi z njimi ostanejo; zapis ključa se ob pisanju uskladi s kanoničnim zapisom skupine (pogostejša različica, pri izenačenju najstarejši kontakt) |
+| Značka | 1–50 znakov, brez presledkov; edinstvena v kontaktu (ne glede na velikost črk); največ 30 značk na kontakt; zapis se ob pisanju uskladi s kanoničnim zapisom skupine kot pri ključih |
 | Paginacija | privzeto 25 na stran, izbira 25 / 50 / 100, največ 100 |
 | Privzeto razvrščanje kontaktov | priimek, nato ime, naraščajoče; po slovenski abecedi (Č za C, Š za S, Ž za Z), ne glede na velikost črk in neodvisno od jezika vmesnika; enake vrednosti razločita čas nastanka in id (D-63, ki nadomešča D-38) |
 

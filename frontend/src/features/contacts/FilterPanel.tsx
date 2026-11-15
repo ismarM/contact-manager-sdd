@@ -17,6 +17,7 @@ import {
   MAX_CONDITIONS,
   PREDEFINED_FIELDS,
 } from './contactQuery';
+import { CountryField } from './CountryField';
 import type { ContactFilterOptions } from './types';
 
 /** Največ neizbranih značk, prikazanih hkrati (D-67): skupina ima lahko tisoče značk. */
@@ -228,9 +229,14 @@ export function FilterPanel({
             <select
               aria-label={t('contacts.filters.attribute', { n: index + 1 })}
               value={fieldOptionValue(canonical(row.field, keys))}
-              onChange={(event) =>
-                setRow(index, { field: fieldFromOptionValue(event.target.value) })
-              }
+              onChange={(event) => {
+                const field = fieldFromOptionValue(event.target.value);
+                // Država ima izbirnik s kodami: vrednost drugega polja ni veljavna koda in obratno.
+                setRow(index, {
+                  field,
+                  ...((field === 'country') !== (row.field === 'country') ? { value: '' } : {}),
+                });
+              }}
               ref={(element) => {
                 if (element && focusRow.current === index) {
                   focusRow.current = null;
@@ -245,13 +251,25 @@ export function FilterPanel({
                 labelOf={(field) => fieldLabel(field, t)}
               />
             </select>
-            <input
-              type="text"
-              aria-label={t('contacts.filters.value', { n: index + 1 })}
-              value={row.value}
-              onChange={(event) => setRow(index, { value: event.target.value })}
-              className={`${textInput} h-11 min-w-0 flex-1`}
-            />
+            {row.field === 'country' ? (
+              <div className="min-w-0 flex-1">
+                <CountryField
+                  aria-label={t('contacts.filters.value', { n: index + 1 })}
+                  value={row.value}
+                  onChange={(code) => setRow(index, { value: code })}
+                  listLabel={t('contacts.filters.countryList', { n: index + 1 })}
+                  className={`${textInput} h-11`}
+                />
+              </div>
+            ) : (
+              <input
+                type="text"
+                aria-label={t('contacts.filters.value', { n: index + 1 })}
+                value={row.value}
+                onChange={(event) => setRow(index, { value: event.target.value })}
+                className={`${textInput} h-11 min-w-0 flex-1`}
+              />
+            )}
             <button
               type="button"
               aria-label={t('contacts.filters.removeCondition', { n: index + 1 })}

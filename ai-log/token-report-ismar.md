@@ -21,7 +21,13 @@ Token usage per AI session run by Ismar. One row per session (each row has a mat
 | 1 | *‹kratek opis seje› (`‹prvih 8 znakov ID seje›`) – **main session*** | | | | | | | | | |
 | 1a | *└ subagent: ‹opis›* | | | | | | | | | |
 | 2 | integracija pravega Firebase (`76225259`) – **main session** | T3 Code, Claude Code | claude-sonnet-5-5 | 3 / 25 (stanje ob pisanju, seja še teče) | – | 54 | 20 933 | 73 408 | 1 659 345 | 1 753 740 |
+| 3 | analiza 000–012 in `013-pametni-atributi` (`bf201a02`) – **main session** | T3 Code, Claude Code | claude-sonnet-5-5 | 6 / 169 (stanje ob pisanju) | – | 342 | 229 537 | 490 413 | 58 314 951 | 59 035 243 |
+| 3a | └ subagent: izvajalec – 013 frontend implementacija | T3 Code, Claude Code | claude-sonnet-5-5 | 1 / 109 | – | 218 | 117 019 | 288 342 | 20 009 004 | 20 414 583 |
+| 3b | └ subagent: pregled-testov – Pregled testov 013 | T3 Code, Claude Code | claude-sonnet-5-5 | 1 / 18 | – | 36 | 12 559 | 91 169 | 913 884 | 1 017 648 |
+| | **Session 3 total (main + subagents)** | | claude-sonnet-5-5 | 8 / 296 | – | 596 | 359 115 | 869 924 | 79 237 839 | 80 467 474 |
 | | **Session 1 total (main + subagents)** | | | | | | | | | |
 | | **Total – Ismar** | | | | | | | | | |
 
 Session notes: *‹sporočila, ki jih dnevnik ne hrani (odgovori v dialogih, ukazi), samodejno zgoščanje konteksta, delno štetje zadnjega obrata›*
+
+Opomba seje 3: številke so iz `HOME=/tmp/fakehome node scripts/token-report.mjs` (`~/.claude` kaže na `~/.claude-team`, kjer so dnevniki te seje); stanje ob pisanju poročila, delo po prekinitvi seje (`Provider turn failed`) ni nujno zajeto v istem dnevniku.

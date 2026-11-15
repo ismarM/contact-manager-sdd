@@ -14,9 +14,41 @@ public record ContactState(
         String address,
         String email,
         String phone,
+        String company,
+        String country,
         List<Attribute> attributes,
         List<String> tags,
         long version,
         Instant createdAt,
         Instant updatedAt,
-        Long updatedById) {}
+        Long updatedById) {
+
+    /** Stanje brez polj podjetje in država (posnetki pred 013, FR-013-02): obe polji sta prazni. */
+    public ContactState(
+            String firstName,
+            String lastName,
+            String address,
+            String email,
+            String phone,
+            List<Attribute> attributes,
+            List<String> tags,
+            long version,
+            Instant createdAt,
+            Instant updatedAt,
+            Long updatedById) {
+        this(
+                firstName,
+                lastName,
+                address,
+                email,
+                phone,
+                null,
+                null,
+                attributes,
+                tags,
+                version,
+                createdAt,
+                updatedAt,
+                updatedById);
+    }
+}

@@ -119,7 +119,7 @@ class ContactIsolationMatrixSecurityIT extends ContactApiTest {
             case CREATE -> Http.send("POST", url(contactsPath), headers, body(input("Nov", "Kontakt")));
             case UPDATE -> Http.send("PUT", url(one), headers, body(withVersion(input("Prepisan", "Kontakt"), 0)));
             case DELETE -> Http.send("DELETE", url(one + "?version=0"), headers);
-            case TAGS -> Http.send("GET", url("/api/groups/" + group + "/tags?q=v"), headers);
+            case TAGS -> Http.send("GET", url("/api/groups/" + group + "/suggestions?type=tag&q=v"), headers);
         };
     }
 

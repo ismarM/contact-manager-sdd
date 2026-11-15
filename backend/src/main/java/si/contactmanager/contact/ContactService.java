@@ -28,11 +28,13 @@ class ContactService {
     private final ContactRepository contacts;
     private final ContactSnapshots snapshots;
     private final AuditLog audit;
+    private final CanonicalForms canonical;
 
-    ContactService(ContactRepository contacts, ContactSnapshots snapshots, AuditLog audit) {
+    ContactService(ContactRepository contacts, ContactSnapshots snapshots, AuditLog audit, CanonicalForms canonical) {
         this.contacts = contacts;
         this.snapshots = snapshots;
         this.audit = audit;
+        this.canonical = canonical;
     }
 
     /**
@@ -110,8 +112,14 @@ class ContactService {
 
     /** Ustvarjanje (FR-004-01): pod zaklepom skupine, ki zapre dirko z arhiviranjem (research R-05). */
     @Transactional
-    ContactDetail create(Membership membership, ContactInput input) {
+    ContactDetail create(Membership membership, ContactInput requested) {
         lockWritableGroup(membership);
+        List<si.contactmanager.shared.error.ValidationError.FieldError> reserved =
+                AttributeKeys.reservedErrors(requested.attributes(), java.util.Set.of());
+        if (!reserved.isEmpty()) {
+            throw new ValidationException(reserved);
+        }
+        ContactInput input = canonical.input(membership.groupId(), requested, List.of(), List.of());
         UUID id = contacts.insert(membership.groupId(), input, membership.userId());
         ContactState created = snapshots.snapshot(membership.groupId(), id);
         audit.record(
@@ -131,7 +139,20 @@ class ContactService {
         lockWritableGroup(membership);
         long version = contacts.lockVersion(membership.groupId(), id).orElseThrow(NotFoundException::new);
         ContactDetail current = read(membership, id);
-        boolean same = parsed.valid() && sameValues(current, parsed.input());
+        // Nova rezervirana imena in kanonični zapis (FR-013-08, -10): napake so po koraku verzije (§2.2); zapis, ki ga
+        // kontakt že ima, ostane nespremenjen.
+        List<si.contactmanager.shared.error.ValidationError.FieldError> reserved = parsed.valid()
+                ? AttributeKeys.reservedErrors(
+                        parsed.input().attributes(), AttributeKeys.normalizedKeys(current.attributes()))
+                : List.of();
+        ContactInput input = parsed.valid() && reserved.isEmpty()
+                ? canonical.input(
+                        membership.groupId(),
+                        parsed.input(),
+                        current.attributes().stream().map(Attribute::key).toList(),
+                        current.tags())
+                : null;
+        boolean same = input != null && sameValues(current, input);
         if (parsed.version() != null && parsed.version() != version) {
             if (same) {
                 return current;
@@ -141,11 +162,14 @@ class ContactService {
         if (!parsed.valid()) {
             throw new ValidationException(parsed.errors());
         }
+        if (!reserved.isEmpty()) {
+            throw new ValidationException(reserved);
+        }
         if (same) {
             return current;
         }
         ContactState before = snapshots.snapshot(membership.groupId(), id);
-        contacts.update(membership.groupId(), id, parsed.input(), membership.userId());
+        contacts.update(membership.groupId(), id, input, membership.userId());
         ContactState after = snapshots.snapshot(membership.groupId(), id);
         audit.record(
                 membership.groupId(),
@@ -172,10 +196,6 @@ class ContactService {
                 List.of(new ContactChange(id, name(before), before, null)));
     }
 
-    TagSuggestions suggestTags(Membership membership, String prefix) {
-        return new TagSuggestions(contacts.suggestTags(membership.groupId(), prefix == null ? "" : prefix.strip()));
-    }
-
     private static String name(ContactState state) {
         return ContactRepository.displayName(state.firstName(), state.lastName());
     }
@@ -194,6 +214,8 @@ class ContactService {
                 && Objects.equals(current.address(), input.address())
                 && Objects.equals(current.email(), input.email())
                 && Objects.equals(current.phone(), input.phone())
+                && Objects.equals(current.company(), input.company())
+                && Objects.equals(current.country(), input.country())
                 && current.attributes().equals(input.attributes())
                 && current.tags().equals(input.tags());
     }

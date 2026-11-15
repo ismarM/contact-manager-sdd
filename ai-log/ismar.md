@@ -9,6 +9,7 @@ Pravila beleženja: `docs/ai-development-log.md` (v zgodovini Gita, commit `b71c
 |---|---|---|---|---|
 | 1 | `00793e9d` (T3 Code, Claude Code) | 2026-11-05 od 20:37 do 2026-11-06 (CET) | `002-skupine` – clarify, plan, pregled plana, uskladitev odločitev, tasks, analyze, implement (testi, pregled testov, koda US1–US4), converge, PR | menjava modela med sejo (Sonnet 5.5 → Opus 5.5); 3 podagenti `pregled-testov` |
 | 2 | `76225259` (T3 Code, Claude Code) | 2026-11-15 | integracija pravega Firebase (brez Spec Kit, majhna sprememba) | `compose.firebase.yaml`, ugotavljanje, kje so necommitirane spremembe, uporabnik kontejnerja za ključ s `chmod 600`, PR |
+| 3 | `bf201a02` (T3 Code, Claude Code) | 2026-11-15 od 01:23 | `013-pametni-atributi` – READ-ONLY analiza 000–012, specify, clarify, plan, tasks, analyze, implement (backend, frontend s podagentom `izvajalec`), pregled-testov, verify, PR | prekinitev seje (`Provider turn failed`) po 02:26 in nadaljevanje; 3 podagenti; poraba v `token-report-ismar.md`, vrstica 3 |
 
 **Stolpci tabel interakcij**
 
@@ -159,3 +160,57 @@ Kot odgovorni razvijalec za 002 potrjujem:
 | 4 | sporočilo | izbrana možnost: backend kot uporabnik ključa; popravi README, commit, push, PR | implementacija | `user: ${FIREBASE_CONTAINER_UID:-1000}:${FIREBASE_CONTAINER_GID:-1000}`, mount `:ro`, popravljen README in test | kontejner `1000:1000` bere ključ (mode 600), pisanje v mount: *Read-only file system*; `quick` zelen | human-decision | accepted |
 
 **Opombe:** Ključ storitvenega računa ni bil prebran ali izpisan (samo `stat` in `test -r`). Prave prijave z Googlom in izbrisa računa (012) agent ni preizkusil: potrebuje API ključ in ročno preverjanje razvijalca (README, razdelek *Real Firebase*).
+
+---
+
+## Seja 3 — 013-pametni-atributi
+
+- **Datum:** 2026-11-15
+- **Razvijalec:** Ismar
+- **Agent / model:** Claude Code v T3 Code; `claude-sonnet-5-5`. Podagenti: `izvajalec` (frontend), `pregled-testov` (enkrat).
+- **Veja / commiti:** `pametni-atributi` (iz `main` `b11c5eb`): `aa22c63` (artefakti), commit implementacije in PR glej spodaj; brez združitve
+- **Poraba žetonov:** [token-report-ismar.md](token-report-ismar.md), vrstica 3
+
+| # | Vrsta | Povzetek navodila / odgovora | Faza | Rezultat / spremenjene datoteke | Preverjanje | Težava (kategorija) | Status |
+|---|---|---|---|---|---|---|---|
+| 1 | sporočilo | READ-ONLY analiza 000–012 proti profesorjevim zahtevam (država, podjetje, predlogi, revizijska sled), načrt 013–015, demo | analiza | poročilo v pogovoru, brez sprememb datotek; ugotovitev: država in podjetje nista polji, ključi atributov brez predlogov, rollback samo na ravni skupine, brez uvoza | branje kode in specifikacij; testi niso bili zagnani | none | accepted |
+| 2 | sporočilo | začni 013: nova veja iz `main`, `scripts/feature.sh`, `/speckit-specify`, nato `/speckit-clarify` brez kode | specify | `scripts/feature.sh pametni-atributi`; `specs/013-pametni-atributi/spec.md`, `checklists/requirements.md` (3 oznake `[NEEDS CLARIFICATION]`) | pregled po kontrolnem seznamu; kode ni | none | partial (čaka odločitve razvijalca v clarify) |
+| 3 | sporočilo | odločitve Q1: B (koda ISO), Q2: B (ohrani stare atribute, ročni prenos), Q3: A (strežniška kanonizacija), Q4: A (ime ali priimek ostane); nato plan → tasks → analyze → implement → verify → PR brez združitve | clarify, plan, tasks, analyze | spec s Clarifications, plan.md, research.md, data-model.md, contracts, tasks.md; analyze 1 krog (1 HIGH, 3 MEDIUM/LOW) | pregled po kontrolnem seznamu | none | accepted |
+| 4 | sporočilo | merjenje trajanja faz in poročilo ob koncu 013 | vse | `.verify/timing-013.log` (ni v Gitu), razdelek *Izmerjeni časi* spodaj | `date -Is`, `verify.sh` | none | accepted |
+| 5 | podagent | `izvajalec`: frontend T002, T011, T012, T016, T017, T019, T022 | implement | `frontend/src/features/contacts/*` (SuggestInput, CountryField, AttributeTransfer, countries.ts), prilagojeni testi, i18n | lint, typecheck, `test:unit` 143, `test:ui` 1023 | none | accepted |
+| 6 | podagent | `pregled-testov` enkrat nad razliko | pregled | 9 ugotovitev (3 srednje: negativni scenariji novih polj, `VERSION_CONFLICT`, bulk `TOO_LONG`); odpravljene v enem krogu, preostale nizke v opisu PR | branje razlike | none | accepted |
+| 7 | sporočilo | prekinitev seje, nadaljevanje: preveri stanje, dokončaj, preveri, PR | implement, verify, PR | stanje preverjeno, dodani testi po pregledu, zaporedni `quick` 118 s, `backend` 299 s, `e2e` 212 s zeleni | `./verify.sh` | agent-error (vzporeden zagon treh ravni `verify.sh` v istem worktreeju je prepisal `.verify/steps`; rezultati neveljavni, ponovljeno zaporedno) | accepted |
+
+**Izmerjeni časi (013)** – iz `.verify/timing-013.log` (`date -Is`), `verify.sh` in poročil podagentov; ničesar ni ocenjenega.
+
+| Faza / korak | Čas |
+|---|---|
+| veja → `spec.md` napisan (brez predhodne analize 000–012, ni merjena) | 01:33:46 → 01:36:31 (2 min 45 s) |
+| clarify (vnos odgovorov, spec, checklist) | 1 min 38 s |
+| plan (plan, research, data-model, contracts, quickstart) | 2 min 51 s |
+| tasks | 47 s |
+| analyze (1 krog) | 29 s |
+| implement: backend (jaz) do prvega zelenega ciljanega IT | ≈ 21 min (01:51 → 02:13 skupaj s popravki testov) |
+| implement: frontend (podagent, vzporedno) | 21 min 37 s |
+| pregled-testov | 1 min 51 s |
+| `verify.sh quick` (zeleni zagon) | 118 s |
+| `verify.sh backend` (zeleni zagon) | 299 s |
+| `verify.sh e2e` (zeleni zagon) | 212 s |
+
+Ponavljanja v seji (štetje iz dnevnika): `backend` v celoti 4 × (234 s in 222 s padla, 299 s zelen, vmes ciljani zagon 17 s in varnostni 53 s), `quick` 6 × (padla na `utišanja` 32 s, `format` 34 s, `unit BE` 41 s, zelen 117 s in 118 s), `e2e` 3 × (271 s en padec, prekinjen vzporedni zagon, 212 s zelen). `npm ci` ni izmerjen (moj merilni ukaz je odpovedal).
+
+Predlogi za pohitritev (iz zgornjih meritev):
+1. Pri padcu `integracijski BE` se varnostni testi ne zaženejo, zato sta bila potrebna dva polna zagona `backend` (222–234 s vsak), preden se je pokazal padec matrike izolacije. Predlog: korak `varnostni BE` naj teče tudi po padcu integracijskih (sta neodvisna) ali vzporedno na ločeni bazi.
+2. Ciljani zagon prizadetih razredov (`-Dit.test=…`) je trajal 17 s proti 222 s za celoten zagon; predlog: v CLAUDE.md zapisati »najprej prizadeti testi, nato en poln zagon«.
+3. `scripts/verify/suppressions.mjs` pade, ko je v delovnem drevesu izbrisana (neindeksirana) datoteka (ENOENT); to je zapravilo en zagon `quick`. Predlog: preskoči manjkajoče datoteke.
+4. Ravni `quick`, `backend`, `e2e` si lokalno delijo `.verify/`; vzporeden zagon v enem worktreeju je neveljaven (moja napaka). Predlog: `VERIFY_DIR` na raven ali zaklep v `verify.sh`; zaporedno 118 + 299 + 212 = 629 s, vzporedno bi bilo ≈ najdaljši (299 s), kot v CI.
+5. Vzporedno delo backend + frontend s podagentom: izmerjeno ≈ 21 min in 21 min 37 s, torej bi zaporedno trajalo ≈ 43 min.
+6. `scripts/token-report.mjs` ima trdo kodiran `~/.claude`; tukaj so dnevniki v `~/.claude-team` (rešeno z `HOME=/tmp/fakehome`). Predlog: spremenljivka okolja za mapo dnevnikov.
+7. Sprememba stolpcev izvoza je zahtevala popravke v 10 datotekah testov (trdo vpisane tabele); predlog: skupen pomočnik za glavo in prazne celice izvoza.
+
+
+## 013 – zaključni pregled pred združitvijo PR #19
+- CI (quick, backend, e2e) zelen za push in PR. Lokalno po popravkih: `quick` 116 s, `backend` 297 s (`e2e` ni ponovljen: spremenjeni so samo FE testi in en BE test, brez produkcijske kode).
+- Konstitucija §3.3: pet iskanj `getByText` v testih 013 (ComparePage, AuditDetails, ContactView, AttributeTransfer) zamenjano z vlogami `definition`/`cell`/`term` in `toHaveAccessibleDescription`; vsebinske asercije enako stroge. Preostal `getByText` v `NewGroupDialog.test.tsx` je starejši od 013, usklajen bo ob dotiku.
+- `SuggestionsPerformanceIT`: meja 300 ms (p95) nespremenjena; merjenje do tri kroge na tip klica, uspeh če je p95 pod mejo v enem, vsi krogi so v sporočilu napake.
+- Nizki ugotovitvi: predlogi vrednosti za rezervirane ključe (obstoječi atributi ostanejo po FR-013-08, zato pravilno) in 768 px (projekt `w768` teče samo za `@w768`, nobena funkcionalnost razen ogrodja ga ne uporablja) – ne vplivata na pravilnost.

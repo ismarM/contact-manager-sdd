@@ -199,12 +199,12 @@ test('FR-009-07 FR-009-12: nastavitev dodatnega atributa vsem izbranim', async (
   const dialog = page.getByRole('dialog', { name: 'Uredi izbrane kontakte (3)' });
   await dialog.getByRole('button', { name: 'Dodaj atribut' }).click();
   await dialog.getByRole('combobox', { name: 'Atribut 1' }).selectOption('Dodatni atribut');
-  await dialog.getByRole('textbox', { name: 'Ključ 1' }).fill('podjetje');
-  await dialog.getByRole('textbox', { name: 'Vrednost 1' }).fill('FERI');
+  await dialog.getByRole('combobox', { name: 'Ključ 1' }).fill('firma');
+  await dialog.getByRole('combobox', { name: 'Vrednost 1' }).fill('FERI');
   await expectNoAxeViolations(page);
   await dialog.getByRole('button', { name: 'Uporabi za 3 kontakte' }).click();
   await expect(toast(page)).toContainText('Posodobljeni 3 kontakti.');
-  for (const contact of ids) expect(attributesOf(contact)).toEqual([['podjetje', 'FERI']]);
+  for (const contact of ids) expect(attributesOf(contact)).toEqual([['firma', 'FERI']]);
 });
 
 test('FR-009-09 FR-009-17: kontakt z 30 značkami zavrne celotno operacijo – napaka z imenom, nič spremenjeno', async ({

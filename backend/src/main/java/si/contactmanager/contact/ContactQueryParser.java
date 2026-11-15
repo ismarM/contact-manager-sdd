@@ -109,6 +109,10 @@ public final class ContactQueryParser {
                 return new Field(Kind.EMAIL, null);
             case "phone":
                 return new Field(Kind.PHONE, null);
+            case "company":
+                return new Field(Kind.COMPANY, null);
+            case "country":
+                return new Field(Kind.COUNTRY, null);
             default:
                 break;
         }
@@ -216,6 +220,10 @@ public final class ContactQueryParser {
         Field field = parseField(raw, error);
         if (field == null) {
             errors.add(new FieldError("sort", error[0]));
+        } else if (field.kind() == Kind.COMPANY || field.kind() == Kind.COUNTRY) {
+            // Razvrščanje po podjetju in državi ni del 013 (Assumptions).
+            errors.add(new FieldError("sort", "UNKNOWN_FIELD"));
+            return null;
         }
         return field;
     }

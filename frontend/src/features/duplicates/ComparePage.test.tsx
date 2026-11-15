@@ -1,3 +1,4 @@
+import type { BoundFunctions, queries } from '@testing-library/react';
 import { screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
@@ -11,6 +12,7 @@ import {
   GROUP_ID,
   renderDuplicatesApp,
 } from '../../test/duplicatesApi';
+import { tr } from '../../test/smartAttributes';
 import type { CompareContact } from './types';
 
 // Stran primerjave: stolpci, vrstice z izbiro vrednosti, enaka polja, značke, predogled, izločitev in razlaga o prvih 10
@@ -110,17 +112,17 @@ describe('ComparePage', () => {
     expect(phone.getAllByRole('radio')).toHaveLength(3);
   });
 
-  it('FR-011-09: »Enaka polja (2)« razkrije vrstici »Priimek« in »E-naslov«', async () => {
+  it('FR-011-09: »Enaka polja (4)« razkrije vrstici »Priimek« in »E-naslov«', async () => {
     const { user } = app([A, B, C]);
 
-    const summary = await screen.findByRole('button', { name: 'Enaka polja (2)' });
+    const summary = await screen.findByRole('button', { name: 'Enaka polja (4)' });
     await user.click(summary);
 
     expect(screen.getByRole('group', { name: 'Priimek' })).toBeVisible();
     expect(screen.getByRole('group', { name: 'E-naslov' })).toBeVisible();
   });
 
-  it('FR-011-09: vrstica z enakimi praznimi vrednostmi (naslov) je pod »Enaka polja (3)« skupaj s priimkom in e-naslovom', async () => {
+  it('FR-011-09: vrstica z enakimi praznimi vrednostmi (naslov) je pod »Enaka polja (5)« skupaj s priimkom in e-naslovom', async () => {
     const first = compareContact({
       n: 1,
       firstName: 'Janez',
@@ -137,7 +139,7 @@ describe('ComparePage', () => {
     });
     const { user } = app([first, second]);
 
-    const summary = await screen.findByRole('button', { name: 'Enaka polja (3)' });
+    const summary = await screen.findByRole('button', { name: 'Enaka polja (5)' });
     expect(screen.queryAllByRole('group', { name: 'Naslov' }).filter(isVisible)).toHaveLength(0);
     await user.click(summary);
 
@@ -359,7 +361,7 @@ describe('ComparePage', () => {
     for (const name of ['First name', 'Address', 'Phone', 'Tags']) {
       expect(screen.getByRole('group', { name })).toBeInTheDocument();
     }
-    expect(screen.getByRole('button', { name: 'Identical fields (2)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Identical fields (4)' })).toBeInTheDocument();
     expect(
       within(screen.getByRole('group', { name: 'Phone' })).getByRole('radio', { name: '(empty)' }),
     ).toBeInTheDocument();
@@ -380,5 +382,35 @@ describe('ComparePage', () => {
     const two = app([A, B]);
     await screen.findByRole('note');
     expect((await axe(two.container)).violations).toEqual([]);
+  });
+
+  const values = (scope: BoundFunctions<typeof queries>) =>
+    scope.getAllByRole('definition').map((value) => value.textContent);
+
+  it('FR-013-06: Podjetje in Država sta vrstici z izbiro; država je prikazana z imenom v jeziku vmesnika', async () => {
+    const first = compareContact({ n: 1, company: 'Acme d.o.o.', country: 'SI' });
+    const second = compareContact({ n: 2, company: null, country: 'AT' });
+    const { user } = app([first, second]);
+
+    const countryRow = await group(tr('duplicates.compare.fields.country'));
+    expect(countryRow.getByRole('radio', { name: 'Slovenija' })).toBeChecked();
+    expect(countryRow.getByRole('radio', { name: 'Avstrija' })).not.toBeChecked();
+    const companyRow = await group(tr('duplicates.compare.fields.company'));
+    expect(companyRow.getByRole('radio', { name: 'Acme d.o.o.' })).toBeChecked();
+    expect(companyRow.getByRole('radio', { name: '(prazno)' })).not.toBeChecked();
+    const preview = within(screen.getByRole('region', { name: 'Predogled združenega kontakta' }));
+    expect(values(preview)).toContain('Slovenija');
+
+    await user.click(countryRow.getByRole('radio', { name: 'Avstrija' }));
+
+    expect(values(preview)).toContain('Avstrija');
+    expect(values(preview)).not.toContain('Slovenija');
+
+    await i18n.changeLanguage('en');
+    expect(
+      await within(await screen.findByRole('group', { name: 'Country' })).findByRole('radio', {
+        name: 'Austria',
+      }),
+    ).toBeChecked();
   });
 });

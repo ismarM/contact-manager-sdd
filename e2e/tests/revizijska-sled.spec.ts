@@ -81,8 +81,8 @@ async function editContact(page: Page, groupId: string, contactId: string) {
   await page.goto(`/groups/${groupId}/contacts/${contactId}/edit`);
   await page.getByRole('textbox', { name: 'Telefon' }).fill('040 111 222');
   await page.getByRole('button', { name: 'Dodaj atribut' }).click();
-  await page.getByRole('textbox', { name: 'Ključ' }).fill('kompetenca');
-  await page.getByRole('textbox', { name: 'Vrednost' }).fill('web dev');
+  await page.getByRole('combobox', { name: 'Ključ' }).fill('kompetenca');
+  await page.getByRole('combobox', { name: 'Vrednost' }).fill('web dev');
   await page.getByRole('button', { name: 'Odstrani značko vip' }).click();
   await page.getByRole('button', { name: 'Shrani kontakt' }).click();
   await expect(toast(page)).toContainText('Kontakt Janez Novak je shranjen.');

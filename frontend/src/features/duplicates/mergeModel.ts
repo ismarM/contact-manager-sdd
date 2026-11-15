@@ -3,7 +3,8 @@ import type { CompareContact, MergeResultInput } from './types';
 // Čisti model tabele razlik (research R-12): vrstice, privzete izbire, unija značk, izločitev, rezultat in odjemalska
 // validacija. Brez Reacta: ena resnica za vrstice, predogled in telo zahtevka.
 
-export type FieldName = 'firstName' | 'lastName' | 'address' | 'email' | 'phone';
+export type FieldName =
+  'firstName' | 'lastName' | 'company' | 'address' | 'country' | 'email' | 'phone';
 
 /** Ena možna vrednost vrstice: različna vrednost (`null` = »(prazno)«) in kontakti, ki jo imajo. */
 export interface RowOption {
@@ -42,7 +43,15 @@ export interface ResultError {
   excess?: number;
 }
 
-export const FIELDS: readonly FieldName[] = ['firstName', 'lastName', 'address', 'email', 'phone'];
+export const FIELDS: readonly FieldName[] = [
+  'firstName',
+  'lastName',
+  'company',
+  'address',
+  'country',
+  'email',
+  'phone',
+];
 
 /** Največ značk in dodatnih atributov kontakta (slovar podatkov, spec FR-011-13). */
 export const MAX_TAGS = 30;
@@ -186,7 +195,9 @@ export function buildResult(
   return {
     firstName: field('firstName'),
     lastName: field('lastName'),
+    company: field('company'),
     address: field('address'),
+    country: field('country'),
     email: field('email'),
     phone: field('phone'),
     attributes,

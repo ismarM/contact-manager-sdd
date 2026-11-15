@@ -25,7 +25,9 @@ function emptyResult(overrides: Partial<MergeResultInput> = {}): MergeResultInpu
   return {
     firstName: 'Janez',
     lastName: 'Novak',
+    company: null,
     address: null,
+    country: null,
     email: null,
     phone: null,
     attributes: [],
@@ -79,8 +81,8 @@ describe('mergeModel – vrstice in privzete izbire', () => {
 
     const { rows, identical } = buildRows([first, second]);
 
-    expect(identical.map((row) => row.key)).toEqual(['lastName', 'email']);
-    expect(identical).toHaveLength(2);
+    expect(identical.map((row) => row.key)).toEqual(['lastName', 'company', 'country', 'email']);
+    expect(identical).toHaveLength(4);
     expect(rows.map((row) => row.key)).toEqual(['firstName', 'address', 'phone']);
     expect(rows.map((row) => row.key)).not.toContain('lastName');
   });
@@ -105,10 +107,43 @@ describe('mergeModel – vrstice in privzete izbire', () => {
 
     const { rows, identical } = buildRows([first, second]);
 
-    expect(identical.map((row) => row.key).sort()).toEqual(['address', 'email', 'lastName']);
-    expect(identical).toHaveLength(3);
+    expect(identical.map((row) => row.key).sort()).toEqual([
+      'address',
+      'company',
+      'country',
+      'email',
+      'lastName',
+    ]);
+    expect(identical).toHaveLength(5);
     expect(rows.map((row) => row.key)).not.toContain('address');
     expect(buildResult([first, second], defaultChoices([first, second])).address).toBeNull();
+  });
+});
+
+describe('mergeModel – podjetje in država (FR-013-06)', () => {
+  const first = compareContact({ n: 1, company: 'Acme d.o.o.', country: 'SI' });
+  const second = compareContact({ n: 2, company: null, country: 'AT' });
+
+  it('Podjetje in Država sta izbirni vrstici z različnima vrednostma; država je koda', () => {
+    const { rows, identical } = buildRows([first, second]);
+
+    expect(rows.map((row) => row.key)).toEqual(['company', 'country']);
+    expect(rows.find((row) => row.key === 'country')?.options.map((o) => o.value)).toEqual([
+      'SI',
+      'AT',
+    ]);
+    expect(identical.map((row) => row.key)).not.toContain('country');
+  });
+
+  it('privzeto prva neprazna vrednost; rezultat prejme izbrani vrednosti (koda države)', () => {
+    const choices = defaultChoices([first, second]);
+    expect(buildResult([first, second], choices)).toMatchObject({
+      company: 'Acme d.o.o.',
+      country: 'SI',
+    });
+
+    const chosen = { ...choices, values: { ...choices.values, company: null, country: 'AT' } };
+    expect(buildResult([first, second], chosen)).toMatchObject({ company: null, country: 'AT' });
   });
 });
 
@@ -263,7 +298,9 @@ describe('mergeModel – rezultat in predogled', () => {
     expect(result).toEqual({
       firstName: 'Ana',
       lastName: 'Novak',
+      company: null,
       address: null,
+      country: null,
       email: 'janez@primer.si',
       phone: '041 111 222',
       attributes: [{ key: 'kompetenca', value: 'java' }],

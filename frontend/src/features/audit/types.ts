@@ -32,7 +32,15 @@ export interface AuditPage {
 }
 
 export type ChangeFieldName =
-  'FIRST_NAME' | 'LAST_NAME' | 'ADDRESS' | 'EMAIL' | 'PHONE' | 'ATTRIBUTE' | 'TAGS';
+  | 'FIRST_NAME'
+  | 'LAST_NAME'
+  | 'COMPANY'
+  | 'ADDRESS'
+  | 'COUNTRY'
+  | 'EMAIL'
+  | 'PHONE'
+  | 'ATTRIBUTE'
+  | 'TAGS';
 
 export type ChangeValue = string | string[] | null;
 

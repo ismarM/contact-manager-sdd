@@ -97,8 +97,8 @@ test('FR-004-01 FR-004-03 FR-004-08 FR-004-09 SC-001: urednik ustvari kontakt z 
   await page.getByRole('textbox', { name: 'Priimek' }).fill('Novak');
   await page.getByRole('textbox', { name: 'E-naslov' }).fill('janez@primer.si');
   await page.getByRole('button', { name: 'Dodaj atribut' }).click();
-  await page.getByRole('textbox', { name: 'Ključ' }).fill('kompetenca');
-  await page.getByRole('textbox', { name: 'Vrednost' }).fill('web dev');
+  await page.getByRole('combobox', { name: 'Ključ' }).fill('kompetenca');
+  await page.getByRole('combobox', { name: 'Vrednost' }).fill('web dev');
   const tags = page.getByRole('combobox', { name: 'Dodaj značko' });
   await tags.fill('ne_obveščaj');
   await page.keyboard.press('Enter');
@@ -559,7 +559,7 @@ test('FR-004-01 FR-004-04 SC-001 SC-006: angleški vmesnik – kontakt z dvema a
   ] as const) {
     await tabTo(page, page.getByRole('button', { name: 'Add attribute' }));
     await page.keyboard.press('Enter');
-    await expect(page.getByRole('textbox', { name: 'Key' }).last()).toBeFocused();
+    await expect(page.getByRole('combobox', { name: 'Key' }).last()).toBeFocused();
     await page.keyboard.type(key);
     await page.keyboard.press('Tab');
     await page.keyboard.type(value);

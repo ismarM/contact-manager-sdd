@@ -14,6 +14,7 @@ import {
   summaryOf,
 } from '../../test/auditApi';
 import { contactId } from '../../test/contactsApi';
+import { name } from '../../test/smartAttributes';
 
 // Podrobnosti vnosa: prizadeti kontakti in spremenjena polja (FR-005-02, -08, -18; Clarifications 2026-11-08, Q3).
 
@@ -251,5 +252,51 @@ describe('AuditDetails', () => {
     await reveal(user, item, 'Janez Novak');
 
     expect((await axe(container)).violations).toEqual([]);
+  });
+
+  it('FR-013-07: Podjetje in Država v sledi; država je koda, prikazana z imenom v jeziku vmesnika, neznana koda surova', async () => {
+    const changes = [
+      contactChange({
+        fields: [
+          { field: 'COMPANY', key: null, before: null, after: 'Acme d.o.o.' },
+          { field: 'COUNTRY', key: null, before: 'SI', after: 'AT' },
+        ],
+      }),
+      contactChange({
+        contactId: contactId(2),
+        displayName: 'Ana Druga',
+        fields: [{ field: 'COUNTRY', key: null, before: 'QQ', after: null }],
+      }),
+    ];
+    const { user } = renderDetails({ changes: changePageReply(changes) });
+    const item = await openDetails(user);
+
+    await reveal(user, item, 'Janez Novak');
+    const table = within(item).getByRole('table', { name: 'Spremembe kontakta Janez Novak' });
+    const rows = within(table)
+      .getAllByRole('row')
+      .slice(1)
+      .map((row) => [
+        within(row).getByRole('rowheader').textContent,
+        ...within(row)
+          .getAllByRole('cell')
+          .map((cell) => cell.textContent),
+      ]);
+    expect(rows).toEqual([
+      [name.company(), '—prazno', 'Acme d.o.o.'],
+      [name.country(), 'Slovenija', 'Avstrija'],
+    ]);
+
+    await reveal(user, item, 'Ana Druga');
+    const unknown = within(item).getByRole('table', { name: 'Spremembe kontakta Ana Druga' });
+    expect(within(unknown).getAllByRole('cell')[0]).toHaveTextContent('QQ');
+
+    await i18n.changeLanguage('en');
+    expect(await within(table).findByRole('rowheader', { name: 'Country' })).toBeInTheDocument();
+    const cells = within(table)
+      .getAllByRole('cell')
+      .map((cell) => cell.textContent);
+    expect(cells).toContain('Austria');
+    expect(cells).toContain('Slovenia');
   });
 });

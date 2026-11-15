@@ -116,14 +116,6 @@ class ContactController {
         return service.filterOptions(access.require(jwt, groupId, Role.VIEWER, false));
     }
 
-    /** Predlogi značk skupine (FR-004-04): urednik ali višje, tudi v arhivirani skupini (samo branje). */
-    @GetMapping("/tags")
-    TagSuggestions tags(
-            @AuthenticationPrincipal Jwt jwt, @PathVariable String groupId, @RequestParam(required = false) String q) {
-        Membership membership = access.require(jwt, groupId, Role.EDITOR, false);
-        return service.suggestTags(membership, q);
-    }
-
     private static UUID parseId(String value) {
         try {
             return UUID.fromString(value);

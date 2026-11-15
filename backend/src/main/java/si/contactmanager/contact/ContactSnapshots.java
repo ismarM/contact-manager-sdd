@@ -52,8 +52,9 @@ public class ContactSnapshots {
             List<UUID> chunk = all.subList(from, Math.min(all.size(), from + CHUNK));
             Map<UUID, List<Attribute>> attributes = attributes(chunk);
             Map<UUID, List<String>> tags = tags(chunk);
-            jdbc.sql("SELECT id, first_name, last_name, address, email, phone, version, created_at, updated_at,"
-                            + " updated_by FROM contact WHERE group_id = :group AND id IN (:ids)")
+            jdbc.sql(
+                            "SELECT id, first_name, last_name, address, email, phone, company, country, version,"
+                                    + " created_at, updated_at, updated_by FROM contact WHERE group_id = :group AND id IN (:ids)")
                     .param("group", groupId)
                     .param("ids", chunk)
                     .query((ResultSet rs) -> {
@@ -97,14 +98,16 @@ public class ContactSnapshots {
                                 .addValue("id", t.contactId()))
                         .toArray(SqlParameterSource[]::new));
         batch.batchUpdate(
-                "INSERT INTO contact (id, group_id, first_name, last_name, address, email, phone, sort_last,"
-                        + " sort_first, version, created_at, updated_at, updated_by, reverted_entry_id)"
-                        + " VALUES (:id, :group, :first, :last, :address, :email, :phone, :sortLast, :sortFirst,"
-                        + " :version, :createdAt, :updatedAt, (SELECT id FROM app_user WHERE id = :by), :entry)",
+                "INSERT INTO contact (id, group_id, first_name, last_name, address, email, phone, company, country,"
+                        + " sort_last, sort_first, version, created_at, updated_at, updated_by, reverted_entry_id)"
+                        + " VALUES (:id, :group, :first, :last, :address, :email, :phone, :company, :country,"
+                        + " :sortLast, :sortFirst, :version, :createdAt, :updatedAt,"
+                        + " (SELECT id FROM app_user WHERE id = :by), :entry)",
                 rows(groupId, rollbackEntry, restored));
         batch.batchUpdate(
                 "UPDATE contact SET first_name = :first, last_name = :last, address = :address, email = :email,"
-                        + " phone = :phone, sort_last = :sortLast, sort_first = :sortFirst, version = :version,"
+                        + " phone = :phone, company = :company, country = :country, sort_last = :sortLast,"
+                        + " sort_first = :sortFirst, version = :version,"
                         + " created_at = :createdAt, updated_at = :updatedAt,"
                         + " updated_by = (SELECT id FROM app_user WHERE id = :by), reverted_entry_id = :entry"
                         + " WHERE group_id = :group AND id = :id",
@@ -139,14 +142,18 @@ public class ContactSnapshots {
             List<Change> chunk = changes.subList(from, Math.min(changes.size(), from + CHUNK));
             update(
                     "UPDATE contact c SET address = v.address, email = v.email, phone = v.phone,"
+                            + " company = v.company, country = v.country,"
                             + " version = c.version + 1, updated_by = ?, updated_at = now(), reverted_entry_id = NULL"
-                            + " FROM unnest(?::uuid[], ?::text[], ?::text[], ?::text[]) AS v(id, address, email, phone)"
+                            + " FROM unnest(?::uuid[], ?::text[], ?::text[], ?::text[], ?::text[], ?::text[])"
+                            + " AS v(id, address, email, phone, company, country)"
                             + " WHERE c.group_id = ? AND c.id = v.id",
                     actor,
                     array("uuid", chunk.stream().map(Change::contactId)),
                     array("text", chunk.stream().map(c -> c.after().address())),
                     array("text", chunk.stream().map(c -> c.after().email())),
                     array("text", chunk.stream().map(c -> c.after().phone())),
+                    array("text", chunk.stream().map(c -> c.after().company())),
+                    array("text", chunk.stream().map(c -> c.after().country())),
                     groupId);
         }
         List<Target> withChildren = changes.stream()
@@ -180,6 +187,8 @@ public class ContactSnapshots {
                             .addValue("address", s.address())
                             .addValue("email", s.email())
                             .addValue("phone", s.phone())
+                            .addValue("company", s.company())
+                            .addValue("country", s.country())
                             .addValue("sortLast", sortKey(s.lastName()))
                             .addValue("sortFirst", sortKey(s.firstName()))
                             .addValue("version", s.version())
@@ -302,6 +311,8 @@ public class ContactSnapshots {
                 rs.getString("address"),
                 rs.getString("email"),
                 rs.getString("phone"),
+                rs.getString("company"),
+                rs.getString("country"),
                 List.copyOf(attributes),
                 List.copyOf(tags),
                 rs.getLong("version"),
@@ -317,7 +328,8 @@ public class ContactSnapshots {
      */
     public void replaceMerged(UUID groupId, long actor, UUID keeperId, ContactState after) {
         int rows = jdbc.sql("UPDATE contact SET first_name = :first, last_name = :last, address = :address,"
-                        + " email = :email, phone = :phone, sort_last = :sortLast, sort_first = :sortFirst,"
+                        + " email = :email, phone = :phone, company = :company, country = :country,"
+                        + " sort_last = :sortLast, sort_first = :sortFirst,"
                         + " version = version + 1, updated_by = :actor, updated_at = now(), reverted_entry_id = NULL"
                         + " WHERE group_id = :group AND id = :id")
                 .param("first", after.firstName())
@@ -325,6 +337,8 @@ public class ContactSnapshots {
                 .param("address", after.address())
                 .param("email", after.email())
                 .param("phone", after.phone())
+                .param("company", after.company())
+                .param("country", after.country())
                 .param("sortLast", sortKey(after.lastName()))
                 .param("sortFirst", sortKey(after.firstName()))
                 .param("actor", actor)

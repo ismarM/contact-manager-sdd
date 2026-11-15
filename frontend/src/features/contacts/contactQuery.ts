@@ -1,10 +1,19 @@
 import type { TFunction } from 'i18next';
 
+import { countryName, type UiLanguage } from './countries';
+
 // Poizvedba seznama kontaktov v naslovu strani (specs/008-iskanje/data-model.md, research.md R-07, R-09).
 
 /** Polje pogoja ali razvrščanja: predefiniran atribut ali dodatni atribut s ključem. */
 export type FieldRef =
-  'firstName' | 'lastName' | 'address' | 'email' | 'phone' | { attribute: string };
+  | 'firstName'
+  | 'lastName'
+  | 'company'
+  | 'address'
+  | 'country'
+  | 'email'
+  | 'phone'
+  | { attribute: string };
 
 export interface Condition {
   field: FieldRef;
@@ -30,7 +39,15 @@ export function defaultQuery(): ContactQuery {
   return { q: '', conditions: [], tags: [], sort: 'lastName', dir: 'asc', page: 1, size: 25 };
 }
 
-const PREDEFINED = ['firstName', 'lastName', 'address', 'email', 'phone'] as const;
+const PREDEFINED = [
+  'firstName',
+  'lastName',
+  'company',
+  'address',
+  'country',
+  'email',
+  'phone',
+] as const;
 type PredefinedField = (typeof PREDEFINED)[number];
 
 export const PAGE_SIZES = [25, 50, 100] as const;
@@ -38,7 +55,10 @@ export const DEFAULT_SIZE = 25;
 export const MAX_CONDITIONS = 10;
 export const MAX_TAGS = 30;
 
-/** Predefinirana polja v vrstnem redu izbir (specs/008-iskanje/plan.md – Key elements). */
+/** Polja, po katerih seznam ni razvrstljiv (013: samo filter). */
+const FILTER_ONLY: readonly FieldRef[] = ['company', 'country'];
+
+/** Predefinirana polja v vrstnem redu izbir (specs/008-iskanje/plan.md – Key elements; 013: *Podjetje*, *Država*). */
 export const PREDEFINED_FIELDS: readonly PredefinedField[] = PREDEFINED;
 
 function isPredefined(text: string): text is PredefinedField {
@@ -64,6 +84,12 @@ export function fieldFromParam(text: string): FieldRef | null {
   if (isPredefined(text)) return text;
   if (text.startsWith('x.') && text.length > 2) return { attribute: text.slice(2) };
   return null;
+}
+
+/** Razvrščanje po podjetju in državi ni podprto (FR-013-03): taka vrednost je neveljavna. */
+function sortFromParam(text: string): FieldRef | null {
+  const field = fieldFromParam(text);
+  return field !== null && FILTER_ONLY.includes(field) ? null : field;
 }
 
 /** Ali sta polji enaki (dodatni ključ ne glede na velikost črk, kot ga obravnava strežnik). */
@@ -113,7 +139,7 @@ export function parseQuery(params: URLSearchParams): ContactQuery {
     q: (params.get('q') ?? '').trim(),
     conditions,
     tags: tags.slice(0, MAX_TAGS),
-    sort: fieldFromParam(params.get('sort') ?? '') ?? defaults.sort,
+    sort: sortFromParam(params.get('sort') ?? '') ?? defaults.sort,
     dir: params.get('dir') === 'desc' ? 'desc' : 'asc',
     page: Number.isInteger(page) && page >= 1 ? page : defaults.page,
     size: (PAGE_SIZES as readonly number[]).includes(size) ? size : defaults.size,
@@ -158,11 +184,17 @@ export function fieldLabel(field: FieldRef, t: TFunction): string {
 }
 
 /** Opis filtra za oznako in dostopno ime (»kompetenca vsebuje web«, »Značka: vip«). */
-export function describeFilter(filter: AppliedFilter, t: TFunction): string {
+export function describeFilter(
+  filter: AppliedFilter,
+  t: TFunction,
+  language: UiLanguage = 'sl',
+): string {
   if (filter.kind === 'tag') return t('contacts.filters.tagLabel', { tag: filter.tag });
+  const { field, value } = filter.condition;
   return t('contacts.filters.conditionLabel', {
-    field: fieldLabel(filter.condition.field, t),
-    value: filter.condition.value,
+    field: fieldLabel(field, t),
+    // Država je v naslovu koda ISO; oznaka pokaže ime v jeziku vmesnika.
+    value: field === 'country' ? countryName(value, language) : value,
   });
 }
 
