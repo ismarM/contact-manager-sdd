@@ -90,6 +90,29 @@ class ImportIT extends ImportApiTest {
     }
 
     @Test
+    void aZipBombOrADoctypeIsRejectedOverHttpWithoutChanges() throws Exception {
+        Scenario s = scenario();
+        java.io.ByteArrayOutputStream bomb = new java.io.ByteArrayOutputStream();
+        try (java.util.zip.ZipOutputStream zip = new java.util.zip.ZipOutputStream(bomb)) {
+            zip.putNextEntry(new java.util.zip.ZipEntry("xl/workbook.xml"));
+            zip.write(new byte[10]);
+            zip.putNextEntry(new java.util.zip.ZipEntry("xl/worksheets/sheet1.xml"));
+            byte[] zeros = new byte[1024 * 1024];
+            for (int i = 0; i < 110; i++) {
+                zip.write(zeros);
+            }
+        }
+        byte[] doctype = XlsxSheetReaderTest.withDoctype(
+                xlsx(List.of(List.of("Ime"), List.of("Ana"))), "xl/worksheets/sheet1.xml");
+
+        assertFileError(parse(s.token(Who.EDITOR), s.group(), bomb.toByteArray(), "XLSX", "sl"), "NOT_XLSX");
+        HttpResponse<String> xxe = parse(s.token(Who.EDITOR), s.group(), doctype, "XLSX", "sl");
+        assertFileError(xxe, "NOT_XLSX");
+        assertThat(xxe.body()).doesNotContain("XXE-ZNAK");
+        assertThat(contacts.count(s.group())).isZero();
+    }
+
+    @Test
     void aVcardFileIsParsedIntoCandidatesInTheInterfaceLanguage() throws Exception {
         Scenario s = scenario();
         byte[] file = VcardMappingTest.resource("cases/phone-30.vcf").getBytes(StandardCharsets.UTF_8);

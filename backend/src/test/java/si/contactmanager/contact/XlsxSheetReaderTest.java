@@ -14,6 +14,8 @@ import org.dhatim.fastexcel.Workbook;
 import org.dhatim.fastexcel.Worksheet;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * Branje Excela za uvoz (FR-014-02, -06, -08; research R-01): zaščita pred zip-bombo, glava, prazne vrstice, števila,
@@ -95,6 +97,78 @@ class XlsxSheetReaderTest {
         assertThatThrownBy(() -> XlsxGuard.check(many.toByteArray())).isInstanceOf(XlsxGuard.Rejected.class);
         assertThatThrownBy(() -> XlsxGuard.check(plain.toByteArray())).isInstanceOf(XlsxGuard.Rejected.class);
         assertThatThrownBy(() -> XlsxGuard.check("Ime;Priimek".getBytes())).isInstanceOf(XlsxGuard.Rejected.class);
+    }
+
+    @Test
+    void aHighCompressionRatioBelowTheSizeLimitIsRejected() throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (ZipOutputStream zip = new ZipOutputStream(out)) {
+            zip.putNextEntry(new ZipEntry("xl/workbook.xml"));
+            zip.write(new byte[10]);
+            zip.putNextEntry(new ZipEntry("xl/worksheets/sheet1.xml"));
+            byte[] zeros = new byte[1024 * 1024];
+            for (int i = 0; i < 20; i++) {
+                zip.write(zeros);
+            }
+        }
+
+        assertThat(20L * 1024 * 1024).isLessThan(XlsxGuard.MAX_UNCOMPRESSED);
+        assertThatThrownBy(() -> XlsxGuard.check(out.toByteArray()))
+                .isInstanceOf(XlsxGuard.Rejected.class)
+                .hasMessage("NOT_XLSX");
+    }
+
+    /** XXE in razširjanje entitet: DTD v kateremkoli delu preglednice zavrne datoteko, preden jo prebere fastexcel. */
+    @ParameterizedTest
+    @ValueSource(strings = {"xl/worksheets/sheet1.xml", "xl/sharedStrings.xml"})
+    void aDoctypeInAnyPartIsRejected(String part) throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        Workbook workbook = new Workbook(out, "test", "1.0");
+        Worksheet sheet = workbook.newWorksheet("List1");
+        sheet.value(0, 0, "Ime");
+        sheet.value(1, 0, "Ana");
+        workbook.finish();
+        byte[] file = withDoctype(out.toByteArray(), part);
+
+        assertThatThrownBy(() -> XlsxSheetReader.read(file))
+                .isInstanceOf(XlsxGuard.Rejected.class)
+                .hasMessage("NOT_XLSX");
+    }
+
+    /** Kopija arhiva, v kateri del {@code part} dobi DTD z notranjo entiteto z znanim nizom. */
+    static final String DOCTYPE = "<!DOCTYPE x [<!ENTITY x \"XXE-ZNAK\">]>";
+
+    static byte[] withDoctype(byte[] xlsx, String part) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        boolean found = false;
+        java.nio.file.Path temp = java.nio.file.Files.createTempFile("xlsx", ".zip");
+        try {
+            java.nio.file.Files.write(temp, xlsx);
+            try (java.util.zip.ZipFile in = new java.util.zip.ZipFile(temp.toFile());
+                    ZipOutputStream zip = new ZipOutputStream(out)) {
+                for (ZipEntry entry : java.util.Collections.list(in.entries())) {
+                    byte[] content;
+                    try (java.io.InputStream stream = in.getInputStream(entry)) {
+                        content = stream.readAllBytes();
+                    }
+                    if (entry.getName().equals(part)) {
+                        found = true;
+                        String xml = new String(content, java.nio.charset.StandardCharsets.UTF_8);
+                        int start = xml.startsWith("<?xml") ? xml.indexOf("?>") + 2 : 0;
+                        xml = xml.substring(0, start) + DOCTYPE + xml.substring(start);
+                        content = xml.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    }
+                    zip.putNextEntry(new ZipEntry(entry.getName()));
+                    zip.write(content);
+                }
+            }
+        } finally {
+            java.nio.file.Files.deleteIfExists(temp);
+        }
+        if (!found) {
+            throw new IOException("ni dela " + part);
+        }
+        return out.toByteArray();
     }
 
     @Test

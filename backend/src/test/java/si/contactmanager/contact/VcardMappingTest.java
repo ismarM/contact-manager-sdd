@@ -6,8 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -26,8 +24,8 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code cases/*.vcf} → pričakovani kandidati, pisalnik zaledja → {@code written-backend.vcf}, bralnik zaledja prebere
  * vizitko pisalnika frontenda ({@code written-frontend.vcf}) v {@code contact-full.json}.
  *
- * <p>Vzorec pisalnika se po namerni spremembi preslikave obnovi z {@code -Dvcard.update=true}; sprememba vzorca je v
- * opisu PR.
+ * <p>Vzorca se ne obnavljata samodejno: po namerni spremembi preslikave se {@code written-backend.vcf} popravi ročno
+ * (izpis je v sporočilu neuspelega testa), sprememba vzorca pa je v opisu PR.
  */
 @Tag("FR-014-11")
 @Tag("FR-014-12")
@@ -36,8 +34,6 @@ import tools.jackson.databind.json.JsonMapper;
 class VcardMappingTest {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
-
-    private static final Path SOURCE = Path.of("src", "test", "resources", "vcard");
 
     @ParameterizedTest
     @ValueSource(strings = {"qp-21", "phone-30", "fn-only-40"})
@@ -55,10 +51,6 @@ class VcardMappingTest {
     @Test
     void theBackendWriterProducesItsSharedSample() throws Exception {
         String written = normalize(VcardWriter.write(List.of(contactFull()), "sl"));
-
-        if (Boolean.getBoolean("vcard.update")) {
-            Files.writeString(SOURCE.resolve("written-backend.vcf"), written, StandardCharsets.UTF_8);
-        }
 
         assertThat(written).isEqualTo(normalize(resource("written-backend.vcf")));
     }

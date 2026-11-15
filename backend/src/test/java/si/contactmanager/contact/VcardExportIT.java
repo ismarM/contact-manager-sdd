@@ -11,10 +11,11 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import si.contactmanager.contact.support.ImportApiTest;
 import si.contactmanager.support.Http;
+import si.contactmanager.support.Tokens;
 
 /**
  * Izvoz vizitk (FR-014-10, -11, -12; SC-003, SC-007): izbor po pravilih 010 in en kontakt; matrika izolacije (401,
@@ -121,40 +122,76 @@ class VcardExportIT extends ImportApiTest {
                 .isEqualTo(404);
     }
 
-    static Stream<Who> everyone() {
-        return Stream.of(Who.values());
+    enum Actor {
+        NO_TOKEN,
+        MALFORMED_TOKEN,
+        EXPIRED_TOKEN,
+        NON_MEMBER,
+        VIEWER,
+        EDITOR,
+        ADMIN,
+        OWNER
     }
 
-    @ParameterizedTest(name = "{0}, arhivirana")
-    @EnumSource(Who.class)
+    enum State {
+        ACTIVE,
+        ARCHIVED,
+        PERMANENTLY_ARCHIVED
+    }
+
+    static Stream<Arguments> matrix() {
+        return Stream.of(State.values())
+                .flatMap(state -> Stream.of(Actor.values()).map(actor -> Arguments.of(state, actor)));
+    }
+
+    private static String token(Actor actor, Scenario s) {
+        return switch (actor) {
+            case NO_TOKEN -> null;
+            case MALFORMED_TOKEN -> "not-a-jwt";
+            case EXPIRED_TOKEN ->
+                Tokens.withClaims(s.token(Who.OWNER), claims -> {
+                    claims.put("iat", Tokens.epochSeconds(-7200));
+                    claims.put("auth_time", Tokens.epochSeconds(-7200));
+                    claims.put("exp", Tokens.epochSeconds(-3600));
+                });
+            default -> s.token(Who.valueOf(actor.name()));
+        };
+    }
+
+    /**
+     * Matrika izolacije (konstitucija §3.1, FR-014-10): neprijavljen 401, nečlan 404, vsi člani 200 v aktivni, arhivirani
+     * in trajno arhivirani skupini (v trajno arhivirani je nekdanji lastnik nečlan); izvoz ničesar ne spremeni.
+     */
+    @ParameterizedTest(name = "{0}, {1}")
+    @MethodSource("matrix")
     @Tag("SC-007")
-    void isolationMatrixInAnArchivedGroup(Who who) throws Exception {
+    void isolationMatrix(State state, Actor actor) throws Exception {
         Scenario s = scenario();
         UUID a = contacts.insert(s.group(), s.id(Who.OWNER), "Ana", "Kos");
-        groups.archive(s.group());
+        if (state == State.ARCHIVED) {
+            groups.archive(s.group());
+        } else if (state == State.PERMANENTLY_ARCHIVED) {
+            groups.makePermanentlyArchived(s.group());
+        }
         Snapshot before = snapshot(s.group());
 
-        HttpResponse<byte[]> selection = exportVcard(s.token(who), s.group(), exportBody(List.of(a), "sl"));
-        HttpResponse<String> single = one(s.token(who), s.group(), a, "sl");
+        HttpResponse<byte[]> selection = exportVcard(token(actor, s), s.group(), exportBody(List.of(a), "sl"));
+        HttpResponse<String> single = one(token(actor, s), s.group(), a, "sl");
 
-        int expected = who == Who.NON_MEMBER ? 404 : 200;
+        Actor effective = state == State.PERMANENTLY_ARCHIVED && actor == Actor.OWNER ? Actor.NON_MEMBER : actor;
+        int expected = switch (effective) {
+            case NO_TOKEN, MALFORMED_TOKEN, EXPIRED_TOKEN -> 401;
+            case NON_MEMBER -> 404;
+            default -> 200;
+        };
         assertThat(selection.statusCode()).isEqualTo(expected);
         assertThat(single.statusCode()).isEqualTo(expected);
+        if (expected == 200) {
+            assertThat(single.body()).contains("FN:Ana Kos");
+        } else {
+            assertThat(single.body()).doesNotContain("Ana");
+        }
         assertUnchanged(before, snapshot(s.group()));
-    }
-
-    @ParameterizedTest
-    @MethodSource("everyone")
-    void anUnauthenticatedCallerGetsUnauthorized(Who who) throws Exception {
-        Scenario s = scenario();
-        UUID a = contacts.insert(s.group(), s.id(Who.OWNER), "Ana", "Kos");
-
-        assertThat(exportVcard(null, s.group(), exportBody(List.of(a), "sl")).statusCode())
-                .isEqualTo(401);
-        assertThat(one(null, s.group(), a, null).statusCode()).isEqualTo(401);
-        assertThat(one("not-a-jwt", s.group(), a, null).statusCode())
-                .as(who.name())
-                .isEqualTo(401);
     }
 
     @Test

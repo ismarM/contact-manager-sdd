@@ -46,6 +46,14 @@ class CardDavIsolationMatrixSecurityIT extends DavApiTest {
         assertThat(propfind(book(s.group()), credentials, "1").statusCode()).isEqualTo(207);
         assertThat(dav("GET", card(s.group(), id), credentials, null, Map.of()).statusCode())
                 .isEqualTo(200);
+        assertThat(dav("HEAD", card(s.group(), id), credentials, null, Map.of()).statusCode())
+                .isEqualTo(200);
+        HttpResponse<String> multiget = report(book(s.group()), credentials, multiget(s.group(), id));
+        HttpResponse<String> sync = report(book(s.group()), credentials, syncCollection(""));
+        assertThat(multiget.statusCode()).isEqualTo(207);
+        assertThat(multiget.body()).contains("FN:Ana Kos");
+        assertThat(sync.statusCode()).isEqualTo(207);
+        assertThat(sync.body()).contains(card(s.group(), id));
         for (String[] write : new String[][] {
             {"PUT", card(s.group(), id)},
             {"PUT", card(s.group(), UUID.randomUUID())},
@@ -63,6 +71,66 @@ class CardDavIsolationMatrixSecurityIT extends DavApiTest {
         }
         assertThat(contacts.row(UUID.fromString(id))).isEqualTo(before);
         assertThat(contacts.count(s.group())).isEqualTo(1);
+    }
+
+    static String multiget(Object group, Object contact) {
+        return "<?xml version=\"1.0\"?><card:addressbook-multiget xmlns:d=\"DAV:\""
+                + " xmlns:card=\"urn:ietf:params:xml:ns:carddav\"><d:prop><d:getetag/><card:address-data/></d:prop>"
+                + "<d:href>" + card(group, contact) + "</d:href></card:addressbook-multiget>";
+    }
+
+    static Stream<Who> everyone() {
+        return Stream.of(Who.VIEWER, Who.EDITOR, Who.ADMIN, Who.OWNER, Who.NON_MEMBER);
+    }
+
+    /** Vsaka metoda (branje, REPORT, pisanje) na skupino, katere akter ni član, je 404 brez podatkov. */
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("everyone")
+    void everyMethodOnAGroupTheActorIsNotAMemberOfIsNotFound(Who who) throws Exception {
+        Scenario s = scenario();
+        long stranger = groups.userId(registeredUser("Tujec").uid());
+        UUID foreign = groups.createGroup(stranger, "Tuja");
+        UUID contact = contacts.insert(foreign, stranger, "Tuj", "Kontakt");
+        Credentials credentials = appPassword(s.users().get(who));
+        Map<String, Object> before = contacts.row(contact);
+
+        for (String[] call : new String[][] {
+            {"PROPFIND", book(foreign), PROPFIND_ALL},
+            {"REPORT", book(foreign), multiget(foreign, contact)},
+            {"REPORT", book(foreign), syncCollection("")},
+            {"GET", card(foreign, contact), null},
+            {"HEAD", card(foreign, contact), null},
+            {"PUT", card(foreign, contact), "BEGIN:VCARD\r\nEND:VCARD\r\n"},
+            {"PUT", card(foreign, UUID.randomUUID()), "BEGIN:VCARD\r\nEND:VCARD\r\n"},
+            {"DELETE", card(foreign, contact), null},
+            {"PROPPATCH", book(foreign), PROPFIND_ALL}
+        }) {
+            HttpResponse<String> response = dav(call[0], call[1], credentials, call[2], Map.of("Depth", "1"));
+            assertThat(response.statusCode()).as(call[0] + " " + call[1]).isEqualTo(404);
+            assertThat(response.body()).doesNotContain("Tuj");
+        }
+        assertThat(contacts.row(contact)).isEqualTo(before);
+    }
+
+    /** Trajno arhivirana skupina (012) nima lastnika: nekdanji lastnik je nečlan (404), ostali člani berejo. */
+    @Test
+    void aPermanentlyArchivedGroupIsNotFoundForTheFormerOwnerAndReadableForMembers() throws Exception {
+        Scenario s = scenario();
+        String id = (String) createViaApi(s, input("Ana", "Kos")).get("id");
+        Credentials owner = appPassword(s.users().get(Who.OWNER));
+        Credentials viewer = appPassword(s.users().get(Who.VIEWER));
+        groups.makePermanentlyArchived(s.group());
+
+        assertThat(propfind(book(s.group()), owner, "1").statusCode()).isEqualTo(404);
+        assertThat(report(book(s.group()), owner, syncCollection("")).statusCode())
+                .isEqualTo(404);
+        assertThat(dav("GET", card(s.group(), id), owner, null, Map.of()).statusCode())
+                .isEqualTo(404);
+        assertThat(propfind(book(s.group()), viewer, "1").statusCode()).isEqualTo(207);
+        assertThat(report(book(s.group()), viewer, multiget(s.group(), id)).statusCode())
+                .isEqualTo(207);
+        assertThat(dav("PUT", card(s.group(), id), viewer, "x", Map.of()).statusCode())
+                .isEqualTo(403);
     }
 
     @Test

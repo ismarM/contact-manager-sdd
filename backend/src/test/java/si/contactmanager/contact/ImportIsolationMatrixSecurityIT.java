@@ -3,6 +3,7 @@ package si.contactmanager.contact;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,7 @@ class ImportIsolationMatrixSecurityIT extends ImportApiTest {
 
     enum Endpoint {
         PARSE,
+        PARSE_VCF,
         PREVIEW,
         COMMIT
     }
@@ -78,6 +80,13 @@ class ImportIsolationMatrixSecurityIT extends ImportApiTest {
     private HttpResponse<String> send(Endpoint endpoint, String token, UUID group) throws Exception {
         return switch (endpoint) {
             case PARSE -> parse(token, group, xlsx(List.of(List.of("Ime"), List.of("Ana"))), "XLSX", "sl");
+            case PARSE_VCF ->
+                parse(
+                        token,
+                        group,
+                        "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ana Kos\r\nEND:VCARD\r\n".getBytes(StandardCharsets.UTF_8),
+                        "VCF",
+                        "sl");
             case PREVIEW -> preview(token, group, List.of(person("Ana", "Kos")));
             case COMMIT -> commit(token, group, "XLSX", List.of(person("Ana", "Kos")));
         };

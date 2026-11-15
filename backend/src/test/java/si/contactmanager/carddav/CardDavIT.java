@@ -3,6 +3,7 @@ package si.contactmanager.carddav;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.http.HttpResponse;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Tag;
@@ -162,15 +163,33 @@ class CardDavIT extends DavApiTest {
     }
 
     @Test
-    void anExternalEntityIsNotResolved() throws Exception {
+    void aDoctypeIsRejectedInPropfindAndEveryReport() throws Exception {
         Scenario s = scenario();
+        String id = (String) createViaApi(s, input("Ana", "Kos")).get("id");
         Credentials viewer = appPassword(s.users().get(Who.VIEWER));
-        String xxe = "<?xml version=\"1.0\"?><!DOCTYPE d [<!ENTITY x SYSTEM \"file:///etc/passwd\">]>"
-                + "<d:propfind xmlns:d=\"DAV:\"><d:prop><d:displayname>&x;</d:displayname></d:prop></d:propfind>";
+        java.nio.file.Path secret = java.nio.file.Files.createTempFile("xxe", ".txt");
+        java.nio.file.Files.writeString(secret, "XXE-DATOTEKA");
+        String dtd = "<?xml version=\"1.0\"?><!DOCTYPE d [<!ENTITY x \"XXE-ZNAK\"><!ENTITY f SYSTEM \"" + secret.toUri()
+                + "\">]>";
+        String propfind = dtd + "<d:propfind xmlns:d=\"DAV:\"><d:prop><d:displayname>&x;&f;</d:displayname>"
+                + "</d:prop></d:propfind>";
+        String multiget =
+                dtd + "<card:addressbook-multiget xmlns:d=\"DAV:\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">"
+                        + "<d:prop><d:getetag/></d:prop><d:href>" + card(s.group(), id) + "&x;&f;</d:href>"
+                        + "</card:addressbook-multiget>";
+        String sync = dtd + "<d:sync-collection xmlns:d=\"DAV:\"><d:sync-token>&x;&f;</d:sync-token>"
+                + "<d:prop><d:getetag/></d:prop></d:sync-collection>";
 
-        HttpResponse<String> response = dav("PROPFIND", "/dav/", viewer, xxe, Map.of("Depth", "0"));
-
-        assertThat(response.statusCode()).isEqualTo(400);
-        assertThat(response.body()).doesNotContain("root:");
+        try {
+            for (HttpResponse<String> response : List.of(
+                    dav("PROPFIND", "/dav/", viewer, propfind, Map.of("Depth", "0")),
+                    report(book(s.group()), viewer, multiget),
+                    report(book(s.group()), viewer, sync))) {
+                assertThat(response.statusCode()).isEqualTo(400);
+                assertThat(response.body()).doesNotContain("XXE-ZNAK").doesNotContain("XXE-DATOTEKA");
+            }
+        } finally {
+            java.nio.file.Files.deleteIfExists(secret);
+        }
     }
 }

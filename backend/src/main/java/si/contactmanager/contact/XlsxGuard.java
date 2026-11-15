@@ -2,9 +2,11 @@ package si.contactmanager.contact;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Enumeration;
+import java.util.Locale;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -12,7 +14,7 @@ import java.util.zip.ZipFile;
  * Zaščita pred zip-bombo pred branjem {@code .xlsx} (014 research R-01; fastexcel-reader je nima): največ
  * {@value #MAX_ENTRIES} vnosov, vsota dejansko razširjenih bajtov največ {@value #MAX_UNCOMPRESSED} (štetje med
  * branjem, glavi arhiva se ne zaupa), razmerje razširjeno : stisnjeno največ {@value #MAX_RATIO} nad 1 MB; arhiv mora
- * vsebovati {@code xl/workbook.xml}.
+ * vsebovati {@code xl/workbook.xml}; noben del ne sme vsebovati {@code <!DOCTYPE} (XXE).
  */
 final class XlsxGuard {
 
@@ -64,8 +66,15 @@ final class XlsxGuard {
                     workbook |= entry.getName().equals("xl/workbook.xml");
                     try (InputStream in = zip.getInputStream(entry)) {
                         int read;
+                        String tail = "";
                         while ((read = in.read(buffer)) > 0) {
                             total += read;
+                            // DTD v XML delih se zavrne (XXE in razširjanje entitet); preglednice ga ne potrebujejo.
+                            String chunk = tail + new String(buffer, 0, read, StandardCharsets.ISO_8859_1);
+                            if (chunk.toUpperCase(Locale.ROOT).contains("<!DOCTYPE")) {
+                                throw new Rejected("NOT_XLSX");
+                            }
+                            tail = chunk.substring(Math.max(0, chunk.length() - 9));
                             if (total > MAX_UNCOMPRESSED || (total > RATIO_FLOOR && total / file.length > MAX_RATIO)) {
                                 throw new Rejected("NOT_XLSX");
                             }
