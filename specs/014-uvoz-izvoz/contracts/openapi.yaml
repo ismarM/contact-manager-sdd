@@ -3,9 +3,11 @@ info: {title: 014 uvoz in izvoz (samo nove poti; CardDAV v carddav.md), version:
 paths:
   /api/groups/{groupId}/imports/parse:
     post:
-      summary: Razčlenitev datoteke za uvoz (EDITOR, arhivirana 409). Datoteka se ne hrani.
+      summary: Razčlenitev datoteke za uvoz (EDITOR, arhivirana 409). Datoteka se ne hrani. format in language sta lahko polji multipart ali parametra poizvedbe (frontend uporablja poizvedbo).
       parameters:
         - {name: groupId, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: format, in: query, required: false, schema: {type: string, enum: [XLSX, VCF]}}
+        - {name: language, in: query, required: false, schema: {type: string, enum: [sl, en]}}
       requestBody:
         content:
           multipart/form-data:

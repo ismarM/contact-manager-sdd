@@ -65,7 +65,7 @@ export function mockImportApi(handlers: {
 }): RecordedImport {
   const recorded: RecordedImport = { parse: [], preview: [], commit: [] };
   server.use(
-    http.post('/api/groups/:groupId/imports/parse', async ({ request }) => {
+    http.post('/api/groups/:groupId/imports/parse', ({ request }) => {
       recorded.parse.push(new URL(request.url).searchParams);
       return reply(handlers.parse ? handlers.parse() : { status: 400 });
     }),

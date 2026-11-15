@@ -96,13 +96,14 @@ backend/
 ├── src/main/resources/application.yml             # multipart 10 MB
 ├── src/main/resources/db/migration/V11__uvoz_izvoz.sql
 ├── src/main/java/si/contactmanager/
-│   ├── contact/imports/      # ImportController, ImportService, XlsxGuard, XlsxSheetReader, HeaderMapping, ImportPreview, ImportInputParser
-│   ├── contact/vcard/        # VcardWriter, VcardReader, VcardMapping (R-03), VcardExportController
+│   ├── contact/              # uvoz: ImportController, ImportService, ImportInputParser, XlsxGuard, XlsxSheetReader, HeaderMapping
+│   │                         # vCard: VcardWriter, VcardReader, VcardMapping (R-03), VcardExportController (v paketu contact,
+│   │                         # ker uporabljajo paketno zasebne ContactInputParser, CanonicalForms, DuplicateKeys, ExportService)
 │   ├── audit/AuditAction     # + IMPORT
-│   ├── account/              # ExportAssembler/MyData (+ appPasswords)
-│   ├── apppassword/          # AppPassword*, Controller, Service, Repository, AppPasswordGenerator, DavLoginLock
-│   ├── carddav/              # DavController, DavXml (varen bralnik, pisalnik 207), DavResources, SyncTokens
-│   └── shared/security/      # DavSecurityConfig (@Order(1), Basic), AppPasswordAuthenticationProvider, firewall (WebDAV metode)
+│   ├── account/              # ExportAssembler/MyData (+ appPasswords); AppPasswordController, AppPasswordRepository,
+│   │                         # AppPasswords (generator, SHA-256), AppPasswordAuthenticator (prijava CardDAV, zaklep)
+│   ├── carddav/              # DavController (vse metode, sync, ETag/ctag), DavRepository, DavXml (varen bralnik)
+│   └── shared/security/      # DavSecurityConfig (@Order(1), Basic, firewall za metode WebDAV)
 └── src/test/java/si/contactmanager/…   # unit, IT, matrika izolacije (REST in CardDAV)
 
 frontend/
