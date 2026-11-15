@@ -1,3 +1,4 @@
+import type { BoundFunctions, queries } from '@testing-library/react';
 import { screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
@@ -383,6 +384,9 @@ describe('ComparePage', () => {
     expect((await axe(two.container)).violations).toEqual([]);
   });
 
+  const values = (scope: BoundFunctions<typeof queries>) =>
+    scope.getAllByRole('definition').map((value) => value.textContent);
+
   it('FR-013-06: Podjetje in Država sta vrstici z izbiro; država je prikazana z imenom v jeziku vmesnika', async () => {
     const first = compareContact({ n: 1, company: 'Acme d.o.o.', country: 'SI' });
     const second = compareContact({ n: 2, company: null, country: 'AT' });
@@ -395,12 +399,12 @@ describe('ComparePage', () => {
     expect(companyRow.getByRole('radio', { name: 'Acme d.o.o.' })).toBeChecked();
     expect(companyRow.getByRole('radio', { name: '(prazno)' })).not.toBeChecked();
     const preview = within(screen.getByRole('region', { name: 'Predogled združenega kontakta' }));
-    expect(preview.getByText('Slovenija')).toBeInTheDocument();
+    expect(values(preview)).toContain('Slovenija');
 
     await user.click(countryRow.getByRole('radio', { name: 'Avstrija' }));
 
-    expect(preview.getByText('Avstrija')).toBeInTheDocument();
-    expect(preview.queryByText('Slovenija')).not.toBeInTheDocument();
+    expect(values(preview)).toContain('Avstrija');
+    expect(values(preview)).not.toContain('Slovenija');
 
     await i18n.changeLanguage('en');
     expect(

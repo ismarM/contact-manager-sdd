@@ -198,9 +198,18 @@ describe('ContactView', () => {
     ).toEqual(['Acme d.o.o.', 'Avstrija']);
 
     await i18n.changeLanguage('en');
-    expect(await within(main).findByText('Austria')).toBeInTheDocument();
-    expect(within(main).getByText('Country')).toBeInTheDocument();
-    expect(within(main).getByText('Company')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        within(main)
+          .getAllByRole('definition')
+          .map((value) => value.textContent),
+      ).toContain('Austria'),
+    );
+    const terms = within(main)
+      .getAllByRole('term')
+      .map((term) => term.textContent);
+    expect(terms).toContain('Country');
+    expect(terms).toContain('Company');
   });
 
   it('FR-013-02: kontakt brez podjetja in države ne pokaže vrstic Podjetje in Država', async () => {

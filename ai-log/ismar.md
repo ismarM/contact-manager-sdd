@@ -208,3 +208,9 @@ Predlogi za pohitritev (iz zgornjih meritev):
 6. `scripts/token-report.mjs` ima trdo kodiran `~/.claude`; tukaj so dnevniki v `~/.claude-team` (rešeno z `HOME=/tmp/fakehome`). Predlog: spremenljivka okolja za mapo dnevnikov.
 7. Sprememba stolpcev izvoza je zahtevala popravke v 10 datotekah testov (trdo vpisane tabele); predlog: skupen pomočnik za glavo in prazne celice izvoza.
 
+
+## 013 – zaključni pregled pred združitvijo PR #19
+- CI (quick, backend, e2e) zelen za push in PR. Lokalno po popravkih: `quick` 116 s, `backend` 297 s (`e2e` ni ponovljen: spremenjeni so samo FE testi in en BE test, brez produkcijske kode).
+- Konstitucija §3.3: pet iskanj `getByText` v testih 013 (ComparePage, AuditDetails, ContactView, AttributeTransfer) zamenjano z vlogami `definition`/`cell`/`term` in `toHaveAccessibleDescription`; vsebinske asercije enako stroge. Preostal `getByText` v `NewGroupDialog.test.tsx` je starejši od 013, usklajen bo ob dotiku.
+- `SuggestionsPerformanceIT`: meja 300 ms (p95) nespremenjena; merjenje do tri kroge na tip klica, uspeh če je p95 pod mejo v enem, vsi krogi so v sporočilu napake.
+- Nizki ugotovitvi: predlogi vrednosti za rezervirane ključe (obstoječi atributi ostanejo po FR-013-08, zato pravilno) in 768 px (projekt `w768` teče samo za `@w768`, nobena funkcionalnost razen ogrodja ga ne uporablja) – ne vplivata na pravilnost.

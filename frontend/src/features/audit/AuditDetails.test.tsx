@@ -293,7 +293,10 @@ describe('AuditDetails', () => {
 
     await i18n.changeLanguage('en');
     expect(await within(table).findByRole('rowheader', { name: 'Country' })).toBeInTheDocument();
-    expect(within(table).getByText('Austria')).toBeInTheDocument();
-    expect(within(table).getByText('Slovenia')).toBeInTheDocument();
+    const cells = within(table)
+      .getAllByRole('cell')
+      .map((cell) => cell.textContent);
+    expect(cells).toContain('Austria');
+    expect(cells).toContain('Slovenia');
   });
 });

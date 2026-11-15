@@ -1,3 +1,4 @@
+import type { BoundFunctions, queries } from '@testing-library/react';
 import { screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
@@ -64,6 +65,9 @@ const writes = (api: Awaited<ReturnType<typeof openEdit>>['api']) =>
 
 const dialogOf = async () => within(await screen.findByRole('dialog'));
 
+const definitions = (scope: BoundFunctions<typeof queries>) =>
+  scope.getAllByRole('definition').map((value) => value.textContent);
+
 describe('AttributeTransfer', () => {
   beforeEach(async () => {
     await i18n.changeLanguage('sl');
@@ -78,7 +82,9 @@ describe('AttributeTransfer', () => {
     );
 
     expect(moveCountry()).toBeInTheDocument();
-    expect(screen.getByText(tr('contacts.transfer.note.country'))).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: tr('contacts.transfer.action.country') }),
+    ).toHaveAccessibleDescription(tr('contacts.transfer.note.country'));
     expect(
       screen.queryByRole('button', { name: tr('contacts.transfer.action.company') }),
     ).not.toBeInTheDocument();
@@ -130,7 +136,7 @@ describe('AttributeTransfer', () => {
     await user.click(moveCountry());
 
     const dialog = await dialogOf();
-    expect(dialog.getByText('Korea')).toBeInTheDocument();
+    expect(definitions(dialog)).toContain('Korea');
     expect(dialog.getAllByRole('radio').map((radio) => radio.parentElement?.textContent)).toEqual([
       country('KR'),
       country('KP'),
@@ -156,7 +162,7 @@ describe('AttributeTransfer', () => {
     await user.click(moveCountry());
 
     let dialog = await dialogOf();
-    expect(dialog.getByText('Slovenija?!')).toBeInTheDocument();
+    expect(definitions(dialog)).toContain('Slovenija?!');
     expect(
       dialog.getByRole('button', { name: tr('contacts.transfer.action.country') }),
     ).toHaveAttribute('aria-disabled', 'true');
@@ -189,9 +195,9 @@ describe('AttributeTransfer', () => {
     await user.click(moveCountry());
 
     const dialog = await dialogOf();
-    expect(dialog.getByText('SVN')).toBeInTheDocument();
-    expect(dialog.getByText(country('AT'))).toBeInTheDocument();
-    expect(dialog.getByText(country('SI'))).toBeInTheDocument();
+    expect(definitions(dialog)).toEqual(
+      expect.arrayContaining(['SVN', country('AT'), country('SI')]),
+    );
     await user.click(dialog.getByRole('button', { name: tr('contacts.transfer.replaceField') }));
 
     await waitFor(() =>
@@ -228,8 +234,7 @@ describe('AttributeTransfer', () => {
       await user.click(moveCompany());
 
       const dialog = await dialogOf();
-      expect(dialog.getByText('Acme')).toBeInTheDocument();
-      expect(dialog.getByText('Acme d.o.o.')).toBeInTheDocument();
+      expect(definitions(dialog)).toEqual(expect.arrayContaining(['Acme', 'Acme d.o.o.']));
       await user.click(dialog.getByRole('button', { name: tr('contacts.transfer.keepField') }));
 
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
