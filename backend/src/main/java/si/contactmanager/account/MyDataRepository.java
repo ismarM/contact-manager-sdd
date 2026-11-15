@@ -101,6 +101,17 @@ class MyDataRepository {
                 .list();
     }
 
+    /** Gesla za aplikacijo (014, FR-014-25): samo ime in časi. */
+    List<ExportAssembler.AppPasswordRow> appPasswords(long user) {
+        return jdbc.sql("SELECT name, created_at, last_used_at FROM app_password WHERE user_id = :user")
+                .param("user", user)
+                .query((rs, row) -> new ExportAssembler.AppPasswordRow(
+                        rs.getString("name"),
+                        instant(rs, "created_at"),
+                        rs.getObject("last_used_at") == null ? null : instant(rs, "last_used_at")))
+                .list();
+    }
+
     private static Instant instant(ResultSet rs, String column) throws SQLException {
         return rs.getObject(column, OffsetDateTime.class).toInstant();
     }

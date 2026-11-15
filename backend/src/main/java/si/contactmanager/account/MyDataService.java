@@ -45,6 +45,7 @@ class MyDataService {
                 repository.memberships(user),
                 repository.receivedInvitations(user),
                 repository.sentInvitations(user),
-                repository.ownedGroups(user));
+                repository.ownedGroups(user),
+                repository.appPasswords(user));
     }
 }

@@ -20,7 +20,7 @@ public class AuditLog {
     }
 
     /**
-     * Zapiše en vnos za dano operacijo nad kontakti skupine in vrne njegov id. Oblika: {@code CREATE} samo {@code
+     * Zapiše en vnos za dano operacijo nad kontakti skupine in vrne njegov id. Oblika: {@code CREATE} in {@code IMPORT} samo {@code
      * after}, {@code DELETE} samo {@code before}, {@code UPDATE} oba, {@code MERGE} vsak kontakt vsaj {@code before}
      * (ohranjen tudi {@code after}); {@code ROLLBACK} zapiše samo rollback; sicer {@link IllegalArgumentException}.
      */
@@ -44,7 +44,7 @@ public class AuditLog {
         }
         for (ContactChange change : changes) {
             boolean valid = switch (action) {
-                case CREATE -> change.before() == null && change.after() != null;
+                case CREATE, IMPORT -> change.before() == null && change.after() != null;
                 case DELETE -> change.before() != null && change.after() == null;
                 case UPDATE -> change.before() != null && change.after() != null;
                 case MERGE -> change.before() != null;

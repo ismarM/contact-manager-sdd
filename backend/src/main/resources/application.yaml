@@ -10,6 +10,13 @@ spring:
   flyway:
     enabled: true
     fail-on-missing-locations: true
+  # 014 uvoz (FR-014-08): datoteka do 10 MB; večja zahteva → 400 VALIDATION_FAILED (file: FILE_TOO_LARGE).
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
+      # Razčlenitev ob prvem dostopu do datoteke: 401 → 404 → 403 → 409 pred napako velikosti (feature-map §2.2).
+      resolve-lazily: true
 
 server:
   port: 8080

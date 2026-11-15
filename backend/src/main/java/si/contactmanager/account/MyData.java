@@ -11,7 +11,8 @@ public record MyData(
         List<Membership> memberships,
         List<ReceivedInvitation> receivedInvitations,
         List<SentInvitation> sentInvitations,
-        List<OwnedGroup> ownedGroups) {
+        List<OwnedGroup> ownedGroups,
+        List<AppPassword> appPasswords) {
 
     public record Profile(String name, String email, Instant registeredAt, String language, String theme) {}
 
@@ -25,4 +26,7 @@ public record MyData(
     public record SentInvitation(String groupTitle, String offeredRole, String inviteeEmail, Instant createdAt) {}
 
     public record OwnedGroup(String title, String description, String color, String state, Instant createdAt) {}
+
+    /** Geslo za aplikacijo (014, FR-014-25): ime in časi, nikoli geslo ali zgoščena vrednost. */
+    public record AppPassword(String name, Instant createdAt, Instant lastUsedAt) {}
 }

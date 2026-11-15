@@ -67,6 +67,55 @@ class CanonicalForms {
         return List.copyOf(result);
     }
 
+    /**
+     * Uvoz (FR-014-07): kanonični zapis za vse nove kontakte z dvema poizvedbama na kos (namesto dveh na kontakt);
+     * pravilo je enako kot pri {@link #input} za nov kontakt.
+     */
+    List<ContactInput> inputs(UUID group, List<ContactInput> inputs) {
+        Map<String, String> keys = new java.util.HashMap<>();
+        Map<String, String> tags = new java.util.HashMap<>();
+        List<String> keyNorms = inputs.stream()
+                .flatMap(i -> i.attributes().stream())
+                .map(a -> ContactInputParser.normalize(a.key()))
+                .distinct()
+                .toList();
+        List<String> tagNorms = inputs.stream()
+                .flatMap(i -> i.tags().stream())
+                .map(ContactInputParser::normalize)
+                .distinct()
+                .toList();
+        for (int from = 0; from < keyNorms.size(); from += NORM_CHUNK) {
+            keys.putAll(contacts.canonicalKeys(
+                    group, keyNorms.subList(from, Math.min(keyNorms.size(), from + NORM_CHUNK))));
+        }
+        for (int from = 0; from < tagNorms.size(); from += NORM_CHUNK) {
+            tags.putAll(contacts.canonicalTags(
+                    group, tagNorms.subList(from, Math.min(tagNorms.size(), from + NORM_CHUNK))));
+        }
+        List<ContactInput> result = new ArrayList<>(inputs.size());
+        for (ContactInput input : inputs) {
+            result.add(new ContactInput(
+                    input.firstName(),
+                    input.lastName(),
+                    input.address(),
+                    input.email(),
+                    input.phone(),
+                    input.company(),
+                    input.country(),
+                    input.attributes().stream()
+                            .map(a -> new Attribute(
+                                    keys.getOrDefault(ContactInputParser.normalize(a.key()), a.key()), a.value()))
+                            .toList(),
+                    input.tags().stream()
+                            .map(t -> tags.getOrDefault(ContactInputParser.normalize(t), t))
+                            .toList()));
+        }
+        return result;
+    }
+
+    /** Največ normaliziranih zapisov v eni poizvedbi (meja parametrov PostgreSQL). */
+    private static final int NORM_CHUNK = 5000;
+
     /** Vnos z vsebino kontakta: atributi in značke s kanoničnim zapisom (ustvarjanje, urejanje, združevanje). */
     ContactInput input(UUID group, ContactInput input, Collection<String> storedKeys, Collection<String> storedTags) {
         return new ContactInput(

@@ -1,0 +1,35 @@
+{
+  "language": "en",
+  "omitted": ["PHOTO"],
+  "candidates": [
+    {
+      "firstName": "Janez",
+      "lastName": "Novak",
+      "address": null,
+      "email": "janez@doma.si",
+      "phone": "041 111 111",
+      "company": "Univerza v Mariboru",
+      "countryText": null,
+      "attributes": [
+        { "key": "Email 2", "value": "janez@delo.si" },
+        { "key": "Phone 2", "value": "01 222 222" },
+        { "key": "Phone 3", "value": "01 333 333" },
+        { "key": "Birthday", "value": "1990-05-17" },
+        { "key": "Website", "value": "https://primer.si" },
+        { "key": "Note", "value": "Srečala na konferenci, Bled" }
+      ],
+      "tags": ["stranka", "nov-kontakt"]
+    },
+    {
+      "firstName": "Brez",
+      "lastName": "Imena",
+      "address": null,
+      "email": null,
+      "phone": "041 999 888",
+      "company": null,
+      "countryText": null,
+      "attributes": [],
+      "tags": []
+    }
+  ]
+}

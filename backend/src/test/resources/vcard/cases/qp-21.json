@@ -1,0 +1,17 @@
+{
+  "language": "sl",
+  "omitted": [],
+  "candidates": [
+    {
+      "firstName": "Črt",
+      "lastName": "Šef",
+      "address": "Tržaška 5\n1000 Ljubljana",
+      "email": "crt@primer.si",
+      "phone": "041 222 333",
+      "company": null,
+      "countryText": "Slovenija",
+      "attributes": [{ "key": "Telefon 2", "value": "01 555 666" }],
+      "tags": []
+    }
+  ]
+}

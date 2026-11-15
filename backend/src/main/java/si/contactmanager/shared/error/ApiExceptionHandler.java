@@ -1,5 +1,6 @@
 package si.contactmanager.shared.error;
 
+import java.util.List;
 import java.util.Set;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -7,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /** Preslikava napak v odgovore API (feature-map.md §2.2). */
@@ -16,6 +19,26 @@ class ApiExceptionHandler {
     @ExceptionHandler(ValidationException.class)
     ResponseEntity<ValidationError> validation(ValidationException exception) {
         return ResponseEntity.badRequest().body(ValidationError.of(exception.errors()));
+    }
+
+    /** Datoteka uvoza nad 10 MB (014, FR-014-08): razčlenitev je lena, zato po preverjanju dostopa (§2.2). */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ResponseEntity<ValidationError> uploadTooLarge() {
+        return ResponseEntity.badRequest()
+                .body(ValidationError.of(List.of(new ValidationError.FieldError("file", "FILE_TOO_LARGE"))));
+    }
+
+    /** Neberljivo telo multipart (014): kot manjkajoča datoteka. */
+    @ExceptionHandler(MultipartException.class)
+    ResponseEntity<ValidationError> malformedMultipart() {
+        return ResponseEntity.badRequest()
+                .body(ValidationError.of(List.of(new ValidationError.FieldError("file", "REQUIRED"))));
+    }
+
+    /** Že 10 gesel za aplikacijo (014, FR-014-21). */
+    @ExceptionHandler(AppPasswordLimitException.class)
+    ResponseEntity<ErrorResponse> appPasswordLimit() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("APP_PASSWORD_LIMIT"));
     }
 
     /** Množična operacija: napake zahtevka ali končnih stanj kontaktov (research R-06). */
