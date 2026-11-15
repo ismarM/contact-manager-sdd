@@ -11,7 +11,11 @@
     "archived": "Arhivirane skupine – Kontakti",
     "audit": "Revizijska sled",
     "auditEntry": "Vnos revizijske sledi",
-    "invitations": "Povabila – Kontakti"
+    "invitations": "Povabila – Kontakti",
+    "history": "Zgodovina kontakta",
+    "version": "Stanje kontakta",
+    "compareVersions": "Primerjava različic",
+    "deleted": "Izbrisani kontakti"
   },
   "language": {
     "label": "Jezik",
@@ -244,7 +248,9 @@
       "loadFailed": "Kontakta ni bilo mogoče naložiti. Poskusi znova.",
       "auditLink": "Spremembe tega kontakta v revizijski sledi",
       "company": "Podjetje",
-      "country": "Država"
+      "country": "Država",
+      "historyHeading": "Zgodovina",
+      "historyLink": "Zgodovina kontakta"
     },
     "gone": "Tega kontakta ni več – medtem ga je nekdo izbrisal.",
     "form": {
@@ -535,7 +541,8 @@
       "ambiguous": "Vrednost je dvoumna. Izberi državo; atribut se odstrani šele, ko shraniš kontakt.",
       "unknown": "Vrednosti ni bilo mogoče prepoznati. Izberi državo s seznama; atribut se odstrani šele, ko shraniš kontakt.",
       "pickLegend": "Izberi državo"
-    }
+    },
+    "deletedLink": "Izbrisani kontakti"
   },
   "audit": {
     "list": {
@@ -576,7 +583,20 @@
       "MERGE_count_few": "združil(a) {{count}} kontakte",
       "MERGE_count_other": "združil(a) {{count}} kontaktov",
       "ROLLBACK_target": "povrnil(a) skupino na stanje",
-      "ROLLBACK_initial": "povrnil(a) skupino na začetno stanje"
+      "ROLLBACK_initial": "povrnil(a) skupino na začetno stanje",
+      "CREATE_single": "dodal(a) kontakt",
+      "UPDATE_single": "uredil(a) kontakt",
+      "DELETE_single": "izbrisal(a) kontakt",
+      "RESTORE_target": "obnovil(a) kontakt na stanje",
+      "RESTORE_target_named": "obnovil(a) kontakt {{name}} na stanje",
+      "RESTORE_initial": "obnovil(a) kontakt na izhodiščno stanje",
+      "RESTORE_initial_named": "obnovil(a) kontakt {{name}} na izhodiščno stanje",
+      "default_single": "spremenil(a) kontakt",
+      "default_named": "spremenil(a) kontakt {{name}}",
+      "default_count_one": "spremenil(a) {{count}} kontakt",
+      "default_count_two": "spremenil(a) {{count}} kontakta",
+      "default_count_few": "spremenil(a) {{count}} kontakte",
+      "default_count_other": "spremenil(a) {{count}} kontaktov"
     },
     "filters": {
       "toggle": "Filtri",
@@ -589,13 +609,25 @@
         "UPDATE": "urejanje",
         "DELETE": "odstranjevanje",
         "MERGE": "združevanje",
-        "ROLLBACK": "rollback"
+        "ROLLBACK": "rollback",
+        "RESTORE": "obnova"
       },
       "removeAction": "Odstrani filter Vrsta: {{action}}",
       "removeContact": "Odstrani filter Kontakt: {{name}}",
       "chipAction": "Vrsta: {{action}}",
       "chipContact": "Kontakt: {{name}}",
-      "unknownContact": "neznan kontakt"
+      "unknownContact": "neznan kontakt",
+      "actorLabel": "Izvajalec",
+      "actorAll": "Vsi izvajalci",
+      "actorMembers": "Člani",
+      "actorFormer": "Nekdanji člani",
+      "actorFormerName": "{{name}} (nekdanji član)",
+      "actorsLoading": "Nalagam izvajalce…",
+      "actorsFailed": "Izvajalcev ni bilo mogoče naložiti.",
+      "actorsRetry": "Poskusi znova",
+      "chipActor": "Izvajalec: {{name}}",
+      "removeActor": "Odstrani filter Izvajalec: {{name}}",
+      "unknownActor": "neznan izvajalec"
     },
     "details": {
       "summary": "Podrobnosti",
@@ -927,5 +959,144 @@
   "suggest": {
     "count": "Predlogov: {{total}}",
     "none": "Ni predlogov"
+  },
+  "history": {
+    "kind": {
+      "ADDED": "Dodano",
+      "REMOVED": "Odstranjeno",
+      "CHANGED": "Spremenjeno",
+      "UNCHANGED": "Nespremenjeno"
+    },
+    "page": {
+      "heading": "Zgodovina kontakta {{name}}",
+      "back": "Nazaj na kontakt",
+      "backDeleted": "Nazaj na izbrisane kontakte",
+      "statusDeleted": "Ta kontakt je izbrisan. Njegova zgodovina ostaja vidna.",
+      "statusMerged": "Ta kontakt je bil združen v drug kontakt. Njegova zgodovina ostaja vidna.",
+      "loading": "Nalagam…",
+      "loadFailed": "Zgodovine kontakta ni bilo mogoče naložiti. Poskusi znova.",
+      "retry": "Poskusi znova",
+      "empty": "Ni zabeleženih sprememb.",
+      "emptyText": "Ta kontakt je obstajal že pred začetkom beleženja in ga od takrat ni spremenila nobena operacija.",
+      "list": "Zgodovina kontakta",
+      "events": "Dogodki zgodovine kontakta"
+    },
+    "event": {
+      "changedFields": "Spremenjena polja: {{fields}}",
+      "details": "Podrobnosti",
+      "viewVersion": "Ogled stanja po tej spremembi",
+      "compareCurrent": "Primerjaj s trenutno",
+      "fullEntry": "Celoten vnos v revizijski sledi",
+      "mergedInto": "združen v",
+      "select": "Izberi za primerjavo",
+      "selectLabel": "Izberi za primerjavo: {{version}}"
+    },
+    "initial": {
+      "heading": "Izhodiščno stanje",
+      "description": "Stanje kontakta pred prvim zabeleženim dogodkom.",
+      "view": "Ogled izhodiščnega stanja"
+    },
+    "selection": {
+      "hint": "Za primerjavo izberi dve različici.",
+      "one": "Izbrana je ena različica. Izberi še eno.",
+      "compare": "Primerjaj izbrani različici",
+      "summary": "Primerjava različic"
+    },
+    "version": {
+      "heading": "Stanje kontakta {{name}}",
+      "back": "Nazaj na zgodovino kontakta",
+      "current": "Trenutno stanje",
+      "initial": "Izhodiščno stanje",
+      "entry": "Stanje po spremembi {{time}}",
+      "readOnly": "Ogled je samo za branje.",
+      "by": "Izvajalec",
+      "loading": "Nalagam…",
+      "loadFailed": "Različice ni bilo mogoče naložiti. Poskusi znova.",
+      "retry": "Poskusi znova",
+      "compareCurrent": "Primerjaj s trenutno",
+      "empty": "prazno"
+    },
+    "compare": {
+      "heading": "Primerjava različic",
+      "back": "Nazaj na zgodovino kontakta",
+      "from": "Prej",
+      "to": "Potem",
+      "field": "Polje",
+      "kind": "Vrsta spremembe",
+      "caption": "Razlike med različicama kontakta {{name}}",
+      "showUnchanged": "Pokaži nespremenjena polja",
+      "hideUnchanged": "Skrij nespremenjena polja",
+      "noDifferences": "Med različicama ni razlik.",
+      "tag": "Značka {{tag}}",
+      "present": "je",
+      "absent": "ni",
+      "loading": "Nalagam…",
+      "loadFailed": "Primerjave ni bilo mogoče naložiti. Poskusi znova.",
+      "retry": "Poskusi znova",
+      "invalid": "Primerjava ni mogoča. Izberi dve različici v zgodovini kontakta.",
+      "versions": "Različici",
+      "captionUnchanged": "Nespremenjena polja kontakta {{name}}"
+    },
+    "restore": {
+      "button": "Obnovi to različico",
+      "titleLoading": "Obnovim kontakt {{name}}?",
+      "title": "Obnovim kontakt {{name}} na stanje {{time}}?",
+      "titleInitial": "Obnovim kontakt {{name}} na izhodiščno stanje?",
+      "text": "Kontakt bo vrnjen na vrednosti izbrane različice. Obnova bo zapisana v revizijski sledi kot nov dogodek, vsi drugi kontakti ostanejo nespremenjeni.",
+      "textDeleted": "Kontakt bo spet obstajal v skupini z naštetimi podatki. Obnova bo zapisana v revizijski sledi kot nov dogodek.",
+      "changes": "Spremembe, ki jih bo povzročila obnova",
+      "duplicates": "V skupini že obstaja podoben kontakt, zato bi lahko nastal podvojen kontakt:",
+      "duplicateEMAIL": "enak e-naslov",
+      "duplicateNAME": "isto ime",
+      "cancel": "Prekliči",
+      "confirm": "Obnovi kontakt",
+      "busy": "Obnavljam…",
+      "loading": "Nalagam predogled…",
+      "loadFailed": "Predogleda obnove ni bilo mogoče naložiti. Poskusi znova.",
+      "retry": "Poskusi znova",
+      "merged": "Ta kontakt je bil združen v drug kontakt, zato ga ni mogoče obnoviti neposredno – obnova bi ustvarila podvojen kontakt. Admin lahko skupino vrne s skupinskim rollbackom v revizijski sledi.",
+      "noChanges": "Ta različica je enaka trenutnemu stanju – obnova ne bi ničesar spremenila.",
+      "close": "Zapri",
+      "conflict": "Kontakt se je medtem spremenil.",
+      "conflictHint": "Predogled je osvežen s trenutnim stanjem – preveri ga in po potrebi znova potrdi obnovo.",
+      "failed": "Kontakta ni bilo mogoče obnoviti. Poskusi znova.",
+      "archived": "Skupina je arhivirana – kontakta ni mogoče obnoviti.",
+      "forbidden": "Za to dejanje nimaš več pravic.",
+      "gone": "Kontakta ali različice ni več mogoče najti.",
+      "toast": "Kontakt je obnovljen na stanje {{time}}.",
+      "toastInitial": "Kontakt je obnovljen na izhodiščno stanje."
+    },
+    "deleted": {
+      "heading": "Izbrisani kontakti",
+      "back": "Nazaj na seznam kontaktov",
+      "searchLabel": "Iskanje po imenu, e-naslovu ali podjetju",
+      "stateLegend": "Stanje",
+      "state": {
+        "all": "Vsi",
+        "restorable": "Obnovljivi",
+        "merged": "Združeni"
+      },
+      "list": "Seznam izbrisanih kontaktov",
+      "paginationList": "Izbrisani kontakti",
+      "removed": "Odstranil(a) {{actor}} {{time}}",
+      "badgeRestorable": "Obnovljiv",
+      "badgeMerged": "Združen v {{name}}",
+      "badgeMergedUnknown": "Združen",
+      "explain": "Ta kontakt je bil združen v kontakt {{name}}; njegovi podatki so v ohranjenem kontaktu. Neposredna obnova bi ustvarila podvojen kontakt. Admin lahko skupino vrne s skupinskim rollbackom v revizijski sledi.",
+      "explainUnknown": "Ta kontakt je bil združen v drug kontakt; njegovi podatki so v ohranjenem kontaktu. Neposredna obnova bi ustvarila podvojen kontakt. Admin lahko skupino vrne s skupinskim rollbackom v revizijski sledi.",
+      "keptGone": "Ohranjenega kontakta ni več v skupini.",
+      "history": "Zgodovina",
+      "historyLabel": "Zgodovina kontakta {{name}}",
+      "restore": "Obnovi",
+      "restoreLabel": "Obnovi kontakt {{name}}",
+      "openKept": "Odpri ohranjeni kontakt",
+      "empty": "Ni izbrisanih kontaktov.",
+      "emptyText": "Izbrisani, z rollbackom odstranjeni in združeni kontakti se bodo pojavili tukaj.",
+      "emptyFiltered": "Ni kontaktov, ki ustrezajo iskanju.",
+      "clearSearch": "Počisti iskanje",
+      "loading": "Nalagam…",
+      "loadFailed": "Izbrisanih kontaktov ni bilo mogoče naložiti. Poskusi znova.",
+      "retry": "Poskusi znova"
+    }
   }
 }

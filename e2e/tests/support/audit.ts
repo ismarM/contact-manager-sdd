@@ -58,7 +58,7 @@ export function contactRow(contactId: string): {
 }
 
 /** ID žeton prijavljenega uporabnika iz shrambe Firebase SDK (IndexedDB `firebaseLocalStorageDb`). */
-async function idToken(page: Page): Promise<string> {
+export async function idToken(page: Page): Promise<string> {
   return page.evaluate(
     () =>
       new Promise<string>((resolve, reject) => {

@@ -127,3 +127,5 @@ Skupne kode (§2.2): `UNAUTHENTICATED` (401), `FORBIDDEN` (403, D-25), `GROUP_AR
 | `SELECTION_CHANGED` | 009 | izbrani kontakti medtem ne obstajajo več |
 | `EXPORT_EMPTY` | 010 | izvoz, v katerem ne ostane noben kontakt |
 | `OWNS_ACTIVE_GROUPS` | 012 | izbris računa lastnika nearhivirane skupine |
+| `RESTORE_NO_CHANGES` | 015 | obnova kontakta, ki ne bi spremenila nobenega polja |
+| `RESTORE_NOT_ALLOWED` | 015 | obnova kontakta, ki je bil z združevanjem odstranjen (neposredna obnova ni dovoljena) |
