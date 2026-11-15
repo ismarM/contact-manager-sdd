@@ -11,7 +11,8 @@
     "archived": "Archived groups – Contacts",
     "audit": "Audit trail",
     "auditEntry": "Audit trail entry",
-    "invitations": "Invitations – Contacts"
+    "invitations": "Invitations – Contacts",
+    "import": "Import contacts – {{group}}"
   },
   "language": {
     "label": "Language",
@@ -73,6 +74,46 @@
       "confirm": "Delete account",
       "failed": "Your account could not be deleted. Please try again.",
       "ownsActiveGroups": "Your account cannot be deleted because you have become the owner of an active group. Transfer ownership or archive these groups."
+    },
+    "appPasswords": {
+      "heading": "App passwords (CardDAV)",
+      "description": "With an app password, a phone or mail client shows the contacts of your groups over CardDAV. Address books are read-only.",
+      "create": "New password",
+      "nameLabel": "Device name",
+      "nameRequired": "Enter a device name.",
+      "nameTooLong": "The name is too long (at most 50 characters).",
+      "createSubmit": "Create password",
+      "cancel": "Cancel",
+      "createdTitle": "Password for {{name}}",
+      "showOnce": "The password is shown only once. Copy it now.",
+      "server": "Server address",
+      "username": "Username",
+      "password": "Password",
+      "copy": "Copy {{what}}",
+      "copied": "Copied.",
+      "close": "Close",
+      "list": "App passwords",
+      "empty": "You have no app passwords yet.",
+      "created": "Created {{date}}",
+      "lastUsed": "last used {{date}}",
+      "neverUsed": "not used yet",
+      "revoke": "Revoke password {{name}}",
+      "revokeTitle": "Revoke password {{name}}?",
+      "revokeBody": "Devices that use this password will no longer receive contacts. Other passwords keep working.",
+      "revokeConfirm": "Revoke password",
+      "revoked": "Password {{name}} has been revoked.",
+      "limit": "You already have 10 passwords. Revoke one before creating a new one.",
+      "failed": "The password could not be created. Try again.",
+      "revokeFailed": "The password could not be revoked. Try again.",
+      "loadFailed": "The passwords could not be loaded. Try again.",
+      "retry": "Try again",
+      "help": {
+        "heading": "How do I connect a phone or mail client",
+        "step1": "Create an app password and copy it.",
+        "step2": "Add a CardDAV account in the device settings (iPhone: Settings → Contacts → Accounts → Add Account → Other; Android: DAVx5; Thunderbird: Address Book → New CardDAV Address Book).",
+        "step3": "Enter the server address {{server}}, the username {{username}} and the app password.",
+        "https": "The connection works only over a secure HTTPS connection."
+      }
     }
   },
   "roles": {
@@ -276,7 +317,9 @@
       "countryList": "Countries",
       "companySuggestions": "Suggested companies",
       "keySuggestions": "Suggested keys",
-      "valueSuggestions": "Suggested values"
+      "valueSuggestions": "Suggested values",
+      "qrCountryHint": "Country from the QR code: “{{text}}”. Choose a country from the list.",
+      "qrPrefilled": "The data from the QR code has been filled in. Check it and save the contact."
     },
     "errors": {
       "nameRequired": "Enter at least a first or last name.",
@@ -535,6 +578,51 @@
       "ambiguous": "The value is ambiguous. Choose a country; the attribute is removed only when you save the contact.",
       "unknown": "The value could not be recognised. Choose a country from the list; the attribute is removed only when you save the contact.",
       "pickLegend": "Choose a country"
+    },
+    "importMenu": {
+      "button": "Import",
+      "xlsx": "From Excel (.xlsx)",
+      "vcf": "From business cards (.vcf)"
+    },
+    "vcard": {
+      "download": "Download business card (.vcf)",
+      "selection": "Export to vCard (.vcf)",
+      "busy": "Preparing business cards…",
+      "failed": "The business card could not be downloaded. Try again."
+    },
+    "qrShare": {
+      "button": "Share with QR code",
+      "title": "QR code – {{name}}",
+      "warning": "Anyone who scans the code sees the included data.",
+      "alt": "QR code with the contact {{name}}",
+      "included": "Included: {{fields}}.",
+      "omitted": "Not included: {{fields}}.",
+      "download": "Download image",
+      "close": "Close",
+      "failed": "The QR code could not be created.",
+      "fields": {
+        "name": "first and last name",
+        "company": "company",
+        "email": "email",
+        "phone": "phone",
+        "country": "country",
+        "address": "address",
+        "tags": "tags",
+        "attributes": "custom attributes"
+      }
+    },
+    "qrScan": {
+      "button": "Add with QR code",
+      "title": "Add with QR code",
+      "instruction": "Point the camera at the QR code.",
+      "video": "Camera view",
+      "noCamera": "The camera is not available. Choose an image with a QR code.",
+      "pickImage": "Choose image",
+      "noCode": "No contact QR code found in the image.",
+      "manyCodes": "The image contains several QR codes. Choose an image with one code.",
+      "tooLarge": "The image is larger than 10 MB.",
+      "reading": "Reading the code…",
+      "close": "Close"
     }
   },
   "audit": {
@@ -576,7 +664,12 @@
       "DELETE_count_two": "deleted {{count}} contacts",
       "DELETE_count_few": "deleted {{count}} contacts",
       "MERGE_count_two": "merged {{count}} contacts",
-      "MERGE_count_few": "merged {{count}} contacts"
+      "MERGE_count_few": "merged {{count}} contacts",
+      "IMPORT_named": "imported the contact {{name}}",
+      "IMPORT_count_one": "imported {{count}} contact",
+      "IMPORT_count_other": "imported {{count}} contacts",
+      "IMPORT_count_two": "imported {{count}} contacts",
+      "IMPORT_count_few": "imported {{count}} contacts"
     },
     "filters": {
       "toggle": "Filters",
@@ -589,7 +682,8 @@
         "UPDATE": "edited",
         "DELETE": "deleted",
         "MERGE": "merged",
-        "ROLLBACK": "rollback"
+        "ROLLBACK": "rollback",
+        "IMPORT": "import"
       },
       "removeAction": "Remove filter Action: {{action}}",
       "removeContact": "Remove filter Contact: {{name}}",
@@ -927,5 +1021,126 @@
   "suggest": {
     "count": "Suggestions: {{total}}",
     "none": "No suggestions"
+  },
+  "import": {
+    "heading": "Import contacts",
+    "screenXlsx": "Import from Excel",
+    "screenVcf": "Import from business cards",
+    "back": "Back to the contact list",
+    "fileXlsx": "Excel spreadsheet (.xlsx)",
+    "fileVcf": "Business card file (.vcf)",
+    "read": "Read file",
+    "reading": "Reading the file…",
+    "sheets": "Only the first sheet of the spreadsheet is imported.",
+    "omittedPhoto": "Photos and other business card data that contacts do not have are not imported.",
+    "fileErrors": {
+      "REQUIRED": "Choose a file.",
+      "FILE_TOO_LARGE": "The file is larger than 10 MB.",
+      "NOT_XLSX": "The file is not an Excel spreadsheet (.xlsx).",
+      "NOT_VCF": "The file is not a business card file (.vcf).",
+      "NO_HEADER": "The spreadsheet has no header row.",
+      "TOO_MANY_ROWS": "You can import at most 10,000 contacts at once.",
+      "TOO_MANY_COLUMNS": "The spreadsheet has too many columns.",
+      "failed": "The file could not be read. Try again."
+    },
+    "mapping": {
+      "heading": "Column mapping",
+      "column": "Column",
+      "target": "Import into",
+      "targetFor": "Import column {{column}} into",
+      "keyFor": "Attribute key for column {{column}}",
+      "duplicateTarget": "This field is already chosen for another column.",
+      "duplicateKey": "This key is already chosen for another column.",
+      "emptyKey": "Enter an attribute key.",
+      "targets": {
+        "FIRST_NAME": "First name",
+        "LAST_NAME": "Last name",
+        "ADDRESS": "Address",
+        "EMAIL": "Email",
+        "PHONE": "Phone",
+        "COUNTRY": "Country",
+        "COMPANY": "Company",
+        "TAGS": "Tags",
+        "ATTRIBUTE": "Custom attribute",
+        "SKIP": "Do not import"
+      }
+    },
+    "preview": {
+      "heading": "Preview",
+      "checking": "Checking rows…",
+      "ready_one": "{{count}} contact is ready to import.",
+      "ready_other": "{{count}} contacts are ready to import.",
+      "invalid_one": "{{count}} row has errors.",
+      "invalid_other": "{{count}} rows have errors.",
+      "skipped_one": "{{count}} row is skipped as a duplicate.",
+      "skipped_other": "{{count}} rows are skipped as duplicates.",
+      "table": "Rows to import",
+      "row": "Row",
+      "name": "Name",
+      "status": "Status",
+      "rowNumber": "Row {{row}}",
+      "ok": "Ready",
+      "invalid": "Error",
+      "duplicateNAME": "Same name as {{name}}",
+      "duplicateEMAIL": "Same email as {{name}}",
+      "duplicatePHONE": "Same phone as {{name}}",
+      "duplicateInFile": "Same as row {{row}}",
+      "decision": "Duplicate in row {{row}}",
+      "skip": "Skip",
+      "create": "Create",
+      "fieldError": "{{field}}: {{reason}}",
+      "fields": {
+        "firstName": "First name",
+        "lastName": "Last name",
+        "address": "Address",
+        "email": "Email",
+        "phone": "Phone",
+        "company": "Company",
+        "country": "Country",
+        "attributes": "Custom attributes",
+        "tags": "Tags",
+        "body": "Row"
+      },
+      "reasons": {
+        "REQUIRED": "missing (enter at least a first or last name)",
+        "TOO_LONG": "too long",
+        "INVALID_VALUE": "invalid value",
+        "DUPLICATE": "duplicated",
+        "RESERVED_KEY": "reserved name of a predefined field",
+        "TOO_MANY": "too many values",
+        "UNKNOWN_FIELD": "unknown field",
+        "MALFORMED": "unreadable"
+      },
+      "ready_two": "{{count}} contacts are ready to import.",
+      "ready_few": "{{count}} contacts are ready to import.",
+      "invalid_two": "{{count}} rows have errors.",
+      "invalid_few": "{{count}} rows have errors.",
+      "skipped_two": "{{count}} rows are skipped as duplicates.",
+      "skipped_few": "{{count}} rows are skipped as duplicates."
+    },
+    "countries": {
+      "heading": "Countries",
+      "choose": "Country for “{{text}}”",
+      "leaveEmpty": "Leave empty",
+      "pick": "Choose a country",
+      "ambiguous": "“{{text}}” is ambiguous.",
+      "unknown": "“{{text}}” is not a recognised country.",
+      "unresolved": "Resolve all countries before importing."
+    },
+    "confirm_one": "Import {{count}} contact",
+    "confirm_other": "Import {{count}} contacts",
+    "importing": "Importing contacts…",
+    "done": "Contacts imported: {{count}}.",
+    "doneSkipped": "Duplicates skipped: {{count}}.",
+    "failed": "The import failed; no contact was created.",
+    "archived": "The group is archived; importing is not possible.",
+    "retry": "Try again",
+    "nothing": "There are no valid rows to import.",
+    "pagination": "Preview pages",
+    "page": "Page {{page}} of {{pages}}",
+    "previous": "Previous page",
+    "next": "Next page",
+    "confirm_two": "Import {{count}} contacts",
+    "confirm_few": "Import {{count}} contacts"
   }
 }

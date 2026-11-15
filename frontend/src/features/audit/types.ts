@@ -2,7 +2,7 @@ import type { UserRef } from '../groups/types';
 
 // Oblike odgovorov API revizijske sledi (specs/005-revizijska-sled/contracts/openapi.yaml).
 
-export const AUDIT_ACTIONS = ['CREATE', 'UPDATE', 'DELETE', 'MERGE', 'ROLLBACK'] as const;
+export const AUDIT_ACTIONS = ['CREATE', 'UPDATE', 'DELETE', 'MERGE', 'ROLLBACK', 'IMPORT'] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
 export interface AuditEntry {

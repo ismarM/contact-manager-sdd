@@ -146,6 +146,18 @@ describe('AuditPage', () => {
     expect(items[9]).toHaveTextContent('brez@primer.si dodal(a) kontakt Janez Novak');
   });
 
+  it('FR-014-05: vnos uvoza pove število uvoženih kontaktov', async () => {
+    const entries = [
+      auditEntry({ id: entryId(2), action: 'IMPORT', contactCount: 118, contactName: null }),
+      auditEntry({ id: entryId(1), action: 'IMPORT', contactCount: 1, contactName: 'Ana Kos' }),
+    ];
+    renderAuditApp(PATH, { role: 'VIEWER', handlers: { list: auditPageReply(entries) } });
+
+    const items = within(await entriesList()).getAllByRole('listitem');
+    expect(items[0]).toHaveTextContent('uvozil(a) 118 kontaktov');
+    expect(items[1]).toHaveTextContent('uvozil(a) kontakt Ana Kos');
+  });
+
   it('FR-005-03: stavki v angleščini', async () => {
     await i18n.changeLanguage('en');
     const entries = [
