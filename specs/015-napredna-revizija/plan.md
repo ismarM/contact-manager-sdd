@@ -34,7 +34,7 @@ Zgodovina kontakta, ogled in primerjava različic, seznam izbrisanih kontaktov i
 |---|---|
 | I. Specification guides the work | FR-015-01 … 24; vsaka naloga navede FR-ID |
 | II. Tests are mandatory | enota: razvrstitev stanja kontakta, žeton izvajalca; IT: filter, zgodovina, različice, primerjava, obnova (pravila, sočasnost, nespremenljivost), seznam izbrisanih, zmogljivost; FE: komponente z MSW; E2E: celoten tok |
-| III. Group isolation and roles | vseh 9 novih endpointov v matriki izolacije (401/404/403/2xx, arhivirana 409); vsaka poizvedba z `group_id`; kontakt/vnos druge skupine = 404 |
+| III. Group isolation and roles | vseh 8 endpointov tabele (7 novih + `GET /audit` z `actor`) v matriki izolacije (401/404/403/2xx, arhivirana 409); vsaka poizvedba z `group_id`; kontakt/vnos druge skupine = 404 |
 | IV. Accessible, bilingual, responsive UI | design.md 8.9, 8.10, 8.11, 8.13–8.15, 9.4, 9.6, 10; sl/en; vrsta spremembe z besedilom |
 | V. Data integrity | obnova atomarna pod zaklepom skupine, ena transakcija z vnosom; vnosi nespremenljivi; verzija = max(trenutna, vse v sledi) + 1 |
 | VI. Privacy and GDPR | žeton izvajalca ne razkrije internega id; izbrisani uporabniki ostanejo anonimni; nekdanji člani prikazani kot že v 005 |

@@ -66,7 +66,7 @@ paths:
         '400': {description: "from ali version/lastEntryId manjka (REQUIRED) ali neveljaven (INVALID_VALUE)"}
         '403': {description: VIEWER}
         '404': {description: kontakt ali različica ni v tej skupini}
-        '409': {description: "GROUP_ARCHIVED | VERSION_CONFLICT | RESTORE_NOT_ALLOWED (združen) | RESTORE_NO_CHANGES"}
+        '409': {description: "GROUP_ARCHIVED | VERSION_CONFLICT (obstoječ kontakt: telo = trenutni ContactDetail kot 004; izbrisan kontakt: telo {latestEntryId}) | RESTORE_NOT_ALLOWED (združen) | RESTORE_NO_CHANGES"}
   /api/groups/{groupId}/deleted-contacts:
     get:
       summary: Izbrisani kontakti (VIEWER, arhivirana dovoljeno)

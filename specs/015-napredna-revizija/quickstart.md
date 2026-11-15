@@ -9,4 +9,4 @@
    - Sočasnost: dva zavihka, obnova in urejanje istega kontakta → drugi dobi »Kontakt se je medtem spremenil.«
    - Rollback skupine (admin) še vedno deluje in upošteva vnose obnove.
 3. Matrika izolacije in sočasnost: `AuditHistoryIsolationMatrixSecurityIT`, `RestoreConcurrencyIT`.
-4. Merilo časa: `./verify.sh backend` vključuje `HistoryPerformanceIT` (SC-003, SC-007).
+4. Merilo časa: `./verify.sh backend` vključuje `HistoryPerformanceIT` (SC-003) in `DeletedContactsPerformanceIT` (SC-007); podatki se vstavijo neposredno prek `AuditFixtures` (paketni INSERT), ne prek API.

@@ -17,6 +17,7 @@ description: "Tasks for 015-napredna-revizija (one pass, tests inside each story
 - Vrstni red preverjanj (feature-map §2.2): 401 → 404 → 403 → 409 GROUP_ARCHIVED → 400 → 409 VERSION_CONFLICT → 409 poslovno pravilo.
 - Migracija samo naprej: `V11__napredna_revizija.sql` (pravilo usklajevanja z 014 v plan.md); `V1`–`V10` se ne dotikamo. Obstoječi testi 005 se ne oslabijo; spremenjeni gredo v opis PR.
 - Patrikovega dela (014) se ne dotikamo; v `contact` samo `ContactSnapshots.restore` in nova datoteka `DuplicateLookup`.
+- UI testi samo `getByRole`/`getByLabel`, imena iz prevodov ali skupnih pomočnikov, axe brez kršitev (CLAUDE.md, konstitucija §3.3); barve samo iz žetonov design.md.
 - Brez `git push` brez navodila in brez združitve v `main`.
 
 ## Phase 1: Setup
@@ -29,7 +30,7 @@ description: "Tasks for 015-napredna-revizija (one pass, tests inside each story
 
 - [ ] T004 FR-015-12 FR-015-13 — `ContactSnapshots.restore(group, ContactState goal, boolean exists, long version, long actor)` (en kontakt: INSERT ali UPDATE, `updated_by` = izvajalec, `updated_at = now()`, `reverted_entry_id = NULL`, zamenjava atributov in značk prek obstoječega `insertChildren`); `AuditLog.recordRestore(...)` + `AuditRepository.insert` (cilj za `RESTORE`); unit/IT `ContactSnapshotsRestoreIT` (ne spremeni drugih kontaktov; sort ključi; obstoječ in izbrisan)
 - [ ] T005 FR-015-05 FR-015-06 FR-015-07 — `ContactHistoryRepository` (stran dogodkov kontakta po `seq DESC` z `group_id`; stanje `ACTIVE/DELETED/MERGED`; `mergedInto`; `hasInitial`; različica po `(entryId|initial|current)`; zadnji vnos kontakta) in DTO-ji `HistoryPage`, `HistoryEvent`, `VersionView`; unit `ContactStatusTest` (izpeljava stanja iz zadnje vrstice)
-- [ ] T006 [P] FR-015-18 — FE pomočnik `frontend/src/features/audit/auditSentence.ts` (ali razširitev obstoječega): stavki po vrsti, vključno `RESTORE`, privzeti stavek za neznano vrsto; test z `IMPORT`
+- [ ] T006 [P] FR-015-18 — FE: stavek dogodka v `AuditEntryItem.tsx` (obstoječa logika) izloči v skupen `frontend/src/features/audit/auditSentence.ts`, ki ga uporabita sled in časnica: stavki po vrsti, vključno `RESTORE`, privzeti stavek za neznano vrsto; test z `IMPORT`
 
 ## Phase 3: User Story 1 – Zgodovina kontakta (P1) 🎯 MVP
 
@@ -65,7 +66,7 @@ description: "Tasks for 015-napredna-revizija (one pass, tests inside each story
 
 ## Phase 8: User Story 5 – Matrika izolacije, E2E in dostopnost (P3)
 
-- [ ] T018 [US5] FR-015-21 FR-015-10 FR-015-16 — `AuditHistoryIsolationMatrixSecurityIT` (9 novih endpointov × akter [brez žetona, pokvarjen, potekel, nečlan, VIEWER, EDITOR, ADMIN, OWNER] × stanje [nearhivirana, arhivirana] ter kontakt/vnos druge skupine): 401, 404 brez telesa, 403 za obnovo pri VIEWER, 2xx, arhivirana 409 pri obnovi; PUT/PATCH/DELETE na nove poti 405; negativni scenariji iz spec.md
+- [ ] T018 [US5] FR-015-21 FR-015-10 FR-015-16 — `AuditHistoryIsolationMatrixSecurityIT` (8 endpointov (7 novih + `GET /audit?actor`) × akter [brez žetona, pokvarjen, potekel, nečlan, VIEWER, EDITOR, ADMIN, OWNER] × stanje [nearhivirana, arhivirana] ter kontakt/vnos druge skupine): 401, 404 brez telesa, 403 za obnovo pri VIEWER, 2xx, arhivirana 409 pri obnovi; PUT/PATCH/DELETE na nove poti 405; negativni scenariji iz spec.md
 - [ ] T019 [US5] FR-015-01 … -24 — E2E `e2e/tests/napredna-revizija.spec.ts` + `e2e/tests/support/history.ts` (samo `getByRole`/`getByLabel`): filter po izvajalcu, zgodovina, primerjava, obnova urednika (predogled → potrditev), bralec brez gumba, izbrisan kontakt → seznam → obnova, združen brez *Obnovi*; axe pri 360, 768 in 1280 px; sl in en
 - [ ] T020 [P] FR-015-18 FR-015-17 — regresija 005: obstoječi testi `features/audit/*` in `audit/*IT` brez oslabitve (sprememba samo kjer `AuditAction`/`AuditPage` dobita nova polja; zapis razloga v opis PR); FE test neznane vrste dejanja (`IMPORT`) v sledi in zgodovini
 
