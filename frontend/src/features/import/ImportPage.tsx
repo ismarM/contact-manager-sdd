@@ -254,10 +254,14 @@ export function ImportPage() {
       )}
 
       {parsed?.format === 'XLSX' && parsed.sheetCount > 1 && (
-        <p className={warningAlert}>{t('import.sheets')}</p>
+        <p role="note" className={warningAlert}>
+          {t('import.sheets')}
+        </p>
       )}
       {parsed?.format === 'VCF' && parsed.omitted.length > 0 && (
-        <p className={warningAlert}>{t('import.omittedPhoto')}</p>
+        <p role="note" className={warningAlert}>
+          {t('import.omittedPhoto')}
+        </p>
       )}
 
       {parsed?.format === 'XLSX' && (
@@ -329,6 +333,9 @@ export function ImportPage() {
                         {t('import.preview.name')}
                       </th>
                       <th scope="col" className="p-2">
+                        {t('import.preview.data')}
+                      </th>
+                      <th scope="col" className="p-2">
                         {t('import.preview.status')}
                       </th>
                     </tr>
@@ -379,7 +386,9 @@ export function ImportPage() {
           )}
 
           {preview && unresolved && (
-            <p className={warningAlert}>{t('import.countries.unresolved')}</p>
+            <p id="import-unresolved" className={warningAlert}>
+              {t('import.countries.unresolved')}
+            </p>
           )}
           {preview && ready.length === 0 && <p>{t('import.nothing')}</p>}
           {importFailed && (
@@ -404,6 +413,7 @@ export function ImportPage() {
                 type="button"
                 className={primaryButton}
                 disabled={ready.length === 0 || unresolved || checking || errors.size > 0}
+                aria-describedby={unresolved ? 'import-unresolved' : undefined}
                 aria-disabled={importing}
                 onClick={() => void confirm()}
               >
@@ -563,6 +573,24 @@ function PreviewRowView({
         {rowNumber}
       </th>
       <td className="p-2">{name}</td>
+      <td className="p-2">
+        <ul className="flex flex-col gap-0.5">
+          {[
+            candidate.email,
+            candidate.phone,
+            candidate.company,
+            candidate.countryText,
+            ...candidate.attributes.map((attribute) => `${attribute.key}: ${attribute.value}`),
+            candidate.tags.length > 0 ? candidate.tags.join(', ') : null,
+          ]
+            .filter((value): value is string => value != null && value !== '')
+            .map((value, i) => (
+              <li key={i} className="break-words">
+                {value}
+              </li>
+            ))}
+        </ul>
+      </td>
       <td className="p-2">
         {row.errors.length > 0 ? (
           <ul className={fieldError}>

@@ -1115,7 +1115,8 @@
       "invalid_two": "{{count}} rows have errors.",
       "invalid_few": "{{count}} rows have errors.",
       "skipped_two": "{{count}} rows are skipped as duplicates.",
-      "skipped_few": "{{count}} rows are skipped as duplicates."
+      "skipped_few": "{{count}} rows are skipped as duplicates.",
+      "data": "Data"
     },
     "countries": {
       "heading": "Countries",

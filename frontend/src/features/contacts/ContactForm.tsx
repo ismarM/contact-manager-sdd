@@ -565,7 +565,7 @@ export function ContactForm({
             />
             {message('country')}
             {countryHint && !values.country && (
-              <p className="text-muted-foreground">
+              <p role="note" className="text-muted-foreground">
                 {t('contacts.form.qrCountryHint', { text: countryHint })}
               </p>
             )}

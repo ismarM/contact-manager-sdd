@@ -58,28 +58,37 @@ describe('Gesla za aplikacijo (FR-014-21, -25, -27)', () => {
     const user = userEvent.setup();
 
     const list = await screen.findByRole('list', { name: tr('account.appPasswords.list') });
-    expect(within(list).getByText('iPhone')).toBeInTheDocument();
+    expect(within(list).getByRole('listitem')).toHaveTextContent('iPhone');
+    expect(within(list).getByRole('listitem')).toHaveTextContent(
+      tr('account.appPasswords.neverUsed'),
+    );
     expect(
-      within(list).getByText(new RegExp(tr('account.appPasswords.neverUsed'))),
-    ).toBeInTheDocument();
-    expect(screen.getByText(new RegExp(`${window.location.origin}/dav/`))).toBeInTheDocument();
+      screen.getByRole('region', { name: tr('account.appPasswords.help.heading') }),
+    ).toHaveTextContent(`${window.location.origin}/dav/`);
 
     await user.click(screen.getByRole('button', { name: names.newPassword() }));
     await user.click(screen.getByRole('button', { name: names.createPassword() }));
-    expect(screen.getByText(tr('account.appPasswords.nameRequired'))).toBeInTheDocument();
+    expect(screen.getByLabelText(names.deviceName())).toHaveAccessibleDescription(
+      tr('account.appPasswords.nameRequired'),
+    );
     await user.type(screen.getByLabelText(names.deviceName()), 'Telefon');
     await user.click(screen.getByRole('button', { name: names.createPassword() }));
 
     const dialog = await screen.findByRole('dialog', {
       name: tr('account.appPasswords.createdTitle', { name: 'Telefon' }),
     });
-    expect(within(dialog).getByText(PASSWORD)).toBeInTheDocument();
-    expect(within(dialog).getByText('ana@primer.si')).toBeInTheDocument();
+    expect(dialog).toHaveTextContent(PASSWORD);
+    expect(dialog).toHaveTextContent('ana@primer.si');
     expect((await axe(container)).violations).toEqual([]);
     await user.click(within(dialog).getByRole('button', { name: names.close() }));
 
-    await waitFor(() => expect(screen.queryByText(PASSWORD)).not.toBeInTheDocument());
-    expect(await screen.findByText('Telefon')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(document.body).not.toHaveTextContent(PASSWORD);
+    await waitFor(() =>
+      expect(screen.getByRole('list', { name: tr('account.appPasswords.list') })).toHaveTextContent(
+        'Telefon',
+      ),
+    );
   });
 
   it('enajsto geslo pove mejo; preklic zahteva potrditev', async () => {
@@ -101,6 +110,10 @@ describe('Gesla za aplikacijo (FR-014-21, -25, -27)', () => {
     await user.click(within(confirm).getByRole('button', { name: names.revokeConfirm() }));
 
     await waitFor(() => expect(deleted).toEqual(['p1']));
-    expect(await screen.findByText(tr('account.appPasswords.empty'))).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.getByRole('region', { name: tr('account.appPasswords.heading') }),
+      ).toHaveTextContent(tr('account.appPasswords.empty')),
+    );
   });
 });

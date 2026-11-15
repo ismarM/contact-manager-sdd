@@ -1115,7 +1115,8 @@
         "TOO_MANY": "preveč vrednosti",
         "UNKNOWN_FIELD": "neznano polje",
         "MALFORMED": "neberljivo"
-      }
+      },
+      "data": "Podatki"
     },
     "countries": {
       "heading": "Države",

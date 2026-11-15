@@ -106,3 +106,8 @@ description: "Tasks for 014-uvoz-izvoz (one pass, tests inside each story)"
 - Asercije se ne oslabijo; spremenjeni obstoječi testi (npr. seznam `AUDIT_ACTIONS`, izvozni testi) z razlogom v opisu PR.
 - Utišanja samo s `utišanje: <razlog>`; barve kode QR samo iz žetonov.
 - `./verify.sh quick` pred zaključkom vsake zgodbe.
+
+## Phase 9: Convergence
+
+- [x] T028 CRITICAL Zamenjaj iskanje po golem besedilu (`getByText`/`findByText`) v novih testih 014 z `getByRole`/`getByLabel` in vsebino vlog (`status`, `alert`, `dialog`, `list`) v `frontend/src/features/import/ImportPage.test.tsx`, `frontend/src/features/contacts/qr/QrDialogs.test.tsx`, `frontend/src/features/account/AppPasswordsSection.test.tsx` per Constitution §3.3 (contradicts)
+- [x] T029 Pokaži v predogledu uvoza prebrane vrednosti vrstice (e-naslov, telefon, podjetje, država, dodatni atributi, značke), da jih urednik preveri pred potrditvijo, v `frontend/src/features/import/ImportPage.tsx` s testom per FR-014-13, US2/AC5, US2/AC6 (partial)

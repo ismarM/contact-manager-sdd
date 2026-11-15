@@ -74,7 +74,7 @@ describe('koda QR (014)', () => {
       name: tr('contacts.qrShare.title', { name: 'Ana Kos' }),
     });
 
-    expect(within(dialog).getByText(tr('contacts.qrShare.warning'))).toBeInTheDocument();
+    expect(within(dialog).getByRole('note')).toHaveTextContent(tr('contacts.qrShare.warning'));
     expect(
       await within(dialog).findByRole('img', { name: names.qrAlt('Ana Kos') }),
     ).toBeInTheDocument();
@@ -122,7 +122,10 @@ describe('koda QR (014)', () => {
     const user = userEvent.setup();
 
     await user.click(await screen.findByRole('button', { name: names.qrScan() }));
-    expect(await screen.findByText(tr('contacts.qrScan.noCamera'))).toBeInTheDocument();
+    const scan = await screen.findByRole('dialog', { name: tr('contacts.qrScan.title') });
+    await waitFor(() =>
+      expect(within(scan).getByRole('status')).toHaveTextContent(tr('contacts.qrScan.noCamera')),
+    );
     await user.upload(screen.getByLabelText(names.pickImage()), file('koda.png', 10, 'image/png'));
 
     expect(
@@ -134,9 +137,9 @@ describe('koda QR (014)', () => {
       'aria-invalid',
       'true',
     );
-    expect(
-      screen.getByText(tr('contacts.form.qrCountryHint', { text: 'Atlantida' })),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('note')).toHaveTextContent(
+      tr('contacts.form.qrCountryHint', { text: 'Atlantida' }),
+    );
   });
 
   it('FR-014-19: slika brez kontakta pokaže napako, okno ostane odprto', async () => {
@@ -163,7 +166,9 @@ describe('koda QR (014)', () => {
     const user = userEvent.setup();
 
     await user.click(await screen.findByRole('button', { name: names.qrScan() }));
-    expect(await screen.findByText(tr('contacts.qrScan.instruction'))).toBeInTheDocument();
+    const scan = await screen.findByRole('dialog', { name: tr('contacts.qrScan.title') });
+    expect(within(scan).getByRole('status')).toHaveTextContent(tr('contacts.qrScan.instruction'));
+    expect(within(scan).getByLabelText(tr('contacts.qrScan.video'))).toBeInTheDocument();
     await user.upload(screen.getByLabelText(names.pickImage()), file('slika.png', 10, 'image/png'));
     await user.click(screen.getByRole('button', { name: tr('contacts.qrScan.close') }));
 

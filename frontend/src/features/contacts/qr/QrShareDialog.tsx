@@ -103,7 +103,9 @@ export function QrShareDialog({
       </DialogTrigger>
       <DialogContent>
         <DialogTitle>{t('contacts.qrShare.title', { name })}</DialogTitle>
-        <p className={warningAlert}>{t('contacts.qrShare.warning')}</p>
+        <p role="note" className={warningAlert}>
+          {t('contacts.qrShare.warning')}
+        </p>
         {failed && (
           <p role="alert" className={errorAlert}>
             {t('contacts.qrShare.failed')}

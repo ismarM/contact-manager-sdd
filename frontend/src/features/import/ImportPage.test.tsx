@@ -80,12 +80,15 @@ describe('ImportPage (014)', () => {
       attributes: [],
     });
     expect(api.parse[0]?.get('format')).toBe('XLSX');
-    expect(
-      await screen.findByText(
+    const preview = screen.getByRole('region', { name: tr('import.preview.heading') });
+    await waitFor(() =>
+      expect(within(preview).getAllByRole('status')[0]).toHaveTextContent(
         `${tr('import.preview.ready', { count: 2 })} ${tr('import.preview.invalid', { count: 1 })}`,
       ),
-    ).toBeInTheDocument();
+    );
     const table = screen.getByRole('table', { name: tr('import.preview.table') });
+    // FR-014-13: predogled pokaže prebrane vrednosti vrstice.
+    expect(within(table).getByRole('row', { name: /^2 Ana Kos/ })).toHaveTextContent('041 1');
     expect(within(table).getByRole('row', { name: /^3 Bor Zupan/ })).toHaveTextContent(
       tr('import.preview.fieldError', {
         field: tr('import.preview.fields.email'),
@@ -109,7 +112,9 @@ describe('ImportPage (014)', () => {
       'aria-invalid',
       'true',
     );
-    expect(screen.getByText(tr('import.mapping.duplicateTarget'))).toBeInTheDocument();
+    expect(screen.getByLabelText(names.targetFor('Mobitel'))).toHaveAccessibleDescription(
+      tr('import.mapping.duplicateTarget'),
+    );
   });
 
   it('FR-014-04 FR-014-05: neprepoznane države se razrešijo enkrat za vse vrstice, nato uvoz pošlje kode', async () => {
@@ -136,7 +141,7 @@ describe('ImportPage (014)', () => {
     const confirm = await screen.findByRole('button', { name: names.confirm(3) });
 
     expect(confirm).toBeDisabled();
-    expect(screen.getByText(tr('import.countries.unresolved'))).toBeInTheDocument();
+    expect(confirm).toHaveAccessibleDescription(tr('import.countries.unresolved'));
     await user.selectOptions(screen.getByLabelText(names.countryFor('Kongo')), 'CG');
     await user.selectOptions(
       screen.getByLabelText(names.countryFor('Atlantida')),
@@ -148,7 +153,11 @@ describe('ImportPage (014)', () => {
     expect(api.commit[0]!.source).toBe('XLSX');
     expect(api.commit[0]!.contacts.map((c) => c.country)).toEqual(['AT', 'CG', null]);
     expect(api.commit[0]!.contacts[0]).not.toHaveProperty('countryText');
-    expect(await screen.findByText(tr('import.done', { count: 3 }))).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('region', { name: tr('toast.region') })).toHaveTextContent(
+        tr('import.done', { count: 3 }),
+      ),
+    );
   });
 
   it('FR-014-09: dvojnik je privzeto preskočen; izbira Ustvari ga vključi v uvoz', async () => {
@@ -171,21 +180,25 @@ describe('ImportPage (014)', () => {
     const user = await upload();
 
     expect(
-      await screen.findByText(tr('import.preview.duplicateEMAIL', { name: 'Ana Kos' })),
+      await screen.findByRole('group', {
+        name: tr('import.preview.duplicateEMAIL', { name: 'Ana Kos' }),
+      }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(new RegExp(tr('import.preview.skipped', { count: 1 }))),
-    ).toBeInTheDocument();
+      within(screen.getByRole('region', { name: tr('import.preview.heading') })).getAllByRole(
+        'status',
+      )[0],
+    ).toHaveTextContent(tr('import.preview.skipped', { count: 1 }));
     const decision = screen.getByRole('radiogroup', { name: names.decision(2) });
     expect(within(decision).getByRole('radio', { name: names.skip() })).toBeChecked();
     await user.click(screen.getByRole('button', { name: names.confirm(2) }));
     await waitFor(() => expect(api.commit).toHaveLength(1));
     expect(api.commit[0]!.contacts.map((c) => c.firstName)).toEqual(['Bor', 'Cene']);
-    expect(
-      await screen.findByText(
+    await waitFor(() =>
+      expect(screen.getByRole('region', { name: tr('toast.region') })).toHaveTextContent(
         `${tr('import.done', { count: 2 })} ${tr('import.doneSkipped', { count: 1 })}`,
       ),
-    ).toBeInTheDocument();
+    );
   });
 
   it('FR-014-05: napaka strežnika pusti predogled odprt s Poskusi znova; ponovni poskus uspe', async () => {
@@ -262,7 +275,7 @@ describe('ImportPage (014)', () => {
     renderContactsApp(`${PATH}?source=vcf`, { role: 'EDITOR' });
     const user = await upload('vcf', 'kontakti.vcf');
 
-    expect(await screen.findByText(tr('import.omittedPhoto'))).toBeInTheDocument();
+    expect(await screen.findByRole('note')).toHaveTextContent(tr('import.omittedPhoto'));
     expect(screen.queryByLabelText(names.targetFor('Ime'))).not.toBeInTheDocument();
     await user.click(await screen.findByRole('button', { name: names.confirm(1) }));
     await waitFor(() => expect(api.commit[0]?.source).toBe('VCF'));
