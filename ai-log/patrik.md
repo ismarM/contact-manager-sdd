@@ -361,3 +361,22 @@ now that you are up to date with the new rules continue with the next steps and 
 | Napake, odkrite z drugim agentom | 1 zavrnitev `pregled-testov` (krog 1), krog 2 SPREJETO; 11 ugotovitev `/speckit-analyze`; 3 ugotovitve `/speckit-converge`; 21 padlih E2E ob prvem zagonu |
 | Preverjanje s testi | #8, #9, #10, #12 (BE unit in IT, FE 33 + 188, E2E 21 v `izvoz-excel.spec.ts`, `verify.sh full` zelen, `quick` zelen), `ExportPerformanceIT` p95 ≈ 0,4 s |
 | Odprto za razvijalca | T047 (pregled PR #13, ročni preizkus tipkovnice in bralnika zaslona, odpiranje datoteke v Excelu in LibreOffice, merge); `gitleaks` ni nameščen (ročni pregled brez zadetkov); odločitvi D-91 in D-92 (spremembe testov) za pregled |
+
+## Seja 10 — 014-uvoz-izvoz
+
+- **Datum:** 2026-11-15
+- **Razvijalec:** Patrik
+- **Agent / model:** Claude Code, `/rollout`: nadzornik in delavec `izvajalec` (`claude-opus-5-5`); podagent `pregled-testov` (enkrat, zagnal ga je nadzornik).
+- **Veja / commiti:** `uvoz-izvoz` (iz `main` `83358f1`): `17da3b2` (spec), `0a1ece9` (plan in naloge), `c91e95d` (popravki plana), implementacija `2856eda` … `ce602f0`, popravki pregleda `5dae36d`; en PR za celotno 014.
+- **Poraba žetonov:** doda nadzornik.
+
+| # | Vrsta | Povzetek navodila / odgovora | Faza | Rezultat / spremenjene datoteke | Preverjanje | Težava (kategorija) | Status |
+|---|---|---|---|---|---|---|---|
+| 1 | nadzornik | NAČRT: plan → tasks → analyze z odgovori clarify Q1–Q3 in izbranimi knjižnicami | plan, tasks, analyze | `plan.md`, `research.md` (R-01 … R-10), `data-model.md` (V11), `contracts/openapi.yaml`, `contracts/carddav.md`, `quickstart.md`, `tasks.md` (27 nalog); analyze 0 CRITICAL, 3 HIGH odpravljene | pregled artefaktov | – (none) | accepted |
+| 2 | nadzornik | plan odobren s popravki 1–4 (potrditev uvoza vse preveri znova, skupne vizitke za Java in TS, jezik in verzija skupine v žetonih CardDAV, design.md 8.10); dovoljene datoteke zunaj obsega; vrsta vnosa `IMPORT`; HTTPS samo v dokumentaciji | implement | zaledje (uvoz, vCard, gesla za aplikacijo, CardDAV, V11), frontend (stran uvoza, izvoz vCard, koda QR, gesla), E2E, zapisa odločitev, `feature-map.md` | `quick` 237 s, `backend` 513 s zelena | `ZipInputStream` ne bere xlsx iz fastexcel (zamenjan z `ZipFile`); Spring brez izrecne metode ne preslika OPTIONS; obstoječi test je padal na glavi `Connection` (agent-error, tool-or-environment) | accepted |
+| 3 | agent | `/speckit-converge` (2 kroga) | converge | krog 1: T028 (`getByText` v novih testih → vloge), T029 (predogled pokaže vrednosti vrstice); krog 2: Converged | `quick` zelen | kršitev §3.3 v novih testih (agent-error) | accepted |
+| 4 | podagent | `pregled-testov` (svetovalno): 4 resne, 5 manjših ugotovitev | popravki | sočasnost in atomarnost uvoza, matrika CardDAV (REPORT, HEAD, trajno arhivirana skupina, 404), XXE v REPORT in xlsx (produkcijski popravek: `XlsxGuard` zavrne `<!DOCTYPE`), matrika izvoza vCard, VCF v matriki uvoza, vzorec vCard samo ročno | `backend`, `quick` | vrzeli v testih (agent-error) | accepted |
+
+**Težave seje:** tri prekinitve zaradi omejitve porabe (delo se je nadaljevalo po stanju veje); Docker Desktop se je med popravki ustavil (`backend` je bil ponovljen po ponovnem zagonu); `quick` je pod obremenitvijo občasno padel na časovnih omejitvah nespremenjenih testov FE (posamič so zeleni).
+
+**Predpostavke:** uvoz brez stanja na strežniku (razčleni → predogled → potrdi); razčlenitev in predogled v arhivirani skupini vrneta 409; preklic gesla izbriše vrstico; koda QR ima popravljanje napak M in največ različico 25; `format` in `language` uvoza gresta v poizvedbo.

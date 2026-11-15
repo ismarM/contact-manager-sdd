@@ -73,11 +73,12 @@ class DavController {
 
         private static final long serialVersionUID = 1L;
 
-        private final boolean creatable;
+        /** Metoda, ki bi vir ustvarila (PUT vizitke v vidnem imeniku, MKCOL imenika); {@code null}: vir je tuj ali ga ni. */
+        private final String creatingMethod;
 
-        Hidden(boolean creatable) {
+        Hidden(String creatingMethod) {
             super("hidden");
-            this.creatable = creatable;
+            this.creatingMethod = creatingMethod;
         }
     }
 
@@ -114,7 +115,9 @@ class DavController {
         try {
             resource = resolve(account, path);
         } catch (Hidden hidden) {
-            if (WRITE.contains(method) && hidden.creatable) {
+            // Ustvarjanje (PUT nove vizitke v vidnem imeniku, MKCOL imenika) je nedovoljeno (403); drugače vir ni viden
+            // (404).
+            if (method.equals(hidden.creatingMethod)) {
                 forbidden(response);
             } else {
                 response.setStatus(404);
@@ -149,22 +152,22 @@ class DavController {
         }
         Matcher card = CARD.matcher(path);
         if (card.matches()) {
-            Book book = visibleBook(account, card.group(1)).orElseThrow(() -> new Hidden(false));
+            Book book = visibleBook(account, card.group(1)).orElseThrow(() -> new Hidden(null));
             Optional<UUID> id = uuid(card.group(2));
             if (id.isEmpty()) {
-                throw new Hidden(true);
+                throw new Hidden("PUT");
             }
             List<Card> cards = repository.cards(book.id(), Set.of(id.get()));
             if (cards.isEmpty()) {
-                throw new Hidden(true);
+                throw new Hidden("PUT");
             }
             return new CardResource(book, cards.get(0));
         }
         Matcher book = BOOK.matcher(path);
         if (book.matches()) {
-            return new BookResource(visibleBook(account, book.group(1)).orElseThrow(() -> new Hidden(true)));
+            return new BookResource(visibleBook(account, book.group(1)).orElseThrow(() -> new Hidden("MKCOL")));
         }
-        throw new Hidden(path.startsWith(HOME));
+        throw new Hidden(path.startsWith(HOME) ? "MKCOL" : null);
     }
 
     private Optional<Book> visibleBook(DavAccount account, String segment) {
