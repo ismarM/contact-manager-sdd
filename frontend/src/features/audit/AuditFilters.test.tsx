@@ -39,7 +39,14 @@ describe('AuditFilters', () => {
     const group = screen.getByRole('group', { name: 'Vrsta dejanja' });
     // 014 (FR-014-05): nova vrsta dejanja »uvoz«.
     expect(within(group).getAllByRole('checkbox')).toHaveLength(6);
-    for (const name of ['dodajanje', 'urejanje', 'odstranjevanje', 'združevanje', 'rollback', 'uvoz']) {
+    for (const name of [
+      'dodajanje',
+      'urejanje',
+      'odstranjevanje',
+      'združevanje',
+      'rollback',
+      'uvoz',
+    ]) {
       expect(within(group).getByRole('checkbox', { name })).not.toBeChecked();
     }
     expect(screen.getByRole('button', { name: 'Uporabi filtre' })).toBeInTheDocument();

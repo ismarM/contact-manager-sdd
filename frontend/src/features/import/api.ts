@@ -18,9 +18,9 @@ export function createImportApi(authFetch: AuthFetch) {
     parse: (groupId: string, file: File, format: ImportSource, language: 'sl' | 'en') => {
       const form = new FormData();
       form.append('file', file);
-      form.append('format', format);
-      form.append('language', language);
-      return authFetch<ImportSheet | ImportCards>(`${base(groupId)}/parse`, {
+      // `format` in `language` sta v poizvedbi (zaledje ju bere kot parametra zahtevka, enako kot polji multipart).
+      const query = new URLSearchParams({ format, language });
+      return authFetch<ImportSheet | ImportCards>(`${base(groupId)}/parse?${query}`, {
         method: 'POST',
         body: form,
       });

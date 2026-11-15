@@ -78,7 +78,8 @@ export function QrScanDialog() {
         stream.current = granted;
         if (video.current) {
           video.current.srcObject = granted;
-          void video.current.play().catch(() => undefined);
+          // jsdom in nekateri brskalniki ne vrnejo obljube.
+          void Promise.resolve(video.current.play()).catch(() => undefined);
         }
         setCamera('on');
         const scan = async () => {
