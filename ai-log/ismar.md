@@ -214,3 +214,12 @@ Predlogi za pohitritev (iz zgornjih meritev):
 - Konstitucija §3.3: pet iskanj `getByText` v testih 013 (ComparePage, AuditDetails, ContactView, AttributeTransfer) zamenjano z vlogami `definition`/`cell`/`term` in `toHaveAccessibleDescription`; vsebinske asercije enako stroge. Preostal `getByText` v `NewGroupDialog.test.tsx` je starejši od 013, usklajen bo ob dotiku.
 - `SuggestionsPerformanceIT`: meja 300 ms (p95) nespremenjena; merjenje do tri kroge na tip klica, uspeh če je p95 pod mejo v enem, vsi krogi so v sporočilu napake.
 - Nizki ugotovitvi: predlogi vrednosti za rezervirane ključe (obstoječi atributi ostanejo po FR-013-08, zato pravilno) in 768 px (projekt `w768` teče samo za `@w768`, nobena funkcionalnost razen ogrodja ga ne uporablja) – ne vplivata na pravilnost.
+
+
+## 015 – napredna revizijska sled (specify + clarify, 2026-11-15)
+- Veja `napredna-revizija` iz `main` (83358f1). Številka 015 prosta; 014 (Patrik) še ni v `specs/` ali na `origin`, zato je mapa podana izrecno (`SPECIFY_FEATURE_DIRECTORY=specs/015-napredna-revizija`), sicer bi `/speckit-specify` dodelil 014.
+- Ponovna uporaba iz 005 (preverjeno v kodi): `audit_change.contact_id` brez tujega ključa in celotno stanje `before`/`after` → zgodovina kontakta, ogled in primerjava ne potrebujejo nove tabele; `ChangeDiff`, `ContactSnapshots.apply/load`, zaklep skupine in `maxVersions` iz `RollbackService`, `AuditRepository.Filter`, `AuditFilters`, `ChangeTable`, `RollbackDialog` na FE.
+- Odkritje: `audit_entry.actor_id` je ob izbrisu računa `NULL` → vsi izbrisani uporabniki so en filter (»izbrisan uporabnik«); nekdanji člani imajo `actor_id` še vedno.
+- Napaka: `.specify/scripts/bash/resolve-template.sh` ni izvedljiv (permission denied) → zagon z `bash`.
+- Odprta odločitev o vrsti vnosa obnove zahteva razširitev `CHECK` na `audit_entry` (migracija V11); možen trk številke z 014.
+- `speckit-clarify` zaustavljen pred zapisom odgovorov na uporabnikovo zahtevo (odločitve potrdi uporabnik).

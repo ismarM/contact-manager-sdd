@@ -26,6 +26,7 @@
 | 011 | dvojniki | iskanje podvojenih kontaktov po kategorijah, tabela razlik, združevanje (editor in višje) | `features/duplicates`, paket `contact` |
 | 012 | moji podatki | izvoz lastnih podatkov (JSON), izbris računa z vsemi posledicami (»izbrisan uporabnik«, trajno arhivirane skupine) | `features/account` |
 | 013 | pametni atributi | predefinirani polji *Podjetje* in *Država* (koda ISO 3166-1), predlogi ključev, vrednosti, podjetij, držav in značk, kanonični zapis ključev in značk, ročni prenos starih atributov | `features/contacts`, paket `contact` |
+| 015 | napredna revizija | filter sledi po uporabniku (tudi nekdanji in izbrisani), zgodovina posameznega kontakta, ogled in primerjava različic, obnova enega kontakta, seznam izbrisanih kontaktov | `features/audit`, `features/contacts`, paket `audit` |
 
 Poti: `features/*` je `frontend/src/features/*`, paketi so `backend/src/main/java/si/contactmanager/*`, E2E scenariji so v `e2e/tests/*.spec.ts`.
 
