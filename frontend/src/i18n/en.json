@@ -11,7 +11,11 @@
     "archived": "Archived groups – Contacts",
     "audit": "Audit trail",
     "auditEntry": "Audit trail entry",
-    "invitations": "Invitations – Contacts"
+    "invitations": "Invitations – Contacts",
+    "history": "Contact history",
+    "version": "Contact version",
+    "compareVersions": "Compare versions",
+    "deleted": "Deleted contacts"
   },
   "language": {
     "label": "Language",
@@ -244,7 +248,9 @@
       "loadFailed": "The contact could not be loaded. Please try again.",
       "auditLink": "Changes to this contact in the audit trail",
       "company": "Company",
-      "country": "Country"
+      "country": "Country",
+      "historyHeading": "History",
+      "historyLink": "Contact history"
     },
     "gone": "This contact no longer exists – someone deleted it in the meantime.",
     "form": {
@@ -535,7 +541,8 @@
       "ambiguous": "The value is ambiguous. Choose a country; the attribute is removed only when you save the contact.",
       "unknown": "The value could not be recognised. Choose a country from the list; the attribute is removed only when you save the contact.",
       "pickLegend": "Choose a country"
-    }
+    },
+    "deletedLink": "Deleted contacts"
   },
   "audit": {
     "list": {
@@ -576,7 +583,20 @@
       "DELETE_count_two": "deleted {{count}} contacts",
       "DELETE_count_few": "deleted {{count}} contacts",
       "MERGE_count_two": "merged {{count}} contacts",
-      "MERGE_count_few": "merged {{count}} contacts"
+      "MERGE_count_few": "merged {{count}} contacts",
+      "CREATE_single": "added a contact",
+      "UPDATE_single": "edited a contact",
+      "DELETE_single": "deleted a contact",
+      "RESTORE_target": "restored the contact to the state of",
+      "RESTORE_target_named": "restored contact {{name}} to the state of",
+      "RESTORE_initial": "restored the contact to its original state",
+      "RESTORE_initial_named": "restored contact {{name}} to its original state",
+      "default_single": "changed a contact",
+      "default_named": "changed contact {{name}}",
+      "default_count_one": "changed {{count}} contact",
+      "default_count_two": "changed {{count}} contacts",
+      "default_count_few": "changed {{count}} contacts",
+      "default_count_other": "changed {{count}} contacts"
     },
     "filters": {
       "toggle": "Filters",
@@ -589,13 +609,25 @@
         "UPDATE": "edited",
         "DELETE": "deleted",
         "MERGE": "merged",
-        "ROLLBACK": "rollback"
+        "ROLLBACK": "rollback",
+        "RESTORE": "restore"
       },
       "removeAction": "Remove filter Action: {{action}}",
       "removeContact": "Remove filter Contact: {{name}}",
       "chipAction": "Action: {{action}}",
       "chipContact": "Contact: {{name}}",
-      "unknownContact": "unknown contact"
+      "unknownContact": "unknown contact",
+      "actorLabel": "Actor",
+      "actorAll": "All actors",
+      "actorMembers": "Members",
+      "actorFormer": "Former members",
+      "actorFormerName": "{{name}} (former member)",
+      "actorsLoading": "Loading actors…",
+      "actorsFailed": "Could not load the actors.",
+      "actorsRetry": "Try again",
+      "chipActor": "Actor: {{name}}",
+      "removeActor": "Remove filter Actor: {{name}}",
+      "unknownActor": "unknown actor"
     },
     "details": {
       "summary": "Details",
@@ -927,5 +959,155 @@
   "suggest": {
     "count": "Suggestions: {{total}}",
     "none": "No suggestions"
+  },
+  "history": {
+    "kind": {
+      "ADDED": "Added",
+      "REMOVED": "Removed",
+      "CHANGED": "Changed",
+      "UNCHANGED": "Unchanged"
+    },
+    "page": {
+      "heading": "History of contact {{name}}",
+      "back": "Back to the contact",
+      "backDeleted": "Back to deleted contacts",
+      "statusDeleted": "This contact is deleted. Its history remains visible.",
+      "statusMerged": "This contact was merged into another contact. Its history remains visible.",
+      "loading": "Loading…",
+      "loadFailed": "Could not load the contact history. Try again.",
+      "retry": "Try again",
+      "empty": "No recorded changes.",
+      "emptyText": "This contact existed before recording began and no operation has changed it since.",
+      "list": "Contact history",
+      "events": "Contact history events"
+    },
+    "event": {
+      "changedFields": "Changed fields: {{fields}}",
+      "details": "Details",
+      "viewVersion": "View the state after this change",
+      "compareCurrent": "Compare with current",
+      "fullEntry": "Full audit trail entry",
+      "mergedInto": "merged into",
+      "select": "Select for comparison",
+      "selectLabel": "Select for comparison: {{version}}"
+    },
+    "initial": {
+      "heading": "Original state",
+      "description": "The state of the contact before the first recorded event.",
+      "view": "View the original state"
+    },
+    "selection": {
+      "hint": "Select two versions to compare.",
+      "one": "One version selected. Select one more.",
+      "compare": "Compare the selected versions",
+      "summary": "Version comparison"
+    },
+    "version": {
+      "heading": "State of contact {{name}}",
+      "back": "Back to the contact history",
+      "current": "Current state",
+      "initial": "Original state",
+      "entry": "State after the change of {{time}}",
+      "readOnly": "This view is read-only.",
+      "by": "Actor",
+      "loading": "Loading…",
+      "loadFailed": "Could not load the version. Try again.",
+      "retry": "Try again",
+      "compareCurrent": "Compare with current",
+      "empty": "empty"
+    },
+    "compare": {
+      "heading": "Compare versions",
+      "back": "Back to the contact history",
+      "from": "Before",
+      "to": "After",
+      "field": "Field",
+      "kind": "Type of change",
+      "caption": "Differences between versions of contact {{name}}",
+      "showUnchanged": "Show unchanged fields",
+      "hideUnchanged": "Hide unchanged fields",
+      "noDifferences": "There are no differences between the versions.",
+      "tag": "Tag {{tag}}",
+      "present": "present",
+      "absent": "absent",
+      "loading": "Loading…",
+      "loadFailed": "Could not load the comparison. Try again.",
+      "retry": "Try again",
+      "invalid": "Comparison is not possible. Select two versions in the contact history.",
+      "versions": "Versions",
+      "captionUnchanged": "Unchanged fields of contact {{name}}"
+    },
+    "restore": {
+      "button": "Restore this version",
+      "titleLoading": "Restore contact {{name}}?",
+      "title": "Restore contact {{name}} to the state of {{time}}?",
+      "titleInitial": "Restore contact {{name}} to its original state?",
+      "text": "The contact will return to the values of the selected version. The restore is recorded in the audit trail as a new event; all other contacts stay unchanged.",
+      "textDeleted": "The contact will exist in the group again with the data listed. The restore is recorded in the audit trail as a new event.",
+      "changes": "Changes the restore will make",
+      "duplicates": "A similar contact already exists in the group, so a duplicate could appear:",
+      "duplicateEMAIL": "same email",
+      "duplicateNAME": "same name",
+      "cancel": "Cancel",
+      "confirm": "Restore contact",
+      "busy": "Restoring…",
+      "loading": "Loading preview…",
+      "loadFailed": "Could not load the restore preview. Try again.",
+      "retry": "Try again",
+      "merged": "This contact was merged into another contact, so it cannot be restored directly – a restore would create a duplicate. An admin can roll the group back with a group rollback in the audit trail.",
+      "noChanges": "This version is the same as the current state – restoring would change nothing.",
+      "close": "Close",
+      "conflict": "The contact has changed in the meantime.",
+      "conflictHint": "The preview was refreshed with the current state – check it and confirm the restore again if needed.",
+      "failed": "Could not restore the contact. Try again.",
+      "archived": "The group is archived – the contact cannot be restored.",
+      "forbidden": "You no longer have permission for this action.",
+      "gone": "The contact or version can no longer be found.",
+      "toast": "The contact was restored to the state of {{time}}.",
+      "toastInitial": "The contact was restored to its original state.",
+      "invalid": "This version cannot be restored because it contains data that is no longer valid under current rules. The history stays unchanged; you can edit the contact manually.",
+      "violation": {
+        "RESERVED_KEY": "The attribute name is now reserved for a predefined field ({{field}}).",
+        "INVALID_VALUE": "The value is not valid ({{field}}).",
+        "TOO_LONG": "The value is too long ({{field}}).",
+        "default": "The value is not valid ({{field}})."
+      },
+      "fieldCountry": "Country",
+      "fieldCompany": "Company",
+      "fieldAttribute": "Additional attribute",
+      "duplicatesConfirm": "I understand a duplicate contact may result, and I restore the contact anyway."
+    },
+    "deleted": {
+      "heading": "Deleted contacts",
+      "back": "Back to the contact list",
+      "searchLabel": "Search by name, email or company",
+      "stateLegend": "State",
+      "state": {
+        "all": "All",
+        "restorable": "Restorable",
+        "merged": "Merged"
+      },
+      "list": "List of deleted contacts",
+      "paginationList": "Deleted contacts",
+      "removed": "Removed by {{actor}} {{time}}",
+      "badgeRestorable": "Restorable",
+      "badgeMerged": "Merged into {{name}}",
+      "badgeMergedUnknown": "Merged",
+      "explain": "This contact was merged into contact {{name}}; its data is in the kept contact. Restoring it directly would create a duplicate contact. An admin can roll the group back with a group rollback in the audit trail.",
+      "explainUnknown": "This contact was merged into another contact; its data is in the kept contact. Restoring it directly would create a duplicate contact. An admin can roll the group back with a group rollback in the audit trail.",
+      "keptGone": "The kept contact is no longer in the group.",
+      "history": "History",
+      "historyLabel": "History of contact {{name}}",
+      "restore": "Restore",
+      "restoreLabel": "Restore contact {{name}}",
+      "openKept": "Open the kept contact",
+      "empty": "No deleted contacts.",
+      "emptyText": "Deleted contacts, contacts removed by a rollback and merged contacts will appear here.",
+      "emptyFiltered": "No contacts match the search.",
+      "clearSearch": "Clear search",
+      "loading": "Loading…",
+      "loadFailed": "Could not load the deleted contacts. Try again.",
+      "retry": "Try again"
+    }
   }
 }

@@ -1,6 +1,7 @@
 import { http, HttpResponse, type JsonBodyType } from 'msw';
 
 import type {
+  ActorList,
   AuditAction,
   AuditEntry,
   AuditPage,
@@ -150,6 +151,8 @@ type Handler<A extends unknown[]> = (...args: A) => Reply | Promise<Reply>;
 export function mockAuditApi(
   handlers: {
     list?: Handler<[URL, string]>;
+    /** Izvajalci sledi (015); privzeto prazen seznam. */
+    actors?: Handler<[string]>;
     entry?: Handler<[string, string]>;
     changes?: Handler<[string, URL, string]>;
     rollback?: Handler<[string, unknown, string]>;
@@ -192,6 +195,12 @@ export function mockAuditApi(
       const url = new URL(request.url);
       const group = String(params.groupId);
       return respond(handlers.list ? await handlers.list(url, group) : auditPageReply([])(url));
+    }),
+    // `actors` mora pred `:entryId`, sicer bi ga zajel rokovalnik vnosa.
+    http.get('/api/groups/:groupId/audit/actors', async ({ request, params }) => {
+      await record(request);
+      const body: ActorList = { items: [] };
+      return respond(handlers.actors ? await handlers.actors(String(params.groupId)) : ok(body));
     }),
     http.post('/api/groups/:groupId/audit/initial-state/rollback', async ({ request, params }) => {
       const { body } = await record(request);

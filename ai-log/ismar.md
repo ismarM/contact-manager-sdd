@@ -214,3 +214,36 @@ Predlogi za pohitritev (iz zgornjih meritev):
 - Konstitucija §3.3: pet iskanj `getByText` v testih 013 (ComparePage, AuditDetails, ContactView, AttributeTransfer) zamenjano z vlogami `definition`/`cell`/`term` in `toHaveAccessibleDescription`; vsebinske asercije enako stroge. Preostal `getByText` v `NewGroupDialog.test.tsx` je starejši od 013, usklajen bo ob dotiku.
 - `SuggestionsPerformanceIT`: meja 300 ms (p95) nespremenjena; merjenje do tri kroge na tip klica, uspeh če je p95 pod mejo v enem, vsi krogi so v sporočilu napake.
 - Nizki ugotovitvi: predlogi vrednosti za rezervirane ključe (obstoječi atributi ostanejo po FR-013-08, zato pravilno) in 768 px (projekt `w768` teče samo za `@w768`, nobena funkcionalnost razen ogrodja ga ne uporablja) – ne vplivata na pravilnost.
+
+
+## 015 – napredna revizijska sled (specify + clarify, 2026-11-15)
+- Veja `napredna-revizija` iz `main` (83358f1). Številka 015 prosta; 014 (Patrik) še ni v `specs/` ali na `origin`, zato je mapa podana izrecno (`SPECIFY_FEATURE_DIRECTORY=specs/015-napredna-revizija`), sicer bi `/speckit-specify` dodelil 014.
+- Ponovna uporaba iz 005 (preverjeno v kodi): `audit_change.contact_id` brez tujega ključa in celotno stanje `before`/`after` → zgodovina kontakta, ogled in primerjava ne potrebujejo nove tabele; `ChangeDiff`, `ContactSnapshots.apply/load`, zaklep skupine in `maxVersions` iz `RollbackService`, `AuditRepository.Filter`, `AuditFilters`, `ChangeTable`, `RollbackDialog` na FE.
+- Odkritje: `audit_entry.actor_id` je ob izbrisu računa `NULL` → vsi izbrisani uporabniki so en filter (»izbrisan uporabnik«); nekdanji člani imajo `actor_id` še vedno.
+- Napaka: `.specify/scripts/bash/resolve-template.sh` ni izvedljiv (permission denied) → zagon z `bash`.
+- Odprta odločitev o vrsti vnosa obnove zahteva razširitev `CHECK` na `audit_entry` (migracija V11); možen trk številke z 014.
+- `speckit-clarify` zaustavljen pred zapisom odgovorov na uporabnikovo zahtevo (odločitve potrdi uporabnik).
+
+## 015 – napredna revizijska sled: potek, odločitve, težave (2026-11-15)
+- **Odločitve uporabnika** (clarify): obnova EDITOR+; nova vrsta dejanja `RESTORE`; zadnja sprememba = pravi izvajalec in čas obnove (brez *Povrnjeno*); obnovljivi so posamično izbrisani in z rollbackom odstranjeni, združeni imajo samo zgodovino; seznam *Izbrisani kontakti* izpeljan iz sledi. Dodatno: opozorilo o podvajanju v predogledu (ne blokira), usklajena številka migracije s 014.
+- **Migracija**: `V11__napredna_revizija.sql`; 014 (Patrik) na `origin` in v lokalnih worktreejih ni bila najdena (preverjeno `git fetch` pred PR); pravilo za združevanje v plan.md (preštevilčenje, unija vrst dejanja v `CHECK`).
+- **Popravljalni promti in napake**:
+  - `resolve-template.sh` ni izvedljiv → `bash` (okolje).
+  - `speckit-specify` bi dodelil 014 → mapa podana izrecno (`SPECIFY_FEATURE_DIRECTORY`).
+  - Analyze: telo `VERSION_CONFLICT` v pogodbi ni ustrezalo kodi (`current`); popravljeno v openapi/research po implementaciji.
+  - Testi: pomočnik `mergeInto` je zapisal fiksna imena (napaka testa), tipi `UUID`/`Long` v primerjavah; `HistoryPerformanceIT` fixture brez obveznih polj `ContactState` (500 pri branju) in vstavljanje zgodovine v neprazno sled.
+  - Najdena prava napaka v kodi: sočasna obnova izbrisanega kontakta je drugi zahtevi vrnila `400 REQUIRED` namesto `409 VERSION_CONFLICT` → popravljeno v `RestoreService` (kontakt je medtem spet živ / izbrisan).
+  - E2E: prvi zagon je padel, ker spec ni nastavil `locale: 'sl-SI'` (aplikacija je bila v angleščini); drugi zagon `e2e` je padel zaradi časovnih omejitev v nepovezanih specih (obremenitev računalnika, load ≈ 11; vir: VM na gostitelju), tretji je zelen.
+  - `pregled-testov` (enkrat): `getByText` v e2e → zamenjano (`getByRole('definition')`, `toContainText`, `getByRole('option')`); dodani testi atomarnosti obnove (sprožilec v bazi), zaporednih konfliktov žetonov, VIEWER pri izbrisanem kontaktu, primerjave/predogleda z vnosom drugega kontakta, neznane vrste dejanja; odpravljena tavtološka asercija v testu sočasnosti.
+- **Odstopanja/odprto**: FE za obnovo iz seznama izbrisanih bere `history` (prvi dogodek z različico), ker `DeletedItem` nima polja za zadnjo različico (možna izboljšava pogodbe); stavki zgodovine uporabljajo isto tabelo kot sled 005 (»dodal(a)«, »izbrisal(a)«); ročni preizkus dostopnosti (design.md §10) ostaja za razvijalca.
+- **Čas faz**: `.verify/timing-015.log` (ni v Gitu); poročilo v opisu PR.
+
+## 015 – zaključni pregled pred združitvijo PR #20 (2026-11-15)
+- **CI** za `bed881b` (push in PR): quick, backend, e2e zeleni. 014 (Patrik) še vedno ni ne na `origin`, ne v PR-jih, ne v lokalnih worktreejih.
+- **Pravi napaki, najdeni pri pregledu pravil 013** (popravljeni, s testi):
+  1. Obnova je zapisovala `created_at` = 1970 (različica ni vsebovala metapodatkov; test te vrednosti ni preverjal) → `ContactHistoryRepository.fullState` (polno zapisano stanje).
+  2. Obnova stare različice je lahko ustvarila stanje, ki krši 013: nov rezerviran ključ atributa (`Država`), neuradna država, predolgo podjetje, nekanonični ključi/značke → `contact.RestoreRules.conform`; `400 VALIDATION_FAILED` ali predogled `restorable: false`, `INVALID_STATE` + `violations`; zgodovina ostane dobesedna; kanonični zapis za ključe in značke, ki jih kontakt ne hrani dobesedno (research R-11).
+- **UX podvajanja**: poleg opozorila mora uporabnik izrecno potrditi podvajanje (potrditveno polje, gumb *Obnovi kontakt* onemogočen do potrditve); spec FR-015-12/-14 in clarifications dopolnjeni.
+- **aria-current**: razdelek *Kontakti* je bil na `deleted-contacts` neoznačen → `GroupHeader` označi *Kontakti* tudi na poteh `contacts/*` in `deleted-contacts`; testa (Vitest + e2e).
+- **Usklajenost z 014**: brez sprememb; pravilo preštevilčenja migracije in unije `CHECK` ostane v plan.md/PR.
+- Preverjanja po popravkih: `quick` 138 s, `backend` 319 s, `e2e` 274 s (vsi zeleni).

@@ -100,7 +100,7 @@ class RollbackService {
         return repository.find(group, entry).orElseThrow();
     }
 
-    private static boolean sameContent(ContactState a, ContactState b) {
+    static boolean sameContent(ContactState a, ContactState b) {
         return Objects.equals(a.firstName(), b.firstName())
                 && Objects.equals(a.lastName(), b.lastName())
                 && Objects.equals(a.address(), b.address())

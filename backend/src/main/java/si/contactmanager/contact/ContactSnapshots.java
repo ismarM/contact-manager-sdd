@@ -128,6 +128,52 @@ public class ContactSnapshots {
         insertChildren(withChildren);
     }
 
+    /**
+     * Obnova enega kontakta (015, research R-05): vrstica dobi vrednosti ciljnega stanja, novo verzijo, dejanskega
+     * izvajalca in čas obnove ({@code now()}), brez oznake rollbacka; {@code exists == false} vstavi izbrisan kontakt z
+     * istim id. Atributi in značke se zamenjajo. Vedno s pogojem {@code group_id}; drugih kontaktov se ne dotakne.
+     */
+    public void restore(UUID groupId, UUID contactId, ContactState goal, long version, long actor, boolean exists) {
+        MapSqlParameterSource p = new MapSqlParameterSource()
+                .addValue("id", contactId)
+                .addValue("group", groupId)
+                .addValue("first", goal.firstName())
+                .addValue("last", goal.lastName())
+                .addValue("address", goal.address())
+                .addValue("email", goal.email())
+                .addValue("phone", goal.phone())
+                .addValue("company", goal.company())
+                .addValue("country", goal.country())
+                .addValue("sortLast", sortKey(goal.lastName()))
+                .addValue("sortFirst", sortKey(goal.firstName()))
+                .addValue("version", version)
+                .addValue("createdAt", Timestamp.from(goal.createdAt()))
+                .addValue("by", actor);
+        if (exists) {
+            batch.update(
+                    "UPDATE contact SET first_name = :first, last_name = :last, address = :address, email = :email,"
+                            + " phone = :phone, company = :company, country = :country, sort_last = :sortLast,"
+                            + " sort_first = :sortFirst, version = :version, created_at = :createdAt,"
+                            + " updated_at = now(), updated_by = :by, reverted_entry_id = NULL"
+                            + " WHERE group_id = :group AND id = :id",
+                    p);
+            jdbc.sql("DELETE FROM contact_attribute WHERE contact_id = :id")
+                    .param("id", contactId)
+                    .update();
+            jdbc.sql("DELETE FROM contact_tag WHERE contact_id = :id")
+                    .param("id", contactId)
+                    .update();
+        } else {
+            batch.update(
+                    "INSERT INTO contact (id, group_id, first_name, last_name, address, email, phone, company, country,"
+                            + " sort_last, sort_first, version, created_at, updated_at, updated_by)"
+                            + " VALUES (:id, :group, :first, :last, :address, :email, :phone, :company, :country,"
+                            + " :sortLast, :sortFirst, :version, :createdAt, now(), :by)",
+                    p);
+        }
+        insertChildren(List.of(new Target(contactId, goal, true)));
+    }
+
     /** Sprememba vsebine enega kontakta pri množičnem urejanju (ime se ne spreminja). */
     public record Change(UUID contactId, ContactState before, ContactState after) {}
 

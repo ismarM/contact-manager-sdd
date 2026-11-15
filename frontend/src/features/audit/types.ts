@@ -2,21 +2,46 @@ import type { UserRef } from '../groups/types';
 
 // Oblike odgovorov API revizijske sledi (specs/005-revizijska-sled/contracts/openapi.yaml).
 
-export const AUDIT_ACTIONS = ['CREATE', 'UPDATE', 'DELETE', 'MERGE', 'ROLLBACK'] as const;
+/** Vrste dejanj, ki jih vmesnik pozna (filter, stavki); zaledje lahko zapiše tudi novejše (FR-015-18). */
+export const AUDIT_ACTIONS = [
+  'CREATE',
+  'UPDATE',
+  'DELETE',
+  'MERGE',
+  'ROLLBACK',
+  'RESTORE',
+] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
+
+export function isKnownAction(action: string): action is AuditAction {
+  return (AUDIT_ACTIONS as readonly string[]).includes(action);
+}
+
+/** Izvajalec sledi (015, `GET /audit/actors`): `id` je žeton ali `deleted`. */
+export interface Actor {
+  id: string;
+  kind: 'MEMBER' | 'FORMER' | 'DELETED';
+  /** `null` = izbrisan uporabnik. */
+  user: UserRef | null;
+}
+
+export interface ActorList {
+  items: Actor[];
+}
 
 export interface AuditEntry {
   id: string;
   createdAt: string;
   /** `null` = izbrisan uporabnik (feature-map §2.5). */
   actor: UserRef | null;
-  action: AuditAction;
+  /** Znana vrsta (`AuditAction`) ali novejša, ki jo vmesnik prikaže s splošnim stavkom (FR-015-18). */
+  action: string;
   contactCount: number;
   /** Prikazno ime ob času vnosa, kadar je `contactCount = 1`. */
   contactName: string | null;
-  /** Samo `ROLLBACK` na vnos: ciljni vnos T. */
+  /** `ROLLBACK` in `RESTORE` na vnos: ciljni vnos T. */
   target: { entryId: string; createdAt: string } | null;
-  /** Samo `ROLLBACK` na *Začetno stanje*. */
+  /** `ROLLBACK` na *Začetno stanje*, `RESTORE` na izhodiščno različico. */
   targetInitial: boolean;
 }
 
@@ -29,6 +54,8 @@ export interface AuditPage {
   /** Najnovejši vnos CELOTNE sledi ne glede na filtre; `null` = prazna sled. */
   latestEntryId: string | null;
   contactFilter: { id: string; displayName: string | null } | null;
+  /** 015: izbrani izvajalec; `null` ali odsoten, kadar filtra ni ali žeton ni izvajalec te sledi. */
+  actorFilter?: Actor | null;
 }
 
 export type ChangeFieldName =
@@ -70,8 +97,10 @@ export interface RollbackRequest {
   latestEntryId: string;
 }
 
-/** Filtri sledi iz poti (`?action=`, `?contact=`). */
+/** Filtri sledi iz poti (`?action=`, `?contact=`, `?actor=`). */
 export interface AuditFilters {
   actions: AuditAction[];
   contact: string | null;
+  /** Žeton izvajalca ali `deleted`. */
+  actor: string | null;
 }

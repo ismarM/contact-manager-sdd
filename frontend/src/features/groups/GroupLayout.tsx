@@ -12,6 +12,10 @@ import { ContactsPage } from '../contacts/ContactsPage';
 import { SelectionProvider } from '../contacts/selection/SelectionProvider';
 import { ComparePage } from '../duplicates/ComparePage';
 import { DuplicatesPage } from '../duplicates/DuplicatesPage';
+import { ComparePage as VersionComparePage } from '../history/ComparePage';
+import { ContactHistoryPage } from '../history/ContactHistoryPage';
+import { DeletedContactsPage } from '../history/DeletedContactsPage';
+import { VersionPage } from '../history/VersionPage';
 import { useGroupsApi } from './api';
 import { ArchivedBanner } from './ArchivedBanner';
 import { GroupContext, type GroupContextValue } from './groupContext';
@@ -21,10 +25,25 @@ import type { GroupDetail } from './types';
 import { useDelayed } from './useDelayed';
 
 /**
- * Razdelki skupine (plan.md 004, 005, 011 – Pages and routes): *Kontakti* (privzeti, s podpotmi), *Dvojniki*
- * (`duplicates`, `duplicates/compare`), *Revizijska sled* in *Nastavitve*.
+ * Razdelki skupine (plan.md 004, 005, 011, 015 – Pages and routes): *Kontakti* (privzeti, s podpotmi), *Dvojniki*
+ * (`duplicates`, `duplicates/compare`), *Revizijska sled* in *Nastavitve*; iz kontaktov še `deleted-contacts`.
  */
 const SECTIONS = ['contacts', 'duplicates', 'audit', 'settings'] as const;
+
+/** Zgodovina kontakta (015): `contacts/:id/history`, `…/history/:ref`, `…/compare`; ostale podpoti razreši ContactsPage. */
+type HistoryRoute =
+  | { screen: 'history'; contactId: string }
+  | { screen: 'version'; contactId: string; ref: string }
+  | { screen: 'versionCompare'; contactId: string };
+
+function historyRoute(section: string): HistoryRoute | null {
+  const [first, contactId, action, ref, ...rest] = section.split('/');
+  if (first !== 'contacts' || !contactId || contactId === 'new' || rest.length > 0) return null;
+  if (action === 'history' && ref === undefined) return { screen: 'history', contactId };
+  if (action === 'history' && ref) return { screen: 'version', contactId, ref };
+  if (action === 'compare' && ref === undefined) return { screen: 'versionCompare', contactId };
+  return null;
+}
 
 /**
  * Okvir skupine `/groups/:groupId/*` (FR-002-07, -08): `/groups/:id` odpre prvi razdelek, neznan razdelek in skupina, za
@@ -46,6 +65,7 @@ export function GroupLayout() {
     );
   }
   // Podpoti kontaktov (`contacts/new`, `contacts/:id`, `contacts/:id/edit`) razreši ContactsPage.
+  const history = historyRoute(section);
   const first = section.split('/')[0] ?? '';
   const rest = section.split('/').slice(1);
   const unknown =
@@ -53,22 +73,25 @@ export function GroupLayout() {
       ? rest.length > 1 || rest[0] === ''
       : first === 'duplicates'
         ? section !== 'duplicates' && section !== 'duplicates/compare'
-        : section !== 'settings' && first !== 'contacts';
+        : section !== 'settings' && section !== 'deleted-contacts' && first !== 'contacts';
   if (unknown) return <NotFoundPage />;
   return (
     <GroupScreen
       key={groupId}
       groupId={groupId}
+      history={history}
       screen={
-        first === 'contacts'
-          ? 'contacts'
-          : first === 'duplicates'
-            ? section === 'duplicates'
-              ? 'duplicates'
-              : 'compare'
-            : first === 'audit'
-              ? 'audit'
-              : 'settings'
+        section === 'deleted-contacts'
+          ? 'deleted'
+          : first === 'contacts'
+            ? 'contacts'
+            : first === 'duplicates'
+              ? section === 'duplicates'
+                ? 'duplicates'
+                : 'compare'
+              : first === 'audit'
+                ? 'audit'
+                : 'settings'
       }
       entryId={first === 'audit' ? rest[0] : undefined}
     />
@@ -85,10 +108,12 @@ function GroupScreen({
   groupId,
   screen,
   entryId,
+  history,
 }: {
   groupId: string;
-  screen: 'contacts' | 'duplicates' | 'compare' | 'audit' | 'settings';
+  screen: 'contacts' | 'duplicates' | 'compare' | 'audit' | 'settings' | 'deleted';
   entryId: string | undefined;
+  history: HistoryRoute | null;
 }) {
   const { t } = useTranslation();
   const api = useGroupsApi();
@@ -165,7 +190,21 @@ function GroupScreen({
       <SelectionProvider groupId={groupId}>
         <GroupHeader group={context.group} focusTitle={focusTitle} />
         <ArchivedBanner />
-        {screen === 'contacts' ? (
+        {history ? (
+          history.screen === 'history' ? (
+            <ContactHistoryPage key={history.contactId} contactId={history.contactId} />
+          ) : history.screen === 'version' ? (
+            <VersionPage
+              key={`${history.contactId}/${history.ref}`}
+              contactId={history.contactId}
+              versionRef={history.ref}
+            />
+          ) : (
+            <VersionComparePage key={history.contactId} contactId={history.contactId} />
+          )
+        ) : screen === 'deleted' ? (
+          <DeletedContactsPage />
+        ) : screen === 'contacts' ? (
           <ContactsPage />
         ) : screen === 'duplicates' ? (
           <DuplicatesPage />

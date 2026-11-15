@@ -33,8 +33,16 @@ class AuditRepository {
     /** Največ sprememb v enem stavku {@code unnest}. */
     private static final int AUDIT_CHUNK = 1000;
 
-    /** Filtri seznama: vrste dejanj in kontakt (oboje neobvezno). */
-    record Filter(List<AuditAction> actions, UUID contact) {}
+    /**
+     * Filtri seznama (vsi neobvezni, med seboj IN): vrste dejanj, kontakt in izvajalec ({@code actor}: žeton izvajalca
+     * ali {@link ActorView#DELETED_TOKEN}; research R-03).
+     */
+    record Filter(List<AuditAction> actions, UUID contact, String actor) {}
+
+    /** Žeton izvajalca (015, R-03): prvih 16 bajtov sha256(skupina:uporabnik) kot uuid; interni id ni izpostavljen. */
+    private static final String TOKEN =
+            "CAST(encode(substring(sha256(convert_to(CAST(:group AS text) || ':' || CAST(%s AS text), 'UTF8'))"
+                    + " FROM 1 FOR 16), 'hex') AS uuid)";
 
     private final JdbcClient jdbc;
     private final NamedParameterJdbcTemplate batch;
@@ -125,6 +133,14 @@ class AuditRepository {
             where.append(
                     " AND EXISTS (SELECT 1 FROM audit_change c WHERE c.entry_id = e.id AND c.contact_id = :contact)");
         }
+        if (ActorView.DELETED_TOKEN.equals(filter.actor())) {
+            where.append(" AND e.actor_id IS NULL");
+        } else if (filter.actor() != null) {
+            // Neznan žeton ne zadene nobenega izvajalca te skupine: podpoizvedba vrne NULL in seznam je prazen.
+            where.append(" AND e.actor_id = (SELECT a.actor_id FROM (SELECT DISTINCT actor_id FROM audit_entry"
+                    + " WHERE group_id = :group AND actor_id IS NOT NULL) a WHERE "
+                    + TOKEN.formatted("a.actor_id") + " = CAST(:actor AS uuid))");
+        }
         return where.toString();
     }
 
@@ -136,6 +152,9 @@ class AuditRepository {
         }
         if (filter.contact() != null) {
             bound = bound.param("contact", filter.contact());
+        }
+        if (filter.actor() != null && !ActorView.DELETED_TOKEN.equals(filter.actor())) {
+            bound = bound.param("actor", filter.actor());
         }
         return bound;
     }
@@ -160,6 +179,34 @@ class AuditRepository {
                 .param("id", id)
                 .query(AuditRepository::entry)
                 .optional();
+    }
+
+    /**
+     * Izvajalci sledi skupine (015, FR-015-03): trenutni člani, nekdanji člani in – če obstaja vnos izbrisanega
+     * uporabnika – ena postavka »izbrisan uporabnik«. Vrstni red: člani, nekdanji (po imenu), izbrisan zadnji.
+     */
+    List<ActorView> actors(UUID group) {
+        List<ActorView> actors = new ArrayList<>(jdbc.sql("SELECT " + TOKEN.formatted("a.actor_id") + " AS token,"
+                        + " u.name, u.email, m.user_id IS NOT NULL AS member FROM (SELECT DISTINCT actor_id"
+                        + " FROM audit_entry WHERE group_id = :group AND actor_id IS NOT NULL) a"
+                        + " JOIN app_user u ON u.id = a.actor_id"
+                        + " LEFT JOIN group_member m ON m.group_id = :group AND m.user_id = a.actor_id"
+                        + " ORDER BY (m.user_id IS NULL), lower(coalesce(u.name, u.email)), u.id")
+                .param("group", group)
+                .query((rs, row) -> new ActorView(
+                        rs.getObject("token", UUID.class).toString(),
+                        rs.getBoolean("member") ? ActorView.Kind.MEMBER : ActorView.Kind.FORMER,
+                        new UserRef(rs.getString("name"), rs.getString("email"))))
+                .list());
+        boolean deleted = jdbc.sql(
+                        "SELECT EXISTS (SELECT 1 FROM audit_entry WHERE group_id = :group" + " AND actor_id IS NULL)")
+                .param("group", group)
+                .query(Boolean.class)
+                .single();
+        if (deleted) {
+            actors.add(new ActorView(ActorView.DELETED_TOKEN, ActorView.Kind.DELETED, null));
+        }
+        return actors;
     }
 
     /** Najnovejši vnos celotne sledi (glava sledi); prazno, če sled nima vnosov. */
