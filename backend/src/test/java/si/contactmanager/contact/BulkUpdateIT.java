@@ -103,21 +103,21 @@ class BulkUpdateIT extends BulkApiTest {
 
     @Test
     @Tag("FR-009-07")
-    void aCustomAttributeOverwritesTheExistingKeyIgnoringCaseWithTheSpellingOfTheRequest() throws Exception {
+    void aCustomAttributeOverwritesTheExistingKeyIgnoringCaseWithTheCanonicalSpellingOfTheGroup() throws Exception {
         Scenario s = scenario();
         UUID withKey = contacts.insert(s.group(), s.id(Who.OWNER), "Ana", "Prva");
         contacts.addAttribute(withKey, 0, "Oddelek", "IT");
-        contacts.addAttribute(withKey, 1, "Podjetje", "stari d.o.o.");
+        contacts.addAttribute(withKey, 1, "Firma", "stari d.o.o.");
         UUID without = contacts.insert(s.group(), s.id(Who.OWNER), "Bojan", "Drugi");
 
         Map<String, Object> answer = updateOk(
-                s,
-                request(List.of(withKey, without), "attributes", List.of(attributeSet("custom", "podjetje", "FERI"))));
+                s, request(List.of(withKey, without), "attributes", List.of(attributeSet("custom", "firma", "FERI"))));
 
         assertThat(answer).containsEntry("changed", 2);
         assertThat(contacts.attributesOf(withKey))
-                .containsExactly(Map.of("key", "Oddelek", "value", "IT"), Map.of("key", "podjetje", "value", "FERI"));
-        assertThat(contacts.attributesOf(without)).containsExactly(Map.of("key", "podjetje", "value", "FERI"));
+                .containsExactly(Map.of("key", "Oddelek", "value", "IT"), Map.of("key", "Firma", "value", "FERI"));
+        // 013 (FR-013-10): strežnik uporabi kanonični zapis skupine (Firma), ne zapisa iz zahteve.
+        assertThat(contacts.attributesOf(without)).containsExactly(Map.of("key", "Firma", "value", "FERI"));
     }
 
     @Test
@@ -169,7 +169,7 @@ class BulkUpdateIT extends BulkApiTest {
     void anOperationWithoutAnyRealChangeSucceedsWithZeroChanged() throws Exception {
         Scenario s = scenario();
         List<UUID> all = contacts.insertManyWithTagsAndAttributes(
-                s.group(), s.id(Who.OWNER), 4, List.of("vip"), Map.of("podjetje", "FERI"));
+                s.group(), s.id(Who.OWNER), 4, List.of("vip"), Map.of("firma", "FERI"));
         Snapshot before = snapshot(s.group());
 
         Map<String, Object> answer = updateOk(
@@ -181,7 +181,7 @@ class BulkUpdateIT extends BulkApiTest {
                         "removeTags",
                         List.of("neobstaja"),
                         "attributes",
-                        List.of(attributeSet("custom", "PODJETJE", "FERI"))));
+                        List.of(attributeSet("custom", "FIRMA", "FERI"))));
 
         assertThat(answer).containsEntry("changed", 0);
         Snapshot after = snapshot(s.group());

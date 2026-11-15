@@ -242,7 +242,9 @@
       "back": "Nazaj na seznam kontaktov",
       "close": "Zapri podrobnosti",
       "loadFailed": "Kontakta ni bilo mogoče naložiti. Poskusi znova.",
-      "auditLink": "Spremembe tega kontakta v revizijski sledi"
+      "auditLink": "Spremembe tega kontakta v revizijski sledi",
+      "company": "Podjetje",
+      "country": "Država"
     },
     "gone": "Tega kontakta ni več – medtem ga je nekdo izbrisal.",
     "form": {
@@ -268,7 +270,13 @@
       "cancel": "Prekliči",
       "summary": "Obrazec vsebuje napake.",
       "saveFailed": "Kontakta ni bilo mogoče shraniti. Poskusi znova.",
-      "retry": "Poskusi znova"
+      "retry": "Poskusi znova",
+      "company": "Podjetje",
+      "country": "Država",
+      "countryList": "Države",
+      "companySuggestions": "Predlagana podjetja",
+      "keySuggestions": "Predlagani ključi",
+      "valueSuggestions": "Predlagane vrednosti"
     },
     "errors": {
       "nameRequired": "Vpiši vsaj ime ali priimek.",
@@ -289,7 +297,11 @@
       "tagSpaces": "Značka ne sme vsebovati presledkov.",
       "tagDuplicate": "Ta značka je že dodana.",
       "tooManyTags": "Dodaš lahko največ 30 značk.",
-      "tagTooLong": "Značka je predolga (največ 50 znakov)."
+      "tagTooLong": "Značka je predolga (največ 50 znakov).",
+      "companyTooLong": "Podjetje je predolgo (največ 200 znakov).",
+      "countryInvalid": "Izberi državo s seznama.",
+      "keyReservedCompany": "Ime »Podjetje« je rezervirano: vrednost vpiši v polje Podjetje.",
+      "keyReservedCountry": "Ime »Država« je rezervirano: državo izberi v polju Država."
     },
     "conflict": {
       "message": "Kontakt je medtem spremenil(a) {{who}} ob {{time}}.",
@@ -373,8 +385,11 @@
         "lastName": "Priimek",
         "address": "Naslov",
         "email": "E-naslov",
-        "phone": "Telefon"
-      }
+        "phone": "Telefon",
+        "company": "Podjetje",
+        "country": "Država"
+      },
+      "countryList": "Države za pogoj {{n}}"
     },
     "sort": {
       "label": "Razvrsti",
@@ -422,7 +437,9 @@
         "address": "Naslov",
         "email": "E-naslov",
         "phone": "Telefon",
-        "custom": "Dodatni atribut"
+        "custom": "Dodatni atribut",
+        "company": "Podjetje",
+        "country": "Država"
       },
       "key": "Ključ {{n}}",
       "value": "Vrednost {{n}}",
@@ -498,6 +515,26 @@
         "RESERVED_KEY": "Ključ je rezerviran za predefinirano polje.",
         "EMPTY_OPERATION": "Vnesi vsaj eno spremembo."
       }
+    },
+    "transfer": {
+      "note": {
+        "company": "To je star atribut. Podjetje ima zdaj svoje polje.",
+        "country": "To je star atribut. Država ima zdaj svoje polje s seznamom."
+      },
+      "action": {
+        "company": "Premakni v polje Podjetje",
+        "country": "Premakni v polje Država"
+      },
+      "failed": "Države ni bilo mogoče prepoznati. Poskusi znova.",
+      "attributeValue": "Vrednost atributa",
+      "fieldValue": "Vrednost polja",
+      "recognized": "Prepoznana država",
+      "keepField": "Obdrži vrednost polja in odstrani atribut",
+      "replaceField": "Nadomesti vrednost polja z atributom",
+      "cancel": "Prekliči",
+      "ambiguous": "Vrednost je dvoumna. Izberi državo; atribut se odstrani šele, ko shraniš kontakt.",
+      "unknown": "Vrednosti ni bilo mogoče prepoznati. Izberi državo s seznama; atribut se odstrani šele, ko shraniš kontakt.",
+      "pickLegend": "Izberi državo"
     }
   },
   "audit": {
@@ -578,7 +615,9 @@
         "ADDRESS": "Naslov",
         "EMAIL": "E-naslov",
         "PHONE": "Telefon",
-        "TAGS": "Značke"
+        "TAGS": "Značke",
+        "COMPANY": "Podjetje",
+        "COUNTRY": "Država"
       }
     },
     "rollback": {
@@ -659,7 +698,9 @@
         "lastName": "Priimek",
         "address": "Naslov",
         "email": "E-naslov",
-        "phone": "Telefon"
+        "phone": "Telefon",
+        "company": "Podjetje",
+        "country": "Država"
       },
       "tags": "Značke",
       "errors": {
@@ -882,5 +923,9 @@
       "left": "Zapustil(a) si skupino {{group}}.",
       "transferred": "Lastništvo je preneseno na {{name}}."
     }
+  },
+  "suggest": {
+    "count": "Predlogov: {{total}}",
+    "none": "Ni predlogov"
   }
 }

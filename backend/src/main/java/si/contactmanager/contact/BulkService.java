@@ -39,9 +39,16 @@ class BulkService {
     private final ContactSnapshots snapshots;
     private final AuditLog audit;
     private final ContactService contactService;
+    private final CanonicalForms canonical;
     private final ContactQueryParser queryParser = new ContactQueryParser();
 
-    BulkService(ContactRepository contacts, ContactSnapshots snapshots, AuditLog audit, ContactService contactService) {
+    BulkService(
+            ContactRepository contacts,
+            ContactSnapshots snapshots,
+            AuditLog audit,
+            ContactService contactService,
+            CanonicalForms canonical) {
+        this.canonical = canonical;
         this.contacts = contacts;
         this.snapshots = snapshots;
         this.audit = audit;
@@ -135,9 +142,10 @@ class BulkService {
 
     /** Množično urejanje (FR-009-06 … FR-009-12, FR-009-14, FR-009-16); vrne število spremenjenih kontaktov. */
     @Transactional
-    int update(Membership membership, BulkEditInput edit) {
+    int update(Membership membership, BulkEditInput requested) {
         UUID group = membership.groupId();
         lockWritable(group);
+        BulkEditInput edit = canonical.bulk(group, requested);
         Set<UUID> locked = contacts.lockExisting(group, edit.contactIds());
         Map<UUID, ContactState> states = snapshots.load(group, locked);
         Collator collator = collator();

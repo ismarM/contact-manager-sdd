@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next';
 
 import { secondaryButton, warningAlert } from '../../shared/ui/styles';
 import { useConflictMessage } from './conflictMessage';
+import { countryName } from './countries';
 import type { ContactDetail, ContactInput } from './types';
+import { useUiLanguage } from './useUiLanguage';
 
 /**
  * Opozorilo o konfliktu verzij kontakta (design.md 8.14; FR-004-11): kdo in kdaj je kontakt medtem spremenil, razlike
@@ -24,25 +26,32 @@ export function ContactConflictAlert({
 }) {
   const { t } = useTranslation();
   const conflictMessage = useConflictMessage();
+  const language = useUiLanguage();
   const [showDiff, setShowDiff] = useState(false);
   const tableId = useId();
-  const text = (value: string | null) =>
-    value === null || value === '' ? t('contacts.conflict.empty') : value;
+  const text = (value: string | null | undefined) =>
+    value === null || value === undefined || value === '' ? t('contacts.conflict.empty') : value;
   const attributes = (input: ContactInput) =>
     input.attributes.length === 0
       ? t('contacts.conflict.empty')
       : input.attributes.map((attribute) => `${attribute.key}: ${attribute.value}`).join('\n');
   const tags = (input: ContactInput) =>
     input.tags.length === 0 ? t('contacts.conflict.empty') : input.tags.join(', ');
-  const field = (label: string, key: 'firstName' | 'lastName' | 'address' | 'email' | 'phone') => ({
-    field: label,
-    yours: text(mine[key]),
-    theirs: text(current[key]),
-  });
+  const field = (
+    label: string,
+    key: 'firstName' | 'lastName' | 'company' | 'address' | 'country' | 'email' | 'phone',
+  ) => {
+    // Država je koda ISO: razlika pokaže ime v jeziku vmesnika.
+    const shown = (value: string | null | undefined) =>
+      key === 'country' && value ? countryName(value, language) : text(value);
+    return { field: label, yours: shown(mine[key]), theirs: shown(current[key]) };
+  };
   const rows = [
     field(t('contacts.form.firstName'), 'firstName'),
     field(t('contacts.form.lastName'), 'lastName'),
+    field(t('contacts.form.company'), 'company'),
     field(t('contacts.form.address'), 'address'),
+    field(t('contacts.form.country'), 'country'),
     field(t('contacts.form.email'), 'email'),
     field(t('contacts.form.phone'), 'phone'),
     {

@@ -16,8 +16,9 @@ final class ExportLabels {
 
     static Headers headers(String language) {
         if ("en".equals(language)) {
-            return new Headers(List.of("First name", "Last name", "Address", "Email", "Phone"), "Tags");
+            return new Headers(
+                    List.of("First name", "Last name", "Address", "Email", "Phone", "Country", "Company"), "Tags");
         }
-        return new Headers(List.of("Ime", "Priimek", "Naslov", "E-naslov", "Telefon"), "Značke");
+        return new Headers(List.of("Ime", "Priimek", "Naslov", "E-naslov", "Telefon", "Država", "Podjetje"), "Značke");
     }
 }

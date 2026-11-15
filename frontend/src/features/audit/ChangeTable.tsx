@@ -1,11 +1,16 @@
 import { useTranslation } from 'react-i18next';
 
+import { countryName } from '../contacts/countries';
+import { useUiLanguage } from '../contacts/useUiLanguage';
 import type { ChangeField, ChangeValue, ContactChange } from './types';
 
 /** Vrednost celice: besedilo, značke ločene z vejico ali »—« z vizualno skritim »prazno« (design.md 8.6). */
-function Value({ value }: { value: ChangeValue }) {
+function Value({ value, country = false }: { value: ChangeValue; country?: boolean }) {
   const { t } = useTranslation();
-  const text = Array.isArray(value) ? value.join(', ') : value;
+  const language = useUiLanguage();
+  const joined = Array.isArray(value) ? value.join(', ') : value;
+  // 013: pri državi sta `before`/`after` kodi ISO; ime v jeziku vmesnika, neznana koda ostane surova.
+  const text = country && joined ? countryName(joined, language) : joined;
   if (text === null || text === '') {
     return (
       <>
@@ -55,10 +60,10 @@ export function ChangeTable({ change }: { change: ContactChange }) {
                 <FieldLabel field={field} />
               </th>
               <td className="p-2 break-words">
-                <Value value={field.before} />
+                <Value value={field.before} country={field.field === 'COUNTRY'} />
               </td>
               <td className="p-2 break-words">
-                <Value value={field.after} />
+                <Value value={field.after} country={field.field === 'COUNTRY'} />
               </td>
             </tr>
           ))}

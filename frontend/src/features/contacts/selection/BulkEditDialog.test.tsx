@@ -15,10 +15,13 @@ import {
   contactSummary,
   deferred,
   forbiddenReply,
+  GROUP_ID,
   listQueries,
   renderContactsApp,
+  suggestionsServer,
 } from '../../../test/contactsApi';
 import { groupDetail, type Reply } from '../../../test/groupsApi';
+import { chooseCountry, country, name, optionTexts, tr } from '../../../test/smartAttributes';
 import {
   actionBar,
   displayName,
@@ -95,7 +98,7 @@ describe('BulkEditDialog', () => {
     expect(dialog.getByRole('button', { name })).toBeInTheDocument();
   });
 
-  it('FR-009-07: vrstica atributa ponuja Naslov, E-naslov, Telefon in Dodatni atribut – brez Ime in Priimek', async () => {
+  it('FR-009-07: vrstica atributa ponuja Podjetje, Naslov, Državo, E-naslov, Telefon in Dodatni atribut – brez Ime in Priimek', async () => {
     const { user, dialog } = await openDialog();
 
     await addAttributeRow(user, dialog);
@@ -105,14 +108,14 @@ describe('BulkEditDialog', () => {
       within(field)
         .getAllByRole('option')
         .map((option) => option.textContent),
-    ).toEqual(['Naslov', 'E-naslov', 'Telefon', 'Dodatni atribut']);
-    expect(dialog.queryByRole('textbox', { name: 'Ključ 1' })).not.toBeInTheDocument();
+    ).toEqual(['Podjetje', 'Naslov', 'Država', 'E-naslov', 'Telefon', 'Dodatni atribut']);
+    expect(dialog.queryByRole('combobox', { name: 'Ključ 1' })).not.toBeInTheDocument();
     expect(dialog.getByRole('textbox', { name: 'Vrednost 1' })).toHaveAccessibleDescription(
       'Prazna vrednost atribut odstrani.',
     );
 
     await user.selectOptions(field, 'Dodatni atribut');
-    expect(dialog.getByRole('textbox', { name: 'Ključ 1' })).toBeInTheDocument();
+    expect(dialog.getByRole('combobox', { name: 'Ključ 1' })).toBeInTheDocument();
 
     await user.click(dialog.getByRole('button', { name: 'Odstrani atribut 1' }));
     expect(dialog.queryByRole('combobox', { name: 'Atribut 1' })).not.toBeInTheDocument();
@@ -127,8 +130,8 @@ describe('BulkEditDialog', () => {
       dialog.getByRole('combobox', { name: 'Atribut 1' }),
       'Dodatni atribut',
     );
-    await user.type(dialog.getByRole('textbox', { name: 'Ključ 1' }), 'podjetje');
-    await user.type(dialog.getByRole('textbox', { name: 'Vrednost 1' }), 'FERI');
+    await user.type(dialog.getByRole('combobox', { name: 'Ključ 1' }), 'podjetje');
+    await user.type(dialog.getByRole('combobox', { name: 'Vrednost 1' }), 'FERI');
 
     await user.click(dialog.getByRole('button', { name: 'Uporabi za 12 kontaktov' }));
 
@@ -540,5 +543,97 @@ describe('BulkEditDialog', () => {
     await screen.findByRole('dialog', { name: 'Edit selected contacts (1)' });
 
     expect((await axe(document.body)).violations).toEqual([]);
+  });
+
+  it('FR-013-05: Podjetje in Država se pošljeta kot polji (država je koda); prazna vrednost počisti polje', async () => {
+    const { user, dialog, api } = await openDialog(3);
+    await addAttributeRow(user, dialog);
+    await user.selectOptions(dialog.getByRole('combobox', { name: 'Atribut 1' }), name.company());
+    await user.type(dialog.getByRole('combobox', { name: 'Vrednost 1' }), 'Acme');
+    await addAttributeRow(user, dialog);
+    await user.selectOptions(dialog.getByRole('combobox', { name: 'Atribut 2' }), name.country());
+    await chooseCountry(
+      user,
+      dialog.getByRole('combobox', { name: 'Vrednost 2' }),
+      'avstri',
+      country('AT'),
+    );
+    await addAttributeRow(user, dialog);
+    await user.selectOptions(dialog.getByRole('combobox', { name: 'Atribut 3' }), name.country());
+
+    await user.click(dialog.getByRole('button', { name: 'Uporabi za 3 kontakte' }));
+
+    await waitFor(() => expect(api.recordedBodies(UPDATE)).toHaveLength(1));
+    expect((api.recordedBodies(UPDATE)[0] as { attributes: unknown[] }).attributes).toEqual([
+      { field: 'company', value: 'Acme' },
+      { field: 'country', value: 'AT' },
+      { field: 'country', value: '' },
+    ]);
+  });
+
+  it('FR-013-15: ključ in vrednost imata predloge (ključ brez rezerviranih imen), značke predloge ob fokusu', async () => {
+    const { user, dialog, api } = await openDialog(12, {
+      contacts: {
+        suggestions: suggestionsServer({
+          key: [
+            { text: 'Kompetenca', count: 4 },
+            { text: 'Država', count: 2 },
+          ],
+          value: { Kompetenca: [{ text: 'web dev', count: 3 }] },
+          tag: [{ text: 'vip', count: 9 }],
+        }),
+      },
+    });
+    await addAttributeRow(user, dialog);
+    await user.selectOptions(
+      dialog.getByRole('combobox', { name: 'Atribut 1' }),
+      'Dodatni atribut',
+    );
+
+    await user.click(dialog.getByRole('combobox', { name: 'Ključ 1' }));
+    expect(optionTexts(await screen.findByRole('listbox'))).toEqual(['Kompetenca']);
+    await user.keyboard('{ArrowDown}{Enter}');
+    await user.click(dialog.getByRole('combobox', { name: 'Vrednost 1' }));
+    expect(optionTexts(await screen.findByRole('listbox'))).toEqual(['web dev']);
+    await user.click(dialog.getByRole('combobox', { name: 'Dodaj značke' }));
+    expect(optionTexts(await screen.findByRole('listbox'))).toEqual(['vip']);
+
+    expect(
+      api.of('GET', `/api/groups/${GROUP_ID}/suggestions`).map((r) => r.search.get('type')),
+    ).toEqual(expect.arrayContaining(['key', 'value', 'tag']));
+  });
+
+  it('FR-013-08: RESERVED_KEY za ključ Country napoti na polje Država', async () => {
+    const { user, dialog } = await openDialog(12, {
+      contacts: {
+        bulkUpdate: () =>
+          bulkValidationReply([{ field: 'attributes[0].key', code: 'RESERVED_KEY' }]),
+      },
+    });
+    await addAttributeRow(user, dialog);
+    await user.selectOptions(
+      dialog.getByRole('combobox', { name: 'Atribut 1' }),
+      'Dodatni atribut',
+    );
+    await user.type(dialog.getByRole('combobox', { name: 'Ključ 1' }), 'Country');
+    await user.type(dialog.getByRole('combobox', { name: 'Vrednost 1' }), 'SI');
+
+    await user.click(dialog.getByRole('button', { name: 'Uporabi za 12 kontaktov' }));
+
+    await waitFor(() =>
+      expect(dialog.getByRole('combobox', { name: 'Ključ 1' })).toHaveAccessibleDescription(
+        tr('contacts.errors.keyReservedCountry'),
+      ),
+    );
+  });
+
+  it('FR-013-05: axe brez kršitev z vrstico Država in odprtim seznamom', async () => {
+    const { user, dialog } = await openDialog(3);
+    await addAttributeRow(user, dialog);
+    await user.selectOptions(dialog.getByRole('combobox', { name: 'Atribut 1' }), name.country());
+    await user.click(dialog.getByRole('combobox', { name: 'Vrednost 1' }));
+    await screen.findByRole('listbox');
+
+    expect((await axe(screen.getByRole('dialog'))).violations).toEqual([]);
   });
 });

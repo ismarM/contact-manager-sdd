@@ -1,12 +1,15 @@
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { countryName } from '../contacts/countries';
+import { useUiLanguage } from '../contacts/useUiLanguage';
 import { FIELDS } from './mergeModel';
 import type { MergeResultInput } from './types';
 
 /** Predogled združenega kontakta (FR-011-12): sproti posodobljen rezultat po trenutnih izbirah. */
 export function MergePreview({ result }: { result: MergeResultInput }) {
   const { t } = useTranslation();
+  const language = useUiLanguage();
   const titleId = useId();
   const empty = t('duplicates.compare.emptyValue');
 
@@ -22,7 +25,11 @@ export function MergePreview({ result }: { result: MergeResultInput }) {
         {FIELDS.map((field) => (
           <div key={field} className="contents">
             <dt className="font-bold">{t(`duplicates.compare.fields.${field}`)}</dt>
-            <dd className="break-words">{result[field] ?? empty}</dd>
+            <dd className="break-words">
+              {field === 'country' && result.country
+                ? countryName(result.country, language)
+                : (result[field] ?? empty)}
+            </dd>
           </div>
         ))}
         {result.attributes.map((attribute) => (

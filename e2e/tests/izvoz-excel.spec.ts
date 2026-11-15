@@ -20,7 +20,7 @@ test.describe.configure({ timeout: 90_000 });
 // prenese in prebere nazaj z `exceljs` (konstitucija §3.3). Podatke pripravi SQL (D-27).
 
 const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
-const HEADER_SL = ['Ime', 'Priimek', 'Naslov', 'E-naslov', 'Telefon'];
+const HEADER_SL = ['Ime', 'Priimek', 'Naslov', 'E-naslov', 'Telefon', 'Država', 'Podjetje'];
 
 async function expectNoAxeViolations(page: Page) {
   const results = await new AxeBuilder({ page }).withTags(WCAG).analyze();
@@ -103,8 +103,8 @@ test('FR-010-01 FR-010-02 FR-010-03 FR-010-10 FR-010-14 FR-010-15 SC-001 SC-003:
   expect(file.sheetNames).toEqual(['Kontakti']);
   expect(file.rows).toEqual([
     [...HEADER_SL, 'Značke'],
-    ['Ana', 'Kos', 'Glavni trg 1\nMaribor', 'ana@kos.si', '041 123 456', 'konferenca2025'],
-    ['Bor', 'Zupan', '', 'bor@zupan.si', '', ''],
+    ['Ana', 'Kos', 'Glavni trg 1\nMaribor', 'ana@kos.si', '041 123 456', '', '', 'konferenca2025'],
+    ['Bor', 'Zupan', '', 'bor@zupan.si', '', '', '', ''],
   ]);
   expect(file.hasFormula).toBe(false);
   expect(file.cellTypes.flat().every((kind) => kind === 'string' || kind === 'empty')).toBe(true);
@@ -147,9 +147,9 @@ test('FR-010-05 FR-010-06 FR-010-08 FR-010-09: atributi po slovenski abecedi, zn
   const { file } = await exportAndRead(page);
   expect(file.rows).toEqual([
     [...HEADER_SL, 'kompetenca', 'Oddelek', 'podjetje', 'Značke'],
-    ['Ana', 'Aaa', '', '', '', 'web dev', 'IT', '', 'Alumni, konferenca2025, ne_obveščaj'],
-    ['Bor', 'Bbb', '', '', '', '', '', 'FERI', ''],
-    ['\'=HYPERLINK("http://x","klik")', 'Ccc', '', '', "'+386 41 123 456", '', '', '', ''],
+    ['Ana', 'Aaa', '', '', '', '', '', 'web dev', 'IT', '', 'Alumni, konferenca2025, ne_obveščaj'],
+    ['Bor', 'Bbb', '', '', '', '', '', '', '', 'FERI', ''],
+    ['\'=HYPERLINK("http://x","klik")', 'Ccc', '', '', "'+386 41 123 456", '', '', '', '', '', ''],
   ]);
   expect(file.hasFormula).toBe(false);
   expect(file.cellTypes.flat().every((kind) => kind === 'string' || kind === 'empty')).toBe(true);
@@ -175,8 +175,8 @@ test('FR-010-04 FR-010-10: angleški vmesnik – list Contacts, glava in ime dat
   expect(name).toBe(`Projekt-FERI-contacts-${localDate()}.xlsx`);
   expect(file.sheetNames).toEqual(['Contacts']);
   expect(file.rows).toEqual([
-    ['First name', 'Last name', 'Address', 'Email', 'Phone', 'Tags'],
-    ['Ana', 'Kos', '', 'ana@kos.si', '', ''],
+    ['First name', 'Last name', 'Address', 'Email', 'Phone', 'Country', 'Company', 'Tags'],
+    ['Ana', 'Kos', '', 'ana@kos.si', '', '', '', ''],
   ]);
   await expect(en.page.getByRole('region', { name: 'Notifications' })).toContainText(
     'Contacts exported: 1.',

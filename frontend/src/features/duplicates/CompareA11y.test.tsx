@@ -22,7 +22,7 @@ const WCAG: RunOptions = {
   runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
 };
 
-/** 10 kontaktov z 12 vrsticami (5 polj, 6 atributov, značke); vse vrednosti se razlikujejo. */
+/** 10 kontaktov s 14 vrsticami (7 polj, 6 atributov, značke); vse vrednosti se razlikujejo (država ima dve kodi). */
 const TEN: CompareContact[] = Array.from({ length: 10 }, (_, i) => {
   const n = i + 1;
   return compareContact({
@@ -30,7 +30,9 @@ const TEN: CompareContact[] = Array.from({ length: 10 }, (_, i) => {
     version: n,
     firstName: `Ime${n}`,
     lastName: `Priimek${n}`,
+    company: `Podjetje ${n}`,
     address: `Ulica ${n}`,
+    country: n % 2 === 0 ? 'SI' : 'AT',
     email: `oseba${n}@primer.si`,
     phone: `041 000 ${String(n).padStart(3, '0')}`,
     attributes: Array.from({ length: 6 }, (_unused, k) => ({
@@ -108,7 +110,7 @@ describe('CompareA11y', () => {
     const radioGroups = screen
       .getAllByRole('group')
       .filter((group) => within(group).queryAllByRole('radio').length > 0);
-    expect(radioGroups).toHaveLength(11);
+    expect(radioGroups).toHaveLength(13);
     for (const group of radioGroups) {
       expect(
         within(group)

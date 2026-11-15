@@ -13,6 +13,8 @@ public record ChangeField(Field field, String key, Object before, Object after) 
         ADDRESS,
         EMAIL,
         PHONE,
+        COUNTRY,
+        COMPANY,
         ATTRIBUTE,
         TAGS
     }

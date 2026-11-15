@@ -32,9 +32,11 @@ class DuplicateService {
     private final ContactRepository contacts;
     private final ContactSnapshots snapshots;
     private final AuditLog audit;
+    private final CanonicalForms canonical;
     private final MergeInputParser parser = new MergeInputParser();
 
-    DuplicateService(ContactRepository contacts, ContactSnapshots snapshots, AuditLog audit) {
+    DuplicateService(ContactRepository contacts, ContactSnapshots snapshots, AuditLog audit, CanonicalForms canonical) {
+        this.canonical = canonical;
         this.contacts = contacts;
         this.snapshots = snapshots;
         this.audit = audit;
@@ -97,7 +99,26 @@ class DuplicateService {
         if (!parsed.valid()) {
             throw new ValidationException(parsed.errors());
         }
-        ContactInput result = parsed.value();
+        // Rezervirana imena in kanonični zapis (FR-013-08, -10): dovoljeni so ključi in značke, ki jih že hrani kateri
+        // koli
+        // vključeni kontakt.
+        List<String> storedKeys = new ArrayList<>();
+        List<String> storedTags = new ArrayList<>();
+        List<Attribute> storedAttributes = new ArrayList<>();
+        for (ContactState state : before.values()) {
+            storedAttributes.addAll(state.attributes());
+            state.attributes().forEach(a -> storedKeys.add(a.key()));
+            storedTags.addAll(state.tags());
+        }
+        List<si.contactmanager.shared.error.ValidationError.FieldError> reserved = AttributeKeys.reservedErrors(
+                parsed.value().attributes(), AttributeKeys.normalizedKeys(storedAttributes));
+        if (!reserved.isEmpty()) {
+            throw new ValidationException(reserved.stream()
+                    .map(e -> new si.contactmanager.shared.error.ValidationError.FieldError(
+                            "result." + e.field(), e.code()))
+                    .toList());
+        }
+        ContactInput result = canonical.input(group, parsed.value(), storedKeys, storedTags);
 
         List<UUID> ordered = new ArrayList<>(ids);
         ordered.sort(
@@ -128,6 +149,8 @@ class DuplicateService {
                 result.address(),
                 result.email(),
                 result.phone(),
+                result.company(),
+                result.country(),
                 result.attributes(),
                 result.tags(),
                 keeperBefore.version() + 1,
@@ -146,6 +169,8 @@ class DuplicateService {
                 state.address(),
                 state.email(),
                 state.phone(),
+                state.company(),
+                state.country(),
                 state.attributes(),
                 state.tags());
     }

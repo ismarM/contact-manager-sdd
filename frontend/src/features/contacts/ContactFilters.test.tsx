@@ -13,6 +13,7 @@ import {
   renderContactsApp,
   resultsReply,
 } from '../../test/contactsApi';
+import { chooseCountry, country, name } from '../../test/smartAttributes';
 
 // Filtri po atributih in značkah (FR-008-03 … FR-008-06, FR-008-11, FR-008-12; specs/008-iskanje/plan.md – Key
 // elements). Panel se ob odprtju napolni iz naslova; ob odprtju ima eno prazno vrstico pogoja (»Atribut 1«).
@@ -92,7 +93,17 @@ describe('ContactFilters', () => {
       within(select)
         .getAllByRole('option')
         .map((option) => option.textContent),
-    ).toEqual(['Ime', 'Priimek', 'Naslov', 'E-naslov', 'Telefon', 'kompetenca', 'podjetje']);
+    ).toEqual([
+      'Ime',
+      'Priimek',
+      'Podjetje',
+      'Naslov',
+      'Država',
+      'E-naslov',
+      'Telefon',
+      'kompetenca',
+      'podjetje',
+    ]);
     expect(panel.getByRole('textbox', { name: 'Vrednost 1' })).toBeInTheDocument();
     const tags = within(panel.getByRole('group', { name: 'Značke' }));
     expect(tags.getByRole('checkbox', { name: 'vip' })).not.toBeChecked();
@@ -112,7 +123,17 @@ describe('ContactFilters', () => {
       within(select)
         .getAllByRole('option')
         .map((option) => option.textContent),
-    ).toEqual(['First name', 'Last name', 'Address', 'Email', 'Phone', 'kompetenca', 'podjetje']);
+    ).toEqual([
+      'First name',
+      'Last name',
+      'Company',
+      'Address',
+      'Country',
+      'Email',
+      'Phone',
+      'kompetenca',
+      'podjetje',
+    ]);
     expect(panel.getByRole('textbox', { name: 'Value 1' })).toBeInTheDocument();
     expect(panel.getByRole('button', { name: 'Add condition' })).toBeInTheDocument();
     expect(panel.getByRole('button', { name: 'Apply filters' })).toBeInTheDocument();
@@ -494,6 +515,90 @@ describe('ContactFilters', () => {
 
     await i18n.changeLanguage('en');
     await screen.findByRole('group', { name: 'Contact filters' });
+    expect((await axe(container)).violations).toEqual([]);
+  });
+
+  it('FR-013-03: pogoj Podjetje je besedilo; pošlje se kot f=company:…', async () => {
+    const { api, user } = app(PATH);
+    const panel = await openPanel(user);
+    await user.selectOptions(panel.getByRole('combobox', { name: 'Atribut 1' }), name.company());
+    await user.type(panel.getByRole('textbox', { name: 'Vrednost 1' }), 'Acme');
+
+    await user.click(panel.getByRole('button', { name: 'Uporabi filtre' }));
+
+    await waitFor(() => expect(urlParams().getAll('f')).toEqual(['company:Acme']));
+    expect(listQueries(api).at(-1)?.f).toEqual(['company:Acme']);
+    expect(
+      (await area()).getByRole('button', { name: /^Odstrani filter Podjetje vsebuje Acme/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('FR-013-03: pogoj Država je izbirni seznam; pošlje se koda ISO, oznaka pokaže ime države', async () => {
+    const { api, user } = app(PATH);
+    const panel = await openPanel(user);
+    await user.selectOptions(panel.getByRole('combobox', { name: 'Atribut 1' }), name.country());
+    // Vrednost države ni prosto besedilo: polje je kombinirano polje s seznamom držav.
+    expect(panel.queryByRole('textbox', { name: 'Vrednost 1' })).not.toBeInTheDocument();
+    const field = panel.getByRole('combobox', { name: 'Vrednost 1' });
+
+    await chooseCountry(user, field, 'avstri', country('AT'));
+    // Seznam držav izhaja iz predlogov skupine (type=country) in statičnega seznama.
+    await waitFor(() =>
+      expect(
+        api
+          .of('GET', `/api/groups/${GROUP_ID}/suggestions`)
+          .some((r) => r.search.get('type') === 'country'),
+      ).toBe(true),
+    );
+    await user.click(panel.getByRole('button', { name: 'Uporabi filtre' }));
+
+    await waitFor(() => expect(urlParams().getAll('f')).toEqual(['country:AT']));
+    expect(listQueries(api).at(-1)?.f).toEqual(['country:AT']);
+    expect(
+      (await area()).getByRole('button', {
+        name: `Odstrani filter Država vsebuje ${country('AT')}`,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('FR-013-03: sprememba polja iz države v drugo polje počisti kodo; razvrščanje po podjetju in državi ni ponujeno', async () => {
+    const { user } = app(PATH);
+    const panel = await openPanel(user);
+    await user.selectOptions(panel.getByRole('combobox', { name: 'Atribut 1' }), name.country());
+    await chooseCountry(
+      user,
+      panel.getByRole('combobox', { name: 'Vrednost 1' }),
+      'avstri',
+      country('AT'),
+    );
+
+    await user.selectOptions(panel.getByRole('combobox', { name: 'Atribut 1' }), 'E-naslov');
+
+    expect(panel.getByRole('textbox', { name: 'Vrednost 1' })).toHaveValue('');
+    const sort = (await area()).getByRole('combobox', { name: 'Razvrsti' });
+    expect(
+      within(sort)
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).not.toEqual(expect.arrayContaining([name.company()]));
+    expect(within(sort).queryByRole('option', { name: name.country() })).not.toBeInTheDocument();
+  });
+
+  it('FR-013-03: država iz naslova (f=country:SI) napolni izbirnik z imenom države', async () => {
+    const { user } = app(`${PATH}?f=country:SI`);
+    const panel = await openPanel(user);
+
+    expect(panel.getByRole('combobox', { name: 'Atribut 1' })).toHaveValue('country');
+    expect(panel.getByRole('combobox', { name: 'Vrednost 1' })).toHaveValue(country('SI'));
+  });
+
+  it('FR-013-03: axe brez kršitev s pogojem Država', async () => {
+    const { user, container } = app(PATH);
+    const panel = await openPanel(user);
+    await user.selectOptions(panel.getByRole('combobox', { name: 'Atribut 1' }), name.country());
+    await user.click(panel.getByRole('combobox', { name: 'Vrednost 1' }));
+    await screen.findByRole('listbox');
+
     expect((await axe(container)).violations).toEqual([]);
   });
 });

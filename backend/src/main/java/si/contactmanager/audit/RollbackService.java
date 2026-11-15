@@ -81,6 +81,8 @@ class RollbackService {
                     goal.address(),
                     goal.email(),
                     goal.phone(),
+                    goal.company(),
+                    goal.country(),
                     goal.attributes(),
                     goal.tags(),
                     version,
@@ -104,6 +106,8 @@ class RollbackService {
                 && Objects.equals(a.address(), b.address())
                 && Objects.equals(a.email(), b.email())
                 && Objects.equals(a.phone(), b.phone())
+                && Objects.equals(a.company(), b.company())
+                && Objects.equals(a.country(), b.country())
                 && a.attributes().equals(b.attributes())
                 && a.tags().equals(b.tags());
     }

@@ -14,5 +14,7 @@ public record CompareContact(
         String address,
         String email,
         String phone,
+        String company,
+        String country,
         List<Attribute> attributes,
         List<String> tags) {}

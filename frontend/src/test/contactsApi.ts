@@ -9,7 +9,9 @@ import type {
   ContactInput,
   ContactPage,
   ContactSummary,
+  CountryResolution,
   ExportRequest,
+  Suggestion,
   SelectionCheckRequest,
   SelectionCheckResult,
 } from '../features/contacts/types';
@@ -51,7 +53,9 @@ export function contactDetail(overrides: Partial<ContactDetail> = {}): ContactDe
     firstName: 'Janez',
     lastName: 'Novak',
     displayName: 'Janez Novak',
+    company: null,
     address: null,
+    country: null,
     email: 'janez@primer.si',
     phone: '01 234 5678',
     attributes: [],
@@ -113,7 +117,7 @@ export interface RecordedContactRequest {
 type Handler<A extends unknown[]> = (...args: A) => Reply | Promise<Reply>;
 
 /**
- * MSW za API kontaktov in predlogov značk; zabeleži vse zahtevke. Privzeto: seznam prazen, branje `404`, ustvarjanje
+ * MSW za API kontaktov, predloge in prepoznavanje držav; zabeleži vse zahtevke. Privzeto: seznam prazen, branje `404`, ustvarjanje
  * `201` z vrnjenim kontaktom iz telesa, urejanje `200` z `version + 1`, izbris `204`, predlogi prazni.
  */
 export function mockContactsApi(
@@ -123,7 +127,10 @@ export function mockContactsApi(
     create?: Handler<[unknown, string]>;
     update?: Handler<[string, unknown, string]>;
     remove?: Handler<[string, URL, string]>;
-    tags?: Handler<[URL, string]>;
+    /** 013: `GET …/suggestions?type=…`; privzeto prazni predlogi. */
+    suggestions?: Handler<[URL, string]>;
+    /** 013: `POST /api/countries/resolve`; privzeto vsaka vrednost `UNKNOWN`. */
+    resolve?: Handler<[string[]]>;
     /** Možnosti filtrov (008); privzeto prazne. */
     filters?: Handler<[string]>;
     /** 009: `GET …/contact-ids`; privzeto brez zadetkov. */
@@ -276,12 +283,21 @@ export function mockContactsApi(
       }
       return respond(outcome);
     }),
-    http.get('/api/groups/:groupId/tags', async ({ request, params }) => {
+    http.get('/api/groups/:groupId/suggestions', async ({ request, params }) => {
       await record(request);
       const url = new URL(request.url);
       const group = String(params.groupId);
       return respond(
-        handlers.tags ? await handlers.tags(url, group) : { status: 200, body: { tags: [] } },
+        handlers.suggestions ? await handlers.suggestions(url, group) : suggestionsReply([]),
+      );
+    }),
+    http.post('/api/countries/resolve', async ({ request }) => {
+      const { body } = await record(request);
+      const { values } = body as { values: string[] };
+      return respond(
+        handlers.resolve
+          ? await handlers.resolve(values)
+          : resolveReply(values.map((input) => ({ input, status: 'UNKNOWN' }))),
       );
     }),
   );
@@ -388,6 +404,45 @@ export function resultsReply(items: ContactSummary[], total = items.length) {
 /** Odgovor `contact-filters` (contracts/openapi.yaml – ContactFilterOptions). */
 export function filterOptionsReply(keys: string[], tags: string[]): Reply {
   return { status: 200, body: { keys, tags } };
+}
+
+// --- 013: predlogi in države -----------------------------------------------------------------------------------------
+
+/** Odgovor `GET …/suggestions` (contracts/openapi.yaml – Suggestions). */
+export function suggestionsReply(items: Suggestion[]): Reply {
+  return { status: 200, body: { items } };
+}
+
+/**
+ * Strežnik predlogov po pogodbi: po `type` izbere vir (`value` po `key`), `q` zoži z vsebovanjem brez razlike velikosti
+ * črk (predpona pred ujemanjem v sredini), največ 10, po pogostosti.
+ */
+export function suggestionsServer(sources: {
+  key?: Suggestion[];
+  company?: Suggestion[];
+  tag?: Suggestion[];
+  country?: Suggestion[];
+  value?: Record<string, Suggestion[]>;
+}) {
+  return (url: URL): Reply => {
+    const type = url.searchParams.get('type') ?? '';
+    const q = (url.searchParams.get('q') ?? '').toLowerCase();
+    const all =
+      type === 'value'
+        ? (sources.value?.[url.searchParams.get('key') ?? ''] ?? [])
+        : (sources[type as 'key' | 'company' | 'tag' | 'country'] ?? []);
+    const matching = all.filter((item) => item.text.toLowerCase().includes(q));
+    const prefix = (item: Suggestion) => (item.text.toLowerCase().startsWith(q) ? 0 : 1);
+    const items = [...matching]
+      .sort((a, b) => prefix(a) - prefix(b) || b.count - a.count)
+      .slice(0, 10);
+    return suggestionsReply(items);
+  };
+}
+
+/** Odgovor `POST /countries/resolve`. */
+export function resolveReply(results: CountryResolution[]): Reply {
+  return { status: 200, body: { results } };
 }
 
 /** `400 VALIDATION_FAILED` z napakami po poljih. */

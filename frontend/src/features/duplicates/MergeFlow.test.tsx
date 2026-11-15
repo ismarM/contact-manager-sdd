@@ -21,6 +21,7 @@ import {
   renderDuplicatesApp,
 } from '../../test/duplicatesApi';
 import { groupDetail, type Reply } from '../../test/groupsApi';
+import { tr } from '../../test/smartAttributes';
 import type { CompareContact, MergeRequest } from './types';
 
 // Združevanje: odjemalska validacija, potrditev, pošiljanje in izidi (FR-011-13 … 18; specs/011-dvojniki/plan.md –
@@ -219,7 +220,9 @@ describe('MergeFlow', () => {
     expect(sent.result).toEqual({
       firstName: 'Janez',
       lastName: 'Novak',
+      company: null,
       address: 'Cesta 1',
+      country: null,
       email: 'janez@primer.si',
       phone: '041 111 222',
       attributes: [{ key: 'Kompetenca', value: 'web dev' }],
@@ -249,7 +252,9 @@ describe('MergeFlow', () => {
     expect(sent.result).toEqual({
       firstName: 'Janez',
       lastName: 'Novak',
+      company: null,
       address: 'Cesta 1',
+      country: null,
       email: 'janez@primer.si',
       phone: null,
       attributes: [{ key: 'kompetenca', value: 'java' }],
@@ -603,5 +608,22 @@ describe('MergeFlow', () => {
       'The contacts could not be merged. Try again.',
     );
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+  });
+
+  it('FR-013-06: združeni kontakt prejme izbrano podjetje in državo (koda ISO)', async () => {
+    const first = compareContact({ n: 1, version: 1, company: 'Acme', country: 'SI' });
+    const second = compareContact({ n: 2, version: 2, company: 'Beta', country: 'AT' });
+    const view = app([first, second], { merge: () => mergeReply({ mergedCount: 2 }) });
+    await view.user.click(
+      (await row(tr('duplicates.compare.fields.country'))).getByRole('radio', { name: 'Avstrija' }),
+    );
+    await view.user.click(
+      (await row(tr('duplicates.compare.fields.company'))).getByRole('radio', { name: 'Beta' }),
+    );
+
+    await confirm(view, 'Združi 2 kontakta');
+
+    await waitFor(() => expect(view.duplicatesApi.recordedBody()).toHaveLength(1));
+    expect(body(view).result).toMatchObject({ company: 'Beta', country: 'AT' });
   });
 });

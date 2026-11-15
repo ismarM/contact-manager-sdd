@@ -1,25 +1,27 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { http, HttpResponse } from 'msw';
 import { axe } from 'vitest-axe';
 
 import { i18n } from '../../i18n';
-import { GROUP_ID, renderContactsApp } from '../../test/contactsApi';
+import { GROUP_ID, renderContactsApp, suggestionsServer } from '../../test/contactsApi';
+import { server } from '../../test/msw';
 
 // Kombinirano polje za značke (FR-004-02, FR-004-04; design.md 8.4).
 
 const NEW = `/groups/${GROUP_ID}/contacts/new`;
 
-const KNOWN = ['vip', 'VIP2', 'ne_obveščaj', 'konferenca2025'];
-const tagsReply = (url: URL) => {
-  const q = (url.searchParams.get('q') ?? '').toLowerCase();
-  return {
-    status: 200,
-    body: { tags: KNOWN.filter((tag) => tag.toLowerCase().startsWith(q)) },
-  };
-};
+// 013: predlogi značk prek `GET …/suggestions?type=tag` (po pogostosti, z vsebovanjem; nadomesti `GET …/tags`).
+const KNOWN = [
+  { text: 'vip', count: 20 },
+  { text: 'VIP2', count: 3 },
+  { text: 'ne_obveščaj', count: 5 },
+  { text: 'konferenca2025', count: 1 },
+];
+const suggestions = suggestionsServer({ tag: KNOWN });
 
 async function openForm() {
-  const view = renderContactsApp(NEW, { role: 'EDITOR', contacts: { tags: tagsReply } });
+  const view = renderContactsApp(NEW, { role: 'EDITOR', contacts: { suggestions } });
   await screen.findByRole('heading', { level: 2, name: 'Nov kontakt' });
   return { ...view, combobox: screen.getByRole('combobox', { name: 'Dodaj značko' }) };
 }
@@ -44,22 +46,24 @@ describe('ContactTags', () => {
   it('FR-004-04: vpis predloge zahteva predloge te skupine in jih pokaže v listbox', async () => {
     const { user, combobox, api } = await openForm();
 
-    await user.type(combobox, 'v');
+    await user.type(combobox, 'vi');
 
     const listbox = await screen.findByRole('listbox');
     expect(
       within(listbox)
         .getAllByRole('option')
         .map((o) => o.textContent),
-    ).toEqual(['vip', 'VIP2']);
+    ).toEqual(['vip20', 'VIP23']);
     expect(combobox).toHaveAttribute('aria-expanded', 'true');
     expect(combobox).toHaveAttribute('aria-controls', listbox.id);
-    expect(api.of('GET', `/api/groups/${GROUP_ID}/tags`).at(-1)?.search.get('q')).toBe('v');
+    const last = api.of('GET', `/api/groups/${GROUP_ID}/suggestions`).at(-1);
+    expect(last?.search.get('type')).toBe('tag');
+    expect(last?.search.get('q')).toBe('vi');
   });
 
   it('FR-004-04: puščica dol in Enter dodata predlog; polje se izprazni', async () => {
     const { user, combobox } = await openForm();
-    await user.type(combobox, 'v');
+    await user.type(combobox, 'vi');
     await screen.findByRole('listbox');
 
     await user.keyboard('{ArrowDown}');
@@ -74,7 +78,7 @@ describe('ContactTags', () => {
     const { user, combobox } = await openForm();
     await user.type(combobox, 'ne');
 
-    await user.click(await screen.findByRole('option', { name: 'ne_obveščaj' }));
+    await user.click(await screen.findByRole('option', { name: /^ne_obveščaj/ }));
 
     expect(addedTags()).toEqual(['ne_obveščaj']);
   });
@@ -135,6 +139,57 @@ describe('ContactTags', () => {
 
     expect(addedTags()).toHaveLength(30);
     expect(combobox).toHaveAccessibleDescription('Dodaš lahko največ 30 značk.');
+  });
+
+  it('FR-013-14: fokus brez vpisa pokaže predloge po pogostosti s številom uporab', async () => {
+    const { user, combobox, api } = await openForm();
+
+    await user.click(combobox);
+
+    const options = await screen.findAllByRole('option');
+    expect(options.map((o) => o.textContent)).toEqual([
+      'vip20',
+      'ne_obveščaj5',
+      'VIP23',
+      'konferenca20251',
+    ]);
+    const request = api.of('GET', `/api/groups/${GROUP_ID}/suggestions`).at(-1);
+    expect(request?.search.get('type')).toBe('tag');
+    expect(request?.search.get('q')).toBeNull();
+  });
+
+  it('FR-013-14: že dodane značke niso med predlogi', async () => {
+    const { user, combobox } = await openForm();
+    await user.type(combobox, 'vip{Enter}');
+    await screen.findByRole('list', { name: 'Dodane značke' });
+
+    await user.click(combobox);
+
+    const options = await screen.findAllByRole('option');
+    expect(options.map((o) => o.textContent)).not.toContain('vip20');
+    expect(options).toHaveLength(3);
+  });
+
+  it('FR-013-10: vpisana značka se zamenja s kanoničnim zapisom skupine že ob dodajanju', async () => {
+    const { user, combobox } = await openForm();
+
+    await user.type(combobox, 'VIP{Enter}');
+
+    await waitFor(() => expect(addedTags()).toEqual(['vip']));
+    expect(combobox).toHaveValue('');
+  });
+
+  it('FR-013-14: napaka predlogov je tiha, značko je še vedno mogoče dodati', async () => {
+    const { user, combobox } = await openForm();
+    server.use(
+      http.get('/api/groups/:groupId/suggestions', () => HttpResponse.json({}, { status: 500 })),
+    );
+
+    await user.type(combobox, 'nova{Enter}');
+
+    await waitFor(() => expect(addedTags()).toEqual(['nova']));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
   it('FR-004-04: brez kršitev axe z odprtim listbox in dodanimi značkami (sl in en)', async () => {

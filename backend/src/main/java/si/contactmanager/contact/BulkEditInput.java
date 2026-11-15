@@ -15,6 +15,8 @@ public record BulkEditInput(
         ADDRESS,
         EMAIL,
         PHONE,
+        COMPANY,
+        COUNTRY,
         CUSTOM
     }
 

@@ -242,7 +242,9 @@
       "back": "Back to contacts",
       "close": "Close details",
       "loadFailed": "The contact could not be loaded. Please try again.",
-      "auditLink": "Changes to this contact in the audit trail"
+      "auditLink": "Changes to this contact in the audit trail",
+      "company": "Company",
+      "country": "Country"
     },
     "gone": "This contact no longer exists – someone deleted it in the meantime.",
     "form": {
@@ -268,7 +270,13 @@
       "cancel": "Cancel",
       "summary": "The form contains errors.",
       "saveFailed": "The contact could not be saved. Please try again.",
-      "retry": "Try again"
+      "retry": "Try again",
+      "company": "Company",
+      "country": "Country",
+      "countryList": "Countries",
+      "companySuggestions": "Suggested companies",
+      "keySuggestions": "Suggested keys",
+      "valueSuggestions": "Suggested values"
     },
     "errors": {
       "nameRequired": "Enter at least a first or last name.",
@@ -289,7 +297,11 @@
       "tagSpaces": "A tag must not contain spaces.",
       "tagDuplicate": "This tag is already added.",
       "tooManyTags": "You can add at most 30 tags.",
-      "tagTooLong": "The tag is too long (at most 50 characters)."
+      "tagTooLong": "The tag is too long (at most 50 characters).",
+      "companyTooLong": "The company is too long (at most 200 characters).",
+      "countryInvalid": "Choose a country from the list.",
+      "keyReservedCompany": "The name \"Company\" is reserved: enter the value in the Company field.",
+      "keyReservedCountry": "The name \"Country\" is reserved: choose the country in the Country field."
     },
     "conflict": {
       "message": "The contact was changed by {{who}} at {{time}} in the meantime.",
@@ -373,8 +385,11 @@
         "lastName": "Last name",
         "address": "Address",
         "email": "Email",
-        "phone": "Phone"
-      }
+        "phone": "Phone",
+        "company": "Company",
+        "country": "Country"
+      },
+      "countryList": "Countries for condition {{n}}"
     },
     "sort": {
       "label": "Sort by",
@@ -422,7 +437,9 @@
         "address": "Address",
         "email": "Email",
         "phone": "Phone",
-        "custom": "Custom attribute"
+        "custom": "Custom attribute",
+        "company": "Company",
+        "country": "Country"
       },
       "key": "Key {{n}}",
       "value": "Value {{n}}",
@@ -498,6 +515,26 @@
       "tooManyTagsFor_few": "{{count}} contacts would have too many tags: {{names}}.",
       "tooManyAttributesFor_two": "{{count}} contacts would have too many custom attributes: {{names}}.",
       "tooManyAttributesFor_few": "{{count}} contacts would have too many custom attributes: {{names}}."
+    },
+    "transfer": {
+      "note": {
+        "company": "This is an old attribute. Company now has its own field.",
+        "country": "This is an old attribute. Country now has its own field with a list."
+      },
+      "action": {
+        "company": "Move to the Company field",
+        "country": "Move to the Country field"
+      },
+      "failed": "The country could not be recognised. Try again.",
+      "attributeValue": "Attribute value",
+      "fieldValue": "Field value",
+      "recognized": "Recognised country",
+      "keepField": "Keep the field value and remove the attribute",
+      "replaceField": "Replace the field value with the attribute",
+      "cancel": "Cancel",
+      "ambiguous": "The value is ambiguous. Choose a country; the attribute is removed only when you save the contact.",
+      "unknown": "The value could not be recognised. Choose a country from the list; the attribute is removed only when you save the contact.",
+      "pickLegend": "Choose a country"
     }
   },
   "audit": {
@@ -578,7 +615,9 @@
         "ADDRESS": "Address",
         "EMAIL": "Email",
         "PHONE": "Phone",
-        "TAGS": "Tags"
+        "TAGS": "Tags",
+        "COMPANY": "Company",
+        "COUNTRY": "Country"
       }
     },
     "rollback": {
@@ -659,7 +698,9 @@
         "lastName": "Last name",
         "address": "Address",
         "email": "Email",
-        "phone": "Phone"
+        "phone": "Phone",
+        "company": "Company",
+        "country": "Country"
       },
       "tags": "Tags",
       "errors": {
@@ -882,5 +923,9 @@
       "left": "You left {{group}}.",
       "transferred": "Ownership was transferred to {{name}}."
     }
+  },
+  "suggest": {
+    "count": "Suggestions: {{total}}",
+    "none": "No suggestions"
   }
 }

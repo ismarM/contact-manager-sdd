@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { focusRing } from '../../shared/ui/styles';
 import { type AppliedFilter, describeFilter } from './contactQuery';
+import { useUiLanguage } from './useUiLanguage';
 
 /**
  * Uporabljeni filtri kot odstranljive oznake (FR-008-11; design.md 8.7). Po odstranitvi fokus preide na naslednjo
@@ -19,6 +20,7 @@ export function FilterChips({
   fallbackFocus: RefObject<HTMLButtonElement | null>;
 }) {
   const { t } = useTranslation();
+  const language = useUiLanguage();
   const list = useRef<HTMLUListElement>(null);
   const pending = useRef<number | null>(null);
   const count = filters.length;
@@ -36,7 +38,7 @@ export function FilterChips({
   return (
     <ul ref={list} aria-label={t('contacts.filters.applied')} className="flex flex-wrap gap-2">
       {filters.map((filter, index) => {
-        const label = describeFilter(filter, t);
+        const label = describeFilter(filter, t, language);
         return (
           <li key={`${filter.kind}:${label}`}>
             <button

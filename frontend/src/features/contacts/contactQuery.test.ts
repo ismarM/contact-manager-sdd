@@ -219,4 +219,37 @@ describe('contactQuery', () => {
     expect(withChange(onPageFour, { q: 'novak' }).q).toBe('novak');
     expect(withChange(onPageFour, { sort: 'email' }).size).toBe(25);
   });
+
+  it('FR-013-03: pogoja Podjetje in Država se zapišeta kot company:… in country:… in preživita krožno pretvorbo', () => {
+    const condition = [
+      { field: 'company', value: 'Acme d.o.o.' },
+      { field: 'country', value: 'AT' },
+    ] as const;
+    const serialized = serializeQuery(query({ conditions: [...condition] }));
+
+    expect(pairs(serialized)).toEqual([
+      ['f', 'company:Acme d.o.o.'],
+      ['f', 'country:AT'],
+    ]);
+    expect(parse(serialized).conditions).toEqual(condition);
+    expect(
+      pairs(`?${toApiParams(query({ conditions: [...condition] })).toString()}`),
+    ).toContainEqual(['f', 'country:AT']);
+  });
+
+  it('FR-013-03: razvrščanje po podjetju ali državi ni podprto – vrednost v naslovu postane privzeta', () => {
+    expect(parse('?sort=company').sort).toBe('lastName');
+    expect(parse('?sort=country').sort).toBe('lastName');
+    expect(parse('?sort=phone').sort).toBe('phone');
+  });
+
+  it('FR-013-03: opis filtra po državi pokaže ime države v jeziku vmesnika', () => {
+    const country = {
+      kind: 'condition',
+      condition: { field: 'country', value: 'AT' },
+    } as const;
+
+    expect(describeFilter(country, i18n.getFixedT('sl'), 'sl')).toBe('Država vsebuje Avstrija');
+    expect(describeFilter(country, i18n.getFixedT('en'), 'en')).toBe('Country contains Austria');
+  });
 });

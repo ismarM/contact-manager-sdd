@@ -122,7 +122,9 @@ test('FR-008-03 FR-008-04 FR-008-05 FR-008-06 FR-008-11 FR-008-12: filtri samo s
   await expect(attribute.getByRole('option')).toHaveText([
     'Ime',
     'Priimek',
+    'Podjetje',
     'Naslov',
+    'Država',
     'E-naslov',
     'Telefon',
     'kompetenca',

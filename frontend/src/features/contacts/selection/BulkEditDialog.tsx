@@ -14,6 +14,8 @@ import {
   textInput,
 } from '../../../shared/ui/styles';
 import { useGroup } from '../../groups/groupContext';
+import { CountryField } from '../CountryField';
+import { SuggestInput } from '../SuggestInput';
 import { TagInput } from '../TagInput';
 import type {
   AttributeSet,
@@ -23,6 +25,7 @@ import type {
   BulkUpdateRequest,
   BulkUpdateResult,
 } from '../types';
+import { isReservedName, reservedKeyError } from '../validation';
 import { useSelectionApi } from './api';
 import { bulkFailure } from './bulkFailure';
 import { SelectionChangedNotice } from './SelectionChangedNotice';
@@ -31,7 +34,7 @@ import { useSelectionCheck } from './useSelectionCheck';
 
 const MAX_ATTRIBUTES = 10;
 const MAX_NAMES = 10;
-const FIELDS: BulkField[] = ['address', 'email', 'phone', 'custom'];
+const FIELDS: BulkField[] = ['company', 'address', 'country', 'email', 'phone', 'custom'];
 
 interface Row {
   id: number;
@@ -277,8 +280,43 @@ function AttributeRow({
   const hintId = `${base}-hint`;
   const message = (code: string | undefined) =>
     code ? t(`contacts.bulk.errors.${code}`, { defaultValue: t('contacts.bulk.failed') }) : null;
-  const keyError = message(problems?.key);
+  // RESERVED_KEY napoti na polje *Podjetje* oziroma *Država* (FR-013-08).
+  const keyError =
+    problems?.key === 'RESERVED_KEY' ? t(reservedKeyError(row.key)) : message(problems?.key);
   const valueError = message(problems?.value);
+  const valueProps = {
+    id: `${base}-value`,
+    value: row.value,
+    'aria-invalid': valueError !== null,
+    'aria-describedby': valueError ? `${hintId} ${base}-value-error` : hintId,
+  };
+  const valueInput =
+    row.field === 'country' ? (
+      <CountryField
+        {...valueProps}
+        onChange={(value) => onChange({ value })}
+        listLabel={t('contacts.form.countryList')}
+      />
+    ) : row.field === 'company' || row.field === 'custom' ? (
+      <SuggestInput
+        {...valueProps}
+        type={row.field === 'company' ? 'company' : 'value'}
+        keyParam={row.field === 'custom' ? row.key : undefined}
+        onChange={(value) => onChange({ value })}
+        listLabel={t(
+          row.field === 'company'
+            ? 'contacts.form.companySuggestions'
+            : 'contacts.form.valueSuggestions',
+        )}
+      />
+    ) : (
+      <input
+        {...valueProps}
+        type="text"
+        onChange={(event) => onChange({ value: event.target.value })}
+        className={textInput}
+      />
+    );
   return (
     <div className="flex flex-col gap-2 rounded-md border border-border p-3">
       <div className="flex flex-col gap-1">
@@ -288,7 +326,14 @@ function AttributeRow({
         <select
           id={`${base}-field`}
           value={row.field}
-          onChange={(event) => onChange({ field: event.target.value as BulkField })}
+          onChange={(event) => {
+            const field = event.target.value as BulkField;
+            // Država ima izbirnik s kodami: vrednost drugega polja ni veljavna koda in obratno.
+            onChange({
+              field,
+              ...((field === 'country') !== (row.field === 'country') ? { value: '' } : {}),
+            });
+          }}
           className={textInput}
         >
           {FIELDS.map((field) => (
@@ -303,14 +348,17 @@ function AttributeRow({
           <label htmlFor={`${base}-key`} className="font-bold">
             {t('contacts.bulk.key', { n })}
           </label>
-          <input
+          <SuggestInput
             id={`${base}-key`}
-            type="text"
+            type="key"
             value={row.key}
             aria-invalid={keyError !== null}
             aria-describedby={keyError ? `${base}-key-error` : undefined}
-            onChange={(event) => onChange({ key: event.target.value })}
-            className={textInput}
+            onChange={(key) => onChange({ key })}
+            exclude={isReservedName}
+            canonical="key"
+            showCount
+            listLabel={t('contacts.form.keySuggestions')}
           />
           {keyError && (
             <p id={`${base}-key-error`} className={fieldError}>
@@ -323,15 +371,7 @@ function AttributeRow({
         <label htmlFor={`${base}-value`} className="font-bold">
           {t('contacts.bulk.value', { n })}
         </label>
-        <input
-          id={`${base}-value`}
-          type="text"
-          value={row.value}
-          aria-invalid={valueError !== null}
-          aria-describedby={valueError ? `${hintId} ${base}-value-error` : hintId}
-          onChange={(event) => onChange({ value: event.target.value })}
-          className={textInput}
-        />
+        {valueInput}
         <p id={hintId} className="text-sm text-muted-foreground">
           {t('contacts.bulk.valueHint')}
         </p>

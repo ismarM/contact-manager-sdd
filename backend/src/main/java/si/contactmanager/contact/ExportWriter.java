@@ -43,6 +43,8 @@ final class ExportWriter {
                 put(sheet, row, 2, contact.address());
                 put(sheet, row, 3, contact.email());
                 put(sheet, row, 4, contact.phone());
+                put(sheet, row, 5, contact.country());
+                put(sheet, row, 6, contact.company());
                 int index = leading;
                 Map<String, String> attributes = contact.attributes();
                 for (Column attribute : columns) {

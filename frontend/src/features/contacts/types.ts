@@ -23,7 +23,11 @@ export interface Attribute {
 export interface ContactInput {
   firstName: string | null;
   lastName: string | null;
+  /** 013: do 200 znakov. */
+  company: string | null;
   address: string | null;
+  /** 013: koda ISO 3166-1 alpha-2 (npr. `SI`). */
+  country: string | null;
   email: string | null;
   phone: string | null;
   attributes: Attribute[];
@@ -63,8 +67,27 @@ export interface ContactPage {
   items: ContactSummary[];
 }
 
-export interface TagSuggestions {
-  tags: string[];
+/** 013: vrsta predlogov `GET …/suggestions?type=` (contracts/openapi.yaml). */
+export type SuggestionType = 'key' | 'value' | 'company' | 'tag' | 'country';
+
+export interface Suggestion {
+  /** Besedilo predloga; pri `country` koda ISO. */
+  text: string;
+  count: number;
+}
+
+export interface Suggestions {
+  items: Suggestion[];
+}
+
+/** 013: izid prepoznavanja države iz besedila (`POST /countries/resolve`). */
+export interface CountryResolution {
+  input: string;
+  status: 'FOUND' | 'AMBIGUOUS' | 'UNKNOWN';
+  /** Samo `FOUND`. */
+  code?: string | null;
+  /** Samo `AMBIGUOUS`: kode, do 10. */
+  candidates?: string[];
 }
 
 /** Možnosti filtrov skupine (contracts/openapi.yaml – ContactFilterOptions). */
@@ -110,7 +133,7 @@ export interface ExportRequest {
   language: 'sl' | 'en';
 }
 
-export type BulkField = 'address' | 'email' | 'phone' | 'custom';
+export type BulkField = 'address' | 'email' | 'phone' | 'company' | 'country' | 'custom';
 
 export interface AttributeSet {
   field: BulkField;

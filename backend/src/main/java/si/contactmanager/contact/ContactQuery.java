@@ -28,6 +28,8 @@ public record ContactQuery(
         ADDRESS,
         EMAIL,
         PHONE,
+        COMPANY,
+        COUNTRY,
         ATTRIBUTE
     }
 

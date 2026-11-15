@@ -14,6 +14,8 @@ public record ContactDetail(
         String address,
         String email,
         String phone,
+        String company,
+        String country,
         List<Attribute> attributes,
         List<String> tags,
         long version,

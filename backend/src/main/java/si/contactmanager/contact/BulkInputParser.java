@@ -306,6 +306,14 @@ public final class BulkInputParser {
                 errors.add(new FieldError(prefix + ".field", "DUPLICATE"));
             }
             String value = value(row.get("value"), field, prefix, errors);
+            // Nova rezervirana imena (FR-013-08): nastavitev je zavrnjena, odstranitev (prazna vrednost) ostane mogoča.
+            if (field == Field.CUSTOM
+                    && key != null
+                    && value != null
+                    && !value.isEmpty()
+                    && AttributeKeys.NEW_RESERVED.contains(AttributeKeys.reservedForm(key))) {
+                errors.add(new FieldError(prefix + ".key", "RESERVED_KEY"));
+            }
             if (field != null && value != null) {
                 result.add(new AttributeSet(field, field == Field.CUSTOM ? key : null, value));
             }
@@ -323,6 +331,8 @@ public final class BulkInputParser {
             case "address" -> Field.ADDRESS;
             case "email" -> Field.EMAIL;
             case "phone" -> Field.PHONE;
+            case "company" -> Field.COMPANY;
+            case "country" -> Field.COUNTRY;
             case "custom" -> Field.CUSTOM;
             default -> null;
         };
@@ -397,6 +407,16 @@ public final class BulkInputParser {
                 if (length > ContactInputParser.PHONE_MAX) {
                     errors.add(new FieldError(name, "TOO_LONG"));
                 } else if (!ContactInputParser.PHONE.matcher(value).matches()) {
+                    errors.add(new FieldError(name, "INVALID_VALUE"));
+                }
+            }
+            case COMPANY -> {
+                if (length > ContactInputParser.COMPANY_MAX) {
+                    errors.add(new FieldError(name, "TOO_LONG"));
+                }
+            }
+            case COUNTRY -> {
+                if (!CountryNames.isValid(value)) {
                     errors.add(new FieldError(name, "INVALID_VALUE"));
                 }
             }

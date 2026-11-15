@@ -3,7 +3,14 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 
 import { i18n } from '../../i18n';
-import { contactDetail, contactId, GROUP_ID, renderContactsApp } from '../../test/contactsApi';
+import {
+  contactDetail,
+  contactId,
+  GROUP_ID,
+  renderContactsApp,
+  validationFailedReply,
+} from '../../test/contactsApi';
+import { chooseCountry, country, name, tr } from '../../test/smartAttributes';
 import { currentLocation } from '../../test/renderApp';
 
 // Nov kontakt: obrazec, preverjanje, povzetek napak, napake strežnika (FR-004-01, -02, -03, -16; design.md 8.2, 8.3).
@@ -73,10 +80,10 @@ describe('ContactForm', () => {
     await user.type(screen.getByRole('textbox', { name: 'Priimek' }), 'Novak');
     await user.type(screen.getByRole('textbox', { name: 'E-naslov' }), 'janez@primer.si');
     await user.click(screen.getByRole('button', { name: 'Dodaj atribut' }));
-    const key = screen.getByRole('textbox', { name: 'Ključ' });
+    const key = screen.getByRole('combobox', { name: 'Ključ' });
     expect(key).toHaveFocus();
     await user.type(key, 'kompetenca');
-    await user.type(screen.getByRole('textbox', { name: 'Vrednost' }), 'web dev');
+    await user.type(screen.getByRole('combobox', { name: 'Vrednost' }), 'web dev');
     const tags = screen.getByRole('combobox', { name: 'Dodaj značko' });
     await user.type(tags, 'ne_obveščaj{Enter}');
     await user.type(tags, 'konferenca2025{Enter}');
@@ -174,13 +181,13 @@ describe('ContactForm', () => {
     await user.type(screen.getByRole('textbox', { name: 'Ime' }), 'Janez');
     for (const [index, key] of ['Kompetenca', 'kompetenca', 'Telefon'].entries()) {
       await user.click(screen.getByRole('button', { name: 'Dodaj atribut' }));
-      await user.type(screen.getAllByRole('textbox', { name: 'Ključ' })[index]!, key);
-      await user.type(screen.getAllByRole('textbox', { name: 'Vrednost' })[index]!, 'x');
+      await user.type(screen.getAllByRole('combobox', { name: 'Ključ' })[index]!, key);
+      await user.type(screen.getAllByRole('combobox', { name: 'Vrednost' })[index]!, 'x');
     }
 
     await user.click(screen.getByRole('button', { name: 'Shrani kontakt' }));
 
-    const keys = screen.getAllByRole('textbox', { name: 'Ključ' });
+    const keys = screen.getAllByRole('combobox', { name: 'Ključ' });
     await waitFor(() =>
       expect(keys[1]).toHaveAccessibleDescription('Ključ že obstaja v tem kontaktu.'),
     );
@@ -194,18 +201,18 @@ describe('ContactForm', () => {
     await user.type(screen.getByRole('textbox', { name: 'Ime' }), 'Janez');
     await user.click(screen.getByRole('button', { name: 'Dodaj atribut' }));
     await user.click(screen.getByRole('button', { name: 'Dodaj atribut' }));
-    await user.type(screen.getAllByRole('textbox', { name: 'Ključ' })[1]!, 'kompetenca');
+    await user.type(screen.getAllByRole('combobox', { name: 'Ključ' })[1]!, 'kompetenca');
 
     await user.click(screen.getByRole('button', { name: 'Shrani kontakt' }));
 
     await waitFor(() =>
-      expect(screen.getAllByRole('textbox', { name: 'Vrednost' })[1]).toHaveAccessibleDescription(
+      expect(screen.getAllByRole('combobox', { name: 'Vrednost' })[1]).toHaveAccessibleDescription(
         'Vpiši vrednost.',
       ),
     );
     expect(api.requests.filter((r) => r.method === 'POST')).toHaveLength(0);
 
-    await user.type(screen.getAllByRole('textbox', { name: 'Vrednost' })[1]!, 'web dev');
+    await user.type(screen.getAllByRole('combobox', { name: 'Vrednost' })[1]!, 'web dev');
     await user.click(screen.getByRole('button', { name: 'Shrani kontakt' }));
 
     await waitFor(() => expect(api.of('POST', `/api/groups/${GROUP_ID}/contacts`)).toHaveLength(1));
@@ -217,12 +224,12 @@ describe('ContactForm', () => {
   it('FR-004-03: Odstrani atribut odstrani vrstico in fokus ostane v obrazcu', async () => {
     const { user } = await openForm();
     await user.click(screen.getByRole('button', { name: 'Dodaj atribut' }));
-    await user.type(screen.getByRole('textbox', { name: 'Ključ' }), 'kompetenca');
+    await user.type(screen.getByRole('combobox', { name: 'Ključ' }), 'kompetenca');
     expect(screen.getByRole('button', { name: 'Odstrani atribut kompetenca' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Odstrani atribut kompetenca' }));
 
-    expect(screen.queryByRole('textbox', { name: 'Ključ' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Ključ' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Odstrani atribut/ })).not.toBeInTheDocument();
     expect(screen.getByRole('form', { name: 'Nov kontakt' }).contains(document.activeElement)).toBe(
       true,
@@ -233,11 +240,11 @@ describe('ContactForm', () => {
     const { user } = await openForm();
     const add = screen.getByRole('button', { name: 'Dodaj atribut' });
     for (let i = 0; i < 50; i += 1) fireEvent.click(add);
-    expect(screen.getAllByRole('textbox', { name: 'Ključ' })).toHaveLength(50);
+    expect(screen.getAllByRole('combobox', { name: 'Ključ' })).toHaveLength(50);
 
     await user.click(add);
 
-    expect(screen.getAllByRole('textbox', { name: 'Ključ' })).toHaveLength(50);
+    expect(screen.getAllByRole('combobox', { name: 'Ključ' })).toHaveLength(50);
     expect(add).toHaveAccessibleDescription('Dodaš lahko največ 50 atributov.');
   });
 
@@ -259,8 +266,8 @@ describe('ContactForm', () => {
     await user.type(screen.getByRole('textbox', { name: 'Ime' }), 'Janez');
     await user.type(screen.getByRole('textbox', { name: 'E-naslov' }), 'janez@primer.si');
     await user.click(screen.getByRole('button', { name: 'Dodaj atribut' }));
-    await user.type(screen.getByRole('textbox', { name: 'Ključ' }), 'kompetenca');
-    await user.type(screen.getByRole('textbox', { name: 'Vrednost' }), 'x');
+    await user.type(screen.getByRole('combobox', { name: 'Ključ' }), 'kompetenca');
+    await user.type(screen.getByRole('combobox', { name: 'Vrednost' }), 'x');
 
     await user.click(screen.getByRole('button', { name: 'Shrani kontakt' }));
 
@@ -269,7 +276,7 @@ describe('ContactForm', () => {
         'Vpiši veljaven e-naslov.',
       ),
     );
-    expect(screen.getByRole('textbox', { name: 'Ključ' })).toHaveAccessibleDescription(
+    expect(screen.getByRole('combobox', { name: 'Ključ' })).toHaveAccessibleDescription(
       'Ključ že obstaja v tem kontaktu.',
     );
     expect(screen.getByRole('textbox', { name: 'Ime' })).toHaveValue('Janez');
@@ -381,6 +388,155 @@ describe('ContactForm', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'First name' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save contact' })).toBeInTheDocument();
+    expect((await axe(container)).violations).toEqual([]);
+  });
+
+  it('FR-013-01: Podjetje je po Priimku, Država po Naslovu; obe sta v obrazcu vidni z oznakama', async () => {
+    await openForm();
+    const last = screen.getByRole('textbox', { name: tr('contacts.form.lastName') });
+    const company = screen.getByRole('combobox', { name: name.company() });
+    const address = screen.getByRole('textbox', { name: tr('contacts.form.address') });
+    const countryField = screen.getByRole('combobox', { name: name.country() });
+    const email = screen.getByRole('textbox', { name: tr('contacts.form.email') });
+    const follows = (a: Element, b: Element) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+    expect(follows(last, company)).toBe(true);
+    expect(follows(company, address)).toBe(true);
+    expect(follows(address, countryField)).toBe(true);
+    expect(follows(countryField, email)).toBe(true);
+  });
+
+  it('FR-013-01: podjetje in država (koda) gresta v telo zahtevka; prazni polji sta null', async () => {
+    const { user, api } = await openForm();
+    await user.type(screen.getByRole('textbox', { name: tr('contacts.form.firstName') }), 'Janez');
+    await user.type(screen.getByRole('combobox', { name: name.company() }), 'Acme d.o.o.');
+    await chooseCountry(
+      user,
+      screen.getByRole('combobox', { name: name.country() }),
+      'slov',
+      country('SI'),
+    );
+
+    await user.click(screen.getByRole('button', { name: name.save() }));
+
+    await waitFor(() => expect(api.of('POST', `/api/groups/${GROUP_ID}/contacts`)).toHaveLength(1));
+    expect(api.of('POST', `/api/groups/${GROUP_ID}/contacts`)[0]?.body).toMatchObject({
+      company: 'Acme d.o.o.',
+      country: 'SI',
+    });
+  });
+
+  it('FR-013-01: podjetje z 201 znaki je napaka ob polju brez zahtevka', async () => {
+    const { user, api } = await openForm();
+    await user.type(screen.getByRole('textbox', { name: tr('contacts.form.firstName') }), 'Janez');
+    const company = screen.getByRole('combobox', { name: name.company() });
+    fireEvent.change(company, { target: { value: 'x'.repeat(201) } });
+
+    await user.click(screen.getByRole('button', { name: name.save() }));
+
+    await waitFor(() =>
+      expect(company).toHaveAccessibleDescription(tr('contacts.errors.companyTooLong')),
+    );
+    expect(company).toHaveAttribute('aria-invalid', 'true');
+    expect(api.of('POST', `/api/groups/${GROUP_ID}/contacts`)).toHaveLength(0);
+  });
+
+  it('FR-013-13: napaka strežnika za državo (INVALID_VALUE) se pokaže ob polju Država', async () => {
+    const { user } = await openForm({
+      contacts: {
+        create: () => validationFailedReply({ field: 'country', code: 'INVALID_VALUE' }),
+      },
+    });
+    await user.type(screen.getByRole('textbox', { name: tr('contacts.form.firstName') }), 'Janez');
+
+    await user.click(screen.getByRole('button', { name: name.save() }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: name.country() })).toHaveAccessibleDescription(
+        tr('contacts.errors.countryInvalid'),
+      ),
+    );
+  });
+
+  it.each([
+    ['Country', 'contacts.errors.keyReservedCountry'],
+    ['država', 'contacts.errors.keyReservedCountry'],
+    ['COMPANY', 'contacts.errors.keyReservedCompany'],
+    ['Podjetje', 'contacts.errors.keyReservedCompany'],
+  ])('FR-013-08: nov ključ »%s« je napaka ob ključu, ki napoti na polje', async (key, message) => {
+    const { user, api } = await openForm();
+    await user.type(screen.getByRole('textbox', { name: tr('contacts.form.firstName') }), 'Janez');
+    await user.click(screen.getByRole('button', { name: name.addAttribute() }));
+    await user.type(screen.getByRole('combobox', { name: name.key() }), key);
+    await user.type(screen.getByRole('combobox', { name: name.value() }), 'x');
+
+    await user.click(screen.getByRole('button', { name: name.save() }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: name.key() })).toHaveAccessibleDescription(
+        tr(message),
+      ),
+    );
+    expect(api.of('POST', `/api/groups/${GROUP_ID}/contacts`)).toHaveLength(0);
+  });
+
+  it('FR-013-08: RESERVED_KEY iz strežnika pokaže sporočilo o polju Država ob ključu', async () => {
+    const { user } = await openForm({
+      contacts: {
+        create: () => validationFailedReply({ field: 'attributes[0].key', code: 'RESERVED_KEY' }),
+      },
+    });
+    await user.type(screen.getByRole('textbox', { name: tr('contacts.form.firstName') }), 'Janez');
+    await user.click(screen.getByRole('button', { name: name.addAttribute() }));
+    // Strežnik ima lahko strožja pravila od vmesnika: ključ, ki ga vmesnik ne pozna kot rezerviranega.
+    await user.type(screen.getByRole('combobox', { name: name.key() }), 'Hobi');
+    await user.type(screen.getByRole('combobox', { name: name.value() }), 'x');
+
+    await user.click(screen.getByRole('button', { name: name.save() }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: name.key() })).toHaveAccessibleDescription(
+        tr('contacts.errors.keyReserved'),
+      ),
+    );
+  });
+
+  it('FR-013-08: obstoječ atribut z rezerviranim imenom se ob shranjevanju pošlje nespremenjen', async () => {
+    const loaded = contactDetail({
+      version: 3,
+      attributes: [{ key: 'Država', value: 'Slovenija' }],
+    });
+    const { user, api } = renderContactsApp(`${LIST}/${loaded.id}/edit`, {
+      role: 'EDITOR',
+      contacts: { get: () => ({ status: 200, body: loaded }) },
+    });
+    await screen.findByRole('heading', { level: 2, name: tr('contacts.form.editHeading') });
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', { name: tr('contacts.form.firstName') })).toHaveValue(
+        'Janez',
+      ),
+    );
+    await user.type(screen.getByRole('textbox', { name: tr('contacts.form.phone') }), '1');
+
+    await user.click(screen.getByRole('button', { name: name.save() }));
+
+    await waitFor(() =>
+      expect(api.of('PUT', `/api/groups/${GROUP_ID}/contacts/${loaded.id}`)).toHaveLength(1),
+    );
+    expect(api.of('PUT', `/api/groups/${GROUP_ID}/contacts/${loaded.id}`)[0]?.body).toMatchObject({
+      attributes: [{ key: 'Država', value: 'Slovenija' }],
+      country: null,
+    });
+  });
+
+  it('FR-013-01: axe brez kršitev z novima poljema (sl in en)', async () => {
+    const { container } = await openForm();
+    expect((await axe(container)).violations).toEqual([]);
+
+    await i18n.changeLanguage('en');
+    expect(await screen.findByRole('combobox', { name: 'Company' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Country' })).toBeInTheDocument();
     expect((await axe(container)).violations).toEqual([]);
   });
 });

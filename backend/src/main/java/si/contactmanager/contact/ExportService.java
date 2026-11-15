@@ -23,10 +23,10 @@ import si.contactmanager.shared.error.ValidationException;
 @Service
 class ExportService {
 
-    /** Največ stolpcev lista (Excel); šest je predefiniranih (pet atributov kontakta in značke). */
+    /** Največ stolpcev lista (Excel); osem je predefiniranih (sedem polj kontakta in značke). */
     static final int MAX_COLUMNS = 16_384;
 
-    private static final int FIXED_COLUMNS = 6;
+    private static final int FIXED_COLUMNS = 8;
 
     private final ExportRepository repository;
 
@@ -81,6 +81,8 @@ class ExportService {
                     contact.address(),
                     contact.email(),
                     contact.phone(),
+                    CountryNames.display(contact.country(), request.language()),
+                    contact.company(),
                     attributes,
                     tags.getOrDefault(contact.id(), List.of())));
         }

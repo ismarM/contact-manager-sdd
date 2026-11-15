@@ -4,6 +4,7 @@
 export const LIMITS = {
   name: 100,
   address: 300,
+  company: 200,
   email: 254,
   phone: 30,
   key: 50,
@@ -30,6 +31,28 @@ const RESERVED_KEYS = new Set([
   'phone',
 ]);
 
+/** 013: nova rezervirana imena; veljajo samo za nove ali spremenjene ključe (FR-013-08). */
+const FIELD_KEYS: Record<string, 'company' | 'country'> = {
+  podjetje: 'company',
+  company: 'company',
+  država: 'country',
+  country: 'country',
+};
+
+function collapse(text: string): string {
+  return normalizeKey(text.trim()).replace(/\s+/g, ' ');
+}
+
+/** Ime predefiniranega polja ali polja 013 (ne ponudi se kot predlog ključa, strežnik ga zavrne). */
+export function isReservedName(key: string): boolean {
+  return RESERVED_KEYS.has(collapse(key)) || reservedFieldOf(key) !== null;
+}
+
+/** Polje, v katerega sodi atribut s tem ključem (`Država`, `Country`, `Podjetje`, `Company`), sicer `null`. */
+export function reservedFieldOf(key: string): 'company' | 'country' | null {
+  return FIELD_KEYS[collapse(key)] ?? null;
+}
+
 export type ErrorKey =
   | 'contacts.errors.nameRequired'
   | 'contacts.errors.emailInvalid'
@@ -37,6 +60,10 @@ export type ErrorKey =
   | 'contacts.errors.firstNameTooLong'
   | 'contacts.errors.lastNameTooLong'
   | 'contacts.errors.addressTooLong'
+  | 'contacts.errors.companyTooLong'
+  | 'contacts.errors.countryInvalid'
+  | 'contacts.errors.keyReservedCompany'
+  | 'contacts.errors.keyReservedCountry'
   | 'contacts.errors.emailTooLong'
   | 'contacts.errors.phoneTooLong'
   | 'contacts.errors.keyRequired'
@@ -55,12 +82,16 @@ export interface AttributeRow {
   id: string;
   key: string;
   value: string;
+  /** 013: ključ, kot ga je kontakt že imel ob nalaganju (obstoječ atribut); novi atributi ga nimajo. */
+  original?: string;
 }
 
 export interface FormValues {
   firstName: string;
   lastName: string;
+  company: string;
   address: string;
+  country: string;
   email: string;
   phone: string;
   attributes: AttributeRow[];
@@ -76,6 +107,14 @@ export function normalizeKey(text: string): string {
   return text.toLowerCase();
 }
 
+/** Sporočilo za ključ z rezerviranim imenom polja (napoti na polje *Podjetje* oziroma *Država*), sicer splošno. */
+export function reservedKeyError(key: string): ErrorKey {
+  const field = reservedFieldOf(key);
+  if (field === 'company') return 'contacts.errors.keyReservedCompany';
+  if (field === 'country') return 'contacts.errors.keyReservedCountry';
+  return 'contacts.errors.keyReserved';
+}
+
 /** Napake po poljih: `firstName`, `attributes.<id>.key`, … → ključ sporočila. */
 export function validate(values: FormValues): Record<string, ErrorKey> {
   const errors: Record<string, ErrorKey> = {};
@@ -87,6 +126,9 @@ export function validate(values: FormValues): Record<string, ErrorKey> {
   }
   if (length(first) > LIMITS.name) errors.firstName = 'contacts.errors.firstNameTooLong';
   if (length(last) > LIMITS.name) errors.lastName = 'contacts.errors.lastNameTooLong';
+  if (length(values.company.trim()) > LIMITS.company) {
+    errors.company = 'contacts.errors.companyTooLong';
+  }
   if (length(values.address.trim()) > LIMITS.address) {
     errors.address = 'contacts.errors.addressTooLong';
   }
@@ -98,6 +140,12 @@ export function validate(values: FormValues): Record<string, ErrorKey> {
   else if (phone && !PHONE.test(phone)) errors.phone = 'contacts.errors.phoneInvalid';
 
   const keys = new Set<string>();
+  // Ključ, ki ga kontakt že ima (obstoječ atribut), ostane dovoljen tudi, če je rezerviran (strežnik ga ne zavrne).
+  const existing = new Set(
+    values.attributes.flatMap((row) =>
+      row.original === undefined ? [] : [collapse(row.original)],
+    ),
+  );
   for (const row of values.attributes) {
     const key = row.key.trim();
     const value = row.value.trim();
@@ -109,6 +157,8 @@ export function validate(values: FormValues): Record<string, ErrorKey> {
     else if (length(key) > LIMITS.key) errors[keyField] = 'contacts.errors.keyTooLong';
     else if (RESERVED_KEYS.has(normalized.replace(/\s+/g, ' '))) {
       errors[keyField] = 'contacts.errors.keyReserved';
+    } else if (reservedFieldOf(key) !== null && !existing.has(collapse(key))) {
+      errors[keyField] = reservedKeyError(key);
     } else if (keys.has(normalized)) errors[keyField] = 'contacts.errors.keyDuplicate';
     if (key) keys.add(normalized);
     if (!value) errors[valueField] = 'contacts.errors.valueRequired';
@@ -140,6 +190,8 @@ export function serverErrorKey(field: string, code: string): ErrorKey | null {
       REQUIRED: 'contacts.errors.nameRequired',
       TOO_LONG: 'contacts.errors.lastNameTooLong',
     },
+    company: { TOO_LONG: 'contacts.errors.companyTooLong' },
+    country: { INVALID_VALUE: 'contacts.errors.countryInvalid' },
     address: { TOO_LONG: 'contacts.errors.addressTooLong' },
     email: {
       INVALID_VALUE: 'contacts.errors.emailInvalid',

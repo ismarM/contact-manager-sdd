@@ -41,6 +41,8 @@ class ContactCreateIT extends ContactApiTest {
                         "address",
                         "email",
                         "phone",
+                        "company",
+                        "country",
                         "attributes",
                         "tags",
                         "version",

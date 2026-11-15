@@ -86,10 +86,10 @@ class ExportValidationIT extends ExportApiTest {
     }
 
     @Test
-    void exactly16378DistinctKeysStillFitIntoTheSheetOf16384Columns() throws Exception {
+    void exactly16376DistinctKeysStillFitIntoTheSheetOf16384Columns() throws Exception {
         Scenario s = scenario();
         List<UUID> all = contacts.insertMany(s.group(), s.id(Who.OWNER), 328);
-        addKeys(s.group(), 16_378);
+        addKeys(s.group(), 16_376);
 
         HttpResponse<byte[]> response = export(s.token(Who.EDITOR), s.group(), exportBody(all, "sl"));
 

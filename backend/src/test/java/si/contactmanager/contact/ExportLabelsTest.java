@@ -15,7 +15,8 @@ class ExportLabelsTest {
         assertThat(ExportLabels.sheetName("sl")).isEqualTo("Kontakti");
         ExportLabels.Headers headers = ExportLabels.headers("sl");
 
-        assertThat(headers.leading()).containsExactly("Ime", "Priimek", "Naslov", "E-naslov", "Telefon");
+        assertThat(headers.leading())
+                .containsExactly("Ime", "Priimek", "Naslov", "E-naslov", "Telefon", "Država", "Podjetje");
         assertThat(headers.tags()).isEqualTo("Značke");
     }
 
@@ -25,7 +26,8 @@ class ExportLabelsTest {
         assertThat(ExportLabels.sheetName("en")).isEqualTo("Contacts");
         ExportLabels.Headers headers = ExportLabels.headers("en");
 
-        assertThat(headers.leading()).containsExactly("First name", "Last name", "Address", "Email", "Phone");
+        assertThat(headers.leading())
+                .containsExactly("First name", "Last name", "Address", "Email", "Phone", "Country", "Company");
         assertThat(headers.tags()).isEqualTo("Tags");
     }
 }

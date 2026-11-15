@@ -35,12 +35,16 @@ public final class BulkEdit {
         String address = before.address();
         String email = before.email();
         String phone = before.phone();
+        String company = before.company();
+        String country = before.country();
         List<Attribute> attributes = new ArrayList<>(before.attributes());
         for (AttributeSet set : edit.attributes()) {
             switch (set.field()) {
                 case ADDRESS -> address = emptyToNull(set.value());
                 case EMAIL -> email = emptyToNull(set.value());
                 case PHONE -> phone = emptyToNull(set.value());
+                case COMPANY -> company = emptyToNull(set.value());
+                case COUNTRY -> country = emptyToNull(set.value());
                 case CUSTOM -> setCustom(attributes, set);
             }
         }
@@ -50,6 +54,8 @@ public final class BulkEdit {
                 address,
                 email,
                 phone,
+                company,
+                country,
                 List.copyOf(attributes),
                 List.copyOf(tags),
                 before.version(),
@@ -65,6 +71,8 @@ public final class BulkEdit {
                 && Objects.equals(before.address(), after.address())
                 && Objects.equals(before.email(), after.email())
                 && Objects.equals(before.phone(), after.phone())
+                && Objects.equals(before.company(), after.company())
+                && Objects.equals(before.country(), after.country())
                 && before.attributes().equals(after.attributes())
                 && before.tags().equals(after.tags()));
     }
