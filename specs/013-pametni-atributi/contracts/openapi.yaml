@@ -1,0 +1,45 @@
+openapi: 3.0.3
+info: {title: 013 pametni atributi (samo spremembe), version: 1.0.0}
+paths:
+  /api/groups/{groupId}/suggestions:
+    get:
+      summary: Predlogi (EDITOR, arhivirana skupina dovoljena)
+      parameters:
+        - {name: groupId, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: type, in: query, required: true, schema: {type: string, enum: [key, value, company, tag, country]}}
+        - {name: q, in: query, required: false, schema: {type: string, maxLength: 100}, description: "za type=country ni dovoljen"}
+        - {name: key, in: query, required: false, schema: {type: string}, description: "obvezen za type=value"}
+      responses:
+        '200': {description: do 10 predlogov, content: {application/json: {schema: {$ref: '#/components/schemas/Suggestions'}}}}
+        '400': {description: VALIDATION_FAILED (type INVALID_VALUE/REQUIRED, key REQUIRED, q TOO_LONG/INVALID_VALUE)}
+        '401': {description: UNAUTHENTICATED}
+        '403': {description: FORBIDDEN (VIEWER)}
+        '404': {description: skupina ne obstaja ali ni član}
+  /api/countries/resolve:
+    post:
+      summary: Prepoznavanje držav iz besedila (prijavljen uporabnik; brez podatkov skupin)
+      requestBody:
+        content: {application/json: {schema: {type: object, required: [values], properties: {values: {type: array, maxItems: 50, items: {type: string, maxLength: 100}}}}}}
+      responses:
+        '200': {content: {application/json: {schema: {type: object, properties: {results: {type: array, items: {$ref: '#/components/schemas/CountryResolution'}}}}}}}
+        '400': {description: VALIDATION_FAILED}
+        '401': {description: UNAUTHENTICATED}
+components:
+  schemas:
+    Suggestions:
+      type: object
+      properties:
+        items: {type: array, maxItems: 10, items: {type: object, required: [text, count], properties: {text: {type: string}, count: {type: integer, minimum: 1}}}}
+    CountryResolution:
+      type: object
+      required: [input, status]
+      properties:
+        input: {type: string}
+        status: {type: string, enum: [FOUND, AMBIGUOUS, UNKNOWN]}
+        code: {type: string, nullable: true, description: "samo FOUND"}
+        candidates: {type: array, items: {type: string}, description: "samo AMBIGUOUS, kode, do 10"}
+    ContactFields:
+      description: dodatek k ContactInput, ContactDetail, CompareContact
+      properties:
+        company: {type: string, nullable: true, maxLength: 200}
+        country: {type: string, nullable: true, pattern: '^[A-Z]{2}$', description: ISO 3166-1 alpha-2}

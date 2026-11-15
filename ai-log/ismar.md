@@ -9,6 +9,7 @@ Pravila beleženja: `docs/ai-development-log.md` (v zgodovini Gita, commit `b71c
 |---|---|---|---|---|
 | 1 | `00793e9d` (T3 Code, Claude Code) | 2026-11-05 od 20:37 do 2026-11-06 (CET) | `002-skupine` – clarify, plan, pregled plana, uskladitev odločitev, tasks, analyze, implement (testi, pregled testov, koda US1–US4), converge, PR | menjava modela med sejo (Sonnet 5.5 → Opus 5.5); 3 podagenti `pregled-testov` |
 | 2 | `76225259` (T3 Code, Claude Code) | 2026-11-15 | integracija pravega Firebase (brez Spec Kit, majhna sprememba) | `compose.firebase.yaml`, ugotavljanje, kje so necommitirane spremembe, uporabnik kontejnerja za ključ s `chmod 600`, PR |
+| 3 | `62d8b9e0` (T3 Code, Claude Code) | 2026-11-15 | `013-pametni-atributi` – READ-ONLY analiza 000–012, specify, clarify | analiza vrzeli (država, podjetje, revizijska sled, uvoz); načrt 013–015; poraba žetonov še ni zapisana |
 
 **Stolpci tabel interakcij**
 
@@ -159,3 +160,19 @@ Kot odgovorni razvijalec za 002 potrjujem:
 | 4 | sporočilo | izbrana možnost: backend kot uporabnik ključa; popravi README, commit, push, PR | implementacija | `user: ${FIREBASE_CONTAINER_UID:-1000}:${FIREBASE_CONTAINER_GID:-1000}`, mount `:ro`, popravljen README in test | kontejner `1000:1000` bere ključ (mode 600), pisanje v mount: *Read-only file system*; `quick` zelen | human-decision | accepted |
 
 **Opombe:** Ključ storitvenega računa ni bil prebran ali izpisan (samo `stat` in `test -r`). Prave prijave z Googlom in izbrisa računa (012) agent ni preizkusil: potrebuje API ključ in ročno preverjanje razvijalca (README, razdelek *Real Firebase*).
+
+---
+
+## Seja 3 — 013-pametni-atributi
+
+- **Datum:** 2026-11-15
+- **Razvijalec:** Ismar
+- **Agent / model:** Claude Code v T3 Code; `claude-sonnet-5-5`. Brez podagentov.
+- **Veja / commiti:** `pametni-atributi` (iz `main` `b11c5eb`); spec še ni commitan
+- **Poraba žetonov:** ni podatka (`scripts/token-report.mjs` išče dnevnike v `~/.claude`, dnevniki te seje so v `~/.claude-team`; vrstica v `token-report-ismar.md` še ni dodana)
+
+| # | Vrsta | Povzetek navodila / odgovora | Faza | Rezultat / spremenjene datoteke | Preverjanje | Težava (kategorija) | Status |
+|---|---|---|---|---|---|---|---|
+| 1 | sporočilo | READ-ONLY analiza 000–012 proti profesorjevim zahtevam (država, podjetje, predlogi, revizijska sled), načrt 013–015, demo | analiza | poročilo v pogovoru, brez sprememb datotek; ugotovitev: država in podjetje nista polji, ključi atributov brez predlogov, rollback samo na ravni skupine, brez uvoza | branje kode in specifikacij; testi niso bili zagnani | none | accepted |
+| 2 | sporočilo | začni 013: nova veja iz `main`, `scripts/feature.sh`, `/speckit-specify`, nato `/speckit-clarify` brez kode | specify | `scripts/feature.sh pametni-atributi`; `specs/013-pametni-atributi/spec.md`, `checklists/requirements.md` (3 oznake `[NEEDS CLARIFICATION]`) | pregled po kontrolnem seznamu; kode ni | none | partial (čaka odločitve razvijalca v clarify) |
+
