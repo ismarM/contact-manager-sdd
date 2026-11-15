@@ -89,7 +89,7 @@ description: "Tasks for 014-uvoz-izvoz (one pass, tests inside each story)"
 ## Phase 8: Polish & Cross-Cutting Concerns
 
 - [x] T026 — `.specify/memory/feature-map.md` (v fazi PR): §2.4 dovoljeno v arhivirani skupini (izvoz vCard, koda QR, branje CardDAV), §2.7 vrsta vnosa *Uvoz*, §2.10 `APP_PASSWORD_LIMIT`, §1 vrstica funkcionalnosti 014; nov tip klicatelja (CardDAV, gesla za aplikacijo) v §2.2 kot opomba o vrstnem redu 401 → 404 → 403
-- [ ] T027 — `./verify.sh quick` zelen; `./verify.sh backend` zaradi migracije, IT in CardDAV; `e2e` v CI
+- [x] T027 — `./verify.sh quick` zelen; `./verify.sh backend` zaradi migracije, IT in CardDAV; `e2e` v CI
 
 ## Dependencies & Execution Order
 

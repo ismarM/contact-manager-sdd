@@ -137,7 +137,10 @@ class ExportIsolationMatrixSecurityIT extends ExportApiTest {
         assertThat(fabricatedAlone.body()).isEqualTo(foreignAlone.body());
         assertThat(fabricatedAlone.headers().map().keySet())
                 .containsAll(foreignAlone.headers().map().keySet().stream()
-                        .filter(h -> !h.equalsIgnoreCase("date"))
+                        // "connection: close" je transportna glava Tomcata (meja zahtevkov na povezavo), odvisna od
+                        // števila
+                        // prejšnjih zahtevkov v istem JVM, ne od vira; ne razkriva obstoja.
+                        .filter(h -> !h.equalsIgnoreCase("date") && !h.equalsIgnoreCase("connection"))
                         .toList());
         assertUnchanged(beforeA, readOnlySnapshot(s.group()));
         assertUnchanged(beforeB, readOnlySnapshot(other));
