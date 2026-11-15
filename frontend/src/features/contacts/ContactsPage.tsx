@@ -3,6 +3,7 @@ import { useParams } from 'react-router';
 
 import { PANEL, useMediaQuery } from '../../shared/lib/useMediaQuery';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
+import { ImportPage } from '../import/ImportPage';
 import { ContactFormPage } from './ContactFormPage';
 import { ContactList } from './ContactList';
 import { ContactView } from './ContactView';
@@ -10,6 +11,7 @@ import { ContactView } from './ContactView';
 type Route =
   | { kind: 'list' }
   | { kind: 'new' }
+  | { kind: 'import' }
   | { kind: 'view'; id: string }
   | { kind: 'edit'; id: string }
   | { kind: 'unknown' };
@@ -20,6 +22,8 @@ function resolve(section: string): Route {
   if (rest.length > 0) return { kind: 'unknown' };
   if (!id) return { kind: 'list' };
   if (id === 'new') return action === undefined ? { kind: 'new' } : { kind: 'unknown' };
+  // 014: uvoz kontaktov (`contacts/import?source=xlsx|vcf`), pred identifikatorjem kontakta.
+  if (id === 'import') return action === undefined ? { kind: 'import' } : { kind: 'unknown' };
   // Neveljaven identifikator obravnava strežnik kot kontakt, ki ga ni (404; FR-004-14).
   if (action === undefined) return { kind: 'view', id };
   if (action === 'edit') return { kind: 'edit', id };
@@ -38,6 +42,7 @@ export function ContactsPage() {
 
   if (route.kind === 'unknown') return <NotFoundPage />;
   if (route.kind === 'new') return <ContactFormPage />;
+  if (route.kind === 'import') return <ImportPage />;
   if (route.kind === 'edit') return <ContactFormPage contactId={route.id} />;
   if (route.kind === 'view' && !panel) {
     return (

@@ -11,8 +11,7 @@
     "archived": "Archived groups – Contacts",
     "audit": "Audit trail",
     "auditEntry": "Audit trail entry",
-    "invitations": "Invitations – Contacts",
-    "import": "Import contacts – {{group}}"
+    "invitations": "Invitations – Contacts"
   },
   "language": {
     "label": "Language",

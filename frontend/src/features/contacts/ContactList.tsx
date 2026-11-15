@@ -38,6 +38,8 @@ import {
 } from './contactQuery';
 import { canEditContacts, type ListNotice, listState } from './contactRouting';
 import { ContactToolbar } from './ContactToolbar';
+import { ImportMenu } from '../import/ImportMenu';
+import { QrScanDialog } from './qr/QrScanDialog';
 import { DeleteContactDialog } from './DeleteContactDialog';
 import { selectionParams } from './selection/api';
 import { SelectAllOnPage } from './selection/SelectAllOnPage';
@@ -271,10 +273,16 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
         <h2 id={headingId} ref={heading} tabIndex={-1} className="text-xl font-bold outline-none">
           {t('contacts.heading')}
         </h2>
-        {editable && data && data.total > 0 && selection.count === 0 && (
-          <Link to={`${base}/new${link}`} className={primaryButton}>
-            {t('contacts.newContact')}
-          </Link>
+        {editable && selection.count === 0 && (
+          <div className="flex flex-wrap items-center gap-3">
+            <ImportMenu base={base} />
+            <QrScanDialog />
+            {data && data.total > 0 && (
+              <Link to={`${base}/new${link}`} className={primaryButton}>
+                {t('contacts.newContact')}
+              </Link>
+            )}
+          </div>
         )}
       </div>
 

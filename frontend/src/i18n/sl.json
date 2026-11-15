@@ -11,8 +11,7 @@
     "archived": "Arhivirane skupine – Kontakti",
     "audit": "Revizijska sled",
     "auditEntry": "Vnos revizijske sledi",
-    "invitations": "Povabila – Kontakti",
-    "import": "Uvoz kontaktov – {{group}}"
+    "invitations": "Povabila – Kontakti"
   },
   "language": {
     "label": "Jezik",

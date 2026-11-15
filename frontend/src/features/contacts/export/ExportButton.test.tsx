@@ -110,7 +110,7 @@ describe('ExportButton', () => {
   );
 
   it.each(['VIEWER', 'EDITOR', 'ADMIN', 'OWNER'] as const)(
-    'FR-010-16: arhivirana skupina, vloga %s – v vrstici so natanko Izbrani, Izberi vse zadetke, Izvozi v Excel in Počisti izbor',
+    'FR-010-16 FR-014-10: arhivirana skupina, vloga %s – v vrstici so natanko Izbrani, Izberi vse zadetke, Izvozi v Excel, Izvozi v vCard in Počisti izbor',
     async (role) => {
       const { user } = render(SORTED, { role, archived: true });
       await listReady();
@@ -122,6 +122,8 @@ describe('ExportButton', () => {
       expect(bar.getAllByRole('button').map((b) => b.textContent)).toEqual([
         expect.stringMatching(/^Izberi vse zadetke \(\d+\)$/),
         'Izvozi v Excel',
+        // 014 (FR-014-10): izvoz vizitk je branje, dovoljen tudi v arhivirani skupini.
+        'Izvozi v vCard (.vcf)',
         'Počisti izbor',
       ]);
       expect(bar.queryByRole('button', { name: 'Uredi izbrane' })).not.toBeInTheDocument();

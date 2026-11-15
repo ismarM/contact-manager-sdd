@@ -55,7 +55,8 @@ export class AttributeList {
   private readonly keys = new Set<string>();
 
   add(key: string | null, value: string | null): void {
-    if (key == null || value == null || value.trim() === '' || this.keys.has(key.toLowerCase())) return;
+    if (key == null || value == null || value.trim() === '' || this.keys.has(key.toLowerCase()))
+      return;
     this.keys.add(key.toLowerCase());
     this.items.push({ key, value });
   }

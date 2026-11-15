@@ -14,8 +14,16 @@ export function fileNameTitle(title: string, language: 'sl' | 'en'): string {
   return language === 'sl' ? 'skupina' : 'group';
 }
 
-/** `‹naslov›-kontakti-YYYY-MM-DD.xlsx` (sl) oziroma `‹naslov›-contacts-YYYY-MM-DD.xlsx` (en); datum je lokalni. */
-export function exportFileName(title: string, language: 'sl' | 'en', now: Date): string {
+/**
+ * `‹naslov›-kontakti-YYYY-MM-DD.xlsx` (sl) oziroma `‹naslov›-contacts-YYYY-MM-DD.xlsx` (en); datum je lokalni. Izvoz
+ * vizitk (014, FR-014-10) ima končnico `.vcf`.
+ */
+export function exportFileName(
+  title: string,
+  language: 'sl' | 'en',
+  now: Date,
+  extension: 'xlsx' | 'vcf' = 'xlsx',
+): string {
   const word = language === 'sl' ? 'kontakti' : 'contacts';
-  return `${fileNameTitle(title, language)}-${word}-${localDateStamp(now)}.xlsx`;
+  return `${fileNameTitle(title, language)}-${word}-${localDateStamp(now)}.${extension}`;
 }

@@ -19,7 +19,9 @@ export interface CardContact {
 
 export function writeVcard(contact: CardContact, language: CardLanguage): string {
   const lines = ['BEGIN:VCARD', 'VERSION:3.0'];
-  lines.push(`N:${trimTrailing([contact.lastName ?? '', contact.firstName ?? ''].map(escapeText))}`);
+  lines.push(
+    `N:${trimTrailing([contact.lastName ?? '', contact.firstName ?? ''].map(escapeText))}`,
+  );
   lines.push(`FN:${escapeText(fullName(contact))}`);
   if (contact.company) lines.push(`ORG:${escapeText(contact.company)}`);
   if (contact.email) lines.push(`EMAIL;TYPE=internet:${escapeText(contact.email)}`);

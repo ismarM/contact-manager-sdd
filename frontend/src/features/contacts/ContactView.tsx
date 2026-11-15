@@ -13,6 +13,8 @@ import {
   secondaryButton,
   warningAlert,
 } from '../../shared/ui/styles';
+import { useAuth } from '../auth/authContext';
+import { downloadBlob } from '../../shared/download';
 import { useGroup } from '../groups/groupContext';
 import { useDelayed } from '../groups/useDelayed';
 import { isNotFound, useContactsApi } from './api';
@@ -21,6 +23,8 @@ import { canEditContacts } from './contactRouting';
 import type { ListNavigationState } from './ContactList';
 import { DeleteContactDialog } from './DeleteContactDialog';
 import { countryName } from './countries';
+import { contactVcard } from './export/api';
+import { contactFileName, QrShareDialog } from './qr/QrShareDialog';
 import { RevertedBadge } from './RevertedBadge';
 import type { ContactDetail } from './types';
 import { useUiLanguage } from './useUiLanguage';
@@ -174,6 +178,8 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
         </div>
       )}
 
+      <ShareActions contact={contact} />
+
       {[contact.company, contact.address, contact.country, contact.email, contact.phone].some(
         (value) => value != null,
       ) && (
@@ -260,5 +266,41 @@ function CloseLink({ to }: { to: string }) {
       <IconX aria-hidden="true" size={20} stroke={1.75} />
       {t('contacts.view.close')}
     </Link>
+  );
+}
+
+/**
+ * Deljenje kontakta (014, FR-014-10, -14): *Prenesi vizitko (.vcf)* in *Deli s kodo QR* za vse člane, tudi v arhivirani
+ * skupini. Napaka prenosa je vidna (design.md 8.13).
+ */
+function ShareActions({ contact }: { contact: ContactDetail }) {
+  const { t } = useTranslation();
+  const { authFetchBlob } = useAuth();
+  const { group } = useGroup();
+  const language = useUiLanguage();
+  const [failed, setFailed] = useState(false);
+  const download = async () => {
+    setFailed(false);
+    try {
+      const blob = await contactVcard(authFetchBlob, group.id, contact.id, language);
+      downloadBlob(blob, `${contactFileName(contact, language)}.vcf`);
+    } catch {
+      setFailed(true);
+    }
+  };
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap gap-3">
+        <button type="button" className={secondaryButton} onClick={() => void download()}>
+          {t('contacts.vcard.download')}
+        </button>
+        <QrShareDialog contact={contact} onDownloadVcard={() => void download()} />
+      </div>
+      {failed && (
+        <p role="alert" className={errorAlert}>
+          {t('contacts.vcard.failed')}
+        </p>
+      )}
+    </div>
   );
 }

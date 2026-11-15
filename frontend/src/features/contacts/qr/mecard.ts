@@ -1,4 +1,10 @@
-import { AttributeList, blankToNull, cardLabels, type CardCandidate, type CardLanguage } from './vcardTypes';
+import {
+  AttributeList,
+  blankToNull,
+  cardLabels,
+  type CardCandidate,
+  type CardLanguage,
+} from './vcardTypes';
 
 // Branje kode QR v zapisu MECARD (pogost pri telefonih Android; spec Edge Cases, research R-07):
 // `MECARD:N:Priimek,Ime;TEL:…;EMAIL:…;ADR:…;ORG:…;NOTE:…;URL:…;BDAY:YYYYMMDD;;`; ubežni znak je `\`.
@@ -18,7 +24,9 @@ export function readMecard(text: string, language: CardLanguage): CardCandidate 
     const name = field.slice(0, colon).toUpperCase();
     values.set(name, [...(values.get(name) ?? []), field.slice(colon + 1)]);
   }
-  const [last, first] = split((values.get('N') ?? [''])[0] ?? '', ',').map((part) => blankToNull(unescape(part)));
+  const [last, first] = split((values.get('N') ?? [''])[0] ?? '', ',').map((part) =>
+    blankToNull(unescape(part)),
+  );
   for (const [name, list] of values) values.set(name, list.map(unescape));
   const emails = values.get('EMAIL') ?? [];
   const phones = values.get('TEL') ?? [];
@@ -28,7 +36,11 @@ export function readMecard(text: string, language: CardLanguage): CardCandidate 
   const bday = values.get('BDAY')?.[0];
   if (bday) {
     const match = /^(\d{4})(\d{2})(\d{2})$/.exec(bday);
-    attributes.addNumbered(labels.birthday, 1, match ? `${match[1]}-${match[2]}-${match[3]}` : bday);
+    attributes.addNumbered(
+      labels.birthday,
+      1,
+      match ? `${match[1]}-${match[2]}-${match[3]}` : bday,
+    );
   }
   (values.get('URL') ?? []).forEach((url) => attributes.addNumbered(labels.website, 1, url));
   (values.get('NOTE') ?? []).forEach((note) => attributes.addNumbered(labels.note, 1, note));

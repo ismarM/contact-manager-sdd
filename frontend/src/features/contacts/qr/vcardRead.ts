@@ -57,7 +57,9 @@ function candidate(card: Property[], version: string, language: CardLanguage): C
   const n = first('N');
   if (n) {
     const parts = splitUnescaped(n.value, ';');
-    const given = [unescapeText(parts[1] ?? ''), ...listItems(parts[2] ?? '')].filter((s) => s.trim() !== '');
+    const given = [unescapeText(parts[1] ?? ''), ...listItems(parts[2] ?? '')].filter(
+      (s) => s.trim() !== '',
+    );
     firstName = blankToNull(given.join(' '));
     lastName = blankToNull(unescapeText(parts[0] ?? ''));
   }
@@ -83,8 +85,12 @@ function candidate(card: Property[], version: string, language: CardLanguage): C
   const addresses = preferredFirst(all('ADR'));
   const phoneText = (p: Property) => {
     const text = unescapeText(p.value);
-    const uri = (p.params.get('VALUE') ?? []).some((v) => v.toLowerCase() === 'uri') || version.startsWith('4');
-    return uri && text.toLowerCase().startsWith('tel:') ? (text.slice(4).split(';')[0] ?? '') : text;
+    const uri =
+      (p.params.get('VALUE') ?? []).some((v) => v.toLowerCase() === 'uri') ||
+      version.startsWith('4');
+    return uri && text.toLowerCase().startsWith('tel:')
+      ? (text.slice(4).split(';')[0] ?? '')
+      : text;
   };
 
   const email = emails[0] ? unescapeText(emails[0].value) : null;
@@ -112,7 +118,17 @@ function candidate(card: Property[], version: string, language: CardLanguage): C
       .filter((t): t is string => t != null),
   );
 
-  return { firstName, lastName, address, email, phone, company, countryText, attributes: attributes.list(), tags };
+  return {
+    firstName,
+    lastName,
+    address,
+    email,
+    phone,
+    company,
+    countryText,
+    attributes: attributes.list(),
+    tags,
+  };
 }
 
 /** Prednostna lastnost (najmanjši `PREF` ali `TYPE=pref`) na začetek, ostale v vrstnem redu. */
@@ -190,13 +206,17 @@ function splitUnescaped(value: string, separator: string): string[] {
 
 /** Združi zložene vrstice (RFC 6350) in mehke prelome QUOTED-PRINTABLE (2.1). */
 function unfold(text: string): string[] {
-  const raw = text.replace(/^﻿/, '').split(/\r\n|\r|\n/);
+  const raw = text.replace(/^\uFEFF/, '').split(/\r\n|\r|\n/);
   const lines: string[] = [];
   for (const line of raw) {
     const last = lines.length - 1;
     if ((line.startsWith(' ') || line.startsWith('\t')) && last >= 0) {
       lines[last] += line.slice(1);
-    } else if (last >= 0 && /QUOTED-PRINTABLE/i.test(lines[last]!.split(':')[0] ?? '') && lines[last]!.endsWith('=')) {
+    } else if (
+      last >= 0 &&
+      /QUOTED-PRINTABLE/i.test(lines[last]!.split(':')[0] ?? '') &&
+      lines[last]!.endsWith('=')
+    ) {
       lines[last] = lines[last]!.slice(0, -1) + line;
     } else {
       lines.push(line);
@@ -226,7 +246,9 @@ function parseLine(line: string): Property | null {
   const params = new Map<string, string[]>();
   for (const param of head.slice(1)) {
     const eq = param.indexOf('=');
-    const key = (eq >= 0 ? param.slice(0, eq) : BARE_ENCODINGS.has(param.toUpperCase()) ? 'ENCODING' : 'TYPE')
+    const key = (
+      eq >= 0 ? param.slice(0, eq) : BARE_ENCODINGS.has(param.toUpperCase()) ? 'ENCODING' : 'TYPE'
+    )
       .trim()
       .toUpperCase();
     const values = (eq >= 0 ? param.slice(eq + 1) : param).replace(/"/g, '').split(',');

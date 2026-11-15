@@ -35,9 +35,12 @@ describe('skupne vizitke (FR-014-11, -12, -13)', () => {
     expect(lf(written)).toBe(lf(shared('written-frontend.vcf')));
   });
 
-  it.each(['written-backend.vcf', 'written-frontend.vcf'])('%s se prebere v isti kontakt', (sample) => {
-    expect(readVcards(shared(sample), 'sl')).toEqual([contactFull]);
-  });
+  it.each(['written-backend.vcf', 'written-frontend.vcf'])(
+    '%s se prebere v isti kontakt',
+    (sample) => {
+      expect(readVcards(shared(sample), 'sl')).toEqual([contactFull]);
+    },
+  );
 
   it('besedilo, ki ni vizitka, ne da kandidata', () => {
     expect(readVcards('https://primer.si', 'sl')).toEqual([]);
@@ -47,7 +50,10 @@ describe('skupne vizitke (FR-014-11, -12, -13)', () => {
 describe('MECARD (Edge Cases)', () => {
   it('prebere ime, telefone, e-naslov in opombo', () => {
     expect(
-      readMecard('MECARD:N:Kos,Ana;TEL:041 111 222;TEL:01 333 444;EMAIL:ana@primer.si;NOTE:Bled\\; 2025;ORG:Acme;;', 'sl'),
+      readMecard(
+        'MECARD:N:Kos,Ana;TEL:041 111 222;TEL:01 333 444;EMAIL:ana@primer.si;NOTE:Bled\\; 2025;ORG:Acme;;',
+        'sl',
+      ),
     ).toEqual({
       firstName: 'Ana',
       lastName: 'Kos',

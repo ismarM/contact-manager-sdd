@@ -13,7 +13,7 @@ import type { FieldRef } from '../contactQuery';
 import { SelectionChangedNotice } from '../selection/SelectionChangedNotice';
 import { useSelectionCheck } from '../selection/useSelectionCheck';
 import { useContactQuery } from '../useContactQuery';
-import { type ExportResult, exportContacts } from './api';
+import { type ExportResult, exportContacts, exportVcard } from './api';
 import { exportFileName } from './exportFileName';
 
 type Language = 'sl' | 'en';
@@ -28,7 +28,7 @@ function sortParam(field: FieldRef): string {
  * nato izvoz; datoteko poimenuje odjemalec (R-03). Med delom ima gumb ime »Pripravljam izvoz…« z `aria-disabled`, bralnik
  * zaslona dobi besedilo samo prek enega skritega `status` (R-10). Napake so `alert` s *Poskusi znova*; izbor ostane.
  */
-export function ExportButton() {
+export function ExportButton({ format = 'xlsx' }: { format?: 'xlsx' | 'vcf' }) {
   const { t, i18n } = useTranslation();
   const { group } = useGroup();
   const { authFetchBlob } = useAuth();
@@ -37,7 +37,7 @@ export function ExportButton() {
 
   const onSuccess = useCallback(
     (result: ExportResult) => {
-      downloadBlob(result.blob, exportFileName(group.title, language, new Date()));
+      downloadBlob(result.blob, exportFileName(group.title, language, new Date(), format));
       const done = t('contacts.export.success', { count: result.count });
       toast(
         result.skipped > 0
@@ -45,21 +45,22 @@ export function ExportButton() {
           : done,
       );
     },
-    [group.title, language, t],
+    [group.title, language, t, format],
   );
   const run = useCallback(
     (ids: string[]) =>
-      exportContacts(authFetchBlob, group.id, {
+      (format === 'vcf' ? exportVcard : exportContacts)(authFetchBlob, group.id, {
         contactIds: ids,
         sort: sortParam(query.sort),
         dir: query.dir,
         language,
       }),
-    [authFetchBlob, group.id, query.sort, query.dir, language],
+    [authFetchBlob, group.id, query.sort, query.dir, language, format],
   );
   const check = useSelectionCheck({ run, onSuccess });
 
   const failure = check.error === null ? null : failureText(check.error, t);
+  const busyKey = format === 'vcf' ? 'contacts.vcard.busy' : 'contacts.export.busy';
 
   return (
     <>
@@ -69,11 +70,13 @@ export function ExportButton() {
         aria-disabled={check.busy}
         onClick={() => void check.submit()}
       >
-        {check.busy ? t('contacts.export.busy') : t('contacts.export.button')}
+        {check.busy
+          ? t(busyKey)
+          : t(format === 'vcf' ? 'contacts.vcard.selection' : 'contacts.export.button')}
       </button>
       {check.busy && (
         <p role="status" className="sr-only">
-          {t('contacts.export.busy')}
+          {t(busyKey)}
         </p>
       )}
       {check.notice && (
