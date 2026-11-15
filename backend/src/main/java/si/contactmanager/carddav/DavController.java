@@ -96,6 +96,15 @@ class DavController {
         response.setHeader("Location", ROOT);
     }
 
+    /** OPTIONS potrebuje izrecno preslikavo (Spring sicer odgovori sam, brez glave {@code DAV}). */
+    @RequestMapping(
+            path = {"/dav", "/dav/**"},
+            method = org.springframework.web.bind.annotation.RequestMethod.OPTIONS)
+    void options(@AuthenticationPrincipal DavAccount account, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        handle(account, request, response);
+    }
+
     @RequestMapping({"/dav", "/dav/**"})
     void handle(@AuthenticationPrincipal DavAccount account, HttpServletRequest request, HttpServletResponse response)
             throws IOException {
