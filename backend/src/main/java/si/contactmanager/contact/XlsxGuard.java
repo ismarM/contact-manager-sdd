@@ -1,10 +1,12 @@
 package si.contactmanager.contact;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Enumeration;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipException;
-import java.util.zip.ZipInputStream;
+import java.util.zip.ZipFile;
 
 /**
  * Zaščita pred zip-bombo pred branjem {@code .xlsx} (014 research R-01; fastexcel-reader je nima): največ
@@ -46,25 +48,41 @@ final class XlsxGuard {
         long total = 0;
         boolean workbook = false;
         byte[] buffer = new byte[64 * 1024];
-        try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(file))) {
-            ZipEntry entry;
-            while ((entry = zip.getNextEntry()) != null) {
-                if (++entries > MAX_ENTRIES) {
-                    throw new Rejected("NOT_XLSX");
-                }
-                workbook |= entry.getName().equals("xl/workbook.xml");
-                int read;
-                while ((read = zip.read(buffer)) > 0) {
-                    total += read;
-                    if (total > MAX_UNCOMPRESSED || (total > RATIO_FLOOR && total / file.length > MAX_RATIO)) {
+        // ZipFile bere osrednji imenik (podpira opisnike podatkov, ki jih ZipInputStream pri xlsx ne zna); začasna
+        // datoteka se vedno izbriše.
+        Path temp = null;
+        try {
+            temp = Files.createTempFile("uvoz-", ".xlsx");
+            Files.write(temp, file);
+            try (ZipFile zip = new ZipFile(temp.toFile())) {
+                Enumeration<? extends ZipEntry> all = zip.entries();
+                while (all.hasMoreElements()) {
+                    ZipEntry entry = all.nextElement();
+                    if (++entries > MAX_ENTRIES) {
                         throw new Rejected("NOT_XLSX");
+                    }
+                    workbook |= entry.getName().equals("xl/workbook.xml");
+                    try (InputStream in = zip.getInputStream(entry)) {
+                        int read;
+                        while ((read = in.read(buffer)) > 0) {
+                            total += read;
+                            if (total > MAX_UNCOMPRESSED || (total > RATIO_FLOOR && total / file.length > MAX_RATIO)) {
+                                throw new Rejected("NOT_XLSX");
+                            }
+                        }
                     }
                 }
             }
-        } catch (ZipException e) {
-            throw new Rejected("NOT_XLSX");
         } catch (IOException e) {
             throw new Rejected("NOT_XLSX");
+        } finally {
+            if (temp != null) {
+                try {
+                    Files.deleteIfExists(temp);
+                } catch (IOException e) {
+                    temp.toFile().deleteOnExit();
+                }
+            }
         }
         if (!workbook) {
             throw new Rejected("NOT_XLSX");

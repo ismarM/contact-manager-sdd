@@ -56,8 +56,27 @@ class ExportAssemblerTest {
                         new Membership("Stara skupina", "VIEWER", T3, "PERMANENTLY_ARCHIVED")),
                 List.of(new ReceivedInvitation("Klub", "EDITOR", new Sender("Ana Novak", false), T2)),
                 List.of(new SentInvitation("Projekt FERI", "VIEWER", "cene.kralj@primer.si", T3)),
-                List.of(new OwnedGroup("Projekt FERI", "Skupni stiki", "morje", "ACTIVE", T1)));
+                List.of(new OwnedGroup("Projekt FERI", "Skupni stiki", "morje", "ACTIVE", T1)),
+                List.of());
         assertThat(actual).isEqualTo(expected);
+    }
+
+    /** 014 (FR-014-25): gesla za aplikacijo z imenom in časi, po času nastanka; brez gesla ali zgoščene vrednosti. */
+    @Test
+    void appPasswordsAreListedByCreationTimeWithNameAndTimesOnly() {
+        MyData actual = ExportAssembler.assemble(
+                NOW,
+                PROFILE,
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(
+                        new ExportAssembler.AppPasswordRow("Telefon", T2, null),
+                        new ExportAssembler.AppPasswordRow("iPhone", T1, T3)));
+
+        assertThat(actual.appPasswords())
+                .containsExactly(new MyData.AppPassword("iPhone", T1, T3), new MyData.AppPassword("Telefon", T2, null));
     }
 
     @Test
