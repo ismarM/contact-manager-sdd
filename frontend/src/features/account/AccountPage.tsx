@@ -6,6 +6,7 @@ import { useAuth } from '../auth/authContext';
 import { AppPasswordsSection } from './AppPasswordsSection';
 import { DeleteAccountSection } from './DeleteAccountSection';
 import { MyDataSection } from './MyDataSection';
+import { ProfilePhotoSection } from './ProfilePhotoSection';
 import type { Theme } from './preferences';
 
 const radio =
@@ -43,6 +44,8 @@ export function AccountPage() {
           <dd className="break-all">{profile.email}</dd>
         </dl>
       </section>
+
+      <ProfilePhotoSection />
 
       <section aria-labelledby="account-appearance" className="flex flex-col gap-4">
         <h2 id="account-appearance" className="text-xl font-bold">

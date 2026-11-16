@@ -35,6 +35,12 @@ class ApiExceptionHandler {
                 .body(ValidationError.of(List.of(new ValidationError.FieldError("file", "REQUIRED"))));
     }
 
+    /** Omejitev nalaganj slik ali zasedena obdelava (018, feature-map §2.10). */
+    @ExceptionHandler(RateLimitedException.class)
+    ResponseEntity<ErrorResponse> rateLimited() {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(new ErrorResponse("RATE_LIMITED"));
+    }
+
     /** Že 10 gesel za aplikacijo (014, FR-014-21). */
     @ExceptionHandler(AppPasswordLimitException.class)
     ResponseEntity<ErrorResponse> appPasswordLimit() {

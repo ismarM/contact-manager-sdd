@@ -150,12 +150,13 @@ describe('AccountPage – Moji podatki in Izbris računa', () => {
     await i18n.changeLanguage('sl');
   });
 
-  it('FR-012-01 FR-012-05 FR-014-21: razdelki si sledijo Profil → Videz → Moji podatki → Gesla za aplikacijo → Izbris računa → Odjava', async () => {
+  it('FR-012-01 FR-012-05 FR-014-21: razdelki si sledijo Profil → Profilna slika → Videz → Moji podatki → Gesla za aplikacijo → Izbris računa → Odjava', async () => {
     renderAccountApp();
 
     await screen.findByRole('heading', { level: 1, name: 'Moj račun' });
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
       'Profil',
+      'Profilna slika',
       'Videz',
       'Moji podatki',
       'Gesla za aplikacijo (CardDAV)',

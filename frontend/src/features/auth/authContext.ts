@@ -10,6 +10,8 @@ export interface Profile {
   email: string;
   language: Language | null;
   theme: Theme | null;
+  /** Revizija profilne slike (`null` = brez slike); strežnik jo vrne pri vsakem profilu (018). */
+  photoRevision: number | null;
 }
 
 export type AuthStatus = 'unknown' | 'signedOut' | 'syncing' | 'signedIn';
@@ -35,6 +37,8 @@ export interface AuthContextValue {
   changeTheme: (theme: Theme | null) => void;
   /** Izbire ni bilo mogoče shraniti v račun (FR-001-19 c). */
   saveFailed: boolean;
+  /** Po nalaganju ali odstranitvi lastne slike (018): avatar povsod sledi novi reviziji. */
+  setPhotoRevision: (photoRevision: number | null) => void;
   dismissSaveFailed: () => void;
 }
 

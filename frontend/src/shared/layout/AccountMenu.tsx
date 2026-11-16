@@ -1,10 +1,10 @@
-import { IconUserCircle } from '@tabler/icons-react';
 import { useId, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
 import { useAuth } from '../../features/auth/authContext';
 import type { Language } from '../../i18n/language';
+import { Avatar } from '../images/Avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,10 +31,17 @@ export function AccountMenu() {
       <DropdownMenuTrigger
         ref={trigger}
         aria-label={t('shell.accountMenu')}
-        className="flex size-11 items-center justify-center rounded-full border border-border bg-selected text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:size-12"
+        className="flex size-11 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:size-12"
       >
-        {/* Ikona brez besedila (CR-01): dostopno ime je samo »Meni računa« (WCAG 2.5.3). */}
-        <IconUserCircle aria-hidden="true" size={24} stroke={1.75} />
+        {/* Avatar je okras (CR-01): dostopno ime je samo »Meni računa« (WCAG 2.5.3). */}
+        <Avatar
+          kind="user"
+          name={profile.name ?? profile.email}
+          colorSeed={profile.email}
+          size={40}
+          alt=""
+          photo={{ path: '/me/photo', revision: profile.photoRevision }}
+        />
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"

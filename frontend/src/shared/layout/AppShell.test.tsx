@@ -35,8 +35,9 @@ describe('AppShell', () => {
     const banner = await screen.findByRole('banner');
     expect(within(banner).getByRole('link', { name: 'Kontakti' })).toHaveAttribute('href', '/');
     const menuButton = within(banner).getByRole('button', { name: 'Meni računa' });
-    // WCAG 2.5.3: brez vidnega besedila, ki ga ni v dostopnem imenu (CR-01, D-24).
-    expect(menuButton.textContent).toBe('');
+    // Avatar je okras (alt=""): začetnice so skrite bralnikom zaslona, dostopno ime ostane »Meni računa« (CR-01, D-24).
+    expect(within(menuButton).queryByRole('img')).not.toBeInTheDocument();
+    expect(within(menuButton).getByText('AN')).toHaveAttribute('aria-hidden', 'true');
     expect(screen.getByRole('main')).toBeInTheDocument();
   });
 

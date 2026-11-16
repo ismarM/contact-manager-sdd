@@ -23,7 +23,9 @@ class ProfileRepository {
             + " ON CONFLICT (firebase_uid) DO UPDATE SET ";
 
     private static final String RETURNING =
-            ", updated_at = now()" + " RETURNING name, email, language, theme, (xmax = 0) AS created";
+            ", updated_at = now()" + " RETURNING name, email, language, theme, (xmax = 0) AS created,"
+                    + " (SELECT i.revision FROM image i WHERE i.kind = 'USER' AND i.user_id = app_user.id)"
+                    + " AS photo_revision";
 
     /** Ime in e-naslov iz žetona, izbira naprave samo v prazna polja profila (FR-001-19 b). */
     private static final String SYNC = INSERT
@@ -86,7 +88,8 @@ class ProfileRepository {
                 row.getString("name"),
                 row.getString("email"),
                 Language.fromCode(row.getString("language")).orElse(null),
-                Theme.fromCode(row.getString("theme")).orElse(null));
+                Theme.fromCode(row.getString("theme")).orElse(null),
+                row.getObject("photo_revision", Long.class));
         return new Result(profile, row.getBoolean("created"));
     }
 }

@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
+import { Avatar } from '../../shared/images/Avatar';
 import { useGroup } from '../groups/groupContext';
 import { MemberCell } from './MemberCell';
 import { MemberActionsMenu, type MemberDialogKind } from './MemberActionsMenu';
@@ -24,7 +25,20 @@ export function MemberRow({
   return (
     <tr className="border-b border-border max-sm:block max-sm:py-2">
       <MemberCell label={t('members.table.member')} className={cellClass}>
-        {member.self ? `${name} ${t('members.table.you')}` : name}
+        <span className="inline-flex items-center gap-3">
+          <Avatar
+            kind="user"
+            name={name}
+            colorSeed={member.email}
+            size={32}
+            alt=""
+            photo={{
+              path: `/groups/${group.id}/members/${member.id}/photo`,
+              revision: member.photoRevision,
+            }}
+          />
+          <span>{member.self ? `${name} ${t('members.table.you')}` : name}</span>
+        </span>
       </MemberCell>
       <MemberCell label={t('members.table.email')} className={`${cellClass} break-all`}>
         {member.email}

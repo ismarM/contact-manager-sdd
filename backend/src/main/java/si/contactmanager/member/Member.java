@@ -5,7 +5,10 @@ import java.util.UUID;
 import si.contactmanager.group.Role;
 import si.contactmanager.group.UserRef;
 
-/** Član skupine v odgovorih (contracts/openapi.yaml – Member); {@code id} je opaken {@code memberId}. */
+/**
+ * Član skupine v odgovorih (contracts/openapi.yaml – Member); {@code id} je opaken {@code memberId}; {@code
+ * photoRevision} je revizija profilne slike člana ({@code null} = brez slike, 018).
+ */
 public record Member(
         UUID id,
         String name,
@@ -15,4 +18,5 @@ public record Member(
         boolean self,
         boolean canManage,
         UserRef updatedBy,
-        Instant updatedAt) {}
+        Instant updatedAt,
+        Long photoRevision) {}

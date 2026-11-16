@@ -24,6 +24,7 @@ export function member(n: number, overrides: Partial<Member> = {}): Member {
     version: 0,
     self: false,
     canManage: true,
+    photoRevision: null,
     updatedBy: null,
     updatedAt: null,
     ...overrides,

@@ -1325,5 +1325,63 @@
       "loadFailed": "Could not load the deleted contacts. Try again.",
       "retry": "Try again"
     }
+  },
+  "images": {
+    "profile": {
+      "heading": "Profile picture",
+      "description": "The picture is shown in the account menu and in the member lists of your groups.",
+      "uploaded": "The picture is saved.",
+      "removed": "The picture is removed."
+    },
+    "avatar": "Avatar: {{name}}",
+    "deletedUser": "Deleted user",
+    "upload": "Upload picture",
+    "replace": "Replace picture",
+    "remove": "Remove picture",
+    "removeDialog": {
+      "title": "Remove the picture?",
+      "body": "The picture will be removed and can no longer be shown. Initials will be shown instead.",
+      "confirm": "Remove picture",
+      "cancel": "Cancel"
+    },
+    "dialog": {
+      "title": "Picture",
+      "choose": "Choose a file",
+      "dropHint": "or drag and drop it here (JPEG, PNG or WebP)",
+      "dropActive": "Drop the file here",
+      "loading": "Reading the picture…",
+      "cropLabel": "Crop the picture",
+      "cropHint": "Arrow keys move the picture, plus and minus change the zoom, Home resets the crop.",
+      "cropFrameCircle": "Round frame: the part of the picture that will be visible",
+      "cropFrameSquare": "Square frame: the part of the picture that will be visible",
+      "zoom": "Zoom",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "zoomValue": "Zoom {{percent}} %",
+      "moved": "Picture moved: {{direction}}",
+      "reset": "Crop reset",
+      "left": "left",
+      "right": "right",
+      "up": "up",
+      "down": "down",
+      "save": "Save picture",
+      "saving": "Uploading picture…",
+      "cancel": "Cancel",
+      "retry": "Try again",
+      "otherFile": "Choose another file"
+    },
+    "errors": {
+      "INVALID_IMAGE": "The file is not a valid picture. Choose a JPEG, PNG or WebP picture.",
+      "IMAGE_TOO_LARGE": "The picture is too large. Choose a smaller picture.",
+      "FILE_TOO_LARGE": "The file is too large. Choose a smaller file.",
+      "RATE_LIMITED": "Too many attempts. Wait a moment and try again.",
+      "GOOGLE_PHOTO_UNAVAILABLE": "The picture of the Google account cannot be used.",
+      "generic": "The picture could not be saved. Try again."
+    },
+    "audit": {
+      "ADDED": "Contact picture added",
+      "REPLACED": "Contact picture replaced",
+      "REMOVED": "Contact picture removed"
+    }
   }
 }

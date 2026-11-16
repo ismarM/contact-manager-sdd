@@ -1325,5 +1325,63 @@
       "loadFailed": "Izbrisanih kontaktov ni bilo mogoče naložiti. Poskusi znova.",
       "retry": "Poskusi znova"
     }
+  },
+  "images": {
+    "profile": {
+      "heading": "Profilna slika",
+      "description": "Slika se prikaže v meniju računa in na seznamu članov tvojih skupin.",
+      "uploaded": "Slika je shranjena.",
+      "removed": "Slika je odstranjena."
+    },
+    "avatar": "Avatar: {{name}}",
+    "deletedUser": "Izbrisan uporabnik",
+    "upload": "Naloži sliko",
+    "replace": "Zamenjaj sliko",
+    "remove": "Odstrani sliko",
+    "removeDialog": {
+      "title": "Odstranim sliko?",
+      "body": "Slika bo odstranjena in je ni več mogoče prikazati. Namesto nje bodo začetnice.",
+      "confirm": "Odstrani sliko",
+      "cancel": "Prekliči"
+    },
+    "dialog": {
+      "title": "Slika",
+      "choose": "Izberi datoteko",
+      "dropHint": "ali jo povleci in spusti sem (JPEG, PNG ali WebP)",
+      "dropActive": "Spusti datoteko sem",
+      "loading": "Berem sliko…",
+      "cropLabel": "Obrezovanje slike",
+      "cropHint": "Puščice premikajo sliko, plus in minus spreminjata povečavo, Home ponastavi obrezovanje.",
+      "cropFrameCircle": "Okrogel okvir: del slike, ki bo viden",
+      "cropFrameSquare": "Kvadratni okvir: del slike, ki bo viden",
+      "zoom": "Povečava",
+      "zoomIn": "Povečaj",
+      "zoomOut": "Pomanjšaj",
+      "zoomValue": "Povečava {{percent}} %",
+      "moved": "Slika premaknjena: {{direction}}",
+      "reset": "Obrezovanje ponastavljeno",
+      "left": "levo",
+      "right": "desno",
+      "up": "gor",
+      "down": "dol",
+      "save": "Shrani sliko",
+      "saving": "Nalagam sliko…",
+      "cancel": "Prekliči",
+      "retry": "Poskusi znova",
+      "otherFile": "Izberi drugo datoteko"
+    },
+    "errors": {
+      "INVALID_IMAGE": "Datoteka ni veljavna slika. Izberi sliko JPEG, PNG ali WebP.",
+      "IMAGE_TOO_LARGE": "Slika je prevelika. Izberi manjšo sliko.",
+      "FILE_TOO_LARGE": "Datoteka je prevelika. Izberi manjšo datoteko.",
+      "RATE_LIMITED": "Preveč poskusov. Počakaj trenutek in poskusi znova.",
+      "GOOGLE_PHOTO_UNAVAILABLE": "Slike Google računa ni mogoče prevzeti.",
+      "generic": "Slike ni bilo mogoče shraniti. Poskusi znova."
+    },
+    "audit": {
+      "ADDED": "Dodana slika kontakta",
+      "REPLACED": "Zamenjana slika kontakta",
+      "REMOVED": "Odstranjena slika kontakta"
+    }
   }
 }
