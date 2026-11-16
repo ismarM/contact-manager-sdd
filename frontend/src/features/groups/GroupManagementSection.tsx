@@ -12,8 +12,8 @@ import { UnarchiveButton } from './UnarchiveButton';
 /**
  * *Nastavitve → Upravljanje skupine* (design.md 9.7 točka 4; FR-003-01, -04, -06, -09, -10): lastnik vidi arhiviranje
  * ali odarhiviranje, izbris pa samo, kadar je mogoč (`canDelete`), sicer razlago. Pri trajno arhivirani skupini (brez
- * lastnika) razdelek vidijo vsi člani. Od 007 vsak član (razen lastnika) vidi *Zapusti skupino*, lastnik pa *Prenesi
- * lastništvo* ali razlago; zadnji član trajno arhivirane skupine dobi razlago namesto gumba. Akcija, ki ni mogoča, ni
+ * lastnika) razdelek vidijo vsi člani. Od 007 vsak član vidi *Zapusti skupino* (lastnik od 017 z dialogom s pojasnilom, FR-017-19, -20), lastnik pa tudi
+ * *Prenesi lastništvo* ali razlago; zadnji član trajno arhivirane skupine dobi razlago namesto gumba. Akcija, ki ni mogoča, ni
  * izrisana; *Prenesi lastništvo* in razlagi o številu članov se izrišejo šele, ko je `total` znan.
  */
 export function GroupManagementSection() {
@@ -21,6 +21,8 @@ export function GroupManagementSection() {
   const { group } = useGroup();
   const headingId = useId();
   const heading = useRef<HTMLHeadingElement>(null);
+  const transferBox = useRef<HTMLDivElement>(null);
+  const deleteBox = useRef<HTMLDivElement>(null);
 
   const count = useMemberCount(group.id);
   // Dialog prenosa ostane izrisan, dokler je odprt, tudi če se vloga klicatelja medtem spremeni (403 pri prenosu).
@@ -53,20 +55,25 @@ export function GroupManagementSection() {
         </div>
       )}
       {(canTransfer || transferOpen) && (
-        <div className="flex flex-col items-start gap-2">
+        <div ref={transferBox} className="flex flex-col items-start gap-2">
           <TransferOwnershipDialog onOpenChange={setTransferOpen} />
         </div>
       )}
       {isOwner && !group.archived && count !== undefined && count <= 1 && (
         <p className="text-muted-foreground">{t('members.transfer.info')}</p>
       )}
-      {canLeave && <LeaveGroupDialog />}
+      {(canLeave || isOwner) && (
+        <LeaveGroupDialog
+          onTransfer={() => transferBox.current?.querySelector('button')?.click()}
+          onDelete={() => deleteBox.current?.querySelector('button')?.click()}
+        />
+      )}
       {isOwner && <p className="text-muted-foreground">{t('members.leave.ownerInfo')}</p>}
       {!isOwner && lastMember && (
         <p className="text-muted-foreground">{t('members.leave.lastMemberInfo')}</p>
       )}
       {group.canDelete ? (
-        <div className="flex flex-col items-start gap-2">
+        <div ref={deleteBox} className="flex flex-col items-start gap-2">
           <DeleteGroupDialog />
           <p className="text-muted-foreground">{t('groups.manage.deleteInfo')}</p>
         </div>

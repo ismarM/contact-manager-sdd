@@ -248,6 +248,19 @@
       "archived": "Group archived.",
       "unarchived": "Group unarchived.",
       "deleted": "Group deleted."
+    },
+    "search": {
+      "label": "Search groups",
+      "rolesLegend": "Role",
+      "stateLegend": "State",
+      "active": "Active",
+      "archived": "Archived",
+      "results_one": "{{count}} result",
+      "results_two": "{{count}} results",
+      "results_few": "{{count}} results",
+      "results_other": "{{count}} results",
+      "none": "No results.",
+      "clear": "Clear search"
     }
   },
   "notFound": {
@@ -1010,7 +1023,13 @@
       "cancel": "Cancel",
       "confirm": "Leave group",
       "ownerInfo": "As the owner you can leave the group only after transferring ownership to another member.",
-      "lastMemberInfo": "As the last member you cannot leave the group, you can only delete it."
+      "lastMemberInfo": "As the last member you cannot leave the group, you can only delete it.",
+      "owner": {
+        "title": "You cannot leave {{group}}",
+        "body": "As the owner you can leave the group only after transferring ownership to another member.",
+        "sole": "As the only member you cannot leave the group; you can only delete it.",
+        "close": "Close"
+      }
     },
     "transfer": {
       "button": "Transfer ownership",

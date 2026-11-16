@@ -248,6 +248,19 @@
       "archived": "Skupina je arhivirana.",
       "unarchived": "Skupina je odarhivirana.",
       "deleted": "Skupina je izbrisana."
+    },
+    "search": {
+      "label": "Išči skupine",
+      "rolesLegend": "Vloga",
+      "stateLegend": "Stanje",
+      "active": "Aktivne",
+      "archived": "Arhivirane",
+      "results_one": "{{count}} zadetek",
+      "results_two": "{{count}} zadetka",
+      "results_few": "{{count}} zadetki",
+      "results_other": "{{count}} zadetkov",
+      "none": "Ni zadetkov.",
+      "clear": "Počisti iskanje"
     }
   },
   "notFound": {
@@ -1010,7 +1023,13 @@
       "cancel": "Prekliči",
       "confirm": "Zapusti skupino",
       "ownerInfo": "Kot lastnik lahko skupino zapustiš šele, ko preneseš lastništvo na drugega člana.",
-      "lastMemberInfo": "Kot zadnji član skupine je ne moreš zapustiti, lahko jo le izbrišeš."
+      "lastMemberInfo": "Kot zadnji član skupine je ne moreš zapustiti, lahko jo le izbrišeš.",
+      "owner": {
+        "title": "Skupine {{group}} ne moreš zapustiti",
+        "body": "Kot lastnik lahko skupino zapustiš šele, ko preneseš lastništvo na drugega člana.",
+        "sole": "Kot edini član skupine je ne moreš zapustiti; lahko jo le izbrišeš.",
+        "close": "Zapri"
+      }
     },
     "transfer": {
       "button": "Prenesi lastništvo",

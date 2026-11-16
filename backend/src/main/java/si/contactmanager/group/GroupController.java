@@ -61,11 +61,13 @@ class GroupController {
     GroupSections list(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) String role,
+            @RequestParam(required = false) String q,
             @RequestParam(required = false) String page,
             @RequestParam(required = false) String size,
             @RequestParam(required = false) String lang) {
         List<FieldError> errors = new ArrayList<>();
         Role sectionRole = parseRole(role, errors);
+        String search = parseSearch(q, errors);
         Integer pageNumber = parseInt(page, 0, 0, Integer.MAX_VALUE, "page", errors);
         Integer pageSize = parseInt(size, DEFAULT_SIZE, 1, MAX_SIZE, "size", errors);
         Collation collation = parseLang(lang, errors);
@@ -76,7 +78,7 @@ class GroupController {
             throw new ValidationException(errors);
         }
         return users.find(jwt)
-                .map(user -> service.list(user, sectionRole, pageNumber, pageSize, collation))
+                .map(user -> service.list(user, search, sectionRole, pageNumber, pageSize, collation))
                 .orElseGet(() -> new GroupSections(List.of()));
     }
 
@@ -102,10 +104,20 @@ class GroupController {
     @GetMapping("/archived")
     ArchivedGroups archived(
             @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) List<String> role,
+            @RequestParam(required = false) String q,
             @RequestParam(required = false) String page,
             @RequestParam(required = false) String size,
             @RequestParam(required = false) String lang) {
         List<FieldError> errors = new ArrayList<>();
+        List<Role> roles = new ArrayList<>();
+        for (String value : role == null ? List.<String>of() : role) {
+            Role parsed = parseRole(value, errors);
+            if (parsed != null && !roles.contains(parsed)) {
+                roles.add(parsed);
+            }
+        }
+        String search = parseSearch(q, errors);
         Integer pageNumber = parseInt(page, 0, 0, Integer.MAX_VALUE, "page", errors);
         Integer pageSize = parseInt(size, DEFAULT_SIZE, 1, MAX_SIZE, "size", errors);
         Collation collation = parseLang(lang, errors);
@@ -113,7 +125,7 @@ class GroupController {
             throw new ValidationException(errors);
         }
         return users.find(jwt)
-                .map(user -> service.listArchived(user, pageNumber, pageSize, collation))
+                .map(user -> service.listArchived(user, search, roles, pageNumber, pageSize, collation))
                 .orElseGet(() -> new ArchivedGroups(0, pageNumber, pageSize, List.of()));
     }
 
@@ -134,6 +146,19 @@ class GroupController {
     ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable String groupId) {
         service.delete(access.require(jwt, groupId, Role.VIEWER, false));
         return ResponseEntity.noContent().build();
+    }
+
+    /** Iskani niz (FR-017-14): obrezan, prazen = brez iskanja, najdlje 100 znakov; vrne normaliziran niz. */
+    private static String parseSearch(String value, List<FieldError> errors) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String trimmed = value.strip();
+        if (trimmed.length() > GroupSearch.MAX_LENGTH) {
+            errors.add(new FieldError("q", "INVALID_VALUE"));
+            return null;
+        }
+        return GroupSearch.normalize(trimmed);
     }
 
     private static Role parseRole(String value, List<FieldError> errors) {

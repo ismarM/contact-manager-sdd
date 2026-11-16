@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.core.simple.JdbcClient.StatementSpec;
 import org.springframework.stereotype.Repository;
 
 /** Skupine in članstva v tabelah {@code contact_group} in {@code group_member} (data-model.md). */
@@ -126,24 +127,26 @@ class GroupRepository {
         jdbc.sql("DELETE FROM contact_group WHERE id = :id").param("id", group).update();
     }
 
-    long countArchived(long user) {
-        return jdbc.sql("SELECT count(*) FROM group_member m JOIN contact_group g ON g.id = m.group_id"
-                        + " WHERE m.user_id = :user AND g.archived_at IS NOT NULL")
-                .param("user", user)
-                .query(Long.class)
-                .single();
+    /** Arhivirane skupine uporabnika, ki ustrezajo iskanju {@code q} (normaliziran, lahko {@code null}) in vlogam. */
+    long countArchived(long user, String q, List<Role> roles) {
+        StatementSpec spec = jdbc.sql("SELECT count(*) FROM group_member m JOIN contact_group g ON g.id = m.group_id"
+                + " WHERE m.user_id = :user AND g.archived_at IS NOT NULL" + GroupSearch.condition(q)
+                + roleCondition(roles));
+        return filtered(spec, user, q, roles).query(Long.class).single();
     }
 
     /** Stran arhiviranih skupin uporabnika, urejena po naslovu po pravilih jezika, nato po id (FR-003-07). */
-    List<ArchivedGroupSummary> pageArchived(long user, Collation collation, int size, int page) {
-        return jdbc.sql("SELECT g.id, g.title, g.description, g.color, m.role,"
-                        + " (" + NO_OWNER + ") AS permanent,"
-                        + " (SELECT count(*) FROM contact k WHERE k.group_id = g.id) AS contacts"
-                        + " FROM group_member m JOIN contact_group g ON g.id = m.group_id"
-                        + " WHERE m.user_id = :user AND g.archived_at IS NOT NULL"
-                        + " ORDER BY g.title COLLATE " + collation.sqlName() + ", g.id"
-                        + " LIMIT :size OFFSET :offset")
-                .param("user", user)
+    List<ArchivedGroupSummary> pageArchived(
+            long user, String q, List<Role> roles, Collation collation, int size, int page) {
+        StatementSpec spec = jdbc.sql("SELECT g.id, g.title, g.description, g.color, m.role,"
+                + " (" + NO_OWNER + ") AS permanent,"
+                + " (SELECT count(*) FROM contact k WHERE k.group_id = g.id) AS contacts"
+                + " FROM group_member m JOIN contact_group g ON g.id = m.group_id"
+                + " WHERE m.user_id = :user AND g.archived_at IS NOT NULL" + GroupSearch.condition(q)
+                + roleCondition(roles)
+                + " ORDER BY g.title COLLATE " + collation.sqlName() + ", g.id"
+                + " LIMIT :size OFFSET :offset");
+        return filtered(spec, user, q, roles)
                 .param("size", size)
                 .param("offset", (long) page * size)
                 // Število kontaktov skupine (004, research R-12).
@@ -171,18 +174,17 @@ class GroupRepository {
     }
 
     /** Število nearhiviranih skupin uporabnika po vlogi (FR-002-04). */
-    Map<Role, Long> countByRole(long user) {
+    Map<Role, Long> countByRole(long user, String q) {
         Map<Role, Long> counts = new EnumMap<>(Role.class);
-        jdbc.sql("SELECT m.role, count(*) AS total FROM group_member m"
-                        + " JOIN contact_group g ON g.id = m.group_id"
-                        + " WHERE m.user_id = :user AND g.archived_at IS NULL GROUP BY m.role")
-                .param("user", user)
-                .query((ResultSet rs) -> {
-                    while (rs.next()) {
-                        counts.put(Role.valueOf(rs.getString("role")), rs.getLong("total"));
-                    }
-                    return counts;
-                });
+        StatementSpec spec = jdbc.sql("SELECT m.role, count(*) AS total FROM group_member m"
+                + " JOIN contact_group g ON g.id = m.group_id"
+                + " WHERE m.user_id = :user AND g.archived_at IS NULL" + GroupSearch.condition(q) + " GROUP BY m.role");
+        filtered(spec, user, q, List.of()).query((ResultSet rs) -> {
+            while (rs.next()) {
+                counts.put(Role.valueOf(rs.getString("role")), rs.getLong("total"));
+            }
+            return counts;
+        });
         return counts;
     }
 
@@ -190,14 +192,15 @@ class GroupRepository {
      * Stran razdelka, urejena po naslovu po pravilih jezika (ICU kolacija iz zaprte preslikave, D-28), nato po id za
      * stabilno paginacijo pri enakih naslovih.
      */
-    List<GroupSummary> pageByRole(long user, Role role, Collation collation, int size, int page) {
-        return jdbc.sql("SELECT g.id, g.title, g.description, g.color,"
-                        + " (SELECT count(*) FROM contact k WHERE k.group_id = g.id) AS contacts FROM group_member m"
-                        + " JOIN contact_group g ON g.id = m.group_id"
-                        + " WHERE m.user_id = :user AND m.role = :role AND g.archived_at IS NULL"
-                        + " ORDER BY g.title COLLATE " + collation.sqlName() + ", g.id"
-                        + " LIMIT :size OFFSET :offset")
-                .param("user", user)
+    List<GroupSummary> pageByRole(long user, String q, Role role, Collation collation, int size, int page) {
+        StatementSpec spec = jdbc.sql("SELECT g.id, g.title, g.description, g.color,"
+                + " (SELECT count(*) FROM contact k WHERE k.group_id = g.id) AS contacts FROM group_member m"
+                + " JOIN contact_group g ON g.id = m.group_id"
+                + " WHERE m.user_id = :user AND m.role = :role AND g.archived_at IS NULL"
+                + GroupSearch.condition(q)
+                + " ORDER BY g.title COLLATE " + collation.sqlName() + ", g.id"
+                + " LIMIT :size OFFSET :offset");
+        return filtered(spec, user, q, List.of())
                 .param("role", role.name())
                 .param("size", size)
                 .param("offset", (long) page * size)
@@ -209,6 +212,20 @@ class GroupRepository {
                         rs.getString("color"),
                         rs.getInt("contacts")))
                 .list();
+    }
+
+    private static String roleCondition(List<Role> roles) {
+        return roles.isEmpty() ? "" : " AND m.role IN (:roles)";
+    }
+
+    private static StatementSpec filtered(StatementSpec spec, long user, String q, List<Role> roles) {
+        StatementSpec result = spec.param("user", user);
+        if (q != null) {
+            result = result.param("q", q);
+        }
+        return roles.isEmpty()
+                ? result
+                : result.param("roles", roles.stream().map(Role::name).toList());
     }
 
     private static GroupDetail detail(ResultSet rs, int row) throws SQLException {

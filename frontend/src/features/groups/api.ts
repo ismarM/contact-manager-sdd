@@ -10,6 +10,10 @@ import type { ArchivedGroups, GroupDetail, GroupInput, GroupSections, Role } fro
 
 export interface ListParams {
   role?: Role;
+  /** Iskanje po nazivu (FR-017-14). */
+  q?: string;
+  /** Filter vlog pri arhiviranih skupinah (FR-017-15, -16). */
+  roles?: Role[];
   page?: number;
   size: number;
   lang: 'sl' | 'en';
@@ -19,9 +23,10 @@ const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
 export function createGroupsApi(authFetch: AuthFetch) {
   return {
-    listGroups({ role, page, size, lang }: ListParams): Promise<GroupSections> {
+    listGroups({ role, q, page, size, lang }: ListParams): Promise<GroupSections> {
       const query = new URLSearchParams();
       if (role) query.set('role', role);
+      if (q) query.set('q', q);
       if (page !== undefined) query.set('page', String(page));
       query.set('size', String(size));
       query.set('lang', lang);
@@ -37,8 +42,10 @@ export function createGroupsApi(authFetch: AuthFetch) {
         body: JSON.stringify(input),
       });
     },
-    listArchived({ page, size, lang }: ListParams): Promise<ArchivedGroups> {
+    listArchived({ q, roles, page, size, lang }: ListParams): Promise<ArchivedGroups> {
       const query = new URLSearchParams();
+      if (q) query.set('q', q);
+      roles?.forEach((role) => query.append('role', role));
       if (page !== undefined) query.set('page', String(page));
       query.set('size', String(size));
       query.set('lang', lang);
