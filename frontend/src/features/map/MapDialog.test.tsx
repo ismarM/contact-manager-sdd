@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 
 import { i18n } from '../../i18n';
@@ -83,6 +83,11 @@ describe('Zemljevid naslova', () => {
       fetches.push(input instanceof Request ? input.url : String(input));
       return original(input, init);
     });
+  });
+
+  // MapView se nalaga leno; brez predhodnega nalaganja se uvoz Leafleta lahko razreši po koncu testnega okolja (window is not defined).
+  beforeAll(async () => {
+    await import('./MapView');
   });
 
   afterEach(() => {

@@ -78,7 +78,7 @@ test('FR-014-10 FR-014-12 FR-014-13: izbor izvožen v vCard se uvozi v drugo sku
     first: 'Čeh',
     last: 'Šuštar',
     email: 'ceh@primer.si',
-    phone: '+386 41 1',
+    phone: '+38641123456',
     address: 'Ulica 1\nKranj',
     attributes: [['Vloga', '=mentor;x']],
     tags: ['alumni'],

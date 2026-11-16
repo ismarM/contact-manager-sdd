@@ -52,7 +52,7 @@ test('zgodovina kontakta: časovnica, ogled stanja, primerjava in obnova (uredni
   const contactId = await createContactViaApi(page, groupId, {
     firstName: 'Janez',
     lastName: 'Novak',
-    phone: '01 111 111',
+    phone: '01 234 5678',
   });
   await editContactViaApi(page, groupId, contactId, {
     phone: '031 999 999',
@@ -75,7 +75,7 @@ test('zgodovina kontakta: časovnica, ogled stanja, primerjava in obnova (uredni
     .last()
     .getByRole('link', { name: 'Ogled stanja po tej spremembi' })
     .click();
-  await expect(page.getByRole('definition').filter({ hasText: '01 111 111' })).toBeVisible();
+  await expect(page.getByRole('definition').filter({ hasText: '+386 1 234 56 78' })).toBeVisible();
   await expect(page.getByRole('main')).toContainText('Ogled je samo za branje.');
   await page.getByRole('link', { name: 'Nazaj na zgodovino kontakta' }).click();
 
@@ -100,11 +100,11 @@ test('zgodovina kontakta: časovnica, ogled stanja, primerjava in obnova (uredni
   const dialog = page.getByRole('dialog', { name: /Obnovim kontakt Janez Novak na stanje/ });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole('button', { name: 'Prekliči' })).toBeFocused();
-  await expect(dialog).toContainText('031 999 999');
+  await expect(dialog).toContainText('+386 31 999 999');
   await expectNoAxeViolations(page);
   await dialog.getByRole('button', { name: 'Obnovi kontakt' }).click();
   await expect(toast(page)).toContainText('Kontakt je obnovljen na stanje');
-  expect(contactPhone(contactId)).toBe('01 111 111');
+  expect(contactPhone(contactId)).toBe('+38612345678');
   expect(auditCountByAction(groupId, 'RESTORE')).toBe(before + 1);
   await expect(events.getByRole('listitem')).toHaveCount(3);
 });
@@ -117,12 +117,12 @@ test('seznam izbrisanih kontaktov: iskanje, obnova in združen kontakt brez gumb
   const deleted = await createContactViaApi(page, groupId, {
     firstName: 'Dana',
     lastName: 'Izbrisana',
-    phone: '01 222 222',
+    phone: '01 234 5679',
   });
   const other = await createContactViaApi(page, groupId, {
     firstName: 'Rok',
     lastName: 'Drugi',
-    phone: '01 333 333',
+    phone: '01 234 5680',
   });
   await deleteContactViaApi(page, groupId, deleted);
   await deleteContactViaApi(page, groupId, other);
@@ -160,7 +160,7 @@ test('bralec vidi zgodovino, a ne more obnoviti; filter sledi po izvajalcu', asy
   const contactId = await createContactViaApi(page, groupId, {
     firstName: 'Janez',
     lastName: 'Novak',
-    phone: '01 111 111',
+    phone: '01 234 5678',
   });
   const editor = await otherUser(browser, page, 'Bojan Kralj');
   setRole(groupId, editor.user.email, 'EDITOR');
