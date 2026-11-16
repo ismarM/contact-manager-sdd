@@ -27,6 +27,7 @@ function render(
   options: {
     archived?: boolean;
     permanent?: boolean;
+    canDelete?: boolean;
     members?: Member[];
     leave?: (groupId: string) => Reply | Promise<Reply>;
     groupGet?: () => Reply;
@@ -48,6 +49,7 @@ function render(
             role,
             archived: options.archived ?? false,
             permanentlyArchived: options.permanent ?? false,
+            canDelete: options.canDelete ?? false,
           }),
         })),
     },
@@ -129,17 +131,64 @@ describe('LeaveGroup', () => {
     );
   });
 
+  // Spremenjeno z 017 (FR-017-19, -20): lastnik zdaj vidi *Zapusti skupino*; dialog pojasni in ne ponudi potrditve
+  // zapustitve (prej: brez gumba). Razlaga v razdelku in zavrnitev zaledja (OWNER_CANNOT_LEAVE) ostaneta.
   it.each([false, true])(
-    'FR-007-07: lastnik (arhivirana: %s) – brez gumba, razlaga o prenosu lastništva',
+    'FR-007-07 FR-017-19: lastnik (arhivirana: %s) – razlaga v razdelku, dialog brez potrditve zapustitve',
     async (archived) => {
-      render('OWNER', { archived });
+      const { user, members } = render('OWNER', { archived });
 
       const section = await management();
-      const region = within(section);
       await waitFor(() => expect(section).toHaveTextContent(OWNER_INFO));
-      expect(region.queryByRole('button', { name: 'Zapusti skupino' })).not.toBeInTheDocument();
+      await user.click(await within(section).findByRole('button', { name: 'Zapusti skupino' }));
+
+      const dialog = await screen.findByRole('dialog', {
+        name: 'Skupine Projekt FERI ne moreš zapustiti',
+      });
+      expect(dialog).toHaveTextContent(OWNER_INFO);
+      expect(within(dialog).queryByRole('button', { name: 'Zapusti skupino' })).toBeNull();
+      expect(within(dialog).getByRole('button', { name: 'Zapri' })).toHaveFocus();
+      expect(within(dialog).queryByRole('button', { name: 'Prenesi lastništvo' }) === null).toBe(
+        archived,
+      );
+      expect((await axe(dialog)).violations).toEqual([]);
+      expect(members.of('POST', `/api/groups/${GROUP_ID}/leave`)).toHaveLength(0);
     },
   );
+
+  it('FR-017-19: lastnik – Prenesi lastništvo v dialogu odpre obstoječi dialog prenosa', async () => {
+    const { user } = render('OWNER');
+    const section = await management();
+    await user.click(await within(section).findByRole('button', { name: 'Zapusti skupino' }));
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Skupine Projekt FERI ne moreš zapustiti',
+    });
+
+    await user.click(within(dialog).getByRole('button', { name: 'Prenesi lastništvo' }));
+
+    expect(
+      await screen.findByRole('dialog', { name: 'Prenesem lastništvo skupine Projekt FERI?' }),
+    ).toBeInTheDocument();
+  });
+
+  it('FR-017-20: lastnik-edini član – razlaga in Izbriši skupino odpre obstoječi dialog izbrisa, nič se ne izbriše', async () => {
+    const { user, members } = render('OWNER', { members: [selfMember('OWNER')], canDelete: true });
+    const section = await management();
+    await user.click(await within(section).findByRole('button', { name: 'Zapusti skupino' }));
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Skupine Projekt FERI ne moreš zapustiti',
+    });
+    expect(dialog).toHaveTextContent('Kot edini član skupine je ne moreš zapustiti');
+    expect(within(dialog).queryByRole('button', { name: 'Prenesi lastništvo' })).toBeNull();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Izbriši skupino' }));
+
+    expect(
+      await screen.findByRole('dialog', { name: /Izbrišem skupino Projekt FERI/ }),
+    ).toBeInTheDocument();
+    expect(members.of('POST', `/api/groups/${GROUP_ID}/leave`)).toHaveLength(0);
+    expect(members.of('DELETE', `/api/groups/${GROUP_ID}`)).toHaveLength(0);
+  });
 
   it('FR-007-07: 409 OWNER_CANNOT_LEAVE (strežnik se ne ujema z vmesnikom) – razumljivo sporočilo, dialog ostane', async () => {
     const { user } = render('ADMIN', {

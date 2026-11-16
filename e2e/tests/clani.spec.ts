@@ -263,7 +263,7 @@ test('FR-007-05 F1: lastnik odstrani člana, ki ima odprt dialog spremembe vloge
   await editor.context.close();
 });
 
-test('FR-007-06 FR-007-07: urednik zapusti skupino, lastnik namesto gumba vidi razlago', async ({
+test('FR-007-06 FR-017-19: urednik zapusti skupino, lastnik v dialogu vidi razlago in lahko odpre prenos lastništva', async ({
   page,
   browser,
 }) => {
@@ -275,8 +275,23 @@ test('FR-007-06 FR-007-07: urednik zapusti skupino, lastnik namesto gumba vidi r
   await expect(management(page)).toContainText(
     'Kot lastnik lahko skupino zapustiš šele, ko preneseš lastništvo na drugega člana.',
   );
-  await expect(management(page).getByRole('button', { name: 'Zapusti skupino' })).toHaveCount(0);
+  // 017: lastnik vidi Zapusti skupino; dialog pojasni, potrditve zapustitve ni (prej: brez gumba).
+  await management(page).getByRole('button', { name: 'Zapusti skupino' }).click();
+  const ownerDialog = page.getByRole('dialog', { name: 'Skupine Projekt FERI ne moreš zapustiti' });
+  await expect(ownerDialog).toContainText(
+    'Kot lastnik lahko skupino zapustiš šele, ko preneseš lastništvo na drugega člana.',
+  );
+  await expect(ownerDialog.getByRole('button', { name: 'Zapri' })).toBeFocused();
+  await expect(ownerDialog.getByRole('button', { name: 'Zapusti skupino' })).toHaveCount(0);
   await expectNoAxeViolations(page);
+  await ownerDialog.getByRole('button', { name: 'Prenesi lastništvo' }).click();
+  const transferDialog = page.getByRole('dialog', {
+    name: 'Prenesem lastništvo skupine Projekt FERI?',
+  });
+  await expect(transferDialog).toBeVisible();
+  await transferDialog.getByRole('button', { name: 'Prekliči' }).click();
+  await expect(transferDialog).toBeHidden();
+  expect(memberExists(id, editor.user.email)).toBe(true);
   await openSettings(editor.page, id);
 
   await management(editor.page).getByRole('button', { name: 'Zapusti skupino' }).click();
