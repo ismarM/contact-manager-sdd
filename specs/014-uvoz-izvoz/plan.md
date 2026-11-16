@@ -6,7 +6,7 @@
 
 ## Summary
 
-Uvoz iz `.xlsx` in `.vcf` teče v treh korakih brez stanja na strežniku: **razčleni** (datoteka → glave in vrstice oz. kandidati), **predogled** (preverjanje 004/013, kanonizacija, prepoznava držav, dvojniki 011) in **potrdi** (atomarno, en vnos sledi `IMPORT`); preslikava stolpcev teče v brskalniku. Izvoz vCard 3.0 (izbor po pravilih 010 in en kontakt) z ez-vcard; ista preslikava kontakt ↔ vCard velja za datoteko, CardDAV in kodo QR. Kodo QR sestavi in prebere brskalnik (`qrcode`, `barcode-detector` z lokalno gostovanim WASM), slike ne zapustijo naprave. CardDAV je ročno izveden strežnik samo za branje pod `/dav/` z lastno verigo Spring Security (HTTP Basic z gesli za aplikacijo, SHA-256, zaklep v bazi); sinhronizacija uporablja zaporedje revizijske sledi kot `sync-token`. Migracija V11: vrsta vnosa `IMPORT`, tabeli `app_password` in `dav_login_state`.
+Uvoz iz `.xlsx` in `.vcf` teče v treh korakih brez stanja na strežniku: **razčleni** (datoteka → glave in vrstice oz. kandidati), **predogled** (preverjanje 004/013, kanonizacija, prepoznava držav, dvojniki 011) in **potrdi** (atomarno, en vnos sledi `IMPORT`); preslikava stolpcev teče v brskalniku. Izvoz vCard 3.0 (izbor po pravilih 010 in en kontakt) z ez-vcard; ista preslikava kontakt ↔ vCard velja za datoteko, CardDAV in kodo QR. Kodo QR sestavi in prebere brskalnik (`qrcode`, `barcode-detector` z lokalno gostovanim WASM), slike ne zapustijo naprave. CardDAV je ročno izveden strežnik samo za branje pod `/dav/` z lastno verigo Spring Security (HTTP Basic z gesli za aplikacijo, SHA-256, zaklep v bazi); sinhronizacija uporablja zaporedje revizijske sledi kot `sync-token`. Migracija V12: vrsta vnosa `IMPORT`, tabeli `app_password` in `dav_login_state`.
 
 ## Technical Context
 
@@ -14,7 +14,7 @@ Uvoz iz `.xlsx` in `.vcf` teče v treh korakih brez stanja na strežniku: **raz�
 
 **Primary Dependencies**: obstoječe + `org.dhatim:fastexcel-reader` 0.20.2 (test → compile), `com.googlecode.ez-vcard:ez-vcard` 0.12.1 (brez jackson-core, jsoup) · `qrcode` 1.5.4, `@types/qrcode` 1.5.6 (dev), `barcode-detector` 3.2.3 (`zxing-wasm` 3.1.6) – research R-01, R-02, R-06, R-07
 
-**Storage**: PostgreSQL; `V11__uvoz_izvoz.sql` (CHECK `audit_entry.action` + `IMPORT`, `app_password`, `dav_login_state`)
+**Storage**: PostgreSQL; `V12__uvoz_izvoz.sql` (CHECK `audit_entry.action` + `IMPORT`, `app_password`, `dav_login_state`)
 
 **Testing**: JUnit 5, Testcontainers, MockMvc (tudi metode WebDAV) · Vitest, RTL, MSW, vitest-axe · Playwright + axe (360/1280)
 
@@ -94,7 +94,7 @@ specs/014-uvoz-izvoz/
 backend/
 ├── pom.xml                                        # fastexcel-reader compile, ez-vcard
 ├── src/main/resources/application.yml             # multipart 10 MB
-├── src/main/resources/db/migration/V11__uvoz_izvoz.sql
+├── src/main/resources/db/migration/V12__uvoz_izvoz.sql
 ├── src/main/java/si/contactmanager/
 │   ├── contact/              # uvoz: ImportController, ImportService, ImportInputParser, XlsxGuard, XlsxSheetReader, HeaderMapping
 │   │                         # vCard: VcardWriter, VcardReader, VcardMapping (R-03), VcardExportController (v paketu contact,

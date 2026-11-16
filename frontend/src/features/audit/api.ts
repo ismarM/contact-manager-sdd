@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 
 import type { AuthFetch } from '../../shared/api/authFetch';
 import { useAuth } from '../auth/authContext';
-import type { AuditEntry, AuditFilters, AuditPage, ChangePage } from './types';
+import type { ActorList, AuditEntry, AuditFilters, AuditPage, ChangePage } from './types';
 
 // Odjemalec API revizijske sledi (plan.md – REST endpoints, contracts/openapi.yaml). Strani so 0-osne kot v API.
 
@@ -20,7 +20,11 @@ export function createAuditApi(authFetch: AuthFetch) {
       const query = new URLSearchParams({ page: String(page), size: String(size) });
       for (const action of filters.actions) query.append('action', action);
       if (filters.contact) query.set('contact', filters.contact);
+      if (filters.actor) query.set('actor', filters.actor);
       return authFetch<AuditPage>(`${base(groupId)}?${query.toString()}`);
+    },
+    listActors(groupId: string): Promise<ActorList> {
+      return authFetch<ActorList>(`${base(groupId)}/actors`);
     },
     getAuditEntry(groupId: string, entryId: string): Promise<AuditEntry> {
       return authFetch<AuditEntry>(`${base(groupId)}/${encodeURIComponent(entryId)}`);

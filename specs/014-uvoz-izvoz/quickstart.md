@@ -1,6 +1,6 @@
 # Quickstart: preverjanje 014
 
-1. `./verify.sh quick`, nato `./verify.sh backend` (migracija V11, uvoz, vCard, CardDAV, matrika izolacije) in `./verify.sh e2e`.
+1. `./verify.sh quick`, nato `./verify.sh backend` (migracija V12, uvoz, vCard, CardDAV, matrika izolacije) in `./verify.sh e2e`.
 2. Ročno (compose, urednik in bralec v isti skupini):
    - **Excel**: izvozi 3 kontakte (010) → *Uvozi → Iz Excela* v prazni skupini → preslikava samodejna → predogled brez napak → *Uvozi 3 kontakte* → sled ima en vnos *Uvoz*; ponoven uvoz iste datoteke: vse vrstice *Preskoči*.
    - Datoteka z »Kongo« in »Atlantida« v stolpcu *Država*: potrditev onemogočena, dokler obe vrednosti nista razrešeni.

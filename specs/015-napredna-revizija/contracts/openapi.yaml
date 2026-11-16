@@ -1,0 +1,190 @@
+openapi: 3.0.3
+info: {title: 015 napredna revizija (nove končne točke in spremembe 005), version: 1.0.0}
+x-conventions:
+  errors: "400 VALIDATION_FAILED {errors:[{field,code}]}; 401; 403; 404 brez telesa; 409 GROUP_ARCHIVED | VERSION_CONFLICT | RESTORE_NO_CHANGES | RESTORE_NOT_ALLOWED"
+  order: "401 → 404 → 403 → 409 GROUP_ARCHIVED → 400 → 409 VERSION_CONFLICT → 409 poslovno pravilo (feature-map §2.2)"
+  paging: "page 0-osna; size 25 | 50 | 100"
+paths:
+  /api/groups/{groupId}/audit:
+    get:
+      summary: "005 + nov filter actor (VIEWER, arhivirana dovoljeno)"
+      parameters:
+        - {name: groupId, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: actor, in: query, required: false, schema: {type: string}, description: "žeton iz /audit/actors ali 'deleted'; neznan žeton → prazen seznam; druga oblika → 400 INVALID_VALUE"}
+        - {name: action, in: query, required: false, schema: {type: array, items: {type: string}}}
+        - {name: contact, in: query, required: false, schema: {type: string, format: uuid}}
+      responses:
+        '200': {content: {application/json: {schema: {$ref: '#/components/schemas/AuditPage'}}}}
+        '400': {description: VALIDATION_FAILED}
+        '401': {description: UNAUTHENTICATED}
+        '404': {description: skupina ne obstaja ali ni član}
+  /api/groups/{groupId}/audit/actors:
+    get:
+      summary: Izvajalci te sledi (VIEWER)
+      responses:
+        '200': {content: {application/json: {schema: {type: object, properties: {items: {type: array, items: {$ref: '#/components/schemas/Actor'}}}}}}}
+  /api/groups/{groupId}/contacts/{contactId}/history:
+    get:
+      summary: Zgodovina kontakta, najnovejši zgoraj (VIEWER, tudi izbrisan/združen kontakt)
+      parameters:
+        - {name: page, in: query, schema: {type: integer, minimum: 0}}
+        - {name: size, in: query, schema: {type: integer, enum: [25, 50, 100]}}
+      responses:
+        '200': {content: {application/json: {schema: {$ref: '#/components/schemas/History'}}}}
+        '404': {description: kontakt ni v tej skupini ne med živimi ne v sledi}
+  /api/groups/{groupId}/contacts/{contactId}/versions/{ref}:
+    get:
+      summary: Različica kontakta (ref = entryId | initial | current)
+      responses:
+        '200': {content: {application/json: {schema: {$ref: '#/components/schemas/Version'}}}}
+        '404': {description: različica ne obstaja ali ni tega kontakta/skupine}
+  /api/groups/{groupId}/contacts/{contactId}/compare:
+    get:
+      summary: Primerjava dveh različic istega kontakta
+      parameters:
+        - {name: from, in: query, required: true, schema: {type: string}}
+        - {name: to, in: query, required: true, schema: {type: string}}
+      responses:
+        '200': {content: {application/json: {schema: {$ref: '#/components/schemas/Compare'}}}}
+        '400': {description: "from = to ali neveljaven ref (INVALID_VALUE), manjkajoč parameter (REQUIRED)"}
+        '404': {description: različica ne obstaja}
+  /api/groups/{groupId}/contacts/{contactId}/restore-preview:
+    get:
+      summary: Predogled obnove (VIEWER)
+      parameters:
+        - {name: from, in: query, required: true, schema: {type: string}}
+      responses:
+        '200': {content: {application/json: {schema: {$ref: '#/components/schemas/RestorePreview'}}}}
+  /api/groups/{groupId}/contacts/{contactId}/restore:
+    post:
+      summary: Obnova ene različice kontakta (EDITOR; arhivirana skupina 409 GROUP_ARCHIVED)
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/RestoreRequest'}}}
+      responses:
+        '201': {description: nov vnos RESTORE, content: {application/json: {schema: {$ref: '#/components/schemas/AuditEntry'}}}}
+        '400': {description: "from ali version/lastEntryId manjka (REQUIRED) ali neveljaven (INVALID_VALUE); ciljno stanje krši trenutna pravila 013 (RESERVED_KEY na attributes[i].key, INVALID_VALUE na country, TOO_LONG na company)"}
+        '403': {description: VIEWER}
+        '404': {description: kontakt ali različica ni v tej skupini}
+        '409': {description: "GROUP_ARCHIVED | VERSION_CONFLICT (telo: {code, current: {version?, latestEntryId}} – trenutna verzija obstoječega kontakta in najnovejši vnos njegove zgodovine) | RESTORE_NOT_ALLOWED (združen) | RESTORE_NO_CHANGES"}
+  /api/groups/{groupId}/deleted-contacts:
+    get:
+      summary: Izbrisani kontakti (VIEWER, arhivirana dovoljeno)
+      parameters:
+        - {name: q, in: query, schema: {type: string, maxLength: 100}}
+        - {name: state, in: query, schema: {type: string, enum: [all, restorable, merged], default: all}}
+        - {name: page, in: query, schema: {type: integer, minimum: 0}}
+        - {name: size, in: query, schema: {type: integer, enum: [25, 50, 100]}}
+      responses:
+        '200': {content: {application/json: {schema: {$ref: '#/components/schemas/DeletedPage'}}}}
+        '400': {description: "state/size neveljavno (INVALID_VALUE), q predolg (TOO_LONG)"}
+components:
+  schemas:
+    UserRef: {type: object, nullable: true, description: "null = izbrisan uporabnik", properties: {name: {type: string, nullable: true}, email: {type: string}}}
+    Actor:
+      type: object
+      required: [id, kind]
+      properties:
+        id: {type: string, description: "žeton izvajalca ali 'deleted'"}
+        kind: {type: string, enum: [MEMBER, FORMER, DELETED]}
+        user: {$ref: '#/components/schemas/UserRef'}
+    AuditEntry: {type: object, description: "005 AuditEntry; action lahko vsebuje tudi RESTORE (target = ciljni vnos ali targetInitial)"}
+    AuditPage: {type: object, description: "005 AuditPage + actorFilter", properties: {actorFilter: {nullable: true, allOf: [{$ref: '#/components/schemas/Actor'}]}}}
+    ChangeField: {type: object, description: "005 ChangeField {field, key, before, after}"}
+    ContactStateView:
+      type: object
+      properties:
+        firstName: {type: string, nullable: true}
+        lastName: {type: string, nullable: true}
+        address: {type: string, nullable: true}
+        email: {type: string, nullable: true}
+        phone: {type: string, nullable: true}
+        company: {type: string, nullable: true}
+        country: {type: string, nullable: true}
+        attributes: {type: array, items: {type: object, properties: {key: {type: string}, value: {type: string}}}}
+        tags: {type: array, items: {type: string}}
+        version: {type: integer, format: int64}
+    HistoryEvent:
+      type: object
+      properties:
+        entryId: {type: string, format: uuid}
+        createdAt: {type: string, format: date-time}
+        actor: {$ref: '#/components/schemas/UserRef'}
+        action: {type: string, description: "besedilo; neznana vrsta je veljavna (FR-015-18)"}
+        kind: {type: string, enum: [ADDED, CHANGED, REMOVED]}
+        entryContactCount: {type: integer}
+        displayName: {type: string}
+        fields: {type: array, items: {$ref: '#/components/schemas/ChangeField'}}
+        hasVersion: {type: boolean}
+        target: {type: object, nullable: true, properties: {entryId: {type: string, format: uuid}, createdAt: {type: string, format: date-time}}}
+        targetInitial: {type: boolean}
+        mergedInto: {type: object, nullable: true, properties: {contactId: {type: string, format: uuid}, displayName: {type: string}}}
+    History:
+      type: object
+      properties:
+        contact:
+          type: object
+          properties:
+            id: {type: string, format: uuid}
+            displayName: {type: string}
+            status: {type: string, enum: [ACTIVE, DELETED, MERGED]}
+            version: {type: integer, format: int64, nullable: true, description: "samo ACTIVE"}
+            lastEntryId: {type: string, format: uuid, nullable: true, description: "najnovejši vnos kontakta; žeton obnove izbrisanega"}
+            hasInitial: {type: boolean}
+        total: {type: integer}
+        page: {type: integer}
+        size: {type: integer}
+        items: {type: array, items: {$ref: '#/components/schemas/HistoryEvent'}}
+    Version:
+      type: object
+      properties:
+        ref: {type: string}
+        createdAt: {type: string, format: date-time, nullable: true, description: "null za initial in current"}
+        actor: {$ref: '#/components/schemas/UserRef'}
+        action: {type: string, nullable: true}
+        state: {$ref: '#/components/schemas/ContactStateView'}
+    Compare:
+      type: object
+      properties:
+        from: {$ref: '#/components/schemas/Version'}
+        to: {$ref: '#/components/schemas/Version'}
+        changes: {type: array, items: {$ref: '#/components/schemas/ChangeField'}}
+    RestorePreview:
+      type: object
+      properties:
+        target: {$ref: '#/components/schemas/Version'}
+        changes: {type: array, items: {$ref: '#/components/schemas/ChangeField'}}
+        status: {type: string, enum: [ACTIVE, DELETED, MERGED]}
+        restorable: {type: boolean}
+        reason: {type: string, enum: [MERGED, NO_CHANGES, INVALID_STATE], nullable: true}
+        violations: {type: array, items: {type: object, properties: {field: {type: string}, code: {type: string}}}, description: "kršitve trenutnih pravil 013 v ciljnem stanju (reason = INVALID_STATE); isti kodi kot 400"}
+        currentVersion: {type: integer, format: int64, nullable: true}
+        lastEntryId: {type: string, format: uuid, nullable: true}
+        duplicates: {type: array, maxItems: 5, items: {type: object, properties: {contactId: {type: string, format: uuid}, displayName: {type: string}, reason: {type: string, enum: [EMAIL, NAME]}}}}
+    RestoreRequest:
+      type: object
+      required: [from]
+      properties:
+        from: {type: string, description: "entryId | initial"}
+        version: {type: integer, format: int64, description: "obstoječ kontakt"}
+        lastEntryId: {type: string, format: uuid, description: "izbrisan kontakt"}
+    DeletedItem:
+      type: object
+      properties:
+        contactId: {type: string, format: uuid}
+        displayName: {type: string}
+        email: {type: string, nullable: true}
+        company: {type: string, nullable: true}
+        removedAt: {type: string, format: date-time}
+        removedBy: {$ref: '#/components/schemas/UserRef'}
+        entryId: {type: string, format: uuid}
+        reason: {type: string, enum: [DELETED, ROLLBACK, MERGED]}
+        restorable: {type: boolean}
+        mergedInto: {type: object, nullable: true, properties: {contactId: {type: string, format: uuid}, displayName: {type: string}, exists: {type: boolean}}}
+    DeletedPage:
+      type: object
+      properties:
+        total: {type: integer}
+        page: {type: integer}
+        size: {type: integer}
+        items: {type: array, items: {$ref: '#/components/schemas/DeletedItem'}}

@@ -91,6 +91,17 @@ class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("ROLLBACK_NO_CHANGES"));
     }
 
+    /** Obnova kontakta (015, feature-map §2.10). */
+    @ExceptionHandler(RestoreNoChangesException.class)
+    ResponseEntity<ErrorResponse> restoreNoChanges() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("RESTORE_NO_CHANGES"));
+    }
+
+    @ExceptionHandler(RestoreNotAllowedException.class)
+    ResponseEntity<ErrorResponse> restoreNotAllowed() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("RESTORE_NOT_ALLOWED"));
+    }
+
     /** Odarhiviranje nearhivirane skupine (feature-map §2.10). */
     @ExceptionHandler(GroupNotArchivedException.class)
     ResponseEntity<ErrorResponse> groupNotArchived() {

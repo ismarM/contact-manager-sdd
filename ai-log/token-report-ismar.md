@@ -25,6 +25,11 @@ Token usage per AI session run by Ismar. One row per session (each row has a mat
 | 3a | └ subagent: izvajalec – 013 frontend implementacija | T3 Code, Claude Code | claude-sonnet-5-5 | 1 / 109 | – | 218 | 117 019 | 288 342 | 20 009 004 | 20 414 583 |
 | 3b | └ subagent: pregled-testov – Pregled testov 013 | T3 Code, Claude Code | claude-sonnet-5-5 | 1 / 18 | – | 36 | 12 559 | 91 169 | 913 884 | 1 017 648 |
 | | **Session 3 total (main + subagents)** | | claude-sonnet-5-5 | 8 / 296 | – | 596 | 359 115 | 869 924 | 79 237 839 | 80 467 474 |
+| 4 | `015-napredna-revizija` (`d5922ac1`) – **main session** | T3 Code, Claude Code | claude-sonnet-5-5 | 5 / 116 (stanje ob pisanju) | – | 246 | 197 038 | 416 162 | 31 684 523 | 32 297 969 |
+| 4a | └ subagent: general-purpose – Frontend 015 zgodovina | T3 Code, Claude Code | claude-sonnet-5-5 | 1 / 65 | – | 130 | 150 184 | 309 527 | 13 323 063 | 13 782 904 |
+| 4b | └ subagent: pregled-testov – Pregled testov 015 | T3 Code, Claude Code | claude-sonnet-5-5 | 1 / 14 | – | 28 | 9 625 | 57 618 | 486 996 | 554 267 |
+| | **Session 4 total (main + subagents)** | | claude-sonnet-5-5 | 7 / 195 | – | 404 | 356 847 | 783 307 | 45 494 582 | 46 635 140 |
+Opomba seje 4: `HOME=/tmp/fakehome node scripts/token-report.mjs` (stanje pred zadnjimi ponovnimi zagoni `verify.sh`; seja še teče).
 | | **Session 1 total (main + subagents)** | | | | | | | | | |
 | | **Total – Ismar** | | | | | | | | | |
 

@@ -270,9 +270,17 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
       className={`flex min-w-0 flex-col gap-4 ${selection.count > 0 ? 'pb-[var(--selection-bar-height,14rem)] sm:pb-0' : ''}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id={headingId} ref={heading} tabIndex={-1} className="text-xl font-bold outline-none">
-          {t('contacts.heading')}
-        </h2>
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <h2 id={headingId} ref={heading} tabIndex={-1} className="text-xl font-bold outline-none">
+            {t('contacts.heading')}
+          </h2>
+          <Link
+            to={`/groups/${group.id}/deleted-contacts`}
+            className={`text-primary underline underline-offset-4 ${focusRing}`}
+          >
+            {t('contacts.deletedLink')}
+          </Link>
+        </div>
         {editable && selection.count === 0 && (
           <div className="flex flex-wrap items-center gap-3">
             <ImportMenu base={base} />

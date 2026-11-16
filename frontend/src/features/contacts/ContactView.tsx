@@ -140,9 +140,23 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
 
       {contact.reverted && <RevertedBadge info={contact.reverted} />}
 
-      <Link to={`/groups/${group.id}/audit?contact=${contact.id}`} className={`self-start ${link}`}>
-        {t('contacts.view.auditLink')}
-      </Link>
+      <section aria-labelledby={`history-${contact.id}`} className="flex flex-col gap-1">
+        <h3 id={`history-${contact.id}`} className="text-lg font-bold">
+          {t('contacts.view.historyHeading')}
+        </h3>
+        <Link
+          to={`/groups/${group.id}/contacts/${contact.id}/history`}
+          className={`self-start ${link}`}
+        >
+          {t('contacts.view.historyLink')}
+        </Link>
+        <Link
+          to={`/groups/${group.id}/audit?contact=${contact.id}`}
+          className={`self-start ${link}`}
+        >
+          {t('contacts.view.auditLink')}
+        </Link>
+      </section>
 
       {conflict && (
         <div role="alert" className={warningAlert}>

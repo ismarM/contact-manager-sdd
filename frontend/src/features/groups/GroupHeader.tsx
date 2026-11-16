@@ -1,7 +1,7 @@
 import { IconArchive } from '@tabler/icons-react';
 import { useEffect, useId, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { NavLink } from 'react-router';
+import { Link, NavLink, useLocation } from 'react-router';
 
 import { focusRing } from '../../shared/ui/styles';
 import { COLOR_SWATCH } from './colors';
@@ -13,6 +13,13 @@ import type { GroupDetail } from './types';
  */
 export function GroupHeader({ group, focusTitle }: { group: GroupDetail; focusTitle: boolean }) {
   const { t } = useTranslation();
+  const { pathname } = useLocation();
+  // Razdelek *Kontakti* velja tudi za podstrani kontaktov in seznam izbrisanih kontaktov (`deleted-contacts`, 015).
+  const contactsBase = `/groups/${group.id}/contacts`;
+  const inContacts =
+    pathname === contactsBase ||
+    pathname.startsWith(`${contactsBase}/`) ||
+    pathname === `/groups/${group.id}/deleted-contacts`;
   const titleId = useId();
   const title = useRef<HTMLHeadingElement>(null);
 
@@ -53,12 +60,13 @@ export function GroupHeader({ group, focusTitle }: { group: GroupDetail; focusTi
         )}
       </div>
       <nav aria-label={t('groups.header.sections')} className="flex gap-4 overflow-x-auto">
-        <NavLink
+        <Link
           to={`/groups/${group.id}/contacts`}
+          aria-current={inContacts ? 'page' : undefined}
           className={`-mb-px border-b-4 border-transparent px-1 pb-2 font-bold aria-[current=page]:border-primary ${focusRing}`}
         >
           {t('groups.header.contacts')}
-        </NavLink>
+        </Link>
         {!group.archived && group.role !== 'VIEWER' && (
           <NavLink
             to={`/groups/${group.id}/duplicates`}

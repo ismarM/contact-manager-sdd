@@ -11,8 +11,9 @@ import { useGroup } from '../groups/groupContext';
 import { SectionPagination } from '../groups/SectionPagination';
 import { useDelayed } from '../groups/useDelayed';
 import { useAuditApi } from './api';
-import { auditSearch, hasFilters, readAuditView } from './auditRouting';
+import { auditSearch, DELETED_ACTOR, hasFilters, readAuditView } from './auditRouting';
 import { AuditEntryItem } from './AuditEntryItem';
+import { useActorLabel } from './actorLabel';
 import { AuditFilters } from './AuditFilters';
 import { useAuditTime } from './formatTime';
 import { InitialStateItem } from './InitialStateItem';
@@ -58,6 +59,7 @@ export function AuditPage() {
   const api = useAuditApi();
   const { group, reload: reloadGroup } = useGroup();
   const time = useAuditTime();
+  const actorLabel = useActorLabel();
   const [params, setParams] = useSearchParams();
   const { page, size, filters, contactInvalid } = readAuditView(params);
   const [state, setState] = useState<State>({ kind: 'loading' });
@@ -73,6 +75,7 @@ export function AuditPage() {
   const showLoader = useDelayed(state.kind === 'loading');
   const actionsKey = filters.actions.join(',');
   const contact = filters.contact;
+  const actor = filters.actor;
   const canRestore = (group.role === 'ADMIN' || group.role === 'OWNER') && !group.archived;
   useDocumentTitle(t('title.groupScreen', { screen: t('title.audit'), group: group.title }));
 
@@ -82,6 +85,7 @@ export function AuditPage() {
     const current: Filters = {
       actions: actionsKey ? (actionsKey.split(',') as Filters['actions']) : [],
       contact,
+      actor,
     };
     api.listAudit(group.id, page - 1, size, current).then(
       (data) => {
@@ -104,7 +108,7 @@ export function AuditPage() {
     return () => {
       active = false;
     };
-  }, [api, group.id, page, size, actionsKey, contact, contactInvalid, reloads, setParams]);
+  }, [api, group.id, page, size, actionsKey, contact, actor, contactInvalid, reloads, setParams]);
 
   const reload = useCallback(() => setReloads((n) => n + 1), []);
 
@@ -154,7 +158,15 @@ export function AuditPage() {
   };
 
   const data: AuditPageData | null = contactInvalid
-    ? { total: 0, page: 0, size, items: [], latestEntryId: null, contactFilter: null }
+    ? {
+        total: 0,
+        page: 0,
+        size,
+        items: [],
+        latestEntryId: null,
+        contactFilter: null,
+        actorFilter: null,
+      }
     : state.kind === 'ready'
       ? state.data
       : null;
@@ -180,6 +192,13 @@ export function AuditPage() {
       <AuditFilters
         filters={filters}
         contactName={data?.contactFilter?.displayName ?? null}
+        actorName={
+          data?.actorFilter
+            ? actorLabel(data.actorFilter)
+            : filters.actor === DELETED_ACTOR
+              ? t('audit.list.deletedUser')
+              : null
+        }
         onChange={(next) => goTo(1, size, next)}
       />
 
@@ -229,7 +248,7 @@ export function AuditPage() {
             <button
               type="button"
               className={secondaryButton}
-              onClick={() => goTo(1, size, { actions: [], contact: null })}
+              onClick={() => goTo(1, size, { actions: [], contact: null, actor: null })}
             >
               {t('audit.list.clearFilters')}
             </button>

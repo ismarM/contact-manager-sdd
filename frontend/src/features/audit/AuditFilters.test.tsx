@@ -38,7 +38,7 @@ describe('AuditFilters', () => {
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     const group = screen.getByRole('group', { name: 'Vrsta dejanja' });
     // 014 (FR-014-05): nova vrsta dejanja »uvoz«.
-    expect(within(group).getAllByRole('checkbox')).toHaveLength(6);
+    expect(within(group).getAllByRole('checkbox')).toHaveLength(7);
     for (const name of [
       'dodajanje',
       'urejanje',
@@ -46,6 +46,7 @@ describe('AuditFilters', () => {
       'združevanje',
       'rollback',
       'uvoz',
+      'obnova',
     ]) {
       expect(within(group).getByRole('checkbox', { name })).not.toBeChecked();
     }

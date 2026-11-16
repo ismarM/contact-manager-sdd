@@ -321,7 +321,13 @@ export function ImportPage() {
 
           {preview && rows.length > 0 && (
             <>
-              <div className="overflow-x-auto">
+              {/* Drsno območje na ozkem zaslonu mora biti dosegljivo s tipkovnico (axe scrollable-region-focusable). */}
+              <div
+                role="region"
+                aria-label={t('import.preview.table')}
+                tabIndex={0}
+                className={`overflow-x-auto ${focusRing}`}
+              >
                 <table className="w-full border-collapse text-left">
                   <caption className="sr-only">{t('import.preview.table')}</caption>
                   <thead>

@@ -20,5 +20,5 @@ Za CardDAV je potreben nov tip klicatelja in nov način prijave.
   nginx). Strežnik HTTP sam ne zavrača (lokalni compose teče brez TLS) – odločitev razvijalca.
 
 ## Posledice
-Nov tip poverilnice v podatkovnem modelu (V11) in v izvozu »moji podatki«. Zavrnjeno: knjižnica WebDAV (licenca,
+Nov tip poverilnice v podatkovnem modelu (V12) in v izvozu »moji podatki«. Zavrnjeno: knjižnica WebDAV (licenca,
 teža), bcrypt (počasno ob vsakem zahtevku sinhronizacije), stanje zaklepa v pomnilniku.

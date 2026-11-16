@@ -1,10 +1,11 @@
 -- 014 uvoz in izvoz: vrsta vnosa sledi IMPORT, gesla za aplikacijo in zaklep prijave CardDAV
 -- (specs/014-uvoz-izvoz/data-model.md; docs/decisions/2026-11-15-gesla-za-aplikacijo-carddav.md).
 -- Samo naprej: obstoječi vnosi sledi ostanejo nespremenjeni, nespremenljivost (sprožilci V5) velja naprej.
+-- Preštevilčeno iz V11 (V11 je 015 napredna revizija): CHECK je unija vseh vrst dejanj (tudi RESTORE iz V11).
 
 ALTER TABLE audit_entry DROP CONSTRAINT audit_entry_action_check;
 ALTER TABLE audit_entry ADD CONSTRAINT audit_entry_action_check
-    CHECK (action IN ('CREATE', 'UPDATE', 'DELETE', 'MERGE', 'ROLLBACK', 'IMPORT'));
+    CHECK (action IN ('CREATE', 'UPDATE', 'DELETE', 'MERGE', 'ROLLBACK', 'RESTORE', 'IMPORT'));
 
 -- Geslo za aplikacijo (FR-014-21, -25): hrani se samo SHA-256 normaliziranega gesla; preklic = izbris vrstice;
 -- izbris računa kaskadno izbriše vsa gesla. Meja 10 na uporabnika se preveri v aplikaciji pod zaklepom app_user.

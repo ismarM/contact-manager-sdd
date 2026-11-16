@@ -4,27 +4,9 @@ import { Link } from 'react-router';
 import { focusRing, secondaryButton } from '../../shared/ui/styles';
 import { useGroup } from '../groups/groupContext';
 import { AuditDetails } from './AuditDetails';
+import { useAuditSentence } from './auditSentence';
 import { useAuditTime } from './formatTime';
 import type { AuditEntry } from './types';
-
-/** Stavek dejanja brez povezave na čas (FR-005-07): vrsta, število kontaktov in množina iz i18n. */
-function useSentence() {
-  const { t } = useTranslation();
-  return (entry: AuditEntry): string => {
-    if (entry.action === 'ROLLBACK') {
-      return entry.targetInitial
-        ? t('audit.sentence.ROLLBACK_initial')
-        : t('audit.sentence.ROLLBACK_target');
-    }
-    if (entry.action === 'MERGE') {
-      return t('audit.sentence.MERGE_count', { count: entry.contactCount });
-    }
-    if (entry.contactCount === 1 && entry.contactName) {
-      return t(`audit.sentence.${entry.action}_named`, { name: entry.contactName });
-    }
-    return t(`audit.sentence.${entry.action}_count`, { count: entry.contactCount });
-  };
-}
 
 /**
  * Vnos sledi (design.md 9.6; FR-005-07): čas, izvajalec, stavek dejanja (pri rollbacku s povezavo na ciljni vnos),
@@ -40,7 +22,7 @@ export function AuditEntryItem({
   const { t } = useTranslation();
   const { group } = useGroup();
   const time = useAuditTime();
-  const sentence = useSentence()(entry);
+  const sentence = useAuditSentence()(entry);
   const actor = entry.actor ? (entry.actor.name ?? entry.actor.email) : t('audit.list.deletedUser');
 
   return (

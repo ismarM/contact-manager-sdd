@@ -14,14 +14,14 @@ description: "Tasks for 014-uvoz-izvoz (one pass, tests inside each story)"
 ## Format: `[ID] [P?] [Story] FR-IDs Description`
 
 - Endpointi in poti samo iz plan.md; oblike iz contracts/; pravila polj iz data-model.md in feature-map §2.6.
-- Vrstni red preverjanj feature-map §2.2; nova koda `APP_PASSWORD_LIMIT` (409). Migracija samo naprej: `V11__uvoz_izvoz.sql`.
+- Vrstni red preverjanj feature-map §2.2; nova koda `APP_PASSWORD_LIMIT` (409). Migracija samo naprej: `V12__uvoz_izvoz.sql`.
 - UI testi samo `getByRole`/`getByLabel`, imena iz prevodov ali `frontend/src/test/` oz. `e2e/tests/support/`; axe na vsaki strani.
 - Brez `git push`, brez združitve.
 
 ## Phase 1: Setup
 
 - [x] T001 — Odvisnosti: `backend/pom.xml` (`fastexcel-reader` scope compile; `ez-vcard` 0.12.1 z izključenima `jackson-core`, `jsoup`); `frontend/package.json` + lockfile (`qrcode` 1.5.4, `barcode-detector` 3.2.3, dev `@types/qrcode` 1.5.6), točne različice; zapisa odločitev `docs/decisions/2026-11-15-uvoz-izvoz-knjiznice.md` (R-01, R-02, R-06, R-07 z razlogi; ez-vcard zadnja izdaja 2023) in `docs/decisions/2026-11-15-gesla-za-aplikacijo-carddav.md` (R-08, R-09: nov tip klicatelja, druga varnostna veriga)
-- [x] T002 — Migracija `backend/src/main/resources/db/migration/V11__uvoz_izvoz.sql` po data-model.md (`IMPORT` v CHECK `audit_entry.action`, `app_password`, `dav_login_state`); `AuditAction.IMPORT`; test `backend/src/test/java/si/contactmanager/audit/ImportActionMigrationIT.java` (vnos `IMPORT` se zapiše, nespremenljivost velja, obstoječi vnosi nespremenjeni, kaskada iz `app_user` izbriše obe novi tabeli)
+- [x] T002 — Migracija `backend/src/main/resources/db/migration/V12__uvoz_izvoz.sql` po data-model.md (`IMPORT` v CHECK `audit_entry.action`, `app_password`, `dav_login_state`); `AuditAction.IMPORT`; test `backend/src/test/java/si/contactmanager/audit/ImportActionMigrationIT.java` (vnos `IMPORT` se zapiše, nespremenljivost velja, obstoječi vnosi nespremenjeni, kaskada iz `app_user` izbriše obe novi tabeli)
 - [x] T003 [P] — Infrastruktura (R-10): `frontend/nginx.conf` (`/dav/`, `= /.well-known/carddav`, `client_max_body_size 25m` za `/api/groups/*/imports`), `frontend/vite.config.ts` (denylist `/dav/`, `/.well-known/`; `wasm` v `globPatterns`), `backend/src/main/resources/application.yml` (multipart 10 MB / 11 MB); `MaxUploadSizeExceededException` → `400 VALIDATION_FAILED` (`file: FILE_TOO_LARGE`) v `ApiExceptionHandler`
 - [x] T004 [P] — i18n sl/en (`frontend/src/i18n/sl.json`, `en.json`): uvoz (meni, koraki, cilji preslikave, povzetki z množinskimi oblikami, napake datoteke, dvojniki, države, *Poskusi znova*), izvoz vCard, koda QR (okno, opozorilo, ni vključeno, alternativa), skeniranje (navodilo, kamera ni na voljo, ni kode, več kod), gesla za aplikacijo in navodilo CardDAV, `audit.sentence.IMPORT_*` in filter *Uvoz*, `APP_PASSWORD_LIMIT`; imena atributov iz vizitk (`E-naslov 2`, `Rojstni dan` …) v zaledju (`VcardMapping`, sl/en)
 

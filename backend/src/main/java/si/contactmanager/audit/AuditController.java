@@ -58,18 +58,30 @@ class AuditController {
             @RequestParam(required = false) String page,
             @RequestParam(required = false) String size,
             @RequestParam(required = false) List<String> action,
-            @RequestParam(required = false) String contact) {
+            @RequestParam(required = false) String contact,
+            @RequestParam(required = false) String actor) {
         Membership membership = access.require(jwt, groupId, Role.VIEWER, false);
         List<FieldError> errors = new ArrayList<>();
         Integer pageNumber = parsePage(page, errors);
         Integer pageSize = parseSize(size, errors);
         List<AuditAction> actions = parseActions(action, errors);
         UUID contactId = parseContact(contact, errors);
+        String actorToken = parseActor(actor, errors);
         if (!errors.isEmpty()) {
             throw new ValidationException(errors);
         }
-        return service.list(membership, new Filter(actions, contactId), pageNumber, pageSize);
+        return service.list(membership, new Filter(actions, contactId, actorToken), pageNumber, pageSize);
     }
+
+    /** Izvajalci te sledi za filter (015, FR-015-03). */
+    @GetMapping("/actors")
+    ActorList actors(@AuthenticationPrincipal Jwt jwt, @PathVariable String groupId) {
+        Membership membership = access.require(jwt, groupId, Role.VIEWER, false);
+        return new ActorList(service.actors(membership));
+    }
+
+    /** Odgovor {@code GET /audit/actors}. */
+    record ActorList(List<ActorView> items) {}
 
     /** En vnos (FR-005-12, FR-005-19). */
     @GetMapping("/{entryId}")
@@ -221,6 +233,22 @@ class AuditController {
             }
         }
         return actions;
+    }
+
+    /** Žeton izvajalca: uuid ali {@code deleted}; drugo → INVALID_VALUE (015). */
+    private static String parseActor(String value, List<FieldError> errors) {
+        if (value == null) {
+            return null;
+        }
+        if (ActorView.DELETED_TOKEN.equals(value)) {
+            return value;
+        }
+        try {
+            return UUID.fromString(value).toString();
+        } catch (IllegalArgumentException e) {
+            errors.add(new FieldError("actor", "INVALID_VALUE"));
+            return null;
+        }
     }
 
     private static UUID parseContact(String value, List<FieldError> errors) {

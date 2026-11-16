@@ -1,6 +1,6 @@
 # Data Model: Uvoz in izvoz kontaktov
 
-Migracija `V11__uvoz_izvoz.sql` (samo naprej; obstoječi podatki se ne spreminjajo).
+Migracija `V12__uvoz_izvoz.sql` (samo naprej; obstoječi podatki se ne spreminjajo).
 
 ## Spremembe obstoječih tabel
 

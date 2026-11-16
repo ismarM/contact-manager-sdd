@@ -1,5 +1,6 @@
 package si.contactmanager.audit;
 
+import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import si.contactmanager.audit.AuditRepository.Filter;
@@ -23,13 +24,25 @@ class AuditService {
                 : new AuditPage.ContactFilter(
                         filter.contact(),
                         repository.latestDisplayName(group, filter.contact()).orElse(null));
+        ActorView actor = filter.actor() == null
+                ? null
+                : repository.actors(group).stream()
+                        .filter(a -> a.id().equals(filter.actor()))
+                        .findFirst()
+                        .orElse(null);
         return new AuditPage(
                 repository.count(group, filter),
                 page,
                 size,
                 repository.page(group, filter, size, page),
                 repository.latestEntryId(group).orElse(null),
-                contact);
+                contact,
+                actor);
+    }
+
+    /** Izvajalci sledi te skupine (FR-015-03). */
+    List<ActorView> actors(Membership membership) {
+        return repository.actors(membership.groupId());
     }
 
     AuditEntry entry(Membership membership, UUID id) {

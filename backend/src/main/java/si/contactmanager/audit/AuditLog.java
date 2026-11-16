@@ -35,9 +35,14 @@ public class AuditLog {
         return repository.insert(groupId, actorId, AuditAction.ROLLBACK, changes, targetEntry, initial);
     }
 
+    /** Zapis vnosa obnove enega kontakta (samo {@code RestoreService}, 015): ena sprememba, cilj je vnos ali izhodišče. */
+    UUID recordRestore(UUID groupId, long actorId, ContactChange change, UUID targetEntry, boolean initial) {
+        return repository.insert(groupId, actorId, AuditAction.RESTORE, List.of(change), targetEntry, initial);
+    }
+
     private static void validate(AuditAction action, List<ContactChange> changes) {
-        if (action == AuditAction.ROLLBACK) {
-            throw new IllegalArgumentException("ROLLBACK zapiše samo rollback");
+        if (action == AuditAction.ROLLBACK || action == AuditAction.RESTORE) {
+            throw new IllegalArgumentException(action + " zapiše samo svoja storitev");
         }
         if (changes == null || changes.isEmpty()) {
             throw new IllegalArgumentException("vnos mora imeti vsaj eno spremembo");
@@ -48,7 +53,7 @@ public class AuditLog {
                 case DELETE -> change.before() != null && change.after() == null;
                 case UPDATE -> change.before() != null && change.after() != null;
                 case MERGE -> change.before() != null;
-                case ROLLBACK -> false;
+                case ROLLBACK, RESTORE -> false;
             };
             if (!valid) {
                 throw new IllegalArgumentException("neveljavna oblika spremembe za " + action);
