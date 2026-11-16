@@ -128,6 +128,11 @@ class ContactService {
             throw new ValidationException(reserved);
         }
         ContactInput canonicalInput = canonical.input(membership.groupId(), requested, List.of(), List.of());
+        Predefined predefined = normalizePredefined(canonicalInput, java.util.List.of(), java.util.List.of());
+        if (!predefined.errors().isEmpty()) {
+            throw new ValidationException(predefined.errors());
+        }
+        canonicalInput = predefined.input();
         TypedAttributes.Resolution resolved = typed.resolve(
                 membership.groupId(), canonicalInput.attributes(), extras, List.of(), canonicalInput.country(), true);
         if (!resolved.errors().isEmpty()) {
@@ -166,6 +171,16 @@ class ContactService {
                         current.attributes().stream().map(Attribute::key).toList(),
                         current.tags())
                 : null;
+        // E-naslov in telefon po tipu (016, FR-016-08/-09): vrednost, ki jo kontakt že hrani, ostane nespremenjena.
+        Predefined predefined = canonicalInput == null
+                ? null
+                : normalizePredefined(
+                        canonicalInput,
+                        java.util.Arrays.asList(current.email()),
+                        java.util.Arrays.asList(current.phone()));
+        if (predefined != null) {
+            canonicalInput = predefined.input();
+        }
         // Tipi in vrednosti po tipu (016): najprej samo branje, da vrstni red preverjanj ostane §2.2.
         TypedAttributes.Resolution preview = canonicalInput == null
                 ? null
@@ -177,7 +192,10 @@ class ContactService {
                         canonicalInput.country(),
                         false);
         ContactInput input = canonicalInput == null ? null : canonicalInput.withAttributes(preview.attributes());
-        boolean same = preview != null && preview.errors().isEmpty() && sameValues(current, input);
+        boolean same = preview != null
+                && preview.errors().isEmpty()
+                && predefined.errors().isEmpty()
+                && sameValues(current, input);
         if (parsed.version() != null && parsed.version() != version) {
             if (same) {
                 return current;
@@ -190,8 +208,11 @@ class ContactService {
         if (!reserved.isEmpty()) {
             throw new ValidationException(reserved);
         }
-        if (!preview.errors().isEmpty()) {
-            throw new ValidationException(preview.errors());
+        if (!predefined.errors().isEmpty() || !preview.errors().isEmpty()) {
+            List<si.contactmanager.shared.error.ValidationError.FieldError> all =
+                    new java.util.ArrayList<>(predefined.errors());
+            all.addAll(preview.errors());
+            throw new ValidationException(all);
         }
         if (same) {
             return current;
@@ -245,6 +266,49 @@ class ContactService {
             // Skupina je bila medtem arhivirana (research R-05): korak 4 §2.2.
             throw new GroupArchivedException();
         }
+    }
+
+    /** Vnos s normaliziranim e-naslovom in telefonom ter napake po poljih. */
+    record Predefined(ContactInput input, List<si.contactmanager.shared.error.ValidationError.FieldError> errors) {}
+
+    /**
+     * Normalizacija predefiniranih polj {@code email} in {@code phone} (016): telefon glede na državo kontakta;
+     * vrednost, enaka shranjeni, se ne preverja in ne spreminja (FR-016-09).
+     */
+    static Predefined normalizePredefined(
+            ContactInput input, java.util.Collection<String> storedEmails, java.util.Collection<String> storedPhones) {
+        List<si.contactmanager.shared.error.ValidationError.FieldError> errors = new java.util.ArrayList<>();
+        String email = input.email();
+        if (email != null && !storedEmails.contains(email)) {
+            TypedValues.Result r = TypedValues.normalize(AttributeType.EMAIL, email, input.country());
+            if (r.valid()) {
+                email = r.value();
+            } else {
+                errors.add(new si.contactmanager.shared.error.ValidationError.FieldError("email", r.error()));
+            }
+        }
+        String phone = input.phone();
+        if (phone != null && !storedPhones.contains(phone)) {
+            TypedValues.Result r = TypedValues.normalize(AttributeType.PHONE, phone, input.country());
+            if (r.valid()) {
+                phone = r.value();
+            } else {
+                errors.add(new si.contactmanager.shared.error.ValidationError.FieldError("phone", r.error()));
+            }
+        }
+        return new Predefined(
+                new ContactInput(
+                        input.firstName(),
+                        input.lastName(),
+                        input.address(),
+                        input.addressParts(),
+                        email,
+                        phone,
+                        input.company(),
+                        input.country(),
+                        input.attributes(),
+                        input.tags()),
+                List.copyOf(errors));
     }
 
     private static boolean sameValues(ContactDetail current, ContactInput input) {

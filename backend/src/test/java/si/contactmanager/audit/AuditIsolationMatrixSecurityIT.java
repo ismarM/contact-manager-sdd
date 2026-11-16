@@ -115,9 +115,9 @@ class AuditIsolationMatrixSecurityIT extends AuditApiTest {
 
     /** Skupina z dvema vnosoma (dodajanje, urejanje) kontakta Ana; vrne id kontakta. */
     private UUID twoEntries(Scenario s) throws Exception {
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         Map<String, Object> values = valuesOf(a);
-        values.put("phone", "02 222 222");
+        values.put("phone", "+38690222221");
         update(s, Who.EDITOR, idOf(a), values, versionOf(a));
         return idOf(a);
     }
@@ -163,7 +163,7 @@ class AuditIsolationMatrixSecurityIT extends AuditApiTest {
             groups.addMember(other, s.id(who), who.name());
         }
         Map<String, Object> foreignContact = asObject(
-                json(post(contactsPath(other), s.token(Who.OWNER), body(contactInput("Tuj", "Kontakt", "01 999 999")))
+                json(post(contactsPath(other), s.token(Who.OWNER), body(contactInput("Tuj", "Kontakt", "+38690999999")))
                         .body()));
         UUID foreign = (UUID) audit.entries(other).get(0).get("id");
         UUID latest = audit.latestEntryId(other);

@@ -28,7 +28,7 @@ class RestoreMigrationIT extends AuditApiTest {
     @Tag("FR-015-12")
     void restoreNeedsExactlyOneTargetAndOtherKindsNone() throws Exception {
         Scenario s = scenario();
-        create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         UUID entry = audit.entries(s.group()).get(0).get("id") instanceof UUID id ? id : null;
         long actor = s.id(Who.EDITOR);
 
@@ -51,7 +51,7 @@ class RestoreMigrationIT extends AuditApiTest {
     @Tag("FR-015-12")
     void existingEntriesStayImmutable() throws Exception {
         Scenario s = scenario();
-        create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         Map<String, Object> entry = audit.entries(s.group()).get(0);
 
         assertThatThrownBy(() -> jdbc.update("update audit_entry set action = 'RESTORE' where id = ?", entry.get("id")))

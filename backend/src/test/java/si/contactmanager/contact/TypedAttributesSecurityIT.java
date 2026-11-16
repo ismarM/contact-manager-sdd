@@ -48,13 +48,31 @@ class TypedAttributesSecurityIT extends ContactApiTest {
         CREATE,
         UPDATE,
         SUGGEST_KEYS,
-        BULK_UPDATE
+        BULK_UPDATE,
+        SEARCH,
+        READ,
+        DUPLICATES,
+        COMPARE,
+        MERGE
     }
 
     record Expected(int status, Map<String, Object> body) {}
 
+    /** Bere že VIEWER, tudi v arhivirani skupini. */
+    static boolean viewerReads(Endpoint endpoint) {
+        return endpoint == Endpoint.KEYS || endpoint == Endpoint.SEARCH || endpoint == Endpoint.READ;
+    }
+
     static boolean writes(Endpoint endpoint) {
-        return endpoint != Endpoint.KEYS && endpoint != Endpoint.SUGGEST_KEYS;
+        return !viewerReads(endpoint)
+                && endpoint != Endpoint.SUGGEST_KEYS
+                && endpoint != Endpoint.DUPLICATES
+                && endpoint != Endpoint.COMPARE;
+    }
+
+    /** Arhivirana skupina zavrne pisanje ter iskanje dvojnikov in primerjavo (011, §2.2). */
+    static boolean archivedRefused(Endpoint endpoint) {
+        return writes(endpoint) || endpoint == Endpoint.DUPLICATES || endpoint == Endpoint.COMPARE;
     }
 
     static Expected expected(Endpoint endpoint, Actor actor, boolean archived) {
@@ -62,9 +80,9 @@ class TypedAttributesSecurityIT extends ContactApiTest {
             case NO_TOKEN, MALFORMED_TOKEN, EXPIRED_TOKEN -> new Expected(401, Map.of("code", "UNAUTHENTICATED"));
             case NON_MEMBER -> new Expected(404, null);
             case VIEWER ->
-                endpoint == Endpoint.KEYS ? new Expected(200, null) : new Expected(403, Map.of("code", "FORBIDDEN"));
+                viewerReads(endpoint) ? new Expected(200, null) : new Expected(403, Map.of("code", "FORBIDDEN"));
             case EDITOR, ADMIN, OWNER -> {
-                if (writes(endpoint) && archived) {
+                if (archivedRefused(endpoint) && archived) {
                     yield new Expected(409, Map.of("code", "GROUP_ARCHIVED"));
                 }
                 yield new Expected(endpoint == Endpoint.CREATE ? 201 : 200, null);
@@ -139,7 +157,51 @@ class TypedAttributesSecurityIT extends ContactApiTest {
                                 List.of(contact),
                                 "attributes",
                                 List.of(Map.of("field", "custom", "key", "pošta", "value", "c@primer.si")))));
+            case SEARCH -> Http.send("GET", url(base + "/contacts?q=041+123"), headers);
+            case READ -> Http.send("GET", url(base + "/contacts/" + contact), headers);
+            case DUPLICATES -> Http.send("GET", url(base + "/duplicates?category=phone"), headers);
+            case COMPARE -> {
+                UUID partner = partner(group, contact);
+                yield Http.send("GET", url(base + "/duplicates/compare?ids=" + contact + "," + partner), headers);
+            }
+            case MERGE -> {
+                UUID partner = partner(group, contact);
+                yield Http.send(
+                        "POST",
+                        url(base + "/duplicates/merge"),
+                        headers,
+                        body(Map.of(
+                                "contacts",
+                                List.of(target(contact), target(partner)),
+                                "result",
+                                Map.of(
+                                        "firstName",
+                                        "Janez",
+                                        "lastName",
+                                        "Novak",
+                                        "phone",
+                                        "041 123 456",
+                                        "attributes",
+                                        List.of(Map.of("key", "pošta", "value", "a@primer.si"))))));
+            }
         };
+    }
+
+    /** Drug kontakt skupine {@code group} (za primerjavo in združitev). */
+    private UUID partner(UUID group, UUID contact) {
+        return jdbc.queryForObject(
+                "select id from contact where group_id = ? and id <> ? order by id limit 1",
+                UUID.class,
+                group,
+                contact);
+    }
+
+    private Map<String, Object> target(UUID contact) {
+        return Map.of(
+                "id",
+                contact.toString(),
+                "version",
+                jdbc.queryForObject("select version from contact where id = ?", Long.class, contact));
     }
 
     /** Stanje, ki ga zavrnjen zahtevek ne sme spremeniti: ključi s tipi, atributi, verzije in vnosi sledi. */
@@ -164,6 +226,8 @@ class TypedAttributesSecurityIT extends ContactApiTest {
         UUID contact = contacts.insert(s.group(), s.id(Who.OWNER), "Janez", "Novak");
         contacts.addAttribute(contact, 0, "pošta", "a@primer.si");
         jdbc.update("insert into attribute_key (group_id, key_norm) values (?, 'pošta')", s.group());
+        UUID second = contacts.insert(s.group(), s.id(Who.OWNER), "Janez", "Novak");
+        jdbc.update("update contact set phone = '+38641123456' where id in (?, ?)", contact, second);
         return contact;
     }
 
@@ -205,6 +269,7 @@ class TypedAttributesSecurityIT extends ContactApiTest {
         }
         UUID foreign = contacts.insert(other, s.id(Who.OWNER), "Tuj", "Kontakt");
         contacts.addAttribute(foreign, 0, "pošta", "tuj@primer.si");
+        jdbc.update("update contact set phone = '+38641123456' where id = ?", foreign);
         jdbc.update("insert into attribute_key (group_id, key_norm) values (?, 'pošta')", other);
         UUID own = fixture(s);
         Map<String, String> headers = Http.bearer(s.token(who));
@@ -212,10 +277,25 @@ class TypedAttributesSecurityIT extends ContactApiTest {
         HttpResponse<String> update = send(Endpoint.UPDATE, s.group(), foreign, headers);
         HttpResponse<String> bulk = send(Endpoint.BULK_UPDATE, s.group(), foreign, headers);
         HttpResponse<String> keys = send(Endpoint.KEYS, s.group(), own, headers);
+        HttpResponse<String> read = send(Endpoint.READ, s.group(), foreign, headers);
+        HttpResponse<String> search = send(Endpoint.SEARCH, s.group(), own, headers);
 
         assertThat(update.statusCode()).isEqualTo(404);
         assertThat(update.body()).isEmpty();
         assertThat(bulk.statusCode()).isEqualTo(404);
+        assertThat(read.statusCode()).isEqualTo(404);
+        assertThat(read.body()).isEmpty();
+        // Iskanje ne razkrije kontaktov druge skupine (FR-016-10), čeprav ima enak telefon.
+        assertThat(search.statusCode()).isEqualTo(200);
+        assertThat(asObjects(json(search.body()).get("items")))
+                .extracting(row -> row.get("id"))
+                .doesNotContain(foreign.toString());
+        if (who != Who.VIEWER) {
+            HttpResponse<String> compare = send(Endpoint.COMPARE, s.group(), foreign, headers);
+            HttpResponse<String> merge = send(Endpoint.MERGE, s.group(), foreign, headers);
+            assertThat(compare.statusCode()).isEqualTo(404);
+            assertThat(merge.statusCode()).isEqualTo(404);
+        }
         assertThat(keys.statusCode()).isEqualTo(200);
         // Seznam ključev skupine A šteje samo njene kontakte (en kontakt), ne tujega.
         assertThat(asObjects(json(keys.body()).get("items")))

@@ -122,7 +122,7 @@ public abstract class BulkApiTest extends ContactApiTest {
         for (int i = 1; i <= count; i++) {
             Map<String, Object> input = input("Ime" + i, "Priimek" + i);
             input.put("tags", tags);
-            input.put("phone", "01 000 " + String.format("%03d", i));
+            input.put("phone", "+38690000" + String.format("%03d", i));
             created.add(UUID.fromString((String) createViaApi(s, input).get("id")));
         }
         return created;

@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 
 import { signIn, type TestUser, uniqueUser } from './support/auth';
+import { seedContact } from './support/duplicates';
 import { createGroup, setRole } from './support/groups';
 import {
   auditActions,
@@ -145,5 +146,58 @@ test('FR-016-27: bralec vidi seznam ključev brez gumba Spremeni tip', async ({ 
     page.getByRole('table').getByRole('row', { name: /Mobilni\s+Telefon\s+1/ }),
   ).toBeVisible();
   await expect(page.getByRole('button', { name: /Spremeni tip/ })).toHaveCount(0);
+  await expectNoAxeViolations(page);
+});
+
+// US2: normalizacija na strežniku, iskanje po števkah, dvojniki po normaliziranem telefonu.
+test('FR-016-02 FR-016-08 FR-016-10 FR-016-11: telefon v različnih zapisih – kanonična oblika, iskanje po števkah, dvojnik', async ({
+  page,
+}) => {
+  await signedIn(page);
+  const id = await createGroup(page, { title: 'Projekt FERI' });
+
+  await page.goto(`/groups/${id}/contacts/new`);
+  await page.getByRole('textbox', { name: 'Ime', exact: true }).fill('Ana');
+  await page.getByRole('textbox', { name: 'Telefon' }).fill('041 123-456');
+  await expectNoAxeViolations(page);
+  await page.getByRole('button', { name: 'Shrani kontakt' }).click();
+  await expect(toast(page)).toContainText('Kontakt Ana je shranjen.');
+  await expect(page.getByRole('link', { name: '+38641123456' })).toBeVisible();
+
+  // Neveljavna vrednost: napaka ob polju z imenom, nič se ne shrani.
+  await page.goto(`/groups/${id}/contacts/new`);
+  await page.getByRole('textbox', { name: 'Ime', exact: true }).fill('Bojan');
+  await page.getByRole('textbox', { name: 'Telefon' }).fill('41 1');
+  await page.getByRole('button', { name: 'Shrani kontakt' }).click();
+  await expect(page.getByRole('textbox', { name: 'Telefon' })).toHaveAccessibleDescription(
+    /veljaven telefon/i,
+  );
+  await expectNoAxeViolations(page);
+
+  // Star kontakt z nenormalizirano vrednostjo (SQL): isti telefon v drugi obliki.
+  seedContact(id, { first: 'Cene', last: 'Star', phone: '00386 41 123 456' });
+
+  await page.goto(`/groups/${id}/contacts`);
+  const box = page.getByRole('search', { name: 'Iskanje in filtri' }).getByRole('searchbox', {
+    name: 'Iskanje po kontaktih',
+  });
+  await box.fill('041 123');
+  const rows = page
+    .getByRole('table', { name: 'Kontakti skupine Projekt FERI' })
+    .getByRole('rowheader');
+  await expect(rows).toHaveText(['Ana', 'Cene Star'].map((n) => new RegExp(n)));
+  await expectNoAxeViolations(page);
+
+  await page.goto(`/groups/${id}/contacts`);
+  await page
+    .getByRole('navigation', { name: 'Razdelki skupine' })
+    .getByRole('link', { name: 'Dvojniki' })
+    .click();
+  await page
+    .getByRole('radiogroup', { name: 'Kategorija' })
+    .getByRole('radio', { name: 'Telefon' })
+    .check();
+  await page.getByRole('button', { name: 'Poišči dvojnike' }).click();
+  await expect(page.getByRole('listitem', { name: 'Enak telefon: +38641123456' })).toBeVisible();
   await expectNoAxeViolations(page);
 });

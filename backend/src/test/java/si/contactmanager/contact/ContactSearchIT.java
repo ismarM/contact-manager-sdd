@@ -155,13 +155,15 @@ class ContactSearchIT extends ContactSearchApiTest {
     @Tag("FR-008-01")
     @Tag("FR-008-02")
     @Tag("FR-008-03")
-    void phoneIsComparedLiterallyWithoutNormalization() throws Exception {
+    @Tag("FR-016-10")
+    void freeTextPhoneSearchComparesDigitsWhileTheFilterStaysLiteral() throws Exception {
         Scenario s = scenario();
         add(s, "S", "Presledki", null, "041 123 456", null);
         add(s, "B", "Brez", null, "041123456", null);
 
         assertThat(found(s, "q", "041 123")).containsExactlyInAnyOrder("S Presledki", "B Brez");
-        assertThat(found(s, "q", "041123")).containsExactly("B Brez");
+        // 016: v prostem iskanju se telefon primerja po števkah, zato najde oba zapisa; filter ostane dobeseden.
+        assertThat(found(s, "q", "041123")).containsExactlyInAnyOrder("S Presledki", "B Brez");
         assertThat(found(s, "f", "phone:041 123")).containsExactly("S Presledki");
     }
 

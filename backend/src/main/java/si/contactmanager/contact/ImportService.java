@@ -146,7 +146,8 @@ class ImportService {
         Map<String, Map<String, String>> keys = new HashMap<>();
         for (DuplicateCandidate c : contacts.duplicateCandidates(group)) {
             for (String category : CATEGORIES) {
-                Optional<String> key = DuplicateKeys.key(category, c.firstName(), c.lastName(), c.email(), c.phone());
+                Optional<String> key =
+                        DuplicateKeys.key(category, c.firstName(), c.lastName(), c.email(), c.phone(), c.country());
                 key.ifPresent(k -> keys.computeIfAbsent(category, x -> new HashMap<>())
                         .putIfAbsent(k, ContactRepository.displayName(c.firstName(), c.lastName())));
             }
@@ -161,8 +162,8 @@ class ImportService {
             int index) {
         Duplicate found = null;
         for (String category : CATEGORIES) {
-            Optional<String> key =
-                    DuplicateKeys.key(category, input.firstName(), input.lastName(), input.email(), input.phone());
+            Optional<String> key = DuplicateKeys.key(
+                    category, input.firstName(), input.lastName(), input.email(), input.phone(), input.country());
             if (key.isEmpty()) {
                 continue;
             }

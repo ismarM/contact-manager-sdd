@@ -23,10 +23,16 @@ final class DuplicateKeys {
 
     /** Ključ kategorije {@code name}, {@code email} ali {@code phone}; prazno = kontakt je izpuščen iz iskanja. */
     static Optional<String> key(String category, String first, String last, String email, String phone) {
+        return key(category, first, last, email, phone, null);
+    }
+
+    /** Kot zgoraj; {@code country} določa območje za normalizacijo telefona (016, FR-016-11). */
+    static Optional<String> key(
+            String category, String first, String last, String email, String phone, String country) {
         return switch (category) {
             case "name" -> name(first, last);
             case "email" -> email(email);
-            case "phone" -> phone(phone);
+            case "phone" -> phone(phone, country);
             default -> throw new IllegalArgumentException("neznana kategorija: " + category);
         };
     }
@@ -59,10 +65,17 @@ final class DuplicateKeys {
         return key.isEmpty() ? Optional.empty() : Optional.of(key);
     }
 
-    /** Samo števke; vodilni {@code 00} se odstrani enkrat; brez števk = izpuščen. */
-    private static Optional<String> phone(String phone) {
+    /**
+     * Veljaven telefon se primerja v kanonični obliki (E.164 brez {@code +}, z {@code ;ext=}); stara, neveljavna
+     * vrednost: samo števke, vodilni {@code 00} se odstrani enkrat; brez števk = izpuščen. Podatki se ne spreminjajo.
+     */
+    private static Optional<String> phone(String phone, String country) {
         if (phone == null) {
             return Optional.empty();
+        }
+        Optional<String> canonical = PhoneNormalizer.normalize(phone, country);
+        if (canonical.isPresent() && canonical.get().startsWith("+")) {
+            return Optional.of(canonical.get().substring(1));
         }
         String digits = NON_DIGITS.matcher(phone).replaceAll("");
         if (digits.startsWith("00")) {

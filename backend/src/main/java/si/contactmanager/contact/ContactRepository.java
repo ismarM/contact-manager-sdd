@@ -477,7 +477,7 @@ class ContactRepository {
 
     /** Kontakti skupine za iskanje dvojnikov, razvrščeni po {@code created_at}, {@code id} (FR-011-07). */
     List<DuplicateCandidate> duplicateCandidates(UUID group) {
-        return jdbc.sql("SELECT id, first_name, last_name, email, phone, created_at FROM contact"
+        return jdbc.sql("SELECT id, first_name, last_name, email, phone, country, created_at FROM contact"
                         + " WHERE group_id = :group ORDER BY created_at, id")
                 .param("group", group)
                 .query((rs, row) -> new DuplicateCandidate(
@@ -486,6 +486,7 @@ class ContactRepository {
                         rs.getString("last_name"),
                         rs.getString("email"),
                         rs.getString("phone"),
+                        rs.getString("country"),
                         rs.getTimestamp("created_at").toInstant()))
                 .list();
     }

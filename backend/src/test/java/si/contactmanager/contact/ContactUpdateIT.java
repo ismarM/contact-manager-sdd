@@ -21,7 +21,7 @@ class ContactUpdateIT extends ContactApiTest {
     private Map<String, Object> janez(Scenario s) throws Exception {
         Map<String, Object> input = input("Janez", "Novak");
         input.put("email", "janez@primer.si");
-        input.put("phone", "01 234 567");
+        input.put("phone", "+38612345678");
         input.put(
                 "attributes",
                 List.of(Map.of("key", "kompetenca", "value", "web dev"), Map.of("key", "Oddelek", "value", "IT")));
@@ -64,7 +64,7 @@ class ContactUpdateIT extends ContactApiTest {
         assertThat(saved)
                 .containsEntry("id", id.toString())
                 .containsEntry("version", 1)
-                .containsEntry("phone", "031 111 222")
+                .containsEntry("phone", "+38631111222")
                 .containsEntry("tags", List.of("vip", "konferenca2025"))
                 .containsEntry(
                         "attributes",
@@ -94,7 +94,7 @@ class ContactUpdateIT extends ContactApiTest {
         Map<String, Object> rowBefore = contacts.row(id);
         Map<String, Object> same = valuesOf(created);
         same.put("firstName", "  Janez ");
-        same.put("phone", " 01 234 567 ");
+        same.put("phone", " +38612345678 ");
 
         HttpResponse<String> response = put(contactPath(s.group(), id), s.token(Who.ADMIN), body(withVersion(same, 0)));
 

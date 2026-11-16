@@ -43,7 +43,7 @@ class MergeAuditIT extends MergeApiTest {
                 "Izbrana",
                 "Ulica 1",
                 "izbrana@primer.si",
-                "031 111 222",
+                "+38631111222",
                 List.of(attribute("oddelek", "IT"), attribute("mesto", "Maribor")),
                 List.of("vip", "b"));
     }
@@ -124,7 +124,7 @@ class MergeAuditIT extends MergeApiTest {
                 .containsEntry("lastName", "Izbrana")
                 .containsEntry("address", "Ulica 1")
                 .containsEntry("email", "izbrana@primer.si")
-                .containsEntry("phone", "031 111 222")
+                .containsEntry("phone", "+38631111222")
                 .containsEntry("version", 1);
         assertThat(keptAfter.get("attributes")).isEqualTo(List.of(typed("oddelek", "IT"), typed("mesto", "Maribor")));
         assertThat(keptAfter.get("tags")).isEqualTo(List.of("vip", "b"));

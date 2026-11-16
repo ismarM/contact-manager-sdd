@@ -113,12 +113,18 @@ class DuplicateKeysTest {
     }
 
     @Test
-    @Tag("FR-011-05")
-    void nationalAndInternationalFormsAreNotConverted() {
-        assertThat(phone("(041) 123 456")).isEqualTo(Optional.of("041123456"));
-        assertThat(phone("041/123-456")).isEqualTo(Optional.of("041123456"));
-        assertThat(phone("(041) 123 456")).isNotEqualTo(phone("+386 41 123 456"));
-        assertThat(phone("(041) 123 456")).isNotEqualTo(phone("00386 41-123-456"));
+    @Tag("FR-016-11")
+    void validNationalAndInternationalFormsShareTheCanonicalKey() {
+        // 016 nadomešča pravilo FR-011-05 »brez pretvorbe«: veljavni telefon se primerja v kanonični obliki (E.164).
+        assertThat(phone("(041) 123 456")).isEqualTo(Optional.of("38641123456"));
+        assertThat(phone("041/123-456")).isEqualTo(phone("+386 41 123 456"));
+        assertThat(phone("(041) 123 456")).isEqualTo(phone("00386 41-123-456"));
+    }
+
+    @Test
+    @Tag("FR-016-11")
+    void invalidOldPhoneFallsBackToDigitsOnly() {
+        assertThat(phone("(0) 123 456")).isEqualTo(Optional.of("0123456"));
     }
 
     @Test

@@ -180,4 +180,33 @@ describe('Tip ključa v obrazcu kontakta', () => {
       'Ključ že obstaja z drugim tipom. Izberi predlagani ključ ali drugo ime ključa.',
     );
   });
+  it('FR-016-08, FR-016-19: telefon se pošlje v vpisani obliki, prikaz po shranjevanju je normalizirana vrednost strežnika', async () => {
+    const saved = contactDetail({ id: CONTACT_ID, version: 0, phone: '+38641123456' });
+    const { user, api } = await openNew({
+      contacts: {
+        create: () => ({ status: 201, body: saved }),
+        get: () => ({ status: 200, body: saved }),
+      },
+    });
+    await user.type(screen.getByRole('textbox', { name: 'Telefon' }), '041 123-456');
+    await user.click(screen.getByRole('button', { name: 'Shrani kontakt' }));
+
+    await waitFor(() => expect(currentLocation()).toBe(`${LIST}/${CONTACT_ID}`));
+    expect((api.of('POST', CREATE)[0]?.body as { phone: string }).phone).toBe('041 123-456');
+    expect(await screen.findByText('+38641123456')).toBeVisible();
+  });
+
+  it('FR-016-08, FR-016-19: neveljaven telefon strežnik zavrne in napaka je ob polju z aria-describedby', async () => {
+    const { user } = await openNew({
+      contacts: { create: () => validationFailedReply({ field: 'phone', code: 'INVALID_VALUE' }) },
+    });
+    await user.type(screen.getByRole('textbox', { name: 'Telefon' }), '41 1');
+    await user.click(screen.getByRole('button', { name: 'Shrani kontakt' }));
+
+    await screen.findByRole('alert');
+    const field = screen.getByRole('textbox', { name: 'Telefon' });
+    expect(field).toHaveAttribute('aria-invalid', 'true');
+    expect(field).toHaveAccessibleDescription(/veljaven telefon/i);
+    expect((await axe(screen.getByRole('main'))).violations).toEqual([]);
+  });
 });

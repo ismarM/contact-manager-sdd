@@ -113,7 +113,7 @@ class BulkConcurrencyIT extends BulkApiTest {
         UUID id = UUID.fromString((String) created.get("id"));
         long version = ((Number) created.get("version")).longValue();
         Map<String, Object> values = input("Janez", "Novak");
-        values.put("phone", "031 999 888");
+        values.put("phone", "+38631999888");
 
         List<HttpResponse<String>> responses = concurrently(List.of(
                 () -> bulkUpdate(s.token(Who.ADMIN), s.group(), request(List.of(id), "addTags", List.of("nova"))),
@@ -125,7 +125,7 @@ class BulkConcurrencyIT extends BulkApiTest {
         assertThat(contacts.tagsOf(id)).containsExactly("nova");
         if (single.statusCode() == 200) {
             // Posamično urejanje je bilo prvo, množično urejanje je videlo njegovo stanje.
-            assertThat(contacts.row(id).get("phone")).isEqualTo("031 999 888");
+            assertThat(contacts.row(id).get("phone")).isEqualTo("+38631999888");
             assertThat(contacts.version(id)).isEqualTo(2);
         } else {
             assertThat(single.statusCode()).as(single.body()).isEqualTo(409);

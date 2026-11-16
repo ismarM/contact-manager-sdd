@@ -59,14 +59,14 @@ description: "Tasks for 016-tipizirani-atributi (po zgodbah, testi znotraj vsake
 
 **Independent Test**: vnos telefona v različnih zapisih → ena kanonična oblika; iskanje po števkah; dvojniki po normaliziranih vrednostih; nespremenjena stara vrednost ostane dobesedna.
 
-- [ ] T023 [US2] FR-016-02 FR-016-07 FR-016-08 FR-016-09 — predefinirana polja `email`/`phone` in dodatni atributi po tipu v `ContactInputParser` (normalizacija po državi kontakta, nespremenjena vrednost ostane, 400 `INVALID_VALUE` z imenom polja); IT `NormalizationIT` (E.164, e-naslov z velikimi črkami, URL brez sheme, datum, opombe dobesedno, stari nenormalizirani podatki se ob urejanju drugega polja ne dotaknejo)
-- [ ] T024 [US2] FR-016-10 — `ContactSearch`: iskanje telefona po števkah (R-06; predefinirani telefon in atributi `PHONE`), e-naslov in naslovi; indeks po potrebi v V13 (T004); IT `PhoneSearchIT` + merilni test 10 000 kontaktov < 1 s (SC-002)
-- [ ] T025 [US2] FR-016-11 FR-016-26 — `DuplicateKeys`: normalizirana primerjava e-naslovov in telefonov (stare vrednosti normalizirane samo pri primerjavi, ne v bazi); `MergeInputParser`/merge preveri vrednosti po tipu ključa; IT `DuplicateNormalizationIT`, `MergeTypedIT`
-- [ ] T026 [US2] FR-016-08 FR-016-10 — matrika: vrstica `GET …/contacts?q=, …/contacts/{contactId}` (401, 404, VIEWER 200, arhivirana 200, druga skupina 404, iskanje ne razkrije kontaktov druge skupine)
-- [ ] T027 [US2] FR-016-11 FR-016-26 — matrika: vrstica `GET …/duplicates, …/duplicates/compare` (401, 404, VIEWER 403, arhivirana 409, EDITOR 200)
-- [ ] T028 [US2] FR-016-08 FR-016-26 — matrika: vrstica `POST …/duplicates/merge` (401, 404, VIEWER 403, arhivirana 409, neveljavna vrednost po tipu 400, kontakt druge skupine 404)
-- [ ] T029 [P] [US2] FR-016-08 FR-016-19 — FE: po zapustitvi polja prikaz normalizirane vrednosti (odgovor strežnika je vir; vnos v kateri koli prepoznani obliki), napaka polja z imenom in `aria-describedby`; test `TypedValueInput` (normalizacija, napaka 400, axe)
-- [ ] T030 [US2] FR-016-02 FR-016-08 FR-016-10 FR-016-11 — E2E: različni zapisi telefona, iskanje »041 123«, dvojnik po normaliziranem telefonu; axe pri 360 in 1280
+- [x] T023 [US2] FR-016-02 FR-016-07 FR-016-08 FR-016-09 — predefinirana polja `email`/`phone` in dodatni atributi po tipu v `ContactInputParser` (normalizacija po državi kontakta, nespremenjena vrednost ostane, 400 `INVALID_VALUE` z imenom polja); IT `NormalizationIT` (E.164, e-naslov z velikimi črkami, URL brez sheme, datum, opombe dobesedno, stari nenormalizirani podatki se ob urejanju drugega polja ne dotaknejo)
+- [x] T024 [US2] FR-016-10 — `ContactSearch`: iskanje telefona po števkah (R-06; predefinirani telefon in atributi `PHONE`), e-naslov in naslovi; indeks po potrebi v V13 (T004); IT `PhoneSearchIT` + merilni test 10 000 kontaktov < 1 s (SC-002)
+- [x] T025 [US2] FR-016-11 FR-016-26 — `DuplicateKeys`: normalizirana primerjava e-naslovov in telefonov (stare vrednosti normalizirane samo pri primerjavi, ne v bazi); `MergeInputParser`/merge preveri vrednosti po tipu ključa; IT `DuplicateNormalizationIT`, `MergeTypedIT`
+- [x] T026 [US2] FR-016-08 FR-016-10 — matrika: vrstica `GET …/contacts?q=, …/contacts/{contactId}` (401, 404, VIEWER 200, arhivirana 200, druga skupina 404, iskanje ne razkrije kontaktov druge skupine)
+- [x] T027 [US2] FR-016-11 FR-016-26 — matrika: vrstica `GET …/duplicates, …/duplicates/compare` (401, 404, VIEWER 403, arhivirana 409, EDITOR 200)
+- [x] T028 [US2] FR-016-08 FR-016-26 — matrika: vrstica `POST …/duplicates/merge` (401, 404, VIEWER 403, arhivirana 409, neveljavna vrednost po tipu 400, kontakt druge skupine 404)
+- [x] T029 [P] [US2] FR-016-08 FR-016-19 — FE: po zapustitvi polja prikaz normalizirane vrednosti (odgovor strežnika je vir; vnos v kateri koli prepoznani obliki), napaka polja z imenom in `aria-describedby`; test `TypedValueInput` (normalizacija, napaka 400, axe)
+- [x] T030 [US2] FR-016-02 FR-016-08 FR-016-10 FR-016-11 — E2E: različni zapisi telefona, iskanje »041 123«, dvojnik po normaliziranem telefonu; axe pri 360 in 1280
 
 ## Phase 5: User Story 3 – Strukturiran naslov s samodokončanjem (P2)
 

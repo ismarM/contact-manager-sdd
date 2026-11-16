@@ -166,7 +166,7 @@ describe('ContactForm', () => {
 
     await waitFor(() =>
       expect(screen.getByRole('textbox', { name: 'Telefon' })).toHaveAccessibleDescription(
-        'Telefon sme vsebovati samo števke, presledke in znake + - ( ) /.',
+        'Vpiši veljaven telefon, npr. 041 123 456 ali +386 41 123 456.',
       ),
     );
     await waitFor(() =>

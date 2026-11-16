@@ -353,7 +353,7 @@
     "errors": {
       "nameRequired": "Vpiši vsaj ime ali priimek.",
       "emailInvalid": "Vpiši veljaven e-naslov.",
-      "phoneInvalid": "Telefon sme vsebovati samo števke, presledke in znake + - ( ) /.",
+      "phoneInvalid": "Vpiši veljaven telefon, npr. 041 123 456 ali +386 41 123 456.",
       "firstNameTooLong": "Ime je predolgo (največ 100 znakov).",
       "lastNameTooLong": "Priimek je predolg (največ 100 znakov).",
       "addressTooLong": "Naslov je predolg (največ 300 znakov).",

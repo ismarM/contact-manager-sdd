@@ -353,7 +353,7 @@
     "errors": {
       "nameRequired": "Enter at least a first or last name.",
       "emailInvalid": "Enter a valid email address.",
-      "phoneInvalid": "Phone may contain only digits, spaces and + - ( ) / characters.",
+      "phoneInvalid": "Enter a valid phone number, e.g. 041 123 456 or +386 41 123 456.",
       "firstNameTooLong": "The first name is too long (at most 100 characters).",
       "lastNameTooLong": "The last name is too long (at most 100 characters).",
       "addressTooLong": "The address is too long (at most 300 characters).",
