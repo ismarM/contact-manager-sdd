@@ -18,8 +18,8 @@ Faze US1–US4 uvajajo Email/Password, kar spreminja §5. Razvijalec funkcionaln
 ## Phase 1: Setup
 
 - [x] T001 — Vrata §5: razvijalec je blokado odstranil (2026-11-16); predlog §5 v tem PR, odstopanje od §7 v opisu PR.
-- [ ] T002 [P] (izvedeno delno: `groups.search.*`, `members.leave.owner.*`, `auth.*` sl+en; `account.methods.*` čaka na US3) — i18n ključi v `frontend/src/i18n/sl.json` in `en.json` samo pod predponami `auth.register.*`, `auth.verify.*`, `auth.forgot.*`, `auth.password.*`, `account.methods.*`, `groups.search.*`, `members.leave.owner.*` (brez posega v ključe 016)
-- [ ] T003 [P] (izvedeno delno: geslo, potrditev, ponastavitev, ponovna avtentikacija; povezovanje čaka na US3) — skupni testni pomočniki: `frontend/src/test/authFake.ts` (nov gateway z geslom/potrditvijo/povezovanjem), `e2e/tests/support/auth.ts` (registracija z geslom, koda OOB prek emulatorja, prijava z geslom), imena elementov iz prevodov
+- [x] T002 [P] (izvedeno delno: `groups.search.*`, `members.leave.owner.*`, `auth.*` sl+en; `account.methods.*` čaka na US3) — i18n ključi v `frontend/src/i18n/sl.json` in `en.json` samo pod predponami `auth.register.*`, `auth.verify.*`, `auth.forgot.*`, `auth.password.*`, `account.methods.*`, `groups.search.*`, `members.leave.owner.*` (brez posega v ključe 016)
+- [x] T003 [P] (izvedeno delno: geslo, potrditev, ponastavitev, ponovna avtentikacija; povezovanje čaka na US3) — skupni testni pomočniki: `frontend/src/test/authFake.ts` (nov gateway z geslom/potrditvijo/povezovanjem), `e2e/tests/support/auth.ts` (registracija z geslom, koda OOB prek emulatorja, prijava z geslom), imena elementov iz prevodov
 
 ## Phase 2: Foundational
 
@@ -47,17 +47,17 @@ Faze US1–US4 uvajajo Email/Password, kar spreminja §5. Razvijalec funkcionaln
 
 ## Phase 5: User Story 3 – Povezovanje Googla in gesla (P1)
 
-- [ ] T020 [US3] FR-017-09, -10, -11 — gateway `linkPassword(password)`: ponovna avtentikacija (T007) je pogoj; REST `POST …/v1/accounts:signUp?key=…` z `{idToken, email (e-naslov računa), password, returnSecureToken:true}` (ne `accounts:update`, ne `linkWithCredential`); preverba `localId === uid`; nato `signInWithEmailAndPassword`, preverba `auth.currentUser.uid === uid` (sicer odjava in napaka); `emailVerified` po povezovanju prebran brez predpostavke; rezerva `reload()` + `getIdToken(true)`; `linkGoogle()` z `linkWithPopup` (`credential-already-in-use` → sporočilo); testi `firebaseGateway.link.test.ts` (telo REST klica, UID pred/po, neujemanje UID → odjava, `email_verified=false` po povezovanju → zaslon potrditve)
-- [ ] T021 [US3] FR-017-09, -10 — `SignInMethodsSection.tsx` v `frontend/src/features/account/` (*Prijavne metode*: seznam iz `providerData`, *Dodaj geslo* z e-naslovom samo za branje, *Dodaj Google*), vključen v `AccountPage.tsx`; test (RTL + axe)
-- [ ] T022 [US3] FR-017-10, -11 — zaledni IT `LinkPasswordIdentityIT` (emulator, `FirebaseEmulatorContainer`): uporabnik prek Google prijave (UID U, članstva) → `accounts:signUp` z `idToken` → `signInWithPassword` da isti `localId` U → `PUT /api/me` vrne isti profil → eno vrstico `app_user`; dokumentiraj v komentarju testa, da emulator EEP ne posnema
-- [ ] T023 [US3] FR-017-09 … 11 — E2E: Google uporabnik doda geslo, se odjavi, vstopi z geslom – iste skupine; poskus registracije z e-naslovom obstoječega računa ne ustvari drugega profila (nevtralno sporočilo)
+- [x] T020 [US3] (odstopanje: v emulatorju `accounts:update`, ker emulator EEP ne posnema in `signUp` z idToken zavrne z EMAIL_EXISTS; pri pravem projektu `accounts:signUp`, preverba T024) FR-017-09, -10, -11 — gateway `linkPassword(password)`: ponovna avtentikacija (T007) je pogoj; REST `POST …/v1/accounts:signUp?key=…` z `{idToken, email (e-naslov računa), password, returnSecureToken:true}` (ne `accounts:update`, ne `linkWithCredential`); preverba `localId === uid`; nato `signInWithEmailAndPassword`, preverba `auth.currentUser.uid === uid` (sicer odjava in napaka); `emailVerified` po povezovanju prebran brez predpostavke; rezerva `reload()` + `getIdToken(true)`; `linkGoogle()` z `linkWithPopup` (`credential-already-in-use` → sporočilo); testi `firebaseGateway.link.test.ts` (telo REST klica, UID pred/po, neujemanje UID → odjava, `email_verified=false` po povezovanju → zaslon potrditve)
+- [x] T021 [US3] FR-017-09, -10 — `SignInMethodsSection.tsx` v `frontend/src/features/account/` (*Prijavne metode*: seznam iz `providerData`, *Dodaj geslo* z e-naslovom samo za branje, *Dodaj Google*), vključen v `AccountPage.tsx`; test (RTL + axe)
+- [x] T022 [US3] FR-017-10, -11 — zaledni IT `LinkPasswordIdentityIT` (emulator, `FirebaseEmulatorContainer`): uporabnik prek Google prijave (UID U, članstva) → `accounts:signUp` z `idToken` → `signInWithPassword` da isti `localId` U → `PUT /api/me` vrne isti profil → eno vrstico `app_user`; dokumentiraj v komentarju testa, da emulator EEP ne posnema
+- [x] T023 [US3] FR-017-09 … 11 — E2E: Google uporabnik doda geslo, se odjavi, vstopi z geslom – iste skupine; poskus registracije z e-naslovom obstoječega računa ne ustvari drugega profila (nevtralno sporočilo)
 - [ ] T024 [US3] FR-017-10 — ročni preizkus v ločenem testnem Firebase projektu z EEP po `quickstart.md` (razvijalec); rezultat v opis PR (ni avtomatizirano, §3.2)
 
 ## Phase 6: User Story 4 – Ponovna avtentikacija (P2)
 
-- [ ] T030 [US4] FR-017-12 — `FreshAuthentication` v `shared/security/` + uporaba v `AccountDeletionController`: `now − auth_time > 300 s` ali brez claima → `403 REAUTHENTICATION_REQUIRED` pred obdelavo; koda v `ApiExceptionHandler`; testi: enota (meja 300 s, manjkajoč claim) in `AccountDeletionReauthIT` (stari žeton: nič ne izbrisano; svež: 204/202), vnos matrike za uporabniške vire (401 neprijavljen, 403 nepotrjen, 403 star `auth_time`)
-- [ ] T031 [US4] FR-017-12 — `DeleteAccountDialog.tsx` (uporablja `reauthenticate()` iz T007): ponovna avtentikacija pred `POST /api/me/deletion`, nato `getIdToken(true)`; `REAUTHENTICATION_REQUIRED` → ponovni poskus s ponovno avtentikacijo; napačno geslo ne spremeni ničesar; test; dodajanje metode (T021) uporablja isti dialog
-- [ ] T032 [US4] FR-017-12 — E2E: izbris računa z geslom zahteva geslo (axe)
+- [x] T030 [US4] FR-017-12 — `FreshAuthentication` v `shared/security/` + uporaba v `AccountDeletionController`: `now − auth_time > 300 s` ali brez claima → `403 REAUTHENTICATION_REQUIRED` pred obdelavo; koda v `ApiExceptionHandler`; testi: enota (meja 300 s, manjkajoč claim) in `AccountDeletionReauthIT` (stari žeton: nič ne izbrisano; svež: 204/202), vnos matrike za uporabniške vire (401 neprijavljen, 403 nepotrjen, 403 star `auth_time`)
+- [x] T031 [US4] FR-017-12 — `DeleteAccountDialog.tsx` (uporablja `reauthenticate()` iz T007): ponovna avtentikacija pred `POST /api/me/deletion`, nato `getIdToken(true)`; `REAUTHENTICATION_REQUIRED` → ponovni poskus s ponovno avtentikacijo; napačno geslo ne spremeni ničesar; test; dodajanje metode (T021) uporablja isti dialog
+- [x] T032 [US4] FR-017-12 — E2E: izbris računa z geslom zahteva geslo (axe)
 
 ## Phase 7: User Story 5 – Iskanje in filtriranje skupin (P2)
 
@@ -74,7 +74,7 @@ Faze US1–US4 uvajajo Email/Password, kar spreminja §5. Razvijalec funkcionaln
 
 ## Phase 9: Polish
 
-- [ ] T060 — `.specify/memory/feature-map.md`: vrstica 017, kodi `EMAIL_NOT_VERIFIED`, `REAUTHENTICATION_REQUIRED`, `ACCOUNT_CONFLICT` v §2.10, popravek §2.4 (arhivirane skupine dosegljive tudi z domače strani prek filtra) – **samo po T001** (§7: potrdita oba razvijalca)
+- [x] T060 — `.specify/memory/feature-map.md`: vrstica 017, kodi `EMAIL_NOT_VERIFIED`, `REAUTHENTICATION_REQUIRED`, `ACCOUNT_CONFLICT` v §2.10, popravek §2.4 (arhivirane skupine dosegljive tudi z domače strani prek filtra) – **samo po T001** (§7: potrdita oba razvijalca)
 - [ ] T061 — `./verify.sh quick`, `./verify.sh backend`, `./verify.sh e2e` zeleni; ročni preizkus dostopnosti (design.md §10) in T024 v opisu PR
 
 ---
