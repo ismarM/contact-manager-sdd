@@ -23,6 +23,17 @@ import { SuggestInput } from './SuggestInput';
 import { TagInput } from './TagInput';
 import { TypeSelect } from './typed/TypeSelect';
 import { TypedValueInput } from './typed/TypedValueInput';
+import { AddressFields } from './typed/AddressFields';
+import {
+  ADDRESS_PARTS,
+  type AddressDraft,
+  type AddressPart,
+  draftOf,
+  EMPTY_ADDRESS,
+  isBlankDraft,
+  toAddress,
+} from './typed/addressDraft';
+import { splitAddress } from './typed/splitAddress';
 import { typeNameKey } from '../attributes/typeNames';
 import type { AttributeType } from '../attributes/types';
 import type { ContactDetail, ContactInput } from './types';
@@ -32,6 +43,7 @@ import {
   type AttributeRow,
   type ErrorKey,
   type FormValues,
+  hasParts,
   isReservedName,
   LIMITS,
   normalizeKey,
@@ -48,12 +60,44 @@ const EMPTY: FormValues = {
   lastName: '',
   company: '',
   address: '',
+  addressParts: EMPTY_ADDRESS,
   country: '',
   email: '',
   phone: '',
   attributes: [],
   tags: [],
 };
+
+/** Naslov po delih kot ena vrstica (ob menjavi tipa atributa iz *Naslov* v drug tip ostane vpis kot besedilo). */
+function draftText(draft: AddressDraft): string {
+  const place = [draft.postalCode.trim(), draft.city.trim()].filter(Boolean).join(' ');
+  return [draft.street, draft.extra, place, draft.region, draft.country]
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(', ');
+}
+
+/**
+ * Vrstica z novim tipom (016): prehod v *Naslov* razčleni morebitno že vpisano besedilo v dele (nov nerazčlenjen naslov
+ * prek obrazca ni mogoč, FR-016-12); prehod iz *Naslov* ohrani vpis kot besedilo. Vrstica, ki je že *Naslov*
+ * (nerazčlenjen naslov iz časa pred 016), ostane nespremenjena.
+ */
+function withType(row: AttributeRow, type: AttributeType, country: string): AttributeRow {
+  const previous = row.type ?? 'OTHER';
+  if (type === 'ADDRESS' && previous !== 'ADDRESS') {
+    const text = row.value.trim();
+    return {
+      ...row,
+      type,
+      value: '',
+      parts: text === '' ? { ...EMPTY_ADDRESS } : splitAddress(text, country),
+    };
+  }
+  if (type !== 'ADDRESS' && hasParts(row)) {
+    return { ...row, type, value: draftText(row.parts), parts: undefined };
+  }
+  return { ...row, type };
+}
 
 let rowCounter = 0;
 const newRowId = () => `row-${(rowCounter += 1)}`;
@@ -64,6 +108,11 @@ function fromContact(contact: ContactDetail): FormValues {
     lastName: contact.lastName ?? '',
     company: contact.company ?? '',
     address: contact.address ?? '',
+    addressParts: contact.addressParts
+      ? draftOf(contact.addressParts)
+      : contact.address
+        ? null
+        : { ...EMPTY_ADDRESS },
     country: contact.country ?? '',
     email: contact.email ?? '',
     phone: contact.phone ?? '',
@@ -74,6 +123,7 @@ function fromContact(contact: ContactDetail): FormValues {
       original: attribute.key,
       type: attribute.type ?? 'OTHER',
       typeLocked: true,
+      ...(attribute.parts ? { parts: draftOf(attribute.parts) } : {}),
     })),
     tags: [...contact.tags],
   };
@@ -94,7 +144,11 @@ function fromCandidate(candidate: CardCandidate): {
       firstName: candidate.firstName ?? '',
       lastName: candidate.lastName ?? '',
       company: candidate.company ?? '',
-      address: candidate.address ?? '',
+      // 016: naslov iz kode QR se razčleni v dele (nov nerazčlenjen naslov prek obrazca ni mogoč).
+      address: '',
+      addressParts: candidate.address?.trim()
+        ? splitAddress(candidate.address, code)
+        : { ...EMPTY_ADDRESS },
       country: code,
       email: candidate.email ?? '',
       phone: candidate.phone ?? '',
@@ -124,13 +178,21 @@ function exactCountry(text: string): string {
 /** Telo zahtevka: obrezane vrednosti, prazno polje `null`, popolnoma prazne vrstice atributov se ne pošljejo. */
 function toInput(values: FormValues): { input: ContactInput; rows: AttributeRow[] } {
   const optional = (value: string) => (value.trim() === '' ? null : value.trim());
-  const rows = values.attributes.filter((row) => row.key.trim() !== '' || row.value.trim() !== '');
+  const rows = values.attributes.filter(
+    (row) =>
+      row.key.trim() !== '' ||
+      row.value.trim() !== '' ||
+      (hasParts(row) && !isBlankDraft(row.parts)),
+  );
+  // 016: nerazčlenjen naslov (iz časa pred 016) se pošlje nespremenjen; sicer deli ali nič.
+  const parts = values.addressParts === null ? null : toAddress(values.addressParts);
   return {
     input: {
       firstName: optional(values.firstName),
       lastName: optional(values.lastName),
       company: optional(values.company),
-      address: optional(values.address),
+      address: values.addressParts === null ? optional(values.address) : null,
+      ...(parts ? { addressParts: parts } : {}),
       country: optional(values.country),
       email: optional(values.email),
       phone: optional(values.phone),
@@ -138,8 +200,10 @@ function toInput(values: FormValues): { input: ContactInput; rows: AttributeRow[
         key: row.key.trim(),
         // 016: tip se pošlje samo za nov ključ z izbranim tipom; za obstoječ ključ velja tip ključa.
         ...(!row.typeLocked && row.type && row.type !== 'OTHER' ? { type: row.type } : {}),
-        // Opombe so dobesedne (FR-016-07): brez obreza vrednosti.
-        value: row.type === 'NOTES' ? row.value : row.value.trim(),
+        ...(hasParts(row)
+          ? { value: null, parts: toAddress(row.parts) }
+          : // Opombe so dobesedne (FR-016-07): brez obreza vrednosti.
+            { value: row.type === 'NOTES' ? row.value : row.value.trim() }),
       })),
       tags: values.tags,
     },
@@ -251,7 +315,7 @@ export function ContactForm({
           row.typeLocked &&
           normalizeKey(value.trim()) !== normalizeKey(row.key.trim())
         ) {
-          return { ...changed, typeLocked: false, type: 'OTHER' };
+          return { ...withType(changed, 'OTHER', current.country), typeLocked: false };
         }
         return changed;
       }),
@@ -267,14 +331,67 @@ export function ContactForm({
   const setType = (id: string, type: AttributeType) => {
     setValues((current) => ({
       ...current,
-      attributes: current.attributes.map((row) => (row.id === id ? { ...row, type } : row)),
+      attributes: current.attributes.map((row) =>
+        row.id === id ? withType(row, type, current.country) : row,
+      ),
     }));
     setErrors((current) => {
       const next = { ...current };
       delete next[`attributes.${id}.type`];
       delete next[`attributes.${id}.value`];
+      for (const part of ADDRESS_PARTS) delete next[`attributes.${id}.parts.${part}`];
       return next;
     });
+  };
+
+  /** Deli naslova vrstice atributa (016). */
+  const setParts = (id: string, draft: AddressDraft, changed: AddressPart[]) => {
+    setValues((current) => ({
+      ...current,
+      attributes: current.attributes.map((row) => (row.id === id ? { ...row, parts: draft } : row)),
+    }));
+    setErrors((current) => {
+      const next = { ...current };
+      for (const part of changed) delete next[`attributes.${id}.parts.${part}`];
+      return next;
+    });
+  };
+
+  /** *Razčleni naslov* za nerazčlenjen atribut (FR-016-14): samo sprememba obrazca, dokler uporabnik ne shrani. */
+  const splitRow = (id: string) => {
+    setValues((current) => ({
+      ...current,
+      attributes: current.attributes.map((row) =>
+        row.id === id
+          ? { ...row, value: '', parts: splitAddress(row.value, current.country) }
+          : row,
+      ),
+    }));
+    setFocusTarget({ id: domId(`attributes.${id}.parts.street`) });
+  };
+
+  /** Deli predefiniranega naslova (016). */
+  const setAddress = (draft: AddressDraft, changed: AddressPart[]) => {
+    setValues((current) => ({ ...current, addressParts: draft }));
+    setErrors((current) => {
+      const next = { ...current };
+      for (const part of changed) delete next[`addressParts.${part}`];
+      return next;
+    });
+  };
+
+  /** *Razčleni naslov* (FR-016-14): predlog delov iz besedila; dokler uporabnik ne shrani, se nič ne spremeni. */
+  const splitPredefined = () => {
+    setValues((current) => ({
+      ...current,
+      addressParts: splitAddress(current.address, current.country),
+    }));
+    setErrors((current) => {
+      const next = { ...current };
+      delete next.address;
+      return next;
+    });
+    setFocusTarget({ id: domId('addressParts.street') });
   };
 
   /** Ključ skupine ima svoj tip (FR-016-01): vrstica ga prevzame in izbira tipa se zaklene; nov ključ ostane prost. */
@@ -284,8 +401,12 @@ export function ContactForm({
       ...current,
       attributes: current.attributes.map((row) => {
         if (row.id !== id || normalizeKey(row.key.trim()) !== normalizeKey(text.trim())) return row;
-        if (found?.attributeType) return { ...row, type: found.attributeType, typeLocked: true };
-        return row.typeLocked ? { ...row, typeLocked: false, type: 'OTHER' } : row;
+        if (found?.attributeType) {
+          return { ...withType(row, found.attributeType, current.country), typeLocked: true };
+        }
+        return row.typeLocked
+          ? { ...withType(row, 'OTHER', current.country), typeLocked: false }
+          : row;
       }),
     }));
   };
@@ -378,13 +499,33 @@ export function ContactForm({
   };
 
   // Vrstice atributov so memoizirane (do 50 vrstic); stabilni vmesnik vedno kliče najnovejše rokovalnike.
-  const latest = useRef({ setRow, setType, lookupKey, blur, removeRow, startTransfer });
+  const latest = useRef({
+    setRow,
+    setType,
+    setParts,
+    splitRow,
+    lookupKey,
+    blur,
+    removeRow,
+    startTransfer,
+  });
   useEffect(() => {
-    latest.current = { setRow, setType, lookupKey, blur, removeRow, startTransfer };
+    latest.current = {
+      setRow,
+      setType,
+      setParts,
+      splitRow,
+      lookupKey,
+      blur,
+      removeRow,
+      startTransfer,
+    };
   });
   const [rowActions] = useState<RowActions>(() => ({
     setRow: (id, part, value) => latest.current.setRow(id, part, value),
     setType: (id, type) => latest.current.setType(id, type),
+    setParts: (id, draft, changed) => latest.current.setParts(id, draft, changed),
+    splitRow: (id) => latest.current.splitRow(id),
     lookupKey: (id, text) => void latest.current.lookupKey(id, text),
     blur: (field) => latest.current.blur(field),
     removeRow: (id) => latest.current.removeRow(id),
@@ -414,6 +555,19 @@ export function ContactForm({
       } else if (invalid.length > 0) {
         const mapped: Record<string, ErrorKey> = {};
         for (const { field, code } of invalid) {
+          const rowParts = /^attributes\[(\d+)\]\.parts(?:\.(\w+))?$/.exec(field);
+          if (rowParts) {
+            const sent = rows[Number(rowParts[1])];
+            if (!sent) continue;
+            if (!rowParts[2]) {
+              // Deli za ključ, ki ni tipa Naslov.
+              mapped[`attributes.${sent.id}.type`] = 'attributes.type.mismatch';
+            } else {
+              const partKey = serverErrorKey(field, code);
+              if (partKey) mapped[`attributes.${sent.id}.parts.${rowParts[2]}`] = partKey;
+            }
+            continue;
+          }
           const typed = /^attributes\[(\d+)\]\.(type|value)$/.exec(field);
           const sentTyped = typed ? rows[Number(typed[1])] : undefined;
           if (typed && sentTyped && code === 'INVALID_VALUE') {
@@ -467,6 +621,7 @@ export function ContactForm({
     'lastName',
     'company',
     'address',
+    ...ADDRESS_PARTS.map((part) => `addressParts.${part}`),
     'country',
     'email',
     'phone',
@@ -474,6 +629,7 @@ export function ContactForm({
       `attributes.${row.id}.key`,
       `attributes.${row.id}.type`,
       `attributes.${row.id}.value`,
+      ...ADDRESS_PARTS.map((part) => `attributes.${row.id}.parts.${part}`),
     ]),
   ];
   const listed = order.filter((field) => errors[field]);
@@ -612,7 +768,49 @@ export function ContactForm({
             />
             {message('company')}
           </div>
-          {textField('address', t('contacts.form.address'))}
+          {values.addressParts === null ? (
+            <div className="flex flex-col gap-1">
+              <p className="font-bold" id={domId('address-label')}>
+                {t('address.unstructured')}
+              </p>
+              <p
+                id={domId('address')}
+                tabIndex={-1}
+                aria-labelledby={domId('address-label')}
+                className="whitespace-pre-line"
+              >
+                {values.address}
+              </p>
+              <p id={domId('address-hint')} className="text-sm text-muted-foreground">
+                {t('address.splitHint')}
+              </p>
+              <button
+                type="button"
+                className={`${secondaryButton} self-start`}
+                aria-describedby={domId('address-hint')}
+                onClick={splitPredefined}
+              >
+                {t('address.split')}
+              </button>
+              {message('address')}
+            </div>
+          ) : (
+            <AddressFields
+              legend={t('address.legend')}
+              value={values.addressParts}
+              defaultCountry={values.country}
+              errors={Object.fromEntries(
+                ADDRESS_PARTS.flatMap((part) => {
+                  const error = errors[`addressParts.${part}`];
+                  return error ? [[part, error]] : [];
+                }),
+              )}
+              fieldId={(part) => domId(`addressParts.${part}`)}
+              errorId={(part) => errorId(`addressParts.${part}`)}
+              onChange={setAddress}
+              onBlur={(part) => blur(`addressParts.${part}`)}
+            />
+          )}
           <div className="flex flex-col gap-1">
             <label htmlFor={domId('country')} className="font-bold">
               {t('contacts.form.country')}
@@ -652,6 +850,10 @@ export function ContactForm({
               keyError={errors[`attributes.${row.id}.key`]}
               typeError={errors[`attributes.${row.id}.type`]}
               valueError={errors[`attributes.${row.id}.value`]}
+              partErrors={ADDRESS_PARTS.map(
+                (part) => errors[`attributes.${row.id}.parts.${part}`] ?? '',
+              ).join('\u0000')}
+              defaultCountry={values.country}
               keysSignature={keysSignature}
               transferFailed={transferFailed === row.id}
               actions={rowActions}
@@ -725,6 +927,8 @@ export function ContactForm({
 interface RowActions {
   setRow: (id: string, part: 'key' | 'value', value: string) => void;
   setType: (id: string, type: AttributeType) => void;
+  setParts: (id: string, draft: AddressDraft, changed: AddressPart[]) => void;
+  splitRow: (id: string) => void;
   lookupKey: (id: string, text: string) => void;
   blur: (field: string) => void;
   removeRow: (id: string) => void;
@@ -738,6 +942,8 @@ const AttributeFields = memo(function AttributeFields({
   keyError,
   typeError,
   valueError,
+  partErrors,
+  defaultCountry,
   keysSignature,
   transferFailed,
   actions,
@@ -747,6 +953,10 @@ const AttributeFields = memo(function AttributeFields({
   keyError: ErrorKey | undefined;
   typeError: ErrorKey | undefined;
   valueError: ErrorKey | undefined;
+  /** Napake delov naslova v vrstnem redu `ADDRESS_PARTS`, ločene z `\u0000` (niz ohrani memoizacijo). */
+  partErrors: string;
+  /** Država kontakta (predizpolni državo novega naslova). */
+  defaultCountry: string;
   /** Normalizirani ključi vseh vrstic (ločeni z `\u0000`): vrstica izloči ključe drugih vrstic iz predlogov. */
   keysSignature: string;
   transferFailed: boolean;
@@ -828,22 +1038,64 @@ const AttributeFields = memo(function AttributeFields({
           {message(typeField, typeError)}
         </div>
       )}
-      <div className="flex min-w-40 flex-[2] flex-col gap-1">
-        <label htmlFor={domId(valueField)} className="font-bold">
-          {t('contacts.form.value')}
-        </label>
-        <TypedValueInput
-          id={domId(valueField)}
-          type={type}
-          keyParam={row.key}
-          value={row.value}
-          onChange={(text) => actions.setRow(row.id, 'value', text)}
-          onBlur={() => actions.blur(valueField)}
-          listLabel={t('contacts.form.valueSuggestions')}
-          {...describe(valueField, valueError)}
-        />
-        {message(valueField, valueError)}
-      </div>
+      {hasParts(row) ? (
+        <div className="flex min-w-60 flex-[2] flex-col gap-1">
+          <AddressFields
+            legend={row.key.trim() || t('address.legend')}
+            value={row.parts}
+            defaultCountry={defaultCountry}
+            errors={Object.fromEntries(
+              partErrors
+                .split('\u0000')
+                .flatMap((error, index) => (error ? [[ADDRESS_PARTS[index]!, error]] : [])),
+            )}
+            fieldId={(part) => domId(`attributes.${row.id}.parts.${part}`)}
+            errorId={(part) => errorId(`attributes.${row.id}.parts.${part}`)}
+            onChange={(draft, changed) => actions.setParts(row.id, draft, changed)}
+            onBlur={(part) => actions.blur(`attributes.${row.id}.parts.${part}`)}
+          />
+        </div>
+      ) : type === 'ADDRESS' && row.typeLocked && row.value.trim() !== '' ? (
+        <div className="flex min-w-40 flex-[2] flex-col gap-1">
+          <p className="font-bold" id={`${domId(valueField)}-label`}>
+            {t('address.unstructured')}
+          </p>
+          <p
+            id={domId(valueField)}
+            tabIndex={-1}
+            aria-labelledby={`${domId(valueField)}-label`}
+            className="whitespace-pre-line"
+          >
+            {row.value}
+          </p>
+          <button
+            type="button"
+            className={`${secondaryButton} self-start`}
+            aria-describedby={`${domId(valueField)}-label`}
+            onClick={() => actions.splitRow(row.id)}
+          >
+            {t('address.split')}
+          </button>
+          {message(valueField, valueError)}
+        </div>
+      ) : (
+        <div className="flex min-w-40 flex-[2] flex-col gap-1">
+          <label htmlFor={domId(valueField)} className="font-bold">
+            {t('contacts.form.value')}
+          </label>
+          <TypedValueInput
+            id={domId(valueField)}
+            type={type}
+            keyParam={row.key}
+            value={row.value}
+            onChange={(text) => actions.setRow(row.id, 'value', text)}
+            onBlur={() => actions.blur(valueField)}
+            listLabel={t('contacts.form.valueSuggestions')}
+            {...describe(valueField, valueError)}
+          />
+          {message(valueField, valueError)}
+        </div>
+      )}
       <button
         type="button"
         aria-label={

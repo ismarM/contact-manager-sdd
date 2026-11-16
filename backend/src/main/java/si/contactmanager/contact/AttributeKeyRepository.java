@@ -104,8 +104,8 @@ class AttributeKeyRepository {
                 .single();
     }
 
-    /** Vrstica ključa za kontakt: identiteta, država, ime za razvrščanje in prikaz, vrednost (016, sprememba tipa). */
-    record Value(UUID contactId, String firstName, String lastName, String country, String value) {}
+    /** Vrstica ključa za kontakt: identiteta, država, ime za razvrščanje in prikaz, vrednost ali deli razčlenjenega naslova (016, sprememba tipa). */
+    record Value(UUID contactId, String firstName, String lastName, String country, String value, Address parts) {}
 
     /**
      * Zagotovi vrstico ključa tipa {@code OTHER}, če je ključ v uporabi, pa vrstice še nima (ključi, ki so nastali pred
@@ -121,7 +121,7 @@ class AttributeKeyRepository {
 
     /** Vrednosti ključa vseh kontaktov skupine, po imenu kontakta (slovenska abeceda), nato identiteti. */
     List<Value> values(UUID group, String keyNorm) {
-        return jdbc.sql("SELECT c.id, c.first_name, c.last_name, c.country, a.value"
+        return jdbc.sql("SELECT c.id, c.first_name, c.last_name, c.country, a.value, a.parts::text AS parts"
                         + " FROM contact_attribute a JOIN contact c ON c.id = a.contact_id"
                         + " WHERE c.group_id = :group AND a.key_norm = :key"
                         + " ORDER BY c.sort_last COLLATE sort_sl NULLS LAST, c.sort_first COLLATE sort_sl NULLS LAST,"
@@ -133,13 +133,14 @@ class AttributeKeyRepository {
                         rs.getString("first_name"),
                         rs.getString("last_name"),
                         rs.getString("country"),
-                        rs.getString("value")))
+                        rs.getString("value"),
+                        AddressJson.read(rs.getString("parts"))))
                 .list();
     }
 
-    /** Nova vrednost ključa kontakta (klic pod zaklepom ključa). */
+    /** Nova besedilna vrednost ključa kontakta (klic pod zaklepom ključa); deli naslova odpadejo. */
     void updateValue(UUID contactId, String keyNorm, String value) {
-        jdbc.sql("UPDATE contact_attribute SET value = :value WHERE contact_id = :id AND key_norm = :key")
+        jdbc.sql("UPDATE contact_attribute SET value = :value, parts = NULL WHERE contact_id = :id AND key_norm = :key")
                 .param("value", value)
                 .param("id", contactId)
                 .param("key", keyNorm)

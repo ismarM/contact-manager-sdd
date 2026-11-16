@@ -27,7 +27,7 @@ class ContactRepository {
     private static final int CHUNK = 5000;
 
     private static final String DETAIL =
-            "SELECT c.id, c.first_name, c.last_name, c.address, c.email, c.phone, c.company, c.country,"
+            "SELECT c.id, c.first_name, c.last_name, c.address, c.address_parts::text AS address_parts, c.email, c.phone, c.company, c.country,"
                     + " c.version, c.created_at, c.updated_at, u.name AS updated_by_name, u.email AS updated_by_email,"
                     + " r.id AS rollback_id, r.created_at AS rollback_at, ru.name AS rollback_by_name,"
                     + " ru.email AS rollback_by_email, r.target_initial AS rollback_initial, rt.id AS target_id,"
@@ -220,15 +220,16 @@ class ContactRepository {
     }
 
     UUID insert(UUID group, ContactInput input, long user) {
-        UUID id = jdbc.sql("INSERT INTO contact (group_id, first_name, last_name, address, email, phone, company,"
-                        + " country, sort_last, sort_first, updated_by)"
-                        + " VALUES (:group, :first, :last, :address, :email, :phone, :company, :country, :sortLast,"
-                        + " :sortFirst, :user)"
+        UUID id = jdbc.sql("INSERT INTO contact (group_id, first_name, last_name, address, address_parts, email,"
+                        + " phone, company, country, sort_last, sort_first, updated_by)"
+                        + " VALUES (:group, :first, :last, :address, CAST(:parts AS jsonb), :email, :phone, :company,"
+                        + " :country, :sortLast, :sortFirst, :user)"
                         + " RETURNING id")
                 .param("group", group)
                 .param("first", input.firstName())
                 .param("last", input.lastName())
                 .param("address", input.address())
+                .param("parts", AddressJson.write(input.addressParts()))
                 .param("email", input.email())
                 .param("phone", input.phone())
                 .param("company", input.company())
@@ -244,8 +245,8 @@ class ContactRepository {
 
     /** Zamenja vrednosti, poveča verzijo ter zapiše izvajalca in čas (FR-004-10). */
     void update(UUID group, UUID id, ContactInput input, long user) {
-        jdbc.sql("UPDATE contact SET first_name = :first, last_name = :last, address = :address, email = :email,"
-                        + " phone = :phone, company = :company, country = :country, sort_last = :sortLast,"
+        jdbc.sql("UPDATE contact SET first_name = :first, last_name = :last, address = :address,"
+                        + " address_parts = CAST(:parts AS jsonb), email = :email, phone = :phone, company = :company, country = :country, sort_last = :sortLast,"
                         + " sort_first = :sortFirst, version = version + 1,"
                         + " updated_by = :user, updated_at = now(), reverted_entry_id = NULL"
                         + " WHERE group_id = :group AND id = :id")
@@ -254,6 +255,7 @@ class ContactRepository {
                 .param("first", input.firstName())
                 .param("last", input.lastName())
                 .param("address", input.address())
+                .param("parts", AddressJson.write(input.addressParts()))
                 .param("email", input.email())
                 .param("phone", input.phone())
                 .param("company", input.company())
@@ -359,13 +361,14 @@ class ContactRepository {
         List<Attribute> attributes = input.attributes();
         for (int i = 0; i < attributes.size(); i++) {
             Attribute attribute = attributes.get(i);
-            jdbc.sql("INSERT INTO contact_attribute (contact_id, position, key, key_norm, value)"
-                            + " VALUES (:id, :position, :key, :norm, :value)")
+            jdbc.sql("INSERT INTO contact_attribute (contact_id, position, key, key_norm, value, parts)"
+                            + " VALUES (:id, :position, :key, :norm, :value, CAST(:parts AS jsonb))")
                     .param("id", id)
                     .param("position", i)
                     .param("key", attribute.key())
                     .param("norm", ContactInputParser.normalize(attribute.key()))
-                    .param("value", attribute.value())
+                    .param("value", attribute.parts() == null ? attribute.value() : null)
+                    .param("parts", AddressJson.write(attribute.parts()))
                     .update();
         }
         if (!attributes.isEmpty()) {
@@ -390,15 +393,16 @@ class ContactRepository {
     }
 
     private List<Attribute> attributes(UUID id) {
-        return jdbc.sql("SELECT a.key, a.value, k.type FROM contact_attribute a JOIN contact c ON c.id = a.contact_id"
-                        + " LEFT JOIN attribute_key k ON k.group_id = c.group_id AND k.key_norm = a.key_norm"
-                        + " WHERE a.contact_id = :id ORDER BY a.position")
+        return jdbc.sql(
+                        "SELECT a.key, a.value, a.parts::text AS parts, k.type FROM contact_attribute a JOIN contact c ON c.id = a.contact_id"
+                                + " LEFT JOIN attribute_key k ON k.group_id = c.group_id AND k.key_norm = a.key_norm"
+                                + " WHERE a.contact_id = :id ORDER BY a.position")
                 .param("id", id)
                 .query((rs, row) -> new Attribute(
                         rs.getString("key"),
                         rs.getString("type") == null ? null : AttributeType.valueOf(rs.getString("type")),
                         rs.getString("value"),
-                        null))
+                        AddressJson.read(rs.getString("parts"))))
                 .list();
     }
 
@@ -423,6 +427,7 @@ class ContactRepository {
                 c.lastName(),
                 c.displayName(),
                 c.address(),
+                c.addressParts(),
                 c.email(),
                 c.phone(),
                 c.company(),
@@ -462,6 +467,7 @@ class ContactRepository {
                 last,
                 displayName(first, last),
                 rs.getString("address"),
+                AddressJson.read(rs.getString("address_parts")),
                 rs.getString("email"),
                 rs.getString("phone"),
                 rs.getString("company"),

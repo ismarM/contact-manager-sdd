@@ -54,3 +54,16 @@ export function auditActions(groupId: string): string[] {
   );
   return rows === '' ? [] : rows.split('\n');
 }
+
+/** Deli razčlenjenega naslova kontakta (`address_parts`) ali `null` (naslov je besedilo ali ga ni). */
+export function addressPartsOf(contactId: string): Record<string, string> | null {
+  const json = sql(
+    `select coalesce(address_parts::text, '') from contact where id = ${literal(contactId)}::uuid`,
+  );
+  return json === '' ? null : (JSON.parse(json) as Record<string, string>);
+}
+
+/** Nerazčlenjen naslov kontakta (`address`) ali prazen niz. */
+export function addressTextOf(contactId: string): string {
+  return sql(`select coalesce(address, '') from contact where id = ${literal(contactId)}::uuid`);
+}

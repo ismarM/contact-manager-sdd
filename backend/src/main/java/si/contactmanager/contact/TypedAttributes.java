@@ -49,10 +49,17 @@ class TypedAttributes {
             AttributeExtra extra = i < extras.size() ? extras.get(i) : null;
             AttributeType requested = extra != null ? extra.type() : null;
             String norm = ContactInputParser.normalize(attribute.key());
-            AttributeType effective = cache.computeIfAbsent(norm, n -> effective(group, n, requested, write));
+            // Deli brez navedenega tipa pomenijo naslov (nov ali prost ključ dobi tip ADDRESS).
+            AttributeType wanted = requested == null && attribute.parts() != null ? AttributeType.ADDRESS : requested;
+            AttributeType effective = cache.computeIfAbsent(norm, n -> effective(group, n, wanted, write));
             String prefix = "attributes[" + i + "]";
             if (requested != null && requested != effective) {
                 errors.add(new FieldError(prefix + ".type", "INVALID_VALUE"));
+            }
+            if (attribute.parts() != null) {
+                // Razčlenjen naslov (016, FR-016-12): samo za ključ tipa ADDRESS; shranjeni deli ostanejo dobesedni.
+                result.add(parts(attribute, effective, stored, norm, prefix, errors));
+                continue;
             }
             String candidate = effective == AttributeType.NOTES && extra != null ? extra.raw() : attribute.value();
             if (isStored(stored, norm, effective, candidate)) {
@@ -95,6 +102,31 @@ class TypedAttributes {
             return requested;
         }
         return row.get().type();
+    }
+
+    private static Attribute parts(
+            Attribute attribute,
+            AttributeType effective,
+            List<Attribute> stored,
+            String norm,
+            String prefix,
+            List<FieldError> errors) {
+        if (effective != AttributeType.ADDRESS) {
+            errors.add(new FieldError(prefix + ".parts", "INVALID_VALUE"));
+            return new Attribute(attribute.key(), effective, null, attribute.parts());
+        }
+        for (Attribute old : stored) {
+            if (ContactInputParser.normalize(old.key()).equals(norm)
+                    && attribute.parts().equals(old.parts())) {
+                return new Attribute(attribute.key(), effective, null, old.parts());
+            }
+        }
+        TypedValues.AddressResult normalized = TypedValues.normalizeAddress(attribute.parts());
+        if (!normalized.valid()) {
+            normalized.errors().forEach(e -> errors.add(new FieldError(prefix + ".parts." + e.field(), e.code())));
+            return new Attribute(attribute.key(), effective, null, attribute.parts());
+        }
+        return new Attribute(attribute.key(), effective, null, normalized.address());
     }
 
     private static boolean isStored(List<Attribute> stored, String norm, AttributeType type, String value) {

@@ -1419,7 +1419,7 @@
       "postalCode": "Poštna številka",
       "city": "Kraj",
       "region": "Regija",
-      "country": "Država"
+      "country": "Država naslova"
     },
     "unstructured": "Naslov (besedilo)",
     "split": "Razčleni naslov",

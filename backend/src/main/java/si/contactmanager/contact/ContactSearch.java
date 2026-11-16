@@ -63,8 +63,16 @@ public final class ContactSearch {
             for (String column : List.of("first_name", "last_name", "address", "email", "phone", "company")) {
                 columns.add("strpos(coalesce(c." + column + ", '')" + SEARCH + ", :" + parameter + ") > 0");
             }
-            // Država: koda ali ime v slovenščini in angleščini, neodvisno od jezika vmesnika (FR-013-03).
-            columns.add(countryIn("wc" + i, CountryNames.matching(words.get(i)), parameters));
+            // Deli razčlenjenega naslova (016, R-06) kot besedilo.
+            columns.add(
+                    "strpos(coalesce(" + partsText("c.address_parts") + ", '')" + SEARCH + ", :" + parameter + ") > 0");
+            // Država: koda ali ime v slovenščini in angleščini, neodvisno od jezika vmesnika (FR-013-03); tudi država
+            // razčlenjenega naslova (016).
+            List<String> codes = CountryNames.matching(words.get(i));
+            columns.add(countryIn("wc" + i, codes, parameters));
+            if (!codes.isEmpty()) {
+                columns.add("c.address_parts->>'country' IN (:wc" + i + ")");
+            }
             typedColumns(i, words.get(i), columns, parameters);
             wordParts.add("(" + String.join(" OR ", columns) + ")");
         }
@@ -83,11 +91,12 @@ public final class ContactSearch {
                 String key = "ck" + i;
                 parameters.put(key, condition.field().keyNorm());
                 parts.add("EXISTS (SELECT 1 FROM contact_attribute a WHERE a.contact_id = c.id AND a.key_norm = :" + key
-                        + " AND strpos(a.value" + SEARCH + ", :" + value + ") > 0)");
+                        + " AND strpos(coalesce(a.value, " + partsText("a.parts") + ")" + SEARCH + ", :" + value
+                        + ") > 0)");
             } else if (condition.field().kind() == Kind.COUNTRY) {
                 parts.add(countryIn(value, CountryNames.matching(condition.value()), parameters));
             } else {
-                parts.add("strpos(coalesce(c." + column(condition.field().kind()) + ", '')" + SEARCH + ", :" + value
+                parts.add("strpos(coalesce(" + expression(condition.field().kind()) + ", '')" + SEARCH + ", :" + value
                         + ") > 0");
             }
         }
@@ -132,8 +141,22 @@ public final class ContactSearch {
         parameters.put(text, word);
         String typed = "EXISTS (SELECT 1 FROM contact_attribute a JOIN attribute_key k ON k.group_id = c.group_id"
                 + " AND k.key_norm = a.key_norm WHERE a.contact_id = c.id AND k.type IN ('EMAIL', 'ADDRESS')"
-                + " AND strpos(coalesce(a.value, '')" + SEARCH + ", :" + text + ") > 0)";
+                + " AND strpos(coalesce(a.value, " + partsText("a.parts") + ", '')" + SEARCH + ", :" + text
+                + ") > 0)";
         columns.add(typed);
+    }
+
+    /** Izraz predefiniranega polja; naslov je besedilo ali deli razčlenjenega naslova (016). */
+    private static String expression(Kind kind) {
+        if (kind == Kind.ADDRESS) {
+            return "coalesce(c.address, " + partsText("c.address_parts") + ")";
+        }
+        return "c." + column(kind);
+    }
+
+    /** Vrednosti delov naslova {@code jsonb} kot besedilo, ločene s presledkom ({@code null}, če delov ni). */
+    private static String partsText(String column) {
+        return "(SELECT string_agg(e.value, ' ') FROM jsonb_each_text(" + column + ") e)";
     }
 
     /**
@@ -149,7 +172,7 @@ public final class ContactSearch {
             case FIRST_NAME -> "c.sort_first " + direction + " NULLS LAST, c.sort_last ASC NULLS LAST, " + tail;
             case COMPANY, COUNTRY -> throw new IllegalArgumentException("razvrščanje po tem polju ni podprto");
             case ADDRESS, EMAIL, PHONE ->
-                "c." + column(sort.kind()) + " COLLATE sort_sl " + direction
+                expression(sort.kind()) + " COLLATE sort_sl " + direction
                         + " NULLS LAST, c.sort_last ASC NULLS LAST, c.sort_first ASC NULLS LAST, " + tail;
             case ATTRIBUTE -> {
                 parameters.put("sortKey", sort.keyNorm());

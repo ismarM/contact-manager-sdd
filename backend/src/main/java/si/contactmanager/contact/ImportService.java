@@ -76,6 +76,7 @@ class ImportService {
             List<FieldError> errors = new ArrayList<>(parsed.errors());
             if (parsed.valid()) {
                 errors.addAll(AttributeKeys.reservedErrors(parsed.input().attributes(), java.util.Set.of()));
+                errors.addAll(ContactInputParser.partsNotImported(parsed.input()));
             }
             Country country =
                     countries.computeIfAbsent(countryText == null ? "" : countryText.strip(), ImportService::country);

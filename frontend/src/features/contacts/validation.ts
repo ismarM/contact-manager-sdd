@@ -2,6 +2,13 @@
 // vir resnice, njegove napake po poljih se prikažejo enako (`serverErrorKey`).
 
 import type { AttributeType } from '../attributes/types';
+import {
+  ADDRESS_PARTS,
+  type AddressDraft,
+  type AddressErrorKey,
+  isBlankDraft,
+  validateDraft,
+} from './typed/addressDraft';
 
 export const LIMITS = {
   name: 100,
@@ -80,6 +87,7 @@ export type ErrorKey =
   | 'contacts.errors.tooManyTags'
   | 'contacts.errors.tagTooLong'
   | 'attributes.type.mismatch'
+  | AddressErrorKey
   | `typedValue.errors.INVALID_VALUE.${AttributeType}`;
 
 export interface AttributeRow {
@@ -92,18 +100,28 @@ export interface AttributeRow {
   type?: AttributeType;
   /** 016: tip je tip ključa, ki ga skupina že ima (ne izbira se); nov ključ ima izbiro tipa. */
   typeLocked?: boolean;
+  /** 016: deli naslova (tip `ADDRESS`); brez njih je naslov nerazčlenjeno besedilo v `value` (iz časa pred 016). */
+  parts?: AddressDraft | null;
 }
 
 export interface FormValues {
   firstName: string;
   lastName: string;
   company: string;
+  /** Nerazčlenjen naslov iz časa pred 016 (samo za branje, dokler ga uporabnik ne razčleni). */
   address: string;
+  /** 016: naslov po delih; `null` = kontakt ima nerazčlenjen naslov (`address`). */
+  addressParts: AddressDraft | null;
   country: string;
   email: string;
   phone: string;
   attributes: AttributeRow[];
   tags: string[];
+}
+
+/** Vrstica atributa z naslovom po delih. */
+export function hasParts(row: AttributeRow): row is AttributeRow & { parts: AddressDraft } {
+  return row.parts !== undefined && row.parts !== null;
 }
 
 /** Dolžina v kodnih točkah (kot strežnik). */
@@ -137,8 +155,13 @@ export function validate(values: FormValues): Record<string, ErrorKey> {
   if (length(values.company.trim()) > LIMITS.company) {
     errors.company = 'contacts.errors.companyTooLong';
   }
-  if (length(values.address.trim()) > LIMITS.address) {
+  if (values.addressParts === null && length(values.address.trim()) > LIMITS.address) {
     errors.address = 'contacts.errors.addressTooLong';
+  }
+  if (values.addressParts !== null) {
+    for (const [part, error] of Object.entries(validateDraft(values.addressParts))) {
+      errors[`addressParts.${part}`] = error;
+    }
   }
   const email = values.email.trim();
   if (length(email) > LIMITS.email) errors.email = 'contacts.errors.emailTooLong';
@@ -157,7 +180,8 @@ export function validate(values: FormValues): Record<string, ErrorKey> {
   for (const row of values.attributes) {
     const key = row.key.trim();
     const value = row.value.trim();
-    if (!key && !value) continue;
+    const parted = hasParts(row);
+    if (!key && !value && (!parted || isBlankDraft(row.parts))) continue;
     const keyField = `attributes.${row.id}.key`;
     const valueField = `attributes.${row.id}.value`;
     const normalized = normalizeKey(key);
@@ -169,7 +193,14 @@ export function validate(values: FormValues): Record<string, ErrorKey> {
       errors[keyField] = reservedKeyError(key);
     } else if (keys.has(normalized)) errors[keyField] = 'contacts.errors.keyDuplicate';
     if (key) keys.add(normalized);
-    if (!value) errors[valueField] = 'contacts.errors.valueRequired';
+    if (parted) {
+      const partErrors = validateDraft(row.parts);
+      if (isBlankDraft(row.parts)) partErrors.street = 'address.errors.REQUIRED';
+      for (const part of ADDRESS_PARTS) {
+        const error = partErrors[part];
+        if (error) errors[`attributes.${row.id}.parts.${part}`] = error;
+      }
+    } else if (!value) errors[valueField] = 'contacts.errors.valueRequired';
     else if (length(value) > LIMITS.value) errors[valueField] = 'contacts.errors.valueTooLong';
   }
   return errors;
@@ -227,5 +258,18 @@ export function serverErrorKey(field: string, code: string): ErrorKey | null {
       TOO_LONG: 'contacts.errors.tagTooLong',
     },
   };
+  const part =
+    /^(?:addressParts|attributes\[\]\.parts)\.(street|extra|postalCode|city|region|country)$/.exec(
+      base,
+    );
+  if (part) {
+    if (code === 'REQUIRED' || code === 'TOO_LONG') return `address.errors.${code}`;
+    if (code === 'INVALID_VALUE') {
+      return part[1] === 'country'
+        ? 'contacts.errors.countryInvalid'
+        : 'address.errors.INVALID_VALUE';
+    }
+    return null;
+  }
   return table[base]?.[code] ?? null;
 }

@@ -37,15 +37,21 @@ describe('ContactForm', () => {
     expect(within(form).getByRole('group', { name: 'Osnovni podatki' })).toBeInTheDocument();
     expect(within(form).getByRole('group', { name: 'Dodatni atributi' })).toBeInTheDocument();
     expect(within(form).getByRole('group', { name: 'Značke' })).toBeInTheDocument();
-    for (const label of ['Ime', 'Priimek', 'Naslov', 'E-naslov', 'Telefon']) {
+    for (const label of ['Ime', 'Priimek', 'E-naslov', 'Telefon']) {
       expect(within(form).getByRole('textbox', { name: label })).toBeInTheDocument();
     }
+    // 016 (FR-016-12): naslov je skupina delov, ulica in kraj sta kombinirani polji s predlogi naslova.
+    const address = within(form).getByRole('group', { name: 'Naslov' });
+    expect(
+      within(address).getByRole('combobox', { name: 'Ulica in hišna številka' }),
+    ).toBeInTheDocument();
+    expect(within(address).getByRole('combobox', { name: 'Kraj' })).toBeInTheDocument();
+    expect(within(address).getByRole('textbox', { name: 'Poštna številka' })).toBeInTheDocument();
     expect(within(form).getByRole('textbox', { name: 'E-naslov' })).toHaveAttribute(
       'type',
       'email',
     );
     expect(within(form).getByRole('textbox', { name: 'Telefon' })).toHaveAttribute('type', 'tel');
-    expect(within(form).getByRole('textbox', { name: 'Naslov' }).tagName).toBe('TEXTAREA');
     expect(within(form).getByRole('combobox', { name: 'Dodaj značko' })).toBeInTheDocument();
     expect(within(form).getByRole('button', { name: 'Shrani kontakt' })).toBeInTheDocument();
     expect(within(form).getByRole('button', { name: 'Prekliči' })).toBeInTheDocument();
@@ -395,7 +401,8 @@ describe('ContactForm', () => {
     await openForm();
     const last = screen.getByRole('textbox', { name: tr('contacts.form.lastName') });
     const company = screen.getByRole('combobox', { name: name.company() });
-    const address = screen.getByRole('textbox', { name: tr('contacts.form.address') });
+    // 016: naslov je skupina delov (FR-016-12).
+    const address = screen.getByRole('group', { name: tr('address.legend') });
     const countryField = screen.getByRole('combobox', { name: name.country() });
     const email = screen.getByRole('textbox', { name: tr('contacts.form.email') });
     const follows = (a: Element, b: Element) =>

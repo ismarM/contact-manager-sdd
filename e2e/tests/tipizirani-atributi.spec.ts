@@ -4,7 +4,10 @@ import { expect, type Page, test } from '@playwright/test';
 import { signIn, type TestUser, uniqueUser } from './support/auth';
 import { seedContact } from './support/duplicates';
 import { createGroup, setRole } from './support/groups';
+import { createSearchContact } from './support/contacts';
 import {
+  addressPartsOf,
+  addressTextOf,
   auditActions,
   createContactWithTypedAttribute,
   keyTypeOf,
@@ -200,4 +203,88 @@ test('FR-016-02 FR-016-08 FR-016-10 FR-016-11: telefon v različnih zapisih – 
   await page.getByRole('button', { name: 'Poišči dvojnike' }).click();
   await expect(page.getByRole('listitem', { name: 'Enak telefon: +38641123456' })).toBeVisible();
   await expectNoAxeViolations(page);
+});
+
+// --- US3: strukturiran naslov in samodokončanje (zaledje kliče osm-stub iz compose.verify.yaml) ---------------------
+
+const contactIdFromUrl = (page: Page) => new URL(page.url()).pathname.split('/').at(-1) ?? '';
+
+test('FR-016-12 FR-016-13: naslov po delih s samodokončanjem prek našega strežnika in s tipkovnico', async ({
+  page,
+}) => {
+  const origins = new Set<string>();
+  page.on('request', (request) => origins.add(new URL(request.url()).origin));
+  await signedIn(page);
+  const id = await createGroup(page, { title: 'Projekt FERI' });
+  await page.goto(`/groups/${id}/contacts/new`);
+  await page.getByRole('textbox', { name: 'Ime', exact: true }).fill('Ana');
+
+  const address = page.getByRole('group', { name: 'Naslov', exact: true });
+  const street = address.getByRole('combobox', { name: 'Ulica in hišna številka' });
+  await street.click();
+  await street.pressSequentially('Slovenska 1');
+  const list = page.getByRole('listbox', { name: 'Predlogi naslova' });
+  await expect(list.getByRole('option')).toHaveText([
+    'Slovenska cesta 1, 1000 Ljubljana, Slovenija',
+    'Slovenska cesta 10, 1000 Ljubljana, Slovenija',
+  ]);
+  await expectNoAxeViolations(page);
+
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await expect(list).toBeHidden();
+  await expect(street).toHaveValue('Slovenska cesta 1');
+  await expect(address.getByRole('textbox', { name: 'Poštna številka' })).toHaveValue('1000');
+  await expect(address.getByRole('combobox', { name: 'Kraj', exact: true })).toHaveValue(
+    'Ljubljana',
+  );
+  await address.getByRole('textbox', { name: 'Dodatna vrstica' }).fill('3. nadstropje');
+  await page.getByRole('button', { name: 'Shrani kontakt' }).click();
+  await expect(toast(page)).toContainText('Kontakt Ana je shranjen.');
+
+  expect(addressPartsOf(contactIdFromUrl(page))).toEqual({
+    street: 'Slovenska cesta 1',
+    extra: '3. nadstropje',
+    postalCode: '1000',
+    city: 'Ljubljana',
+    country: 'SI',
+  });
+  // Brskalnik ne kliče tuje storitve (FR-016-23): vse zahteve gredo na izvor aplikacije.
+  expect([...origins]).toEqual([new URL(page.url()).origin]);
+});
+
+test('FR-016-14: nerazčlenjen naslov iz časa pred 016 – Razčleni naslov, popravek in shranjevanje', async ({
+  page,
+}) => {
+  await signedIn(page);
+  const id = await createGroup(page, { title: 'Projekt FERI' });
+  const contact = createSearchContact(id, {
+    first: 'Bojan',
+    last: 'Star',
+    address: 'Glavni trg 1\n2000 Maribor',
+  });
+
+  await page.goto(`/groups/${id}/contacts/${contact}/edit`);
+  await expect(page.getByText('Glavni trg 1')).toBeVisible();
+  await expectNoAxeViolations(page);
+  await page.getByRole('button', { name: 'Razčleni naslov' }).click();
+
+  const address = page.getByRole('group', { name: 'Naslov', exact: true });
+  const street = address.getByRole('combobox', { name: 'Ulica in hišna številka' });
+  await expect(street).toBeFocused();
+  await expect(street).toHaveValue('Glavni trg 1');
+  await expect(address.getByRole('textbox', { name: 'Poštna številka' })).toHaveValue('2000');
+  await expect(address.getByRole('combobox', { name: 'Kraj', exact: true })).toHaveValue('Maribor');
+  // Dokler uporabnik ne shrani, se na strežniku nič ne spremeni.
+  expect(addressTextOf(contact)).toBe('Glavni trg 1\n2000 Maribor');
+  await expectNoAxeViolations(page);
+
+  await page.getByRole('button', { name: 'Shrani kontakt' }).click();
+  await expect(toast(page)).toContainText('Kontakt Bojan Star je shranjen.');
+  expect(addressTextOf(contact)).toBe('');
+  expect(addressPartsOf(contact)).toEqual({
+    street: 'Glavni trg 1',
+    postalCode: '2000',
+    city: 'Maribor',
+  });
 });

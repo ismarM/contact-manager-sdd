@@ -338,4 +338,48 @@ class ContactInputParserTest {
         assertThat(parsed.input().country()).isEqualTo("AT");
         assertThat(parsed.version()).isEqualTo(3L);
     }
+
+    @Test
+    @Tag("FR-016-12")
+    void addressPartsAndAttributePartsAreReadAsTheyAreAndOnlyOneAddressFormIsAllowed() {
+        Parsed parsed = parser.parseCreate(json("""
+                "firstName":"A","addressParts":{"street":" Ulica 1 ","city":"Kraj","country":null},
+                "attributes":[{"key":"Dom","parts":{"city":"Maribor"}},{"key":"","value":""}]"""));
+
+        assertThat(parsed.valid()).as(parsed.errors().toString()).isTrue();
+        assertThat(parsed.input().addressParts()).isEqualTo(new Address(" Ulica 1 ", null, null, "Kraj", null, null));
+        assertThat(parsed.input().address()).isNull();
+        assertThat(parsed.input().attributes())
+                .containsExactly(new Attribute(
+                        "Dom", AttributeType.ADDRESS, null, new Address(null, null, null, "Maribor", null, null)));
+        assertThat(parsed.extras()).hasSize(1);
+
+        assertThat(errors(parser.parseCreate(
+                        json("\"firstName\":\"A\",\"address\":\"x\",\"addressParts\":{\"city\":\"K\"}"))))
+                .containsExactly(Map.entry("addressParts", "INVALID_VALUE"));
+        assertThat(errors(parser.parseCreate(json("\"firstName\":\"A\",\"addressParts\":\"Ulica\""))))
+                .containsExactly(Map.entry("addressParts", "INVALID_VALUE"));
+        assertThat(errors(parser.parseCreate(json("\"firstName\":\"A\",\"addressParts\":{\"zip\":\"1\",\"city\":2}"))))
+                .containsEntry("addressParts.zip", "UNKNOWN_FIELD")
+                .containsEntry("addressParts.city", "INVALID_VALUE");
+        assertThat(errors(parser.parseCreate(json("""
+                "firstName":"A","attributes":[{"key":"Dom","type":"PHONE","parts":{"city":"K"}}]"""))))
+                .containsExactly(Map.entry("attributes[0].type", "INVALID_VALUE"));
+        assertThat(errors(parser.parseCreate(json("""
+                "firstName":"A","attributes":[{"key":"Dom","parts":{"town":"K"}}]"""))))
+                .containsExactly(Map.entry("attributes[0].parts.town", "UNKNOWN_FIELD"));
+    }
+
+    @Test
+    @Tag("FR-016-12")
+    void importDoesNotYetAcceptAddressParts() {
+        Parsed parsed = parser.parseCreate(json("""
+                "firstName":"A","addressParts":{"city":"Kraj"},
+                "attributes":[{"key":"Opomba","value":"x"},{"key":"Dom","parts":{"city":"Maribor"}}]"""));
+
+        assertThat(ContactInputParser.partsNotImported(parsed.input()))
+                .containsExactly(
+                        new FieldError("addressParts", "UNKNOWN_FIELD"),
+                        new FieldError("attributes[1].parts", "UNKNOWN_FIELD"));
+    }
 }

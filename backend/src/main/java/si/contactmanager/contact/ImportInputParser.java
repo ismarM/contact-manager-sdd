@@ -77,6 +77,9 @@ final class ImportInputParser {
                         AttributeKeys.reservedErrors(parsed.input().attributes(), Set.of())) {
                     errors.add(new FieldError(prefix + error.field(), error.code()));
                 }
+                for (FieldError error : ContactInputParser.partsNotImported(parsed.input())) {
+                    errors.add(new FieldError(prefix + error.field(), error.code()));
+                }
                 inputs.add(parsed.input());
             }
         }

@@ -1419,7 +1419,7 @@
       "postalCode": "Postal code",
       "city": "City",
       "region": "Region",
-      "country": "Country"
+      "country": "Address country"
     },
     "unstructured": "Address (text)",
     "split": "Split address",

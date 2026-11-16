@@ -76,7 +76,9 @@ class AttributeKeyService {
         List<TypeConflict.Item> conflicts = new ArrayList<>();
         long invalid = 0;
         for (AttributeKeyRepository.Value value : values) {
-            TypedValues.Result result = TypedValues.normalize(type, value.value(), value.country());
+            // Razčlenjen naslov postane besedilo po pravilih države (016, R-03/R-04), nato velja pravilo novega tipa.
+            String text = value.parts() != null ? AddressFormats.text(value.parts()) : value.value();
+            TypedValues.Result result = TypedValues.normalize(type, text, value.country());
             if (result.valid()) {
                 converted.put(value.contactId(), result.value());
             } else {
@@ -85,7 +87,7 @@ class AttributeKeyService {
                     conflicts.add(new TypeConflict.Item(
                             value.contactId(),
                             ContactRepository.displayName(value.firstName(), value.lastName()),
-                            value.value()));
+                            text));
                 }
             }
         }
@@ -98,7 +100,7 @@ class AttributeKeyService {
         Map<UUID, ContactState> before = snapshots.load(group, ids);
         for (AttributeKeyRepository.Value value : values) {
             String normalized = converted.get(value.contactId());
-            if (!normalized.equals(value.value())) {
+            if (value.parts() != null || !normalized.equals(value.value())) {
                 keys.updateValue(value.contactId(), norm, normalized);
             }
         }

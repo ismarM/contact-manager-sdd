@@ -177,7 +177,8 @@ class ContactService {
                 : normalizePredefined(
                         canonicalInput,
                         java.util.Arrays.asList(current.email()),
-                        java.util.Arrays.asList(current.phone()));
+                        java.util.Arrays.asList(current.phone()),
+                        java.util.Arrays.asList(current.addressParts()));
         if (predefined != null) {
             canonicalInput = predefined.input();
         }
@@ -271,13 +272,34 @@ class ContactService {
     /** Vnos s normaliziranim e-naslovom in telefonom ter napake po poljih. */
     record Predefined(ContactInput input, List<si.contactmanager.shared.error.ValidationError.FieldError> errors) {}
 
-    /**
-     * Normalizacija predefiniranih polj {@code email} in {@code phone} (016): telefon glede na državo kontakta;
-     * vrednost, enaka shranjeni, se ne preverja in ne spreminja (FR-016-09).
-     */
+    /** Kot {@link #normalizePredefined(ContactInput, java.util.Collection, java.util.Collection, java.util.Collection)}. */
     static Predefined normalizePredefined(
             ContactInput input, java.util.Collection<String> storedEmails, java.util.Collection<String> storedPhones) {
+        return normalizePredefined(input, storedEmails, storedPhones, List.of());
+    }
+
+    /**
+     * Normalizacija predefiniranih polj {@code email}, {@code phone} in {@code addressParts} (016): telefon glede na
+     * državo kontakta, deli naslova po R-04 (napake ob {@code addressParts.<del>}); vrednost, enaka shranjeni, se ne
+     * preverja in ne spreminja (FR-016-09). Nerazčlenjen naslov ({@code address}) ostane besedilo (FR-016-04, -12).
+     */
+    static Predefined normalizePredefined(
+            ContactInput input,
+            java.util.Collection<String> storedEmails,
+            java.util.Collection<String> storedPhones,
+            java.util.Collection<Address> storedParts) {
         List<si.contactmanager.shared.error.ValidationError.FieldError> errors = new java.util.ArrayList<>();
+        Address parts = input.addressParts();
+        if (parts != null && !storedParts.contains(parts)) {
+            TypedValues.AddressResult r = TypedValues.normalizeAddress(parts);
+            if (r.valid()) {
+                parts = r.address();
+            } else {
+                r.errors()
+                        .forEach(e -> errors.add(new si.contactmanager.shared.error.ValidationError.FieldError(
+                                "addressParts." + e.field(), e.code())));
+            }
+        }
         String email = input.email();
         if (email != null && !storedEmails.contains(email)) {
             TypedValues.Result r = TypedValues.normalize(AttributeType.EMAIL, email, input.country());
@@ -301,7 +323,7 @@ class ContactService {
                         input.firstName(),
                         input.lastName(),
                         input.address(),
-                        input.addressParts(),
+                        parts,
                         email,
                         phone,
                         input.company(),
@@ -315,6 +337,7 @@ class ContactService {
         return Objects.equals(current.firstName(), input.firstName())
                 && Objects.equals(current.lastName(), input.lastName())
                 && Objects.equals(current.address(), input.address())
+                && Objects.equals(current.addressParts(), input.addressParts())
                 && Objects.equals(current.email(), input.email())
                 && Objects.equals(current.phone(), input.phone())
                 && Objects.equals(current.company(), input.company())
