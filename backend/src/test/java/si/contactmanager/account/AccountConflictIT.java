@@ -13,7 +13,7 @@ import si.contactmanager.support.FirebaseEmulatorContainer.SignedIn;
 /**
  * Trk e-naslova med dvema Firebase UID (FR-017-11) in vnos matrike izolacije za uporabniški vir {@code PUT /api/me}:
  * neprijavljen 401, drugi UID z istim e-naslovom (razlika samo v velikosti črk) 409 {@code ACCOUNT_CONFLICT}, profil
- * prvega nespremenjen. Vrstice 403 {@code EMAIL_NOT_VERIFIED} ni, dokler filter ne obstaja.
+ * prvega nespremenjen, nepotrjen e-naslov 403 {@code EMAIL_NOT_VERIFIED} (filter pred kontrolerjem, FR-017-02).
  */
 @Tag("FR-017-11")
 class AccountConflictIT extends ApiTest {
@@ -38,6 +38,22 @@ class AccountConflictIT extends ApiTest {
         assertThat(profileCount()).isEqualTo(before);
         Map<String, Object> row = profileRows(firstUid).getFirst();
         assertThat(row).containsEntry("name", "Prva Ana").containsEntry("email", email);
+    }
+
+    @Test
+    void unverifiedSecondUidWithSameEmailIs403BeforeConflictCheck() throws Exception {
+        String email = uniqueEmail();
+        String firstUid = "uid-" + UUID.randomUUID();
+        jdbc.update("insert into app_user (firebase_uid, name, email) values (?, 'Prva Ana', ?)", firstUid, email);
+        int before = profileCount();
+
+        SignedIn second = emulator().signUpWithPassword(email.toUpperCase(), "geslo-12345678");
+        HttpResponse<String> response = put("/api/me", second.idToken(), null);
+
+        assertThat(response.statusCode()).isEqualTo(403);
+        assertThat(json(response.body())).containsEntry("code", "EMAIL_NOT_VERIFIED");
+        assertThat(profileCount()).isEqualTo(before);
+        assertThat(profileRows(firstUid).getFirst()).containsEntry("name", "Prva Ana");
     }
 
     @Test

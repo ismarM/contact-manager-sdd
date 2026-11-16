@@ -18,6 +18,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import si.contactmanager.shared.error.ErrorResponse;
@@ -25,7 +26,8 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Javno je samo {@code GET /api/health} (FR-000-10); vse ostalo zahteva veljaven ID žeton Firebase (FR-001-07). Vsaka
- * neuspešna prijava – brez žetona, neveljaven, ponarejen, potekel – vrne 401 UNAUTHENTICATED.
+ * neuspešna prijava – brez žetona, neveljaven, ponarejen, potekel – vrne 401 UNAUTHENTICATED. Veljaven žeton brez
+ * potrjenega e-naslova vrne 403 EMAIL_NOT_VERIFIED ({@link EmailVerifiedFilter}, FR-017-02).
  */
 @Configuration
 @EnableConfigurationProperties(FirebaseProperties.class)
@@ -52,6 +54,7 @@ public class SecurityConfig {
                         resourceServer.jwt(jwt -> jwt.decoder(decoder)).authenticationEntryPoint(unauthenticated))
                 .exceptionHandling(errors -> errors.authenticationEntryPoint(unauthenticated)
                         .accessDeniedHandler((request, response, exception) -> unauthenticated(response, json)))
+                .addFilterAfter(new EmailVerifiedFilter(json), BearerTokenAuthenticationFilter.class)
                 .build();
     }
 

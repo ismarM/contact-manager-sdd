@@ -23,10 +23,10 @@ Faze US1–US4 uvajajo Email/Password, kar spreminja §5. Razvijalec funkcionaln
 
 ## Phase 2: Foundational
 
-- [ ] T004 FR-017-02, -04 — `EmailVerifiedFilter` v `backend/src/main/java/si/contactmanager/shared/security/` za `BearerTokenAuthenticationFilter` (registracija v `SecurityConfig`): `Jwt` brez `email_verified=true` → `403 {code: EMAIL_NOT_VERIFIED}`; izjema `GET /api/health`; `/dav/**` nespremenjen. Test: `EmailVerifiedSecurityIT` (vsi HTTP načini na reprezentativnih potih skupin, `/api/me`, `/api/invitations`: nepotrjen 403, potrjen kot prej, 401 ostane 401, `PUT /api/me` ne ustvari vrstice `app_user`) + enotski test filtra
+- [x] T004 FR-017-02, -04 — `EmailVerifiedFilter` v `backend/src/main/java/si/contactmanager/shared/security/` za `BearerTokenAuthenticationFilter` (registracija v `SecurityConfig`): `Jwt` brez `email_verified=true` → `403 {code: EMAIL_NOT_VERIFIED}`; izjema `GET /api/health`; `/dav/**` nespremenjen. Test: `EmailVerifiedSecurityIT` (vsi HTTP načini na reprezentativnih potih skupin, `/api/me`, `/api/invitations`: nepotrjen 403, potrjen kot prej, 401 ostane 401, `PUT /api/me` ne ustvari vrstice `app_user`) + enotski test filtra
 - [x] T005 FR-017-11 (izvedeno brez vrstice 403 `EMAIL_NOT_VERIFIED`, filtra še ni) — `ProfileRepository` ujame trk `lower(email)` pri drugem UID (po obstoječem ponovnem poskusu) → `409 {code: ACCOUNT_CONFLICT}` prek `ApiExceptionHandler`; profil drugega UID nespremenjen. Test: `AccountConflictIT`; vnos matrike za uporabniški vir `PUT /api/me`: 401 neprijavljen, 403 `EMAIL_NOT_VERIFIED`, 409 ob trku (dva UID, isti e-naslov, razlika samo v velikosti črk; članstva prvega nespremenjena)
 - [ ] T007 FR-017-12 — gateway `reauthenticate()` (geslo ali Google popup po ponudniku, vrne svež ID žeton z novim `auth_time`) v `AuthGateway.ts`/`firebaseGateway.ts` s testom z lažnim SDK; potrebujeta ga US3 (T020) in US4 (T031)
-- [ ] T006 [P] FR-017-10 — dokumentiraj v `docs/decisions/2026-11-16-email-geslo-povezovanje.md` (§2.6: sprememba avtentikacije): `accounts:signUp` z `idToken` ob vključeni EEP, ponovna prijava z geslom po povezovanju, brez izklopa EEP, brez spremembe UID
+- [x] T006 [P] FR-017-10 — dokumentiraj v `docs/decisions/2026-11-16-email-geslo-povezovanje.md` (§2.6: sprememba avtentikacije): `accounts:signUp` z `idToken` ob vključeni EEP, ponovna prijava z geslom po povezovanju, brez izklopa EEP, brez spremembe UID
 
 ## Phase 3: User Story 1 – Registracija in potrditev e-naslova (P1) 🎯
 

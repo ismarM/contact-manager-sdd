@@ -76,6 +76,46 @@ public final class FirebaseEmulatorContainer extends GenericContainer<FirebaseEm
         return post("accounts:signUp", body).get("idToken").asString();
     }
 
+    /** Registracija z e-naslovom in geslom (017): ID žeton ima {@code email_verified=false}. */
+    public SignedIn signUpWithPassword(String email, String password) throws IOException, InterruptedException {
+        JsonNode response =
+                post("accounts:signUp", Map.of("email", email, "password", password, "returnSecureToken", true));
+        return new SignedIn(
+                response.get("idToken").asString(), response.get("localId").asString());
+    }
+
+    /** Prijava z e-naslovom in geslom; nov ID žeton odraža trenutno stanje računa (npr. potrjen e-naslov). */
+    public SignedIn signInWithPassword(String email, String password) throws IOException, InterruptedException {
+        JsonNode response = post(
+                "accounts:signInWithPassword", Map.of("email", email, "password", password, "returnSecureToken", true));
+        return new SignedIn(
+                response.get("idToken").asString(), response.get("localId").asString());
+    }
+
+    /**
+     * Potrdi e-naslov kot uporabnik (017): pošlje potrditveno sporočilo ({@code VERIFY_EMAIL}), prebere kodo OOB iz
+     * emulatorja in jo uporabi – enako kot klik povezave v sporočilu.
+     */
+    public void verifyEmail(String idToken, String email) throws IOException, InterruptedException {
+        send("accounts:sendOobCode", Map.of("requestType", "VERIFY_EMAIL", "idToken", idToken));
+        HttpRequest request = HttpRequest.newBuilder(
+                        URI.create(baseUrl() + "/emulator/v1/projects/" + PROJECT_ID + "/oobCodes"))
+                .GET()
+                .build();
+        HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
+        String oobCode = null;
+        for (JsonNode code : JSON.readTree(response.body()).get("oobCodes")) {
+            if (email.equalsIgnoreCase(code.get("email").asString())
+                    && "VERIFY_EMAIL".equals(code.get("requestType").asString())) {
+                oobCode = code.get("oobCode").asString();
+            }
+        }
+        if (oobCode == null) {
+            throw new IllegalStateException("no VERIFY_EMAIL oobCode for " + email);
+        }
+        send("accounts:update", Map.of("oobCode", oobCode));
+    }
+
     /**
      * Prijava z Googlovim ponudnikom v emulatorju (nov Googlov račun z naključnim {@code sub}). {@code name} je lahko
      * {@code null} – račun brez imena.
@@ -179,6 +219,15 @@ public final class FirebaseEmulatorContainer extends GenericContainer<FirebaseEm
     }
 
     private JsonNode post(String method, Map<String, Object> body) throws IOException, InterruptedException {
+        JsonNode json = send(method, body);
+        if (!json.hasNonNull("idToken")) {
+            throw new IllegalStateException(method + " response has no idToken");
+        }
+        return json;
+    }
+
+    /** Klic REST API identitytoolkit emulatorja; odgovor ni nujno z žetonom (npr. {@code sendOobCode}). */
+    private JsonNode send(String method, Map<String, Object> body) throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder(
                         URI.create(baseUrl() + "/identitytoolkit.googleapis.com/v1/" + method + "?key=fake-api-key"))
                 .header("Content-Type", "application/json")
@@ -188,10 +237,6 @@ public final class FirebaseEmulatorContainer extends GenericContainer<FirebaseEm
         if (response.statusCode() != 200) {
             throw new IllegalStateException(method + " failed: " + response.statusCode() + " " + response.body());
         }
-        JsonNode json = JSON.readTree(response.body());
-        if (!json.hasNonNull("idToken")) {
-            throw new IllegalStateException(method + " response has no idToken");
-        }
-        return json;
+        return JSON.readTree(response.body());
     }
 }
