@@ -119,10 +119,10 @@ description: "Tasks for 016-tipizirani-atributi (po zgodbah, testi znotraj vsake
 
 ## Phase 9: Polish
 
-- [ ] T060 [P] — `.specify/memory/feature-map.md`: §2.6 (tipi atributov, ključ s tipom, normalizacija, naslov po delih), §2.7 (oblika zapisa med nastavitvami uporabnika), §2.10 (`ATTRIBUTE_TYPE_CONFLICT`, `MAP_SERVICE_UNAVAILABLE`), vrstica 016 v §1
-- [ ] T061 [P] — `.specify/memory/constitution.md` VI: besedilo dopolnitve iz plan.md (*Besedilo dopolnitve konstitucije VI*); `docs/decisions/2026-11-16-kartografska-storitev-osm.md` in `…-tipizirani-atributi-knjiznice.md` dokončana (dejanske različice knjižnic, nastavljivi URL-ji, ugotovitve izvedbe), kazalo v `docs/decisions/README.md`
-- [ ] T062 — regresija: obstoječi testi 004, 005, 009–015 (vključno `ContactHistoryIT`, uvoz/izvoz, CardDAV) zeleni brez oslabitve; spremenjene obstoječe teste (npr. telefon po standardu, oblika `Attribute`) z razlogom zabeleži za opis PR
-- [ ] T063 — `quickstart.md` preveri po izvedbi; `./verify.sh quick`, `backend` in E2E datoteke funkcionalnosti (`tipizirani-atributi.spec.ts`, `--project=w360 --project=w1280`) zeleni; `git fetch`: `V13` in `audit_entry_action_check` nista v konfliktu z `main`
+- [x] T060 [P] — `.specify/memory/feature-map.md`: §2.6 (tipi atributov, ključ s tipom, normalizacija, naslov po delih), §2.7 (oblika zapisa med nastavitvami uporabnika), §2.10 (`ATTRIBUTE_TYPE_CONFLICT`, `MAP_SERVICE_UNAVAILABLE`), vrstica 016 v §1
+- [x] T061 [P] — `.specify/memory/constitution.md` VI: besedilo dopolnitve iz plan.md (*Besedilo dopolnitve konstitucije VI*); `docs/decisions/2026-11-16-kartografska-storitev-osm.md` in `…-tipizirani-atributi-knjiznice.md` dokončana (dejanske različice knjižnic, nastavljivi URL-ji, ugotovitve izvedbe), kazalo v `docs/decisions/README.md`
+- [x] T062 — regresija: obstoječi testi 004, 005, 009–015 (vključno `ContactHistoryIT`, uvoz/izvoz, CardDAV) zeleni brez oslabitve; spremenjene obstoječe teste (npr. telefon po standardu, oblika `Attribute`) z razlogom zabeleži za opis PR
+- [x] T063 — `quickstart.md` preveri po izvedbi; `./verify.sh quick`, `backend` in E2E datoteke funkcionalnosti (`tipizirani-atributi.spec.ts`, `--project=w360 --project=w1280`) zeleni; `git fetch`: `V13` in `audit_entry_action_check` nista v konfliktu z `main`
 
 ## Dependencies & Execution Order
 
