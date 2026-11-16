@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import si.contactmanager.account.AccountDeletionService.DeletionResult;
 import si.contactmanager.shared.error.ErrorResponse;
+import si.contactmanager.shared.security.FreshAuthentication;
 
 /**
  * Izbris računa (012, FR-012-05 … FR-012-18). Brez identifikatorja uporabnika v poti: izbris velja samo za
@@ -28,6 +29,7 @@ class AccountDeletionController {
 
     @PostMapping
     ResponseEntity<ErrorResponse> delete(@AuthenticationPrincipal Jwt jwt, @RequestBody(required = false) String body) {
+        FreshAuthentication.require(jwt);
         if (service.delete(jwt, body) == DeletionResult.DELETED) {
             return ResponseEntity.noContent().build();
         }
