@@ -247,3 +247,11 @@ Predlogi za pohitritev (iz zgornjih meritev):
 - **aria-current**: razdelek *Kontakti* je bil na `deleted-contacts` neoznačen → `GroupHeader` označi *Kontakti* tudi na poteh `contacts/*` in `deleted-contacts`; testa (Vitest + e2e).
 - **Usklajenost z 014**: brez sprememb; pravilo preštevilčenja migracije in unije `CHECK` ostane v plan.md/PR.
 - Preverjanja po popravkih: `quick` 138 s, `backend` 319 s, `e2e` 274 s (vsi zeleni).
+
+## 017 – prijava z geslom in skupine (2026-11-16)
+- **Veja**: `email-geslo-skupine`. Naročeno: Email/Password poleg Googla (registracija, prijava, potrditev, ponastavitev, povezovanje, ponovna avtentikacija), iskanje in filtri skupin, zapusti skupino za lastnika. Narejeno: US1–US6 (T001–T061 razen ročnih T024 in preizkusa dostopnosti).
+- **Odločitev razvijalca**: razvijalec je sprejel razširitev §5 in odstranil blokado T001; predlog konstitucije 3.3.0 je v PR, Patrikova potrditev po §7 ni zabeležena (odstopanje v opisu PR).
+- **Težave**: (1) prvi zagon seje je prekinila omejitev porabe; delo se je nadaljevalo iz zgodovine. (2) Emulator ne podpira `accounts:signUp` z `idToken` (EMAIL_EXISTS) → v emulatorju `accounts:update`, pri pravem projektu `signUp` (T024 ročno). (3) Povezovanje je sprožilo ponovno sinhronizacijo in izgubo sporočila o uspehu → `AuthProvider` preskoči sinhronizacijo za istega uporabnika. (4) gitleaks je ustavil commit zaradi testnega gesla. (5) Obstoječi E2E izbrisa računa so potrebovali pojavno okno Googla (ponovna avtentikacija).
+- **pregled-testov** (enkrat): popravljeno – asercija svežega žetona pri izbrisu, `\` v iskanju, odveč asercija; naloga T031 uskajena s kodo. Ostalo svetovalno (odprto): produkcijska pot `signUp` brez avtomatskega testa, ohlapen IT registracije z obstoječim e-naslovom, sočasni trk UID.
+- **Spremenjeni obstoječi testi**: `AccountPage.test.tsx`, `DeleteAccountDialog.test.tsx`, `LeaveGroup.test.tsx`, `LoginPage.test.tsx`, `AppShell.test.tsx`, `moji-podatki.spec.ts`, `clani.spec.ts`.
+- **Čas faz**: `.verify/timing-017.log` (ni v Gitu). `quick` 160 s, `backend` 373 s, `e2e` 347 s – zeleni.
