@@ -191,6 +191,7 @@ describe('Zemljevid naslova', () => {
 
     const dialog = await screen.findByRole('dialog');
     expect(await within(dialog).findByRole('region')).toBeInTheDocument();
+    // getByText: opozorilo je golo besedilo v pogovornem oknu (brez vloge status/alert); okno je izbrano po vlogi.
     expect(within(dialog).getByText(tr('map.approximate'))).toBeInTheDocument();
     expect(dialog).toHaveTextContent(
       tr('map.descriptionApproximate', { lat: '46,55000', lon: '15,64000' }),

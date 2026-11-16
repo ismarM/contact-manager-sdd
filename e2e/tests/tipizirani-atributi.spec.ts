@@ -79,6 +79,7 @@ test('FR-016-01 FR-016-04: nov ključ s tipom Telefon, drugi kontakt prevzame ti
   await newContact(page, id, 'Bojan');
   await page.getByRole('combobox', { name: 'Ključ' }).fill('MOBILNI');
   await page.getByLabel('Vrednost', { exact: true }).click();
+  // getByText: namig je golo besedilo brez vloge.
   await expect(page.getByText('Tip ključa v tej skupini je Telefon.')).toBeVisible();
   await expect(page.getByRole('combobox', { name: 'Tip novega ključa' })).toHaveCount(0);
   await page.getByLabel('Vrednost', { exact: true }).fill('031 765 432');
@@ -269,6 +270,7 @@ test('FR-016-14: nerazčlenjen naslov iz časa pred 016 – Razčleni naslov, po
   });
 
   await page.goto(`/groups/${id}/contacts/${contact}/edit`);
+  // getByText: vrednost naslova je golo besedilo brez vloge.
   await expect(page.getByText('Glavni trg 1')).toBeVisible();
   await expectNoAxeViolations(page);
   await page.getByRole('button', { name: 'Razčleni naslov' }).click();
@@ -318,6 +320,7 @@ test('FR-016-16 FR-016-17 FR-016-18: shema telefona in datuma v Mojem računu sp
   await page.goto(`/groups/${id}/contacts/${phone}`);
   await expect(page.getByRole('link', { name: '+43 664 1234567' })).toBeVisible();
   await page.goto(`/groups/${id}/contacts/${date}`);
+  // getByText: prikazan datum je golo besedilo brez vloge.
   await expect(page.getByText('16. 11. 2026')).toBeVisible();
 
   await page.goto('/account');
@@ -336,6 +339,7 @@ test('FR-016-16 FR-016-17 FR-016-18: shema telefona in datuma v Mojem računu sp
     'tel:+436641234567',
   );
   await page.goto(`/groups/${id}/contacts/${date}`);
+  // getByText: prikazan datum je golo besedilo brez vloge.
   await expect(page.getByText('16. november 2026')).toBeVisible();
   await expectNoAxeViolations(page);
 
@@ -407,6 +411,7 @@ test('FR-016-20 FR-016-21 FR-016-23 @w768: zemljevid razčlenjenega naslova s pl
   await expect
     .poll(() =>
       map
+        // locator('img'): ploščice zemljevida so slike brez dostopnega imena (dekorativne); štejejo se zahtevani URL-ji, ne vidni elementi.
         .locator('img')
         .evaluateAll(
           (images) =>
@@ -455,6 +460,7 @@ test('FR-016-22: nenajden, približen in nedosegljiv naslov atributa so sporoči
   await page.goto(`/groups/${id}/contacts/${missing}`);
   await page.getByRole('button', { name: 'Pokaži na zemljevidu: Dostava' }).click();
   let dialog = page.getByRole('dialog', { name: 'Zemljevid: Dostava' });
+  // getByText: sporočilo je golo besedilo brez vloge; pogovorno okno je izbrano po vlogi.
   await expect(dialog.getByText('Naslova ni bilo mogoče najti na zemljevidu.')).toBeVisible();
   await expect(dialog.getByRole('region')).toHaveCount(0);
   await expect(
@@ -468,6 +474,7 @@ test('FR-016-22: nenajden, približen in nedosegljiv naslov atributa so sporoči
   dialog = page.getByRole('dialog', { name: 'Zemljevid: Dostava' });
   await expect(dialog.getByRole('region', { name: /^Zemljevid: Dostava\./ })).toBeVisible();
   await expect(
+    // getByText: opozorilo je golo besedilo brez vloge; pogovorno okno je izbrano po vlogi.
     dialog.getByText('Lokacija je približna: najden je bil kraj ali ulica, ne hišna številka.'),
   ).toBeVisible();
   await expectNoAxeViolations(page);

@@ -39,6 +39,7 @@ describe('prikaz po shemi uporabnika', () => {
       { ...NONE, dateFormat: 'ISO' },
       <TypedValueView type="DATE" value="2026-11-16" />,
     );
+    // getByText: izid oblikovanja je golo besedilo brez vloge (veljá tudi za naslednjo asercijo).
     expect(screen.getByText('2026-11-16')).toBeVisible();
     unmount();
 
@@ -59,6 +60,7 @@ describe('prikaz po shemi uporabnika', () => {
       <TypedValueView type="ADDRESS" value="" parts={parts} />,
     );
     expect(container.textContent).toContain('Springfield, IL 62701');
+    // jsdom nima postavitve, zato je razred edina opazna posledica večvrstičnega prikaza; vsebino preverjata ostali asercij.
     expect(container.querySelector('span')?.className).toContain('whitespace-pre-line');
     unmount();
 
@@ -72,6 +74,7 @@ describe('prikaz po shemi uporabnika', () => {
   it('FR-016-16: nerazčlenjen naslov je prikazan dobesedno', () => {
     renderWith(NONE, <TypedValueView type="ADDRESS" value="Neka ulica 5" />);
 
+    // getByText: izid oblikovanja je golo besedilo brez vloge.
     expect(screen.getByText('Neka ulica 5')).toBeVisible();
   });
 });

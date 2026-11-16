@@ -239,6 +239,7 @@ describe('Naslov po delih', () => {
     });
     await screen.findByText(tr('address.unstructured'));
     expect(screen.queryByRole('group', { name: tr('address.legend') })).not.toBeInTheDocument();
+    // getByText: dodatek naslova je golo besedilo povzetka brez vloge.
     expect(screen.getByText(/3\. nadstropje/)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: tr('address.split') }));

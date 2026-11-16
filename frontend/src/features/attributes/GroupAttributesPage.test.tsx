@@ -54,6 +54,7 @@ describe('GroupAttributesPage', () => {
     const table = await screen.findByRole('table');
     const rows = within(table).getAllByRole('row');
     expect(within(rows[1]!).getByRole('rowheader', { name: 'Mobilni' })).toBeInTheDocument();
+    // getByText: vrednosti celic v vrstici so golo besedilo brez lastne vloge; vrstica je že izbrana po vlogi.
     expect(within(rows[1]!).getByText(typeName('PHONE'))).toBeInTheDocument();
     expect(within(rows[1]!).getByText('12')).toBeInTheDocument();
     expect(within(rows[2]!).getByText(typeName('OTHER'))).toBeInTheDocument();

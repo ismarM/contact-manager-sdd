@@ -40,6 +40,7 @@ describe('TypedValueView', () => {
     render(<TypedValueView type="URL" value="javascript:alert(1)" />);
 
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    // getByText: nevarna povezava je prikazana kot golo besedilo brez vloge.
     expect(screen.getByText('javascript:alert(1)')).toBeInTheDocument();
   });
 
@@ -47,8 +48,10 @@ describe('TypedValueView', () => {
     const notes = '  <b>prva</b>\n\n    <img src=x onerror=alert(1)>';
     const { container } = render(<TypedValueView type="NOTES" value={notes} />);
 
+    // querySelector b/img: ravno odsotnost razlaganih oznak HTML je predmet testa (getByRole teh elementov ne bi našel kot napako).
     expect(container.querySelector('b')).toBeNull();
     expect(container.querySelector('img')).toBeNull();
+    // span: golo besedilo opomb nima vloge; preverja se dobesedna vsebina in ohranjeni presledki (whitespace-pre-wrap).
     const text = container.querySelector('span');
     expect(text?.textContent).toBe(notes);
     expect(text).toHaveClass('whitespace-pre-wrap');
@@ -66,6 +69,7 @@ describe('TypedValueView', () => {
 
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
     for (const text of ['IT', '16/11/2026', 'Ulica 1']) {
+      // getByText: prikazana vrednost je golo besedilo brez vloge.
       expect(screen.getByText(text)).toBeInTheDocument();
     }
   });
