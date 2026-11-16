@@ -33,7 +33,8 @@
       "failed": "Prijava ni uspela. Poskusi znova."
     },
     "accountDeleted": "Tvoj račun je izbrisan.",
-    "accountDeletedPending": "Tvoj račun je izbrisan. Brisanje povezave z Google računom še poteka, zato se z istim Google računom nekaj časa morda ne boš mogel znova registrirati. Poskusi znova čez nekaj minut."
+    "accountDeletedPending": "Tvoj račun je izbrisan. Brisanje povezave z Google računom še poteka, zato se z istim Google računom nekaj časa morda ne boš mogel znova registrirati. Poskusi znova čez nekaj minut.",
+    "apiDocsLink": "Programski vmesnik (API)"
   },
   "shell": {
     "skipLink": "Preskoči na vsebino",
@@ -804,6 +805,10 @@
     "toast": {
       "restored": "Skupina je povrnjena na stanje {{time}}.",
       "restoredInitial": "Skupina je povrnjena na začetno stanje."
+    },
+    "source": {
+      "viaApiKey": "prek API ključa »{{name}}«",
+      "viaApi": "prek API"
     }
   },
   "duplicates": {
@@ -1493,5 +1498,204 @@
   "errorsTyped": {
     "ATTRIBUTE_TYPE_CONFLICT": "Nekatere vrednosti niso veljavne za izbrani tip.",
     "MAP_SERVICE_UNAVAILABLE": "Zemljevid trenutno ni na voljo."
+  },
+  "apiKeys": {
+    "heading": "API ključi",
+    "description": "Z API ključem tvoj program ali skripta bere in spreminja kontakte tvojih skupin brez prijave v aplikacijo. Ključ ima enake pravice kot ti in nikoli več, kot mu jih dodeliš.",
+    "docsLink": "Kako uporabljati API",
+    "create": "Ustvari ključ",
+    "list": "API ključi",
+    "empty": "Še nimaš API ključev.",
+    "loadFailed": "Ključev ni bilo mogoče naložiti. Poskusi znova.",
+    "retry": "Poskusi znova",
+    "hint": "Ključ {{hint}}",
+    "allGroups": "vse moje skupine",
+    "allGroupsWithPermission": "Vse moje skupine, tudi prihodnje ({{permission}})",
+    "groupWithPermission": "{{title}} ({{permission}})",
+    "noValidGroups": "brez veljavnih skupin",
+    "created": "Ustvarjen {{date}}",
+    "expires": "Velja do {{date}}",
+    "noExpiry": "Brez roka veljavnosti",
+    "expired": "Potekel {{date}}",
+    "revokedAt": "Preklican {{date}}",
+    "lastUsed": "Zadnja uporaba {{date}}",
+    "neverUsed": "še ni uporabljen",
+    "requests24h_one": "{{count}} zahteva v zadnjih 24 urah",
+    "requests24h_two": "{{count}} zahtevi v zadnjih 24 urah",
+    "requests24h_few": "{{count}} zahteve v zadnjih 24 urah",
+    "requests24h_other": "{{count}} zahtev v zadnjih 24 urah",
+    "usageLink": "Statistika ključa {{name}}",
+    "status": {
+      "ACTIVE": "Aktiven",
+      "EXPIRED": "Potekel",
+      "REVOKED": "Preklican",
+      "expiringSoon": "Kmalu poteče"
+    },
+    "permission": {
+      "READ": "samo branje",
+      "WRITE": "branje in pisanje"
+    },
+    "form": {
+      "title": "Nov API ključ",
+      "nameLabel": "Ime ključa",
+      "nameHint": "Na primer ime programa ali skripte, ki bo ključ uporabljala.",
+      "nameRequired": "Vpiši ime ključa.",
+      "nameTooLong": "Ime je predolgo (največ 50 znakov).",
+      "scopeLegend": "Skupine",
+      "scopeSelected": "Izbrane skupine",
+      "scopeAll": "Vse moje skupine, tudi prihodnje",
+      "groupsLabel": "Skupine, za katere ključ velja",
+      "groupsRequired": "Izberi vsaj eno skupino.",
+      "groupsTooMany": "Izbereš lahko največ 50 skupin.",
+      "groupsLoadFailed": "Skupin ni bilo mogoče naložiti. Poskusi znova.",
+      "archivedGroup": "{{title}} (arhivirana)",
+      "permissionFor": "Pravica za {{title}}",
+      "permissionLabel": "Pravica",
+      "permissionHint": "Ključ nikoli nima več pravic, kot jih imaš v skupini ti. S pravico samo za branje ne more ničesar spremeniti.",
+      "expiryLabel": "Rok veljavnosti",
+      "expiry30": "30 dni",
+      "expiry90": "90 dni",
+      "expiry365": "365 dni",
+      "expiryNever": "Brez roka",
+      "submit": "Ustvari ključ",
+      "cancel": "Prekliči",
+      "limit": "Imaš že 10 aktivnih ključev. Prekliči katerega, preden ustvariš novega.",
+      "groupNotFound": "Katera od izbranih skupin ni več na voljo. Osveži izbiro in poskusi znova.",
+      "failed": "Ključa ni bilo mogoče ustvariti. Poskusi znova."
+    },
+    "createdDialog": {
+      "title": "Ključ {{name}} je ustvarjen",
+      "showOnce": "Ključ je prikazan samo enkrat. Kopiraj ga zdaj in ga hrani kot geslo – pozneje ga ne bo več mogoče videti.",
+      "keyLabel": "API ključ",
+      "copy": "Kopiraj ključ",
+      "copied": "Ključ je kopiran.",
+      "copyFailed": "Kopiranje ni uspelo. Označi ključ in ga kopiraj ročno.",
+      "close": "Zapri"
+    },
+    "revoke": {
+      "button": "Prekliči ključ {{name}}",
+      "title": "Prekličem ključ {{name}}?",
+      "body": "Programi, ki uporabljajo ta ključ, bodo takoj dobili napako 401. Drugi ključi delujejo naprej. Preklica ni mogoče razveljaviti.",
+      "confirm": "Prekliči ključ",
+      "cancel": "Ne prekliči",
+      "done": "Ključ {{name}} je preklican.",
+      "failed": "Ključa ni bilo mogoče preklicati. Poskusi znova."
+    },
+    "usage": {
+      "heading": "Statistika ključa {{name}}",
+      "back": "Nazaj na Moj račun",
+      "periodLegend": "Obdobje",
+      "period7": "Zadnjih 7 dni",
+      "period30": "Zadnjih 30 dni",
+      "totals": "Skupaj v obdobju",
+      "total": "Vse zahteve",
+      "successful": "Uspešne",
+      "reads": "Branja",
+      "writes": "Pisanja",
+      "errors": "Napake",
+      "rateLimited": "Zavrnitve zaradi omejitve",
+      "chartHeading": "Zahteve po dnevih",
+      "tableCaption": "Zahteve po dnevih",
+      "day": "Dan",
+      "loadFailed": "Statistike ni bilo mogoče naložiti. Poskusi znova.",
+      "retry": "Poskusi znova",
+      "note": "Šteje se samo število zahtev, ne njihova vsebina. Zahteve z neveljavnim, preklicanim ali poteklim ključem se ne štejejo."
+    },
+    "errors": {
+      "API_KEY_LIMIT": "Imaš že 10 aktivnih ključev. Prekliči katerega, preden ustvariš novega.",
+      "RATE_LIMITED": "Preveč zahtev s tem ključem. Poskusi znova čez {{seconds}} s."
+    }
+  },
+  "apiDocs": {
+    "title": "API",
+    "heading": "Programski vmesnik (API)",
+    "intro": "Z API ključem lahko tvoji programi in skripte berejo skupine in kontakte ter ustvarjajo, spreminjajo in brišejo kontakte – z enakimi pravili kot spletna aplikacija.",
+    "version": "Različica {{version}}",
+    "download": "Prenesi opis vmesnika (OpenAPI)",
+    "toc": "Vsebina",
+    "copy": "Kopiraj",
+    "copyExample": "Kopiraj primer {{name}}",
+    "copied": "Kopirano.",
+    "copyFailed": "Kopiranje ni uspelo. Označi besedilo in ga kopiraj ročno.",
+    "backToLogin": "Na prijavo",
+    "backToAccount": "Na Moj račun",
+    "security": {
+      "heading": "Varnost",
+      "secret": "Ključ hrani kot geslo: ne objavljaj ga v kodi, repozitorijih ali sporočilih.",
+      "leastPrivilege": "Ključu dodeli samo skupine in pravice, ki jih program res potrebuje, in kratek rok veljavnosti.",
+      "revoke": "Ob sumu zlorabe ključ takoj prekliči v razdelku API ključi in ustvari novega.",
+      "memberSees": "Ključ člana bere vse, kar član vidi v aplikaciji – tudi bralec. Lastnik skupine API dostopa članov ne nadzira.",
+      "noCors": "Vmesnik nima CORS: namenjen je strežniškim programom in skriptam, ne spletnim stranem v brskalniku na drugi domeni."
+    },
+    "create": {
+      "heading": "Ustvarjanje ključa",
+      "text": "Ključ ustvariš v razdelku API ključi na strani Moj račun: izberi ime, skupine s pravico (samo branje ali branje in pisanje) ali vse svoje skupine ter rok veljavnosti. Ključ se pokaže samo enkrat.",
+      "link": "Odpri API ključe",
+      "limit": "Imaš lahko največ 10 aktivnih ključev."
+    },
+    "auth": {
+      "heading": "Pošiljanje ključa",
+      "text": "Ključ pošlji v glavi Authorization kot Bearer. Ključ v naslovu URL ali v drugi glavi se zavrne.",
+      "rights": "Ob vsaki zahtevi velja manjša od pravice ključa in tvoje trenutne vloge v skupini."
+    },
+    "operations": {
+      "heading": "Operacije",
+      "caption": "Operacije vmesnika različice 1",
+      "method": "Metoda",
+      "path": "Pot",
+      "description": "Opis",
+      "role": "Najnižja vloga",
+      "permission": "Pravica ključa",
+      "listGroups": "Seznam skupin, za katere ključ velja (tudi arhivirane), z mojo vlogo",
+      "listContacts": "Seznam kontaktov skupine z iskanjem, filtri in razvrščanjem",
+      "getContact": "En kontakt z verzijo",
+      "createContact": "Ustvari kontakt",
+      "updateContact": "Spremeni kontakt (verzija v telesu)",
+      "deleteContact": "Izbriši kontakt (verzija v parametru version)",
+      "description_doc": "Strojno berljiv opis vmesnika",
+      "roleAny": "katerakoli",
+      "rolePublic": "javno",
+      "permissionNone": "ni potreben",
+      "archived": "V arhivirani skupini je dovoljeno samo branje (pisanje vrne 409 GROUP_ARCHIVED)."
+    },
+    "examples": {
+      "heading": "Primeri",
+      "listGroups": "Seznam skupin",
+      "listContacts": "Iskanje kontaktov",
+      "createContact": "Ustvarjanje kontakta",
+      "updateContact": "Sprememba kontakta",
+      "deleteContact": "Izbris kontakta",
+      "request": "Zahteva",
+      "response": "Odgovor"
+    },
+    "pagination": {
+      "heading": "Paginacija",
+      "text": "Seznami vrnejo stran (page, začne se z 0) velikosti size in skupno število zadetkov total. Privzeta velikost je 25, največ 100 za skupine; za kontakte veljajo enaka pravila kot v aplikaciji."
+    },
+    "errors": {
+      "heading": "Kode napak",
+      "caption": "Kode napak vmesnika",
+      "status": "Status",
+      "code": "Koda",
+      "meaning": "Pomen",
+      "VALIDATION_FAILED": "Podatki niso veljavni; seznam napak po poljih je v polju errors.",
+      "UNAUTHENTICATED": "Ključa ni, je neveljaven, preklican ali potekel.",
+      "FORBIDDEN": "Ključ ali tvoja vloga ne dovoljuje operacije (npr. pisanje s ključem samo za branje).",
+      "NOT_FOUND": "Skupine ali kontakta ni, nisi član ali skupina ni v obsegu ključa.",
+      "GROUP_ARCHIVED": "Skupina je arhivirana; dovoljeno je samo branje.",
+      "VERSION_CONFLICT": "Kontakt je medtem spremenil nekdo drug; preberi ga znova in ponovi spremembo.",
+      "RATE_LIMITED": "Preveč zahtev; glava Retry-After pove, čez koliko sekund smeš ponoviti."
+    },
+    "limits": {
+      "heading": "Omejitve",
+      "rate": "Največ {{limit}} zahtev na minuto na ključ. Preseženo vrne 429 RATE_LIMITED z glavo Retry-After; drugi ključi in spletna aplikacija niso prizadeti.",
+      "body": "Telo zahteve je lahko veliko največ 2 MB."
+    },
+    "versions": {
+      "heading": "Različice in spremembe",
+      "text": "Vmesnik je označen z različico v poti (/v1). Nova neobvezna polja niso nezdružljiva sprememba – program naj neznana polja prezre. Odstranjeno ali preimenovano polje ali spremenjen pomen pomeni novo različico; obstoječa ostane nespremenjena.",
+      "changes": "Spremembe",
+      "v1": "Različica 1: skupine in kontakti (branje, ustvarjanje, sprememba, izbris)."
+    }
   }
 }

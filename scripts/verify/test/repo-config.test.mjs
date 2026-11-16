@@ -72,6 +72,8 @@ describe('Konfiguracija brez skrivnosti', () => {
     const compose = read('compose.yaml');
     const defaults = Object.fromEntries([...compose.matchAll(/\$\{(\w+):-([^}]*)\}/g)].map((m) => [m[1], m[2]]));
     assert.ok(Object.keys(defaults).length > 0, 'compose.yaml nima privzetkov ${VAR:-vrednost}');
+    // Obvezne spremenljivke (${VAR:?…}) so v primeru navedene brez vrednosti.
+    for (const [, name] of compose.matchAll(/\$\{(\w+):\?[^}]*\}/g)) defaults[name] = '';
 
     const example = Object.fromEntries(
       read('.env.example')
@@ -80,6 +82,16 @@ describe('Konfiguracija brez skrivnosti', () => {
         .map((line) => line.split(/=(.*)/s).slice(0, 2)),
     );
     assert.deepEqual(example, defaults);
+  });
+
+  it('019: podpisni ključ API ključev je obvezen, brez vrednosti v Gitu; verify.sh za E2E ustvari začasnega', () => {
+    assert.match(read('compose.yaml'), /API_KEY_SIGNING_SECRET: \$\{API_KEY_SIGNING_SECRET:\?/);
+    assert.match(read('.env.example'), /^API_KEY_SIGNING_SECRET=$/m);
+    assert.match(read('backend/src/main/resources/application.yaml'), /signing-secret: \$\{API_KEY_SIGNING_SECRET:\}/);
+    assert.match(
+      read('verify.sh'),
+      /if includes e2e && \[\[ -z \$\{API_KEY_SIGNING_SECRET:-\} \]\]; then\n\s+API_KEY_SIGNING_SECRET="\$\(openssl rand -base64 32/,
+    );
   });
 
   it('robni primer: skripte imajo konce vrstic LF ne glede na nastavitev Gita', () => {

@@ -25,7 +25,10 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Javno je samo {@code GET /api/health} (FR-000-10); vse ostalo zahteva veljaven ID žeton Firebase (FR-001-07). Vsaka
- * neuspešna prijava – brez žetona, neveljaven, ponarejen, potekel – vrne 401 UNAUTHENTICATED.
+ * neuspešna prijava – brez žetona, neveljaven, ponarejen, potekel – vrne 401 UNAUTHENTICATED. Privzeta veriga za vse
+ * poti, ki jih ne prevzame ločena veriga: CardDAV ({@link DavSecurityConfig}, {@code @Order(1)}) in programski vmesnik
+ * {@code /v1/**} z API ključi ({@code si.contactmanager.apikey.ApiSecurityConfig}, {@code @Order(2)}, 019). API ključ
+ * tukaj ni veljaven žeton (401).
  */
 @Configuration
 @EnableConfigurationProperties(FirebaseProperties.class)
