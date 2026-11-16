@@ -316,9 +316,9 @@ class ContactHistoryIT extends HistoryApiTest {
         jdbc.update("alter table audit_entry disable trigger audit_entry_immutable");
         try {
             jdbc.update("alter table audit_entry drop constraint audit_entry_action_check");
-            jdbc.update("update audit_entry set action = 'IMPORT' where id = ?", entry);
+            jdbc.update("update audit_entry set action = 'EXPORT' where id = ?", entry);
             Map<String, Object> history = history(s, Who.VIEWER, idOf(a), "");
-            assertThat(asObjects(history.get("items")).get(0).get("action")).isEqualTo("IMPORT");
+            assertThat(asObjects(history.get("items")).get(0).get("action")).isEqualTo("EXPORT");
             Map<String, Object> event = asObjects(history.get("items")).get(0);
             assertThat(asObjects(event.get("fields")))
                     .extracting(f -> f.get("field"))
@@ -331,8 +331,9 @@ class ContactHistoryIT extends HistoryApiTest {
                     .isEqualTo(200);
         } finally {
             jdbc.update("update audit_entry set action = 'CREATE' where id = ?", entry);
+            // Unija vseh vrst dejanj po V12 (014 doda IMPORT); vrstice IMPORT iz drugih testov morajo ostati veljavne.
             jdbc.update("alter table audit_entry add constraint audit_entry_action_check check (action in"
-                    + " ('CREATE', 'UPDATE', 'DELETE', 'MERGE', 'ROLLBACK', 'RESTORE'))");
+                    + " ('CREATE', 'UPDATE', 'DELETE', 'MERGE', 'ROLLBACK', 'RESTORE', 'IMPORT'))");
             jdbc.update("alter table audit_entry enable trigger audit_entry_immutable");
         }
     }
