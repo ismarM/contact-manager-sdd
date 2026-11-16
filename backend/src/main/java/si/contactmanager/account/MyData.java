@@ -1,6 +1,7 @@
 package si.contactmanager.account;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 /** Izvoz mojih podatkov (contracts/openapi.yaml – MyData): kode in ISO 8601 datumi, brez notranjih identifikatorjev. */
@@ -12,7 +13,8 @@ public record MyData(
         List<ReceivedInvitation> receivedInvitations,
         List<SentInvitation> sentInvitations,
         List<OwnedGroup> ownedGroups,
-        List<AppPassword> appPasswords) {
+        List<AppPassword> appPasswords,
+        List<ApiKey> apiKeys) {
 
     /** Nastavitve vmesnika (001) in oblike zapisa (016, FR-016-17); {@code null} = privzeto. */
     public record Profile(
@@ -38,4 +40,24 @@ public record MyData(
 
     /** Geslo za aplikacijo (014, FR-014-25): ime in časi, nikoli geslo ali zgoščena vrednost. */
     public record AppPassword(String name, Instant createdAt, Instant lastUsedAt) {}
+
+    /**
+     * API ključ (019, FR-019-05, -21): ime, obseg, časi in dnevni povzetki statistike; nikoli ključ ali prepoznavni del.
+     * {@code allGroupsPermission} je {@code null}, kadar ključ velja za izbrane skupine.
+     */
+    public record ApiKey(
+            String name,
+            boolean allGroups,
+            String allGroupsPermission,
+            List<ApiKeyGroup> groups,
+            Instant createdAt,
+            Instant expiresAt,
+            Instant lastUsedAt,
+            Instant revokedAt,
+            List<ApiKeyUsageDay> usage) {}
+
+    public record ApiKeyGroup(String title, String permission) {}
+
+    /** Dnevni povzetek v časovnem pasu statistike ({@code api-keys.stats-zone}). */
+    public record ApiKeyUsageDay(LocalDate day, int readOk, int writeOk, int errors, int rateLimited) {}
 }
