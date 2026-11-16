@@ -37,7 +37,9 @@ public final class ContactSearch {
         parameters.put("offset", (long) query.page() * query.size());
         return new Sql(
                 "SELECT c.id, c.first_name, c.last_name, c.email, c.phone, c.version,"
-                        + " c.reverted_entry_id IS NOT NULL AS reverted FROM contact c WHERE " + where
+                        + " c.reverted_entry_id IS NOT NULL AS reverted,"
+                        + " (SELECT i.revision FROM image i WHERE i.kind = 'CONTACT' AND i.group_id = c.group_id AND i.contact_id = c.id AND i.detached_at IS NULL) AS photo_revision FROM contact c WHERE "
+                        + where
                         + " ORDER BY " + order + " LIMIT :size OFFSET :offset",
                 parameters);
     }

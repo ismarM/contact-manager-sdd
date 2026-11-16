@@ -17,4 +17,5 @@ public record CompareContact(
         String company,
         String country,
         List<Attribute> attributes,
-        List<String> tags) {}
+        List<String> tags,
+        Long photoRevision) {}

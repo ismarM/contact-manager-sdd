@@ -1,11 +1,13 @@
+import { IconAlertTriangle } from '@tabler/icons-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useImageApi } from '../../shared/images/imageApi';
+import { imageErrorCode, useImageApi } from '../../shared/images/imageApi';
 import { Avatar } from '../../shared/images/Avatar';
+import type { ImageErrorCode } from '../../shared/images/photoTypes';
 import { ImageUploadDialog } from '../../shared/images/ImageUploadDialog';
 import { RemoveImageDialog } from '../../shared/images/RemoveImageDialog';
-import { primaryButton, secondaryButton } from '../../shared/ui/styles';
+import { errorAlert, primaryButton, secondaryButton } from '../../shared/ui/styles';
 import { useAuth } from '../auth/authContext';
 
 type Dialog = 'upload' | 'remove' | null;
@@ -16,15 +18,32 @@ type Dialog = 'upload' | 'remove' | null;
  */
 export function ProfilePhotoSection() {
   const { t } = useTranslation();
-  const { profile, setPhotoRevision } = useAuth();
+  const { profile, setPhotoRevision, hasGooglePhoto } = useAuth();
   const api = useImageApi();
   const [dialog, setDialog] = useState<Dialog>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [googleFailure, setGoogleFailure] = useState<ImageErrorCode | null>(null);
+  const [googleBusy, setGoogleBusy] = useState(false);
   const trigger = useRef<HTMLButtonElement | null>(null);
   const uploadButton = useRef<HTMLButtonElement>(null);
   if (!profile) return null;
 
   const hasPhoto = profile.photoRevision != null;
+  const adoptGoogle = async () => {
+    if (googleBusy) return;
+    setGoogleBusy(true);
+    setGoogleFailure(null);
+    setMessage(null);
+    try {
+      const result = await api.fromGoogle();
+      setPhotoRevision(result.photoRevision);
+      setMessage(t('images.google.done'));
+    } catch (error) {
+      setGoogleFailure(imageErrorCode(error));
+    } finally {
+      setGoogleBusy(false);
+    }
+  };
   const close = () => {
     setDialog(null);
     // Fokus se vrne na gumb, ki je dialog odprl (design.md 8.12).
@@ -61,6 +80,16 @@ export function ProfilePhotoSection() {
           >
             {hasPhoto ? t('images.replace') : t('images.upload')}
           </button>
+          {hasGooglePhoto && (
+            <button
+              type="button"
+              className={secondaryButton}
+              aria-disabled={googleBusy}
+              onClick={() => void adoptGoogle()}
+            >
+              {t('images.google.use')}
+            </button>
+          )}
           {hasPhoto && (
             <button
               type="button"
@@ -77,6 +106,12 @@ export function ProfilePhotoSection() {
         </div>
       </div>
       {message && <p role="status">{message}</p>}
+      {googleFailure && (
+        <div role="alert" className={errorAlert}>
+          <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
+          <span>{t(`images.errors.${googleFailure}`)}</span>
+        </div>
+      )}
 
       <ImageUploadDialog
         open={dialog === 'upload'}

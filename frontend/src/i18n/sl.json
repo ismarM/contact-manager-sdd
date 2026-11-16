@@ -55,7 +55,7 @@
     "themeDark": "Temna",
     "data": {
       "heading": "Moji podatki",
-      "description": "Izvoz vsebuje tvoje osebne podatke, članstva v skupinah, prejeta in poslana povabila ter skupine, katerih lastnik si. Kontaktov in revizijskih sledi ne vsebuje.",
+      "description": "Izvoz vsebuje tvoje osebne podatke, profilno sliko, članstva v skupinah, prejeta in poslana povabila ter skupine, katerih lastnik si. Kontaktov in revizijskih sledi ne vsebuje.",
       "download": "Prenesi moje podatke (JSON)",
       "success": "Podatki so preneseni.",
       "error": "Podatkov ni bilo mogoče pripraviti. Poskusi znova.",
@@ -689,7 +689,13 @@
       "default_count_two": "spremenil(a) {{count}} kontakta",
       "default_count_few": "spremenil(a) {{count}} kontakte",
       "default_count_other": "spremenil(a) {{count}} kontaktov",
-      "IMPORT_single": "uvozil(a) kontakt"
+      "IMPORT_single": "uvozil(a) kontakt",
+      "PHOTO_ADDED": "dodal(a) sliko kontakta",
+      "PHOTO_ADDED_named": "dodal(a) sliko kontakta {{name}}",
+      "PHOTO_REPLACED": "zamenjal(a) sliko kontakta",
+      "PHOTO_REPLACED_named": "zamenjal(a) sliko kontakta {{name}}",
+      "PHOTO_REMOVED": "odstranil(a) sliko kontakta",
+      "PHOTO_REMOVED_named": "odstranil(a) sliko kontakta {{name}}"
     },
     "filters": {
       "toggle": "Filtri",
@@ -1376,12 +1382,31 @@
       "FILE_TOO_LARGE": "Datoteka je prevelika. Izberi manjšo datoteko.",
       "RATE_LIMITED": "Preveč poskusov. Počakaj trenutek in poskusi znova.",
       "GOOGLE_PHOTO_UNAVAILABLE": "Slike Google računa ni mogoče prevzeti.",
-      "generic": "Slike ni bilo mogoče shraniti. Poskusi znova."
+      "generic": "Slike ni bilo mogoče shraniti. Poskusi znova.",
+      "VERSION_CONFLICT": "Podatki so bili medtem spremenjeni. Osveži stran in poskusi znova.",
+      "GROUP_ARCHIVED": "Skupina je arhivirana, zato slike ni mogoče spremeniti."
     },
     "audit": {
       "ADDED": "Dodana slika kontakta",
       "REPLACED": "Zamenjana slika kontakta",
-      "REMOVED": "Odstranjena slika kontakta"
+      "REMOVED": "Odstranjena slika kontakta",
+      "notRestorable": "Ta vnos je spremenil samo sliko. Slike obnova ne spreminja, zato obnove ni."
+    },
+    "group": {
+      "heading": "Slika skupine",
+      "description": "Slika se prikaže na seznamih skupin, v glavi skupine in v preklopniku.",
+      "uploaded": "Slika skupine je shranjena.",
+      "removed": "Slika skupine je odstranjena."
+    },
+    "contact": {
+      "heading": "Slika kontakta",
+      "uploaded": "Slika kontakta je shranjena.",
+      "removed": "Slika kontakta je odstranjena.",
+      "hint": "Sliko dodaš ali spremeniš, ko je kontakt shranjen."
+    },
+    "google": {
+      "use": "Uporabi sliko Google računa",
+      "done": "Slika Google računa je shranjena."
     }
   }
 }

@@ -92,7 +92,7 @@ describe('DuplicateResults', () => {
     expect(
       within(contacts)
         .getAllByRole('listitem')
-        .map((item) => item.textContent),
+        .map((item) => item.lastElementChild?.textContent),
     ).toEqual(['Janez Novak', 'Janez Novak ml.']);
     expect(janez.getByRole('button', { name: 'Primerjaj in združi' })).toBeInTheDocument();
   });
@@ -133,7 +133,7 @@ describe('DuplicateResults', () => {
     expect(
       within(list)
         .getAllByRole('listitem')
-        .map((item) => item.textContent),
+        .map((item) => item.lastElementChild?.textContent),
     ).toEqual(names(10));
     expect(more).toHaveAttribute('aria-expanded', 'false');
 
@@ -141,7 +141,7 @@ describe('DuplicateResults', () => {
 
     expect(more).toHaveAttribute('aria-expanded', 'true');
     const items = within(list).getAllByRole('listitem');
-    expect(items.map((item) => item.textContent)).toEqual(names(14));
+    expect(items.map((item) => item.lastElementChild?.textContent)).toEqual(names(14));
     for (const item of items) expect(item).toBeVisible();
   });
 

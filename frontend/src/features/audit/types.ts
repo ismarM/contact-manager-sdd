@@ -30,6 +30,9 @@ export interface ActorList {
   items: Actor[];
 }
 
+/** 018: dogodek slike kontakta v vnosu `UPDATE` (brez vsebine slike). */
+export type PhotoChange = 'ADDED' | 'REPLACED' | 'REMOVED';
+
 export interface AuditEntry {
   id: string;
   createdAt: string;
@@ -44,6 +47,8 @@ export interface AuditEntry {
   target: { entryId: string; createdAt: string } | null;
   /** `ROLLBACK` na *Začetno stanje*, `RESTORE` na izhodiščno različico. */
   targetInitial: boolean;
+  /** 018: vnos je spremenil sliko kontakta; odsoten/`null` = ni dogodka slike. */
+  photoChange?: PhotoChange | null;
 }
 
 export interface AuditPage {

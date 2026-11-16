@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router';
 import { toast } from 'sonner';
 
+import { Avatar } from '../../shared/images/Avatar';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
 import {
   DropdownMenu,
@@ -471,12 +472,25 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
                       />
                     </td>
                     <th scope="row" className="p-2 font-bold break-words">
-                      <Link
-                        to={`${base}/${contact.id}${link}`}
-                        className={`text-primary underline underline-offset-4 ${focusRing}`}
-                      >
-                        {contact.displayName}
-                      </Link>
+                      <div className="flex min-w-0 items-center gap-3">
+                        <Avatar
+                          kind="contact"
+                          name={contact.displayName}
+                          colorSeed={contact.id}
+                          size={32}
+                          alt=""
+                          photo={{
+                            path: `/groups/${group.id}/contacts/${contact.id}/photo`,
+                            revision: contact.photoRevision,
+                          }}
+                        />
+                        <Link
+                          to={`${base}/${contact.id}${link}`}
+                          className={`text-primary underline underline-offset-4 ${focusRing}`}
+                        >
+                          {contact.displayName}
+                        </Link>
+                      </div>
                       {contact.reverted && (
                         <span className="ml-2 rounded-md border border-border px-2 py-0.5 text-sm text-muted-foreground">
                           {t('contacts.reverted.badge')}

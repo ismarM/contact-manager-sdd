@@ -14,7 +14,19 @@ public record MyData(
         List<OwnedGroup> ownedGroups,
         List<AppPassword> appPasswords) {
 
-    public record Profile(String name, String email, Instant registeredAt, String language, String theme) {}
+    /**
+     * Profil; {@code photo} je lastna profilna slika (018, FR-018-18), {@code null} = brez slike. Slike kontaktov in
+     * skupin niso del izvoza (podatki skupine).
+     */
+    public record Profile(String name, String email, Instant registeredAt, String language, String theme, Photo photo) {
+
+        public Profile(String name, String email, Instant registeredAt, String language, String theme) {
+            this(name, email, registeredAt, language, theme, null);
+        }
+    }
+
+    /** Obdelana slika (različica 512) kot base64. */
+    public record Photo(String contentType, String base64) {}
 
     public record Membership(String groupTitle, String role, Instant joinedAt, String state) {}
 

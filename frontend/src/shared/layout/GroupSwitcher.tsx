@@ -5,6 +5,7 @@ import { Link, useMatch } from 'react-router';
 
 import { COLOR_SWATCH } from '../../features/groups/colors';
 import { useGroups } from '../../features/groups/groupsContext';
+import { Avatar } from '../images/Avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,6 +62,14 @@ export function GroupSwitcher() {
                     <span
                       aria-hidden="true"
                       className={`inline-block h-5 w-1 shrink-0 rounded-sm ${COLOR_SWATCH[group.color]}`}
+                    />
+                    <Avatar
+                      kind="group"
+                      name={group.title}
+                      colorSeed={group.color}
+                      size={24}
+                      alt=""
+                      photo={{ path: `/groups/${group.id}/photo`, revision: group.photoRevision }}
                     />
                     <span className="truncate">{group.title}</span>
                   </Link>

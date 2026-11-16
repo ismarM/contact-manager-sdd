@@ -29,6 +29,8 @@ export interface ImageApi {
   upload(target: PhotoTarget, file: Blob, version?: number): Promise<PhotoResult>;
   /** Lastna slika: `204`, zato vrne `{ photoRevision: null }`; skupina in kontakt: `200 PhotoResult`. */
   remove(target: PhotoTarget, version?: number): Promise<PhotoResult>;
+  /** Prevzem slike Google računa (`POST /api/me/photo/google`, brez telesa; naslov slike določi strežnik). */
+  fromGoogle(): Promise<PhotoResult>;
 }
 
 const EXTENSIONS: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg' };
@@ -49,6 +51,7 @@ export function createImageApi(authFetch: AuthFetch): ImageApi {
       });
       return result ?? { photoRevision: null };
     },
+    fromGoogle: () => authFetch<PhotoResult>('/me/photo/google', { method: 'POST' }),
   };
 }
 
@@ -64,6 +67,12 @@ export function imageErrorCode(error: unknown): ImageErrorCode {
   if (error.status === 429) return 'RATE_LIMITED';
   if (error.status === 409 && error.code === 'GOOGLE_PHOTO_UNAVAILABLE') {
     return 'GOOGLE_PHOTO_UNAVAILABLE';
+  }
+  if (
+    error.status === 409 &&
+    (error.code === 'VERSION_CONFLICT' || error.code === 'GROUP_ARCHIVED')
+  ) {
+    return error.code;
   }
   if (error.status === 400 && error.body && typeof error.body === 'object') {
     const errors = (error.body as { errors?: unknown }).errors;

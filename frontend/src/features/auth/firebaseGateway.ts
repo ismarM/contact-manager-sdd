@@ -39,7 +39,16 @@ export function createFirebaseGateway(): AuthGateway {
   return {
     onChange(listener) {
       return onAuthStateChanged(auth, (user) =>
-        listener(user ? { uid: user.uid, email: user.email, displayName: user.displayName } : null),
+        listener(
+          user
+            ? {
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName,
+                hasPhotoUrl: Boolean(user.photoURL),
+              }
+            : null,
+        ),
       );
     },
     async signInWithGoogle() {

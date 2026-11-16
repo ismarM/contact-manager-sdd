@@ -15,4 +15,5 @@ public record GroupDetail(
         boolean canDelete,
         long version,
         Instant updatedAt,
-        UserRef updatedBy) {}
+        UserRef updatedBy,
+        Long photoRevision) {}

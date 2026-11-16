@@ -35,6 +35,12 @@ class ApiExceptionHandler {
                 .body(ValidationError.of(List.of(new ValidationError.FieldError("file", "REQUIRED"))));
     }
 
+    /** Slike Google računa ni mogoče prevzeti (018, feature-map §2.10). */
+    @ExceptionHandler(GooglePhotoUnavailableException.class)
+    ResponseEntity<ErrorResponse> googlePhotoUnavailable() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("GOOGLE_PHOTO_UNAVAILABLE"));
+    }
+
     /** Omejitev nalaganj slik ali zasedena obdelava (018, feature-map §2.10). */
     @ExceptionHandler(RateLimitedException.class)
     ResponseEntity<ErrorResponse> rateLimited() {

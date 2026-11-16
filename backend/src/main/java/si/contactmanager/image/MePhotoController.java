@@ -7,6 +7,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,10 +27,12 @@ class MePhotoController {
 
     private final UserDirectory users;
     private final ImageService images;
+    private final GooglePhotoSource google;
 
-    MePhotoController(UserDirectory users, ImageService images) {
+    MePhotoController(UserDirectory users, ImageService images, GooglePhotoSource google) {
         this.users = users;
         this.images = images;
+        this.google = google;
     }
 
     @GetMapping
@@ -47,6 +50,18 @@ class MePhotoController {
         images.throttle(user);
         byte[] bytes = UploadGuard.file(request, images.maxBytes());
         return new PhotoResult(images.put(Owner.user(user), bytes), null);
+    }
+
+    /**
+     * Slika Google računa (FR-018-20, FR-018-23): brez telesa, naslov je samo {@code picture} iz že preverjenega
+     * žetona te zahteve.
+     */
+    @PostMapping("/google")
+    PhotoResult google(@AuthenticationPrincipal Jwt jwt) {
+        long user = users.find(jwt).orElseThrow(UnauthenticatedException::new);
+        images.throttle(user);
+        byte[] bytes = google.fetch(jwt.getClaimAsString("picture"));
+        return new PhotoResult(images.store(Owner.user(user), images.prepareForeign(bytes)), null);
     }
 
     /** Idempotentno: brez slike (ali brez profila) je odgovor prav tako 204. */

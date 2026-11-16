@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useLocation, useParams } from 'react-router';
 
+import { imageCache } from '../../shared/images/imageCache';
 import { ApiError } from '../../shared/api/client';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
 import { errorAlert } from '../../shared/ui/styles';
@@ -141,6 +142,12 @@ function GroupScreen({
       active = false;
     };
   }, [api, groupId]);
+
+  // 018: izguba dostopa (izstop, izbris): slike te skupine ne smejo ostati v pomnilniku (FR-018-04, FR-018-22).
+  const lost = state.kind === 'notFound';
+  useEffect(() => {
+    if (lost) imageCache.clearGroup(groupId);
+  }, [lost, groupId]);
 
   const reload = useCallback(
     () =>

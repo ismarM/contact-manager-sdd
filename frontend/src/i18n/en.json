@@ -55,7 +55,7 @@
     "themeDark": "Dark",
     "data": {
       "heading": "My data",
-      "description": "The export contains your personal data, group memberships, received and sent invitations and the groups you own. It does not contain contacts or audit trails.",
+      "description": "The export contains your personal data, profile picture, group memberships, received and sent invitations and the groups you own. It does not contain contacts or audit trails.",
       "download": "Download my data (JSON)",
       "success": "Your data has been downloaded.",
       "error": "Your data could not be prepared. Please try again.",
@@ -689,7 +689,13 @@
       "default_count_two": "changed {{count}} contacts",
       "default_count_few": "changed {{count}} contacts",
       "default_count_other": "changed {{count}} contacts",
-      "IMPORT_single": "imported the contact"
+      "IMPORT_single": "imported the contact",
+      "PHOTO_ADDED": "added a contact picture",
+      "PHOTO_ADDED_named": "added a picture to contact {{name}}",
+      "PHOTO_REPLACED": "replaced a contact picture",
+      "PHOTO_REPLACED_named": "replaced the picture of contact {{name}}",
+      "PHOTO_REMOVED": "removed a contact picture",
+      "PHOTO_REMOVED_named": "removed the picture of contact {{name}}"
     },
     "filters": {
       "toggle": "Filters",
@@ -1376,12 +1382,31 @@
       "FILE_TOO_LARGE": "The file is too large. Choose a smaller file.",
       "RATE_LIMITED": "Too many attempts. Wait a moment and try again.",
       "GOOGLE_PHOTO_UNAVAILABLE": "The picture of the Google account cannot be used.",
-      "generic": "The picture could not be saved. Try again."
+      "generic": "The picture could not be saved. Try again.",
+      "VERSION_CONFLICT": "The data was changed in the meantime. Reload the page and try again.",
+      "GROUP_ARCHIVED": "The group is archived, so the picture cannot be changed."
     },
     "audit": {
       "ADDED": "Contact picture added",
       "REPLACED": "Contact picture replaced",
-      "REMOVED": "Contact picture removed"
+      "REMOVED": "Contact picture removed",
+      "notRestorable": "This entry changed only the picture. Restoring does not change pictures, so there is nothing to restore."
+    },
+    "group": {
+      "heading": "Group picture",
+      "description": "The picture appears in group lists, in the group header and in the group switcher.",
+      "uploaded": "The group picture is saved.",
+      "removed": "The group picture is removed."
+    },
+    "contact": {
+      "heading": "Contact picture",
+      "uploaded": "The contact picture is saved.",
+      "removed": "The contact picture is removed.",
+      "hint": "You can add or change the picture once the contact is saved."
+    },
+    "google": {
+      "use": "Use my Google account picture",
+      "done": "The Google account picture is saved."
     }
   }
 }

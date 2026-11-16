@@ -102,7 +102,7 @@ class GroupListIT extends ApiTest {
         assertThat(titles(sections.get(2))).containsExactly("Delta");
         Map<String, Object> beta = items(sections.get(0)).get(1);
         assertThat(beta)
-                .containsOnlyKeys("id", "title", "description", "color", "contactCount")
+                .containsOnlyKeys("id", "title", "description", "color", "contactCount", "photoRevision")
                 .containsEntry("description", "Opis B")
                 .containsEntry("color", "mah")
                 .containsEntry("contactCount", 0);

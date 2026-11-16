@@ -92,7 +92,7 @@ class ContactHistoryRepository {
         List<HistoryEvent> events = new ArrayList<>();
         jdbc.sql("SELECT e.id, e.created_at, u.name AS actor_name, u.email AS actor_email, e.action, e.contact_count,"
                         + " c.display_name, c.before::text AS before, c.after::text AS after, t.id AS target_id,"
-                        + " t.created_at AS target_at, e.target_initial FROM audit_change c"
+                        + " t.created_at AS target_at, e.target_initial, e.photo_change FROM audit_change c"
                         + " JOIN audit_entry e ON e.id = c.entry_id LEFT JOIN app_user u ON u.id = e.actor_id"
                         + " LEFT JOIN audit_entry t ON t.id = e.target_entry_id"
                         + " WHERE e.group_id = :group AND c.contact_id = :id ORDER BY e.seq DESC"
@@ -129,7 +129,10 @@ class ContactHistoryRepository {
                                 rs.getBoolean("target_initial"),
                                 kind == ContactChangeView.Kind.REMOVED && "MERGE".equals(action)
                                         ? mergedInto(entry).orElse(null)
-                                        : null));
+                                        : null,
+                                rs.getString("photo_change") == null
+                                        ? null
+                                        : PhotoChange.valueOf(rs.getString("photo_change"))));
                     }
                     return events;
                 });

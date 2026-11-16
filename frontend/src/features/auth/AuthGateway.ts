@@ -4,6 +4,8 @@ export interface AuthUser {
   uid: string;
   email: string | null;
   displayName: string | null;
+  /** 018: račun Google ima sliko (samo boolean; naslov slike se v vmesniku ne uporablja ne pošilja). */
+  hasPhotoUrl?: boolean;
 }
 
 /** Vzrok neuspešne prijave, ki ga vmesnik prevede v sporočilo (plan.md – Key elements, FR-001-04). */

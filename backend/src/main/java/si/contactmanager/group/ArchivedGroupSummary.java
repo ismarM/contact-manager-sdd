@@ -10,4 +10,5 @@ public record ArchivedGroupSummary(
         String color,
         int contactCount,
         Role role,
-        boolean permanentlyArchived) {}
+        boolean permanentlyArchived,
+        Long photoRevision) {}

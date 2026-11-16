@@ -88,7 +88,8 @@ class MyDataExportIT extends AccountApiTest {
         assertThat(exportedAt)
                 .isBetween(Instant.now().minusSeconds(30), Instant.now().plusSeconds(1));
         JsonNode profile = data.get("profile");
-        assertThat(fieldNames(profile)).containsExactlyInAnyOrder("name", "email", "registeredAt", "language", "theme");
+        assertThat(fieldNames(profile))
+                .containsExactlyInAnyOrder("name", "email", "registeredAt", "language", "theme", "photo");
         assertThat(profile.get("name").asString()).isEqualTo("Pia Kos");
         assertThat(profile.get("email").asString()).isEqualTo(email(pia));
         assertThat(instant(profile.get("registeredAt")))

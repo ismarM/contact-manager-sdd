@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
+import type { PhotoChange } from './types';
+
 /** Podatki, iz katerih nastane stavek dejanja: vnos sledi ali dogodek zgodovine kontakta (FR-015-18). */
 export interface SentenceSource {
   /** Znana vrsta ali novejša: neznana dobi splošni stavek »spremenil(a) kontakt«. */
@@ -8,6 +10,8 @@ export interface SentenceSource {
   contactName: string | null;
   /** `ROLLBACK` na začetno stanje, `RESTORE` na izhodiščno različico. */
   targetInitial: boolean;
+  /** 018: vnos `UPDATE` je spremenil sliko kontakta (stavek o sliki namesto splošnega »uredil(a)«). */
+  photoChange?: PhotoChange | null;
 }
 
 /**
@@ -40,6 +44,11 @@ export function useAuditSentence() {
         if (single && options.anonymous) return t('audit.sentence.CREATE_single');
         return t('audit.sentence.CREATE_count', { count: entry.contactCount });
       case 'UPDATE':
+        if (entry.photoChange) {
+          return name
+            ? t(`audit.sentence.PHOTO_${entry.photoChange}_named`, { name })
+            : t(`audit.sentence.PHOTO_${entry.photoChange}`);
+        }
         if (single && name) return t('audit.sentence.UPDATE_named', { name });
         if (single && options.anonymous) return t('audit.sentence.UPDATE_single');
         return t('audit.sentence.UPDATE_count', { count: entry.contactCount });

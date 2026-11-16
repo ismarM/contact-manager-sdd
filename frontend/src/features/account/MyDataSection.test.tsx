@@ -14,9 +14,9 @@ import {
 } from '../../test/myDataApi';
 
 const DESCRIPTION_SL =
-  'Izvoz vsebuje tvoje osebne podatke, članstva v skupinah, prejeta in poslana povabila ter skupine, katerih lastnik si. Kontaktov in revizijskih sledi ne vsebuje.';
+  'Izvoz vsebuje tvoje osebne podatke, profilno sliko, članstva v skupinah, prejeta in poslana povabila ter skupine, katerih lastnik si. Kontaktov in revizijskih sledi ne vsebuje.';
 const DESCRIPTION_EN =
-  'The export contains your personal data, group memberships, received and sent invitations and the groups you own. It does not contain contacts or audit trails.';
+  'The export contains your personal data, profile picture, group memberships, received and sent invitations and the groups you own. It does not contain contacts or audit trails.';
 
 const isDisabled = (element: HTMLElement) =>
   (element as HTMLButtonElement).disabled || element.getAttribute('aria-disabled') === 'true';

@@ -70,7 +70,7 @@ final class DuplicateGroups {
 
     private static DuplicateGroup toGroup(String category, Group group) {
         List<DuplicateContact> contacts = group.members.stream()
-                .map(c -> new DuplicateContact(c.id(), displayName(c)))
+                .map(c -> new DuplicateContact(c.id(), displayName(c), null))
                 .toList();
         return new DuplicateGroup(new DuplicateGroup.Reason(category, group.value), contacts.size(), contacts);
     }

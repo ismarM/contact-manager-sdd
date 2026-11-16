@@ -2,6 +2,8 @@ import { IconAlertTriangle } from '@tabler/icons-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { imageErrorCode } from './imageApi';
+import type { ImageErrorCode } from './photoTypes';
 import { Dialog, DialogClose, DialogContent, DialogTitle } from '../ui/dialog';
 import { dangerButton, errorAlert, secondaryButton } from '../ui/styles';
 
@@ -14,18 +16,18 @@ interface Props {
 
 function RemoveBody({ onConfirm }: Pick<Props, 'onConfirm'>) {
   const { t } = useTranslation();
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<ImageErrorCode | null>(null);
   const [busy, setBusy] = useState(false);
   const cancel = useRef<HTMLButtonElement>(null);
 
   const confirm = async () => {
     if (busy) return;
     setBusy(true);
-    setFailed(false);
+    setFailed(null);
     try {
       await onConfirm();
-    } catch {
-      setFailed(true);
+    } catch (error) {
+      setFailed(imageErrorCode(error));
     } finally {
       setBusy(false);
     }
@@ -41,10 +43,10 @@ function RemoveBody({ onConfirm }: Pick<Props, 'onConfirm'>) {
     >
       <DialogTitle>{t('images.removeDialog.title')}</DialogTitle>
       <p>{t('images.removeDialog.body')}</p>
-      {failed && (
+      {failed !== null && (
         <div role="alert" className={errorAlert}>
           <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
-          <span>{t('images.errors.generic')}</span>
+          <span>{t(`images.errors.${failed}`)}</span>
         </div>
       )}
       <div className="flex flex-wrap justify-end gap-3">

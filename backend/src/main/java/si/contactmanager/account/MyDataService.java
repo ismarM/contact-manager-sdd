@@ -41,7 +41,7 @@ class MyDataService {
         long user = profile.id();
         return ExportAssembler.assemble(
                 Instant.now().truncatedTo(ChronoUnit.MILLIS),
-                profile.profile(),
+                profile.profile().withPhoto(repository.photo(user).orElse(null)),
                 repository.memberships(user),
                 repository.receivedInvitations(user),
                 repository.sentInvitations(user),

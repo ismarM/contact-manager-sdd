@@ -1,6 +1,7 @@
 package si.contactmanager.image;
 
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Shramba slik (research R-01): vmesnik, za katerim je danes PostgreSQL; prehod na drugo shrambo ne spremeni API-ja.
@@ -22,6 +23,15 @@ public interface ImageStore {
 
     /** Izbriše sliko lastnika; vrne, ali je slika obstajala. */
     boolean delete(Owner owner);
+
+    /** Revizije slik kontaktov skupine (samo obstoječi, priklopljeni kontakti s sliko); brez branja bajtov. */
+    java.util.Map<UUID, Long> contactRevisions(UUID group, java.util.Collection<UUID> contactIds);
+
+    /**
+     * Združevanje dvojnikov (FR-018-11): preživeli ohrani svojo sliko; sicer prevzame sliko prvega poraženega (po
+     * vrstnem redu {@code losers}), ki jo ima; slike ostalih poraženih se izbrišejo.
+     */
+    void mergeInto(UUID group, UUID keeper, java.util.List<UUID> losers);
 
     /** Preusmeri sliko kontakta {@code from} na kontakt {@code to} iste skupine; {@code to} ne sme imeti slike. */
     void reassign(Owner from, Owner to);

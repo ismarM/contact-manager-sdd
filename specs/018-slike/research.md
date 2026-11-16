@@ -16,6 +16,7 @@ Odločitve v obliki: odločitev · razlog · zavrnjene alternative.
 5. Vsak izjemni primer dekodiranja (poškodovana, okrnjena, CMYK, nepodprt zapis) = `INVALID_IMAGE`; nič ni zapisano.
 6. SVG, GIF, WebP, ICO, PDF: zavrnjeni z magičnimi bajti, zato ni izvedbe skriptov ali zunanjih virov.
 **Omejitev, ki se izve ob testu**: v `eclipse-temurin:21-jre-alpine` mora ImageIO delovati brez sistemskih knjižnic za pisave; pokrije jo E2E z JPEG in PNG v pravem vsebniku (prva naloga implementacije).
+**Rezultat preverjanja (T001, 2026-11-16)**: `ImageRuntimeIT` zažene isti `ImageProcessor` v `eclipse-temurin:21-jre-alpine` kot nekorenski uporabnik; JPEG in PNG 64 × 64 se pretvorita brez dodatnih sistemskih knjižnic (v `backend/Dockerfile` ni sprememb). E2E ostane dodatno potrdilo v celotnem sistemu.
 
 ## R-04 Orientacija in metapodatki
 **Odločitev**: ImageIO orientacije EXIF ne upošteva. Razčlenjevalnik `ExifOrientation` prebere samo oznako 0x0112 iz segmenta APP1 prvih 64 KB JPEG-a (obe vrstni redi bajtov; vse neveljavno = 1); strežnik sliko ustrezno obrne/prezrcali. Ker se slika **ponovno kodira** iz `BufferedImage`, metapodatkov (EXIF, GPS, ICC, komentarji, XMP) izhod ne vsebuje; izvirnik se ne hrani. Obrezovalnik v brskalniku že uporabi orientacijo iz EXIF (`createImageBitmap` z `imageOrientation: 'from-image'`), strežnik pa jo ponovi za neposredne klice API. **Zavrnjeno**: `metadata-extractor` (nova odvisnost za eno oznako).

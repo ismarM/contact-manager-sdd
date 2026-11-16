@@ -17,6 +17,7 @@ import { fieldErrors } from '../groups/api';
 import { useGroup } from '../groups/groupContext';
 import { conflictCurrent, type FailureKey, failureKey, useContactsApi } from './api';
 import { ContactConflictAlert } from './ContactConflictAlert';
+import { ContactPhotoSection } from './ContactPhotoSection';
 import { AttributeTransferDialog, type TransferRequest } from './AttributeTransfer';
 import { CountryField } from './CountryField';
 import { SuggestInput } from './SuggestInput';
@@ -518,6 +519,8 @@ export function ContactForm({
           }}
         />
       )}
+
+      <ContactPhotoSection contact={contact} version={version} onVersion={setVersion} />
 
       <form
         aria-labelledby={labelledBy}

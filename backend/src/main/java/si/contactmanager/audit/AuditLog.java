@@ -30,6 +30,16 @@ public class AuditLog {
         return repository.insert(groupId, actorId, action, changes, null, false);
     }
 
+    /**
+     * Sprememba slike kontakta (018, FR-018-10): vnos {@code UPDATE} z istim stanjem polj prej in potem (verzija se
+     * poveča) in dejstvom {@code photoChange}; vsebina slike ni v sledi.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public UUID recordPhoto(UUID groupId, long actorId, ContactChange change, PhotoChange photoChange) {
+        validate(AuditAction.UPDATE, List.of(change));
+        return repository.insert(groupId, actorId, AuditAction.UPDATE, List.of(change), null, false, photoChange);
+    }
+
     /** Zapis vnosa rollbacka (samo {@code RollbackService}). */
     UUID recordRollback(UUID groupId, long actorId, List<ContactChange> changes, UUID targetEntry, boolean initial) {
         return repository.insert(groupId, actorId, AuditAction.ROLLBACK, changes, targetEntry, initial);

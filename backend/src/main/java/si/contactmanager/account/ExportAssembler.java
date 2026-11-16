@@ -7,7 +7,16 @@ import java.util.List;
 /** Čista funkcija: vrstice iz baze → {@link MyData} (012, FR-012-02, FR-012-03). Ogrodje – vedenje pride z implementacijo. */
 final class ExportAssembler {
 
-    record ProfileRow(String name, String email, Instant createdAt, String language, String theme) {}
+    record ProfileRow(String name, String email, Instant createdAt, String language, String theme, MyData.Photo photo) {
+
+        ProfileRow(String name, String email, Instant createdAt, String language, String theme) {
+            this(name, email, createdAt, language, theme, null);
+        }
+
+        ProfileRow withPhoto(MyData.Photo photo) {
+            return new ProfileRow(name, email, createdAt, language, theme, photo);
+        }
+    }
 
     record MembershipRow(String groupTitle, String role, Instant joinedAt, boolean archived, boolean hasOwner) {}
 
@@ -46,7 +55,12 @@ final class ExportAssembler {
                 1,
                 exportedAt,
                 new MyData.Profile(
-                        profile.name(), profile.email(), profile.createdAt(), profile.language(), profile.theme()),
+                        profile.name(),
+                        profile.email(),
+                        profile.createdAt(),
+                        profile.language(),
+                        profile.theme(),
+                        profile.photo()),
                 memberships.stream()
                         .sorted(Comparator.comparing(MembershipRow::joinedAt).thenComparing(MembershipRow::groupTitle))
                         .map(row -> new MyData.Membership(row.groupTitle(), row.role(), row.joinedAt(), state(row)))

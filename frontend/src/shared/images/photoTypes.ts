@@ -23,4 +23,6 @@ export type ImageErrorCode =
   | 'FILE_TOO_LARGE'
   | 'RATE_LIMITED'
   | 'GOOGLE_PHOTO_UNAVAILABLE'
+  | 'VERSION_CONFLICT'
+  | 'GROUP_ARCHIVED'
   | 'generic';

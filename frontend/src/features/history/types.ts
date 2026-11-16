@@ -1,4 +1,4 @@
-import type { ChangeField } from '../audit/types';
+import type { ChangeField, PhotoChange } from '../audit/types';
 import type { UserRef } from '../groups/types';
 
 // Oblike odgovorov API zgodovine kontakta (specs/015-napredna-revizija/contracts/openapi.yaml).
@@ -31,6 +31,8 @@ export interface HistoryEvent {
   targetInitial: boolean;
   /** Samo `MERGE` + `REMOVED`: ohranjeni kontakt. */
   mergedInto: { contactId: string; displayName: string } | null;
+  /** 018: dogodek slike kontakta; odsoten/`null` = ni dogodka slike. */
+  photoChange?: PhotoChange | null;
 }
 
 export interface History {

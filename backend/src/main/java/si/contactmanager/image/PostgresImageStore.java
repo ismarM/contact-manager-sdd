@@ -1,7 +1,13 @@
 package si.contactmanager.image;
 
+import java.sql.ResultSet;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -102,6 +108,51 @@ class PostgresImageStore implements ImageStore {
                 .param("from", from.contactId())
                 .param("group", from.groupId())
                 .update();
+    }
+
+    @Override
+    public Map<UUID, Long> contactRevisions(UUID group, Collection<UUID> contactIds) {
+        Map<UUID, Long> revisions = new HashMap<>();
+        if (contactIds.isEmpty()) {
+            return revisions;
+        }
+        jdbc.sql("SELECT i.contact_id, i.revision FROM image i WHERE i.kind = 'CONTACT' AND i.group_id = :group"
+                        + " AND i.contact_id IN (:ids) AND i.detached_at IS NULL")
+                .param("group", group)
+                .param("ids", contactIds)
+                .query((ResultSet rs) -> {
+                    while (rs.next()) {
+                        revisions.put(rs.getObject("contact_id", UUID.class), rs.getLong("revision"));
+                    }
+                    return revisions;
+                });
+        return revisions;
+    }
+
+    @Override
+    @Transactional
+    public void mergeInto(UUID group, UUID keeper, List<UUID> losers) {
+        if (losers.isEmpty()) {
+            return;
+        }
+        List<UUID> withImage = jdbc.sql("SELECT contact_id FROM image WHERE kind = 'CONTACT' AND group_id = :group"
+                        + " AND contact_id IN (:ids)")
+                .param("group", group)
+                .param("ids", Stream.concat(Stream.of(keeper), losers.stream()).toList())
+                .query(UUID.class)
+                .list();
+        UUID adopted = null;
+        if (!withImage.contains(keeper)) {
+            adopted = losers.stream().filter(withImage::contains).findFirst().orElse(null);
+        }
+        if (adopted != null) {
+            reassign(Owner.contact(group, adopted), Owner.contact(group, keeper));
+        }
+        for (UUID loser : losers) {
+            if (!loser.equals(adopted)) {
+                delete(Owner.contact(group, loser));
+            }
+        }
     }
 
     private static String ownerWhere(Owner owner) {

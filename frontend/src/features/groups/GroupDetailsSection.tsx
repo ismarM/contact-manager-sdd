@@ -4,6 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { ApiError } from '../../shared/api/client';
+import { Avatar } from '../../shared/images/Avatar';
+import { useImageApi } from '../../shared/images/imageApi';
+import { PhotoControls } from '../../shared/images/PhotoControls';
 import { errorAlert, primaryButton } from '../../shared/ui/styles';
 import { failureKey, fieldErrors, useGroupsApi } from './api';
 import { COLOR_SWATCH } from './colors';
@@ -42,6 +45,7 @@ export function GroupDetailsSection() {
           <span>{t('groups.details.archived')}</span>
         </div>
       )}
+      <GroupPhotoSection />
       {canEdit ? (
         <DetailsForm
           key={group.id}
@@ -77,13 +81,74 @@ export function GroupDetailsSection() {
   );
 }
 
+/** Razdelek *Slika skupine* (FR-018-05..08): vsi vidijo sliko, nalaganje in odstranitev samo ADMIN/OWNER nearhivirane. */
+function GroupPhotoSection() {
+  const { t } = useTranslation();
+  const api = useImageApi();
+  const { group, setGroup, markNotFound } = useGroup();
+  const { refresh } = useGroups();
+  const headingId = useId();
+  const canEdit = (group.role === 'OWNER' || group.role === 'ADMIN') && !group.archived;
+  const target = { kind: 'group', groupId: group.id } as const;
+
+  // Sprememba slike poveča verzijo skupine: obrazec podatkov jo prebere iz konteksta, zato ni lažnega konflikta.
+  const apply = (result: { photoRevision: number | null; version?: number }) => {
+    setGroup({
+      ...group,
+      photoRevision: result.photoRevision,
+      version: result.version ?? group.version,
+    });
+    refresh();
+  };
+
+  // Izguba članstva (404): namesto vsebine »Te strani ni«; slike skupine se ob tem odstranijo iz pomnilnika.
+  const guarded = async <T,>(call: () => Promise<T>): Promise<T> => {
+    try {
+      return await call();
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) markNotFound();
+      throw error;
+    }
+  };
+
+  return (
+    <div role="group" aria-labelledby={headingId} className="flex flex-col gap-2">
+      <h3 id={headingId} className="font-bold">
+        {t('images.group.heading')}
+      </h3>
+      {canEdit && <p className="text-muted-foreground">{t('images.group.description')}</p>}
+      <PhotoControls
+        preview={
+          <Avatar
+            kind="group"
+            name={group.title}
+            colorSeed={group.color}
+            size={64}
+            photo={{ path: `/groups/${group.id}/photo`, revision: group.photoRevision }}
+          />
+        }
+        hasPhoto={group.photoRevision != null}
+        canEdit={canEdit}
+        shape="square"
+        title={t('images.group.heading')}
+        uploadedMessage={t('images.group.uploaded')}
+        removedMessage={t('images.group.removed')}
+        onUpload={async (file) =>
+          apply(await guarded(() => api.upload(target, file, group.version)))
+        }
+        onRemove={async () => apply(await guarded(() => api.remove(target, group.version)))}
+      />
+    </div>
+  );
+}
+
 function DetailsForm({ labelledBy, onArchived }: { labelledBy: string; onArchived: () => void }) {
   const { t } = useTranslation();
   const api = useGroupsApi();
   const { group, setGroup, markNotFound } = useGroup();
   const { refresh } = useGroups();
   const [values, setValues] = useState<GroupFormState>(() => formState(group));
-  const [version, setVersion] = useState(group.version);
+  const version = group.version;
   const [errors, setErrors] = useState<GroupValidation['errors']>({});
   const [failure, setFailure] = useState<string | null>(null);
   const [conflict, setConflict] = useState<GroupDetail | null>(null);
@@ -99,7 +164,6 @@ function DetailsForm({ labelledBy, onArchived }: { labelledBy: string; onArchive
     try {
       const updated = await api.updateGroup(group.id, { ...value, version: baseVersion });
       setConflict(null);
-      setVersion(updated.version);
       setValues(formState(updated));
       setGroup(updated);
       toast(t('groups.details.saved'));
@@ -137,7 +201,6 @@ function DetailsForm({ labelledBy, onArchived }: { labelledBy: string; onArchive
     setConflict(null);
     setErrors({});
     setValues(formState(current));
-    setVersion(current.version);
     setGroup(current);
   };
 

@@ -3,6 +3,7 @@ import { useEffect, useId, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink, useLocation } from 'react-router';
 
+import { Avatar } from '../../shared/images/Avatar';
 import { focusRing } from '../../shared/ui/styles';
 import { COLOR_SWATCH } from './colors';
 import type { GroupDetail } from './types';
@@ -45,6 +46,14 @@ export function GroupHeader({ group, focusTitle }: { group: GroupDetail; focusTi
           <span
             aria-hidden="true"
             className={`inline-block h-8 w-1 shrink-0 rounded-sm ${COLOR_SWATCH[group.color]}`}
+          />
+          <Avatar
+            kind="group"
+            name={group.title}
+            colorSeed={group.color}
+            size={40}
+            alt=""
+            photo={{ path: `/groups/${group.id}/photo`, revision: group.photoRevision }}
           />
           <span className="min-w-0">{group.title}</span>
         </h1>

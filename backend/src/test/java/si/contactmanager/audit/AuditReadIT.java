@@ -62,7 +62,15 @@ class AuditReadIT extends AuditApiTest {
         Map<String, Object> newest = items.get(0);
         assertThat(newest.keySet())
                 .containsExactlyInAnyOrder(
-                        "id", "createdAt", "actor", "action", "contactCount", "contactName", "target", "targetInitial");
+                        "id",
+                        "createdAt",
+                        "actor",
+                        "action",
+                        "contactCount",
+                        "contactName",
+                        "target",
+                        "targetInitial",
+                        "photoChange");
         assertThat(newest)
                 .containsEntry("action", "CREATE")
                 .containsEntry("contactCount", 1)

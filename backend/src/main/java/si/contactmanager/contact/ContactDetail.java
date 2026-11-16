@@ -22,4 +22,5 @@ public record ContactDetail(
         Instant createdAt,
         Instant updatedAt,
         UserRef updatedBy,
-        RevertInfo reverted) {}
+        RevertInfo reverted,
+        Long photoRevision) {}

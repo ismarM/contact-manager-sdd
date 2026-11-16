@@ -35,6 +35,8 @@ export interface GroupDetail {
   updatedAt: string;
   /** `null` = izbrisan uporabnik (feature-map §2.5). */
   updatedBy: UserRef | null;
+  /** 018: revizija slike skupine; `null`/odsotno = brez slike. */
+  photoRevision?: number | null;
 }
 
 export interface GroupSummary {
@@ -43,6 +45,7 @@ export interface GroupSummary {
   description: string | null;
   color: GroupColor;
   contactCount: number;
+  photoRevision?: number | null;
 }
 
 export interface GroupSection {
@@ -72,6 +75,7 @@ export interface ArchivedGroupSummary {
   contactCount: number;
   role: Role;
   permanentlyArchived: boolean;
+  photoRevision?: number | null;
 }
 
 export interface ArchivedGroups {

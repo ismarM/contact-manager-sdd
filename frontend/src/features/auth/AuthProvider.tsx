@@ -36,6 +36,7 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
   const [theme, setTheme] = useState<Theme | null>(() => readStoredTheme());
   const [saveFailed, setSaveFailed] = useState(false);
   const [exitTo, setExitTo] = useState<string | null>(null);
+  const [hasGooglePhoto, setHasGooglePhoto] = useState(false);
 
   const statusRef = useRef<AuthStatus>('unknown');
   /** Pričakovan prehod v »odjavljen«, ki ga je sprožila ta aplikacija (ne drug zavihek). */
@@ -128,6 +129,7 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
 
   const onAuthChange = useCallback(
     (user: AuthUser | null) => {
+      setHasGooglePhoto(user?.hasPhotoUrl === true);
       if (user) {
         void synchronize();
         return;
@@ -239,6 +241,7 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
       changeTheme,
       saveFailed,
       setPhotoRevision,
+      hasGooglePhoto,
       dismissSaveFailed: () => setSaveFailed(false),
     }),
     [
@@ -256,6 +259,7 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
       changeTheme,
       saveFailed,
       setPhotoRevision,
+      hasGooglePhoto,
     ],
   );
 

@@ -34,13 +34,29 @@ public class ImageService {
 
     /** Obdela in shrani sliko lastnika; vrne novo revizijo. Neveljavna datoteka = {@code 400} (polje {@code file}). */
     long put(Owner owner, byte[] bytes) {
-        ProcessedImage processed;
+        return store.put(owner, prepare(bytes));
+    }
+
+    /** Samo obdelava (brez shranjevanja): neveljavna datoteka = {@code 400} (polje {@code file}). */
+    ProcessedImage prepare(byte[] bytes) {
         try {
-            processed = processor.process(bytes);
+            return processor.process(bytes);
         } catch (ImageRejectedException e) {
             throw new ValidationException(List.of(new FieldError("file", e.code())));
         }
-        return store.put(owner, processed);
+    }
+
+    /** Obdelava tuje slike (Google): vsaka zavrnitev je {@code GOOGLE_PHOTO_UNAVAILABLE}, ne {@code 400}. */
+    ProcessedImage prepareForeign(byte[] bytes) {
+        try {
+            return processor.process(bytes);
+        } catch (ImageRejectedException e) {
+            throw new si.contactmanager.shared.error.GooglePhotoUnavailableException("slika ni veljavna");
+        }
+    }
+
+    long store(Owner owner, ProcessedImage image) {
+        return store.put(owner, image);
     }
 
     /** Odgovor s sliko lastnika ({@code 304} ob ujemanju {@code If-None-Match}); {@code 404}, če slike ni. */

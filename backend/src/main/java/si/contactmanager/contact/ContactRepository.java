@@ -31,7 +31,8 @@ class ContactRepository {
                     + " c.version, c.created_at, c.updated_at, u.name AS updated_by_name, u.email AS updated_by_email,"
                     + " r.id AS rollback_id, r.created_at AS rollback_at, ru.name AS rollback_by_name,"
                     + " ru.email AS rollback_by_email, r.target_initial AS rollback_initial, rt.id AS target_id,"
-                    + " rt.created_at AS target_at"
+                    + " rt.created_at AS target_at,"
+                    + " (SELECT i.revision FROM image i WHERE i.kind = 'CONTACT' AND i.group_id = c.group_id AND i.contact_id = c.id AND i.detached_at IS NULL) AS photo_revision"
                     + " FROM contact c LEFT JOIN app_user u ON u.id = c.updated_by"
                     + " LEFT JOIN audit_entry r ON r.id = c.reverted_entry_id"
                     + " LEFT JOIN app_user ru ON ru.id = r.actor_id"
@@ -197,7 +198,8 @@ class ContactRepository {
                             rs.getString("phone"),
                             List.of(),
                             rs.getLong("version"),
-                            rs.getBoolean("reverted"));
+                            rs.getBoolean("reverted"),
+                            rs.getObject("photo_revision", Long.class));
                 })
                 .list();
         if (rows.isEmpty()) {
@@ -215,8 +217,19 @@ class ContactRepository {
                         c.phone(),
                         tags.getOrDefault(c.id(), List.of()),
                         c.version(),
-                        c.reverted()))
+                        c.reverted(),
+                        c.photoRevision()))
                 .toList();
+    }
+
+    /** Poveča verzijo kontakta ob spremembi slike (018): polja ostanejo, izvajalec in čas se zapišeta. */
+    void touch(UUID group, UUID id, long user) {
+        jdbc.sql("UPDATE contact SET version = version + 1, updated_by = :user, updated_at = now(),"
+                        + " reverted_entry_id = NULL WHERE group_id = :group AND id = :id")
+                .param("group", group)
+                .param("id", id)
+                .param("user", user)
+                .update();
     }
 
     UUID insert(UUID group, ContactInput input, long user) {
@@ -418,7 +431,8 @@ class ContactRepository {
                 c.createdAt(),
                 c.updatedAt(),
                 c.updatedBy(),
-                c.reverted());
+                c.reverted(),
+                c.photoRevision());
     }
 
     private static RevertInfo revert(ResultSet rs) throws SQLException {
@@ -457,7 +471,8 @@ class ContactRepository {
                 rs.getTimestamp("created_at").toInstant(),
                 rs.getTimestamp("updated_at").toInstant(),
                 email == null ? null : new UserRef(rs.getString("updated_by_name"), email),
-                revert(rs));
+                revert(rs),
+                rs.getObject("photo_revision", Long.class));
     }
 
     /** Kontakti skupine za iskanje dvojnikov, razvrščeni po {@code created_at}, {@code id} (FR-011-07). */

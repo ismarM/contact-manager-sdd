@@ -51,7 +51,8 @@ class GroupReadIT extends ApiTest {
                         "canDelete",
                         "version",
                         "updatedAt",
-                        "updatedBy")
+                        "updatedBy",
+                        "photoRevision")
                 .containsEntry("id", group.toString())
                 .containsEntry("title", "Projekt FERI")
                 .containsEntry("description", "Opis")

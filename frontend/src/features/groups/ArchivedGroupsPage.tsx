@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
+import { Avatar } from '../../shared/images/Avatar';
 import { errorAlert, focusRing, secondaryButton } from '../../shared/ui/styles';
 import { useGroupsApi, useListLanguage } from './api';
 import { COLOR_SWATCH } from './colors';
@@ -95,6 +96,14 @@ export function ArchivedGroupsPage() {
               <span
                 aria-hidden="true"
                 className={`mt-0.5 inline-block h-6 w-1 shrink-0 rounded-sm ${COLOR_SWATCH[group.color]}`}
+              />
+              <Avatar
+                kind="group"
+                name={group.title}
+                colorSeed={group.color}
+                size={40}
+                alt=""
+                photo={{ path: `/groups/${group.id}/photo`, revision: group.photoRevision }}
               />
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <Link

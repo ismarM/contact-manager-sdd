@@ -32,7 +32,8 @@ class GroupRepository {
             + " (g.archived_at IS NOT NULL AND " + NO_OWNER + ") AS permanent,"
             + " (SELECT count(*) FROM group_member c WHERE c.group_id = g.id) AS members,"
             + " g.version, g.updated_at,"
-            + " u.name AS updated_by_name, u.email AS updated_by_email"
+            + " u.name AS updated_by_name, u.email AS updated_by_email,"
+            + " (SELECT i.revision FROM image i WHERE i.kind = 'GROUP' AND i.group_id = g.id) AS photo_revision"
             + " FROM contact_group g"
             + " JOIN group_member m ON m.group_id = g.id AND m.user_id = :user"
             + " LEFT JOIN app_user u ON u.id = g.updated_by"
@@ -107,6 +108,15 @@ class GroupRepository {
                 .optional();
     }
 
+    /** Poveča verzijo skupine ob spremembi slike (018): izvajalec in čas se zapišeta kot pri urejanju. */
+    void bumpVersion(UUID group, long editor) {
+        jdbc.sql("UPDATE contact_group SET version = version + 1, updated_by = :editor, updated_at = now()"
+                        + " WHERE id = :id")
+                .param("id", group)
+                .param("editor", editor)
+                .update();
+    }
+
     /** Nastavi ali odstrani čas arhiviranja; podatki skupine in verzija ostanejo (research R-04). */
     void setArchived(UUID group, boolean archived) {
         jdbc.sql("UPDATE contact_group SET archived_at = " + (archived ? "now()" : "NULL") + " WHERE id = :id")
@@ -138,7 +148,8 @@ class GroupRepository {
     List<ArchivedGroupSummary> pageArchived(long user, Collation collation, int size, int page) {
         return jdbc.sql("SELECT g.id, g.title, g.description, g.color, m.role,"
                         + " (" + NO_OWNER + ") AS permanent,"
-                        + " (SELECT count(*) FROM contact k WHERE k.group_id = g.id) AS contacts"
+                        + " (SELECT count(*) FROM contact k WHERE k.group_id = g.id) AS contacts,"
+                        + " (SELECT i.revision FROM image i WHERE i.kind = 'GROUP' AND i.group_id = g.id) AS photo_revision"
                         + " FROM group_member m JOIN contact_group g ON g.id = m.group_id"
                         + " WHERE m.user_id = :user AND g.archived_at IS NOT NULL"
                         + " ORDER BY g.title COLLATE " + collation.sqlName() + ", g.id"
@@ -154,7 +165,8 @@ class GroupRepository {
                         rs.getString("color"),
                         rs.getInt("contacts"),
                         Role.valueOf(rs.getString("role")),
-                        rs.getBoolean("permanent")))
+                        rs.getBoolean("permanent"),
+                        rs.getObject("photo_revision", Long.class)))
                 .list();
     }
 
@@ -192,7 +204,8 @@ class GroupRepository {
      */
     List<GroupSummary> pageByRole(long user, Role role, Collation collation, int size, int page) {
         return jdbc.sql("SELECT g.id, g.title, g.description, g.color,"
-                        + " (SELECT count(*) FROM contact k WHERE k.group_id = g.id) AS contacts FROM group_member m"
+                        + " (SELECT count(*) FROM contact k WHERE k.group_id = g.id) AS contacts,"
+                        + " (SELECT i.revision FROM image i WHERE i.kind = 'GROUP' AND i.group_id = g.id) AS photo_revision FROM group_member m"
                         + " JOIN contact_group g ON g.id = m.group_id"
                         + " WHERE m.user_id = :user AND m.role = :role AND g.archived_at IS NULL"
                         + " ORDER BY g.title COLLATE " + collation.sqlName() + ", g.id"
@@ -207,7 +220,8 @@ class GroupRepository {
                         rs.getString("title"),
                         rs.getString("description"),
                         rs.getString("color"),
-                        rs.getInt("contacts")))
+                        rs.getInt("contacts"),
+                        rs.getObject("photo_revision", Long.class)))
                 .list();
     }
 
@@ -228,7 +242,8 @@ class GroupRepository {
                 canDelete,
                 rs.getLong("version"),
                 updatedAt.toInstant(),
-                email == null ? null : new UserRef(rs.getString("updated_by_name"), email));
+                email == null ? null : new UserRef(rs.getString("updated_by_name"), email),
+                rs.getObject("photo_revision", Long.class));
     }
 
     /** ICU kolaciji iz migracije V3 – ime v SQL je vedno iz tega zaprtega seznama. */

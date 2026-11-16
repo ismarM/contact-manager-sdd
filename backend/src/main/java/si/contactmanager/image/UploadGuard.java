@@ -42,6 +42,27 @@ final class UploadGuard {
         }
     }
 
+    /** Del {@code version} obrazca multipart (verzija skupine ali kontakta): obvezen, nenegativno celo število. */
+    static long version(HttpServletRequest request) {
+        return version(request.getParameter("version"));
+    }
+
+    /** Verzija iz niza ({@code ?version=} ali del obrazca): manjkajoča = {@code REQUIRED}, neveljavna = {@code INVALID_VALUE}. */
+    static long version(String value) {
+        if (value == null || value.isBlank()) {
+            throw new ValidationException(List.of(new FieldError("version", "REQUIRED")));
+        }
+        try {
+            long version = Long.parseLong(value.trim());
+            if (version >= 0) {
+                return version;
+            }
+        } catch (NumberFormatException e) {
+            // obravnavano spodaj
+        }
+        throw new ValidationException(List.of(new FieldError("version", "INVALID_VALUE")));
+    }
+
     /** Vrednost parametra {@code size}: 96, 256 ali 512 (privzeto 256), sicer 400. */
     static int size(String value) {
         if (value == null) {

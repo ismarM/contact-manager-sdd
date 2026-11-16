@@ -82,35 +82,38 @@ export function mockImagesApi(
   const requests: RecordedImageRequest[] = [];
   const counts = { read: 0, upload: 0, remove: 0, google: 0 };
 
-  const record = async (request: Request): Promise<void> => {
-    const url = new URL(request.url);
+  // Telo multipart se v jsdom ne bere (kot pri uvozu), zato polja zabeleži opazovalec `FormData.append`.
+  const appended = vi.spyOn(FormData.prototype, 'append');
+  onTestFinished(() => appended.mockRestore());
+
+  const takeUpload = (): RecordedImageRequest['upload'] => {
     let upload: RecordedImageRequest['upload'] = null;
-    if (request.method === 'PUT') {
-      const form = await request.clone().formData();
-      const file = form.get('file');
-      if (file instanceof File) {
-        const version = form.get('version');
-        upload = {
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          version: typeof version === 'string' ? version : null,
-        };
+    for (const [name, value, fileName] of appended.mock.calls) {
+      if (typeof value === 'string') {
+        if (name === 'version' && upload) upload.version = value;
+      } else {
+        upload = { name: fileName ?? '', type: value.type, size: value.size, version: null };
       }
     }
+    appended.mockClear();
+    return upload;
+  };
+
+  const record = (request: Request): void => {
+    const url = new URL(request.url);
     requests.push({
       method: request.method,
       path: url.pathname,
       search: url.searchParams,
       authorization: request.headers.get('Authorization'),
-      upload,
+      upload: request.method === 'PUT' ? takeUpload() : null,
     });
   };
   const resolve = async (source: Source | undefined, fallback: Reply, call: number) =>
     source === undefined ? fallback : typeof source === 'function' ? await source(call) : source;
 
   const read = async ({ request }: { request: Request }) => {
-    await record(request);
+    record(request);
     counts.read += 1;
     const reply = await resolve(handlers.read, { status: 200 }, counts.read);
     if (reply !== 'network-error' && reply.status === 200) {
@@ -128,14 +131,14 @@ export function mockImagesApi(
   const upload =
     (fallback: Reply) =>
     async ({ request }: { request: Request }) => {
-      await record(request);
+      record(request);
       counts.upload += 1;
       return respond(await resolve(handlers.upload, fallback, counts.upload));
     };
   const remove =
     (fallback: Reply) =>
     async ({ request }: { request: Request }) => {
-      await record(request);
+      record(request);
       counts.remove += 1;
       return respond(await resolve(handlers.remove, fallback, counts.remove));
     };
@@ -145,7 +148,7 @@ export function mockImagesApi(
     http.put('/api/me/photo', upload(imageReplies.result(1))),
     http.delete('/api/me/photo', remove(imageReplies.noContent)),
     http.post('/api/me/photo/google', async ({ request }) => {
-      await record(request);
+      record(request);
       counts.google += 1;
       return respond(await resolve(handlers.google, imageReplies.result(1), counts.google));
     }),
