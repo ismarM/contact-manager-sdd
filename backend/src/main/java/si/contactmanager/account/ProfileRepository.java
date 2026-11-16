@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
+import si.contactmanager.shared.error.AccountConflictException;
 
 /**
  * Profil v tabeli {@code app_user} (data-model.md). Vsaka operacija je en stavek {@code INSERT … ON CONFLICT}, zato
@@ -60,7 +61,12 @@ class ProfileRepository {
         try {
             return executeOnce(sql, identity, preferences);
         } catch (DuplicateKeyException e) {
-            return executeOnce(sql, identity, preferences);
+            try {
+                return executeOnce(sql, identity, preferences);
+            } catch (DuplicateKeyException conflict) {
+                // Tudi ponovni poskus trči: e-naslov (brez razlike velikosti črk) je pri drugem UID (FR-017-11).
+                throw new AccountConflictException();
+            }
         }
     }
 
