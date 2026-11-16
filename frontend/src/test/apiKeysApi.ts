@@ -2,6 +2,7 @@ import { http, HttpResponse, type JsonBodyType } from 'msw';
 
 import type { ApiKey, ApiKeyCreated, ApiKeyUsage, UsageCounts } from '../features/apikeys/types';
 import { server } from './msw';
+import { tr } from './smartAttributes';
 
 // Gradniki odgovorov in MSW rokovalniki za upravljanje API ključev 019
 // (specs/019-api-kljuci/contracts/openapi.yaml): `GET|POST /api/me/api-keys`, `DELETE /api/me/api-keys/{keyId}`,
@@ -210,3 +211,31 @@ export function mockApiKeysApi(
     usageRequests: () => requests.filter((r) => r.path.endsWith('/usage')),
   };
 }
+
+/** Dostopna imena razdelka *API ključi* iz prevodov (konstitucija §3.3). */
+export const apiKeyNames = {
+  section: () => tr('apiKeys.heading'),
+  list: () => tr('apiKeys.list'),
+  create: () => tr('apiKeys.create'),
+  dialog: () => tr('apiKeys.form.title'),
+  name: () => tr('apiKeys.form.nameLabel'),
+  scopeSelected: () => tr('apiKeys.form.scopeSelected'),
+  scopeAll: () => tr('apiKeys.form.scopeAll'),
+  groups: () => tr('apiKeys.form.groupsLabel'),
+  permissionFor: (title: string) => tr('apiKeys.form.permissionFor', { title }),
+  permissionAll: () => tr('apiKeys.form.permissionLabel'),
+  permission: (permission: 'READ' | 'WRITE') => tr(`apiKeys.permission.${permission}`),
+  expiry: () => tr('apiKeys.form.expiryLabel'),
+  submit: () => tr('apiKeys.form.submit'),
+  cancel: () => tr('apiKeys.form.cancel'),
+  created: (name: string) => tr('apiKeys.createdDialog.title', { name }),
+  key: () => tr('apiKeys.createdDialog.keyLabel'),
+  copy: () => tr('apiKeys.createdDialog.copy'),
+  close: () => tr('apiKeys.createdDialog.close'),
+  revoke: (name: string) => tr('apiKeys.revoke.button', { name }),
+  revokeDialog: (name: string) => tr('apiKeys.revoke.title', { name }),
+  revokeConfirm: () => tr('apiKeys.revoke.confirm'),
+  revokeCancel: () => tr('apiKeys.revoke.cancel'),
+  docsLink: () => tr('apiKeys.docsLink'),
+  usageLink: (name: string) => tr('apiKeys.usageLink', { name }),
+};

@@ -53,6 +53,8 @@ export interface NewApiKey {
   /** Naslovi izbranih skupin; brez njih ključ velja za vse moje skupine. */
   groups?: string[];
   permission?: 'READ' | 'WRITE';
+  /** Pred zaprtjem klikni *Kopiraj ključ* in preveri odložišče (kontekst mora imeti dovoljenje za odložišče). */
+  copy?: boolean;
 }
 
 /**
@@ -83,6 +85,10 @@ export async function createApiKey(page: Page, key: NewApiKey): Promise<string> 
   const created = page.getByRole('dialog', { name: apiKeyNames.created(key.name) });
   const value = await created.getByLabel(apiKeyNames.key()).inputValue();
   expect(value).toMatch(/^cmk_[\w-]+\.[\w-]+\.[\w-]+$/);
+  if (key.copy) {
+    await created.getByRole('button', { name: apiKeyNames.copy() }).click();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(value);
+  }
   await created.getByRole('button', { name: apiKeyNames.close() }).click();
   await expect(created).toBeHidden();
   return value;

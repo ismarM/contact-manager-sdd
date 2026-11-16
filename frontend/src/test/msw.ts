@@ -18,6 +18,8 @@ export const server = setupServer(
   http.get('/api/me/deletion-blockers', () => HttpResponse.json({ groups: [] })),
   // Od 014 *Moj račun* naloži gesla za aplikacijo (`GET /api/me/app-passwords` → prazen seznam).
   http.get('/api/me/app-passwords', () => HttpResponse.json({ items: [] })),
+  // Od 019 *Moj račun* naloži API ključe (`GET /api/me/api-keys` → prazen seznam).
+  http.get('/api/me/api-keys', () => HttpResponse.json([])),
   http.get('/api/groups/:groupId/invitations', ({ request }) => {
     const url = new URL(request.url);
     return HttpResponse.json({
