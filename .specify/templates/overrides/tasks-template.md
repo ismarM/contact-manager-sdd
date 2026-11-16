@@ -38,6 +38,13 @@ description: "Task list template for feature implementation (project override: o
 
   Test rules (constitution §3):
   - every group endpoint gets a parametrised isolation-matrix test (401/404/403/2xx, archived 409)
+  - isolation matrix as tasks: for EVERY row of plan.md Public Interfaces (each method × path,
+    incl. non-REST protocols) one test task listing its actors explicitly – unauthenticated
+    (missing/invalid/expired token), non-member and missing resource (404), every role below the
+    lowest allowed (403), lowest allowed and higher (2xx), archived and permanently archived group;
+    writes also 409 GROUP_ARCHIVED. A row without such a task means tasks.md is incomplete.
+  - security-relevant input (uploaded files, XML, credentials) gets explicit abuse-case test tasks
+    on every parsing path (oversize, entity expansion/XXE, wrong type, brute force)
   - UI tests use getByRole(name)/getByLabel; names come from the translations or shared helpers
   - vitest-axe on every rendered page, @axe-core/playwright on every E2E page
   - E2E runs at 360 and 1280 px; tag a scenario @w768 only if its layout differs at that width

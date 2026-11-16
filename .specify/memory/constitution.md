@@ -182,7 +182,8 @@ Agent dela sam od naloge do PR. Ustavi se in vpraša samo, če:
 - `ai-log/` ostaja: za vsako sejo kratek vnos v `ai-log/<ime>.md` (datum, veja, kaj je bilo
   naročeno in narejeno, težave) in vrstice s porabo v `ai-log/token-report-<ime>.md`. Številke
   izpiše `node scripts/token-report.mjs` iz dnevnikov seje (glavna seja in vsak podagent); ne
-  ocenjujejo se in ne računa jih model.
+  ocenjujejo se in ne računa jih model. Vnosi v `ai-log/` se commitajo **neposredno v `main`**, nikoli
+  prek ločene veje ali PR.
 
 ### 2.8 Samodejno uvajanje (`/rollout`)
 
@@ -202,7 +203,9 @@ funkcionalnosti od naročila do združenega PR. Zanj veljajo vsa pravila tega do
   človeškega pregleda pred združitvijo v tem načinu ni, zato opis PR navaja sprejete predpostavke
   in neodpravljene ugotovitve. Zaščite veje se ne obide.
 - Konflikte razrešijo delavci po vsaki združitvi; nadzornik pričakovane konflikte sporoči vnaprej.
-- Vnos v `ai-log/` napiše vsak delavec v svojem PR; vrstice s porabo doda nadzornik na koncu.
+- Vnos v `ai-log/` (celoten *Seja N* in vrstice porabe) napiše nadzornik po združitvi, neposredno v
+  `main`; delavci v `ai-log/` ne pišejo. Vsako fazo izvede nov, kratkoživ delavec (Sonnet; Opus le
+  za plan tvegane funkcionalnosti in zgodbe z avtentikacijo ali avtorizacijo).
 
 ## 3. Pravila testov
 
@@ -302,4 +305,4 @@ gre za arhitekturno odločitev (§2.6).
   `.specify/templates/overrides/` se spreminjajo s pull requestom, ki ga potrdita oba razvijalca.
 - `CLAUDE.md` je kratek kazalec na ta dokument (do ~25 vrstic) in se vzdržuje ročno.
 
-**Version**: 3.1.0 | **Ratified**: 2026-11-02 | **Last Amended**: 2026-11-14
+**Version**: 3.2.0 | **Ratified**: 2026-11-02 | **Last Amended**: 2026-11-16

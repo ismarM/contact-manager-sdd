@@ -8,6 +8,10 @@ process.env.TZ = 'Europe/Ljubljana';
 export default defineConfig({
   plugins: [react()],
   test: {
+    // Pod obremenitvijo (vzporedni verify, Docker) so posamezni testi UI presegli privzetih 5 s, posamič pa so zeleni:
+    // enotna višja meja in manj vzporednih delavcev namesto popravkov posameznih testov.
+    testTimeout: 15_000,
+    maxWorkers: '50%',
     reporters: ['default', 'junit'],
     outputFile: { junit: 'test-results/junit.xml' },
     projects: [
