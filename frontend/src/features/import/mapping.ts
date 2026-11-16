@@ -1,3 +1,4 @@
+import type { Address } from '../attributes/types';
 import type { Candidate, ColumnMapping, ImportSheet, MappingTarget } from './types';
 
 // Preslikava stolpcev Excela na polja kontakta v brskalniku (FR-014-02; research R-04): sprememba preslikave pošlje le
@@ -7,6 +8,11 @@ export const TARGETS: MappingTarget[] = [
   'FIRST_NAME',
   'LAST_NAME',
   'ADDRESS',
+  'ADDRESS_STREET',
+  'ADDRESS_EXTRA',
+  'ADDRESS_POSTAL_CODE',
+  'ADDRESS_CITY',
+  'ADDRESS_REGION',
   'EMAIL',
   'PHONE',
   'COUNTRY',
@@ -16,7 +22,16 @@ export const TARGETS: MappingTarget[] = [
   'SKIP',
 ];
 
-export type MappingError = 'duplicateTarget' | 'duplicateKey' | 'emptyKey';
+export type MappingError = 'duplicateTarget' | 'duplicateKey' | 'emptyKey' | 'addressConflict';
+
+/** Cilji, ki sestavijo razčlenjen naslov (016, FR-016-24), in ustrezen del naslova. */
+const PART_OF: Partial<Record<MappingTarget, keyof Address>> = {
+  ADDRESS_STREET: 'street',
+  ADDRESS_EXTRA: 'extra',
+  ADDRESS_POSTAL_CODE: 'postalCode',
+  ADDRESS_CITY: 'city',
+  ADDRESS_REGION: 'region',
+};
 
 /** Napaka preslikave po stolpcu: predefinirano polje in ključ atributa sta lahko cilj največ enega stolpca. */
 export function mappingErrors(mapping: ColumnMapping[]): Map<number, MappingError> {
@@ -40,6 +55,11 @@ export function mappingErrors(mapping: ColumnMapping[]): Map<number, MappingErro
       targets.set(item.target, item.column);
     }
   }
+  // En stolpec *Naslov* (nerazčlenjen) in deli naslova hkrati se izključujeta.
+  const single = targets.get('ADDRESS');
+  if (single !== undefined && [...targets.keys()].some((target) => target in PART_OF)) {
+    errors.set(single, 'addressConflict');
+  }
   return errors;
 }
 
@@ -57,6 +77,7 @@ export function toCandidates(sheet: ImportSheet, mapping: ColumnMapping[]): Cand
       attributes: [],
       tags: [],
     };
+    const parts: Address = {};
     for (const item of mapping) {
       const value = row.cells[item.column] ?? '';
       if (value.trim() === '') continue;
@@ -90,13 +111,27 @@ export function toCandidates(sheet: ImportSheet, mapping: ColumnMapping[]): Cand
           break;
         case 'ATTRIBUTE':
           if (item.key && item.key.trim() !== '') {
-            candidate.attributes.push({ key: item.key.trim(), value });
+            candidate.attributes.push({
+              key: item.key.trim(),
+              ...(item.type ? { type: item.type } : {}),
+              value,
+            });
           }
           break;
+        case 'ADDRESS_STREET':
+        case 'ADDRESS_EXTRA':
+        case 'ADDRESS_POSTAL_CODE':
+        case 'ADDRESS_CITY':
+        case 'ADDRESS_REGION': {
+          const part = PART_OF[item.target];
+          if (part) parts[part] = value.trim();
+          break;
+        }
         case 'SKIP':
           break;
       }
     }
+    if (Object.keys(parts).length > 0) candidate.addressParts = parts;
     return candidate;
   });
 }

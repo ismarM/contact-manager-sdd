@@ -38,10 +38,12 @@ public class ContactSnapshots {
 
     private final JdbcClient jdbc;
     private final NamedParameterJdbcTemplate batch;
+    private final AttributeKeyRepository keys;
 
-    ContactSnapshots(JdbcClient jdbc, NamedParameterJdbcTemplate batch) {
+    ContactSnapshots(JdbcClient jdbc, NamedParameterJdbcTemplate batch, AttributeKeyRepository keys) {
         this.jdbc = jdbc;
         this.batch = batch;
+        this.keys = keys;
     }
 
     /** Stanja izbranih kontaktov skupine; kontakti, ki jih ni, manjkajo v odgovoru. */
@@ -129,6 +131,56 @@ public class ContactSnapshots {
         List<Target> withChildren = new ArrayList<>(restored);
         withChildren.addAll(updated);
         insertChildren(withChildren);
+    }
+
+    /**
+     * Rollback (016, FR-016-26, research R-07): tip vsakega ključa, ki ga imajo obnovljeni kontakti, se nastavi na tip iz
+     * posnetka (verzija ključa + 1). Vrednosti obnovljenih kontaktov so dobesedne in se ne preverjajo; vrednosti
+     * kontaktov, ki jih rollback ni zajel, morajo biti veljavne za obnovljeni tip, sicer {@code 409
+     * ATTRIBUTE_TYPE_CONFLICT} in nič se ne spremeni (transakcija). Ključi so zaklenjeni po vrstnem redu {@code key_norm}.
+     */
+    public void restoreKeyTypes(UUID groupId, List<Target> targets) {
+        Map<String, AttributeType> wanted = new java.util.TreeMap<>();
+        java.util.Set<UUID> restored = new java.util.HashSet<>();
+        for (Target target : targets) {
+            if (target.state() == null) {
+                continue;
+            }
+            restored.add(target.contactId());
+            for (Attribute attribute : target.state().attributes()) {
+                wanted.putIfAbsent(ContactInputParser.normalize(attribute.key()), attribute.type());
+            }
+        }
+        for (Map.Entry<String, AttributeType> entry : wanted.entrySet()) {
+            String norm = entry.getKey();
+            keys.register(groupId, norm);
+            AttributeKeyRepository.Row row = keys.lockForUpdate(groupId, norm).orElseThrow();
+            if (row.type() == entry.getValue()) {
+                continue;
+            }
+            List<TypeConflict.Item> conflicts = new ArrayList<>();
+            long invalid = 0;
+            for (AttributeKeyRepository.Value value : keys.values(groupId, norm)) {
+                if (restored.contains(value.contactId())) {
+                    continue;
+                }
+                String text = value.parts() != null ? AddressFormats.text(value.parts()) : value.value();
+                if (!TypedValues.isValid(entry.getValue(), text, value.country())) {
+                    invalid++;
+                    if (conflicts.size() < 100) {
+                        conflicts.add(new TypeConflict.Item(
+                                value.contactId(),
+                                ContactRepository.displayName(value.firstName(), value.lastName()),
+                                text));
+                    }
+                }
+            }
+            if (invalid > 0) {
+                throw new si.contactmanager.shared.error.AttributeTypeConflictException(
+                        new TypeConflict(List.copyOf(conflicts), invalid));
+            }
+            keys.setType(groupId, norm, entry.getValue());
+        }
     }
 
     /**

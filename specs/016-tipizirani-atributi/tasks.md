@@ -108,14 +108,14 @@ description: "Tasks for 016-tipizirani-atributi (po zgodbah, testi znotraj vsake
 - [x] T049 [US6] FR-016-24 — matrika: vrstica `POST …/imports/parse, …/imports/preview, …/imports` (401, 404, VIEWER 403, arhivirana 409, neveljavna vrednost po tipu → napaka vrstice, druga skupina 404)
 - [x] T050 [US6] FR-016-25 — matrika: vrstica `POST …/contacts/export, …/contacts/export/vcard; GET …/contacts/{contactId}/vcard` (401, 404, VIEWER 200, arhivirana 200, kontakt druge skupine 404)
 - [x] T051 [US6] FR-016-25 — matrika: vrstica `PROPFIND, REPORT, GET /dav/addressbooks/{groupId}/…` (401 brez/napačno geslo aplikacije, 404 nečlan, VIEWER 207/200, arhivirana 207/200)
-- [ ] T052 [US6] FR-016-26 — `audit`: `ChangeDiff`/`ChangeField` za tipe in dele naslova, filter `action=ATTRIBUTE_TYPE`, `…/audit/{entryId}`, `…/changes`; IT `AuditAttributeTypeIT`; FE `auditSentence.ts` in sled (stavek spremembe tipa, deli naslova prek `formatAddress`), ključi sl/en
-- [ ] T053 [US6] FR-016-26 — `RollbackService`: obnova tipa ključa (celotni vnos in `initial-state/rollback`; konflikt, če vrednosti niso več veljavne → po pravilih 005), `ContactSnapshots`/`RestoreService`: veljavnost za trenutni tip ključa (sicer 400), dobesedna obnova delov naslova; IT `RollbackAttributeTypeIT`, `RestoreTypedIT`
-- [ ] T054 [US6] FR-016-26 — matrika: vrstica `GET …/audit?action=ATTRIBUTE_TYPE, …/audit/{entryId}, …/changes` (401, 404, VIEWER 200, arhivirana 200, vnos druge skupine 404)
-- [ ] T055 [US6] FR-016-26 — matrika: vrstica `POST …/audit/{entryId}/rollback, …/initial-state/rollback` (401, 404, EDITOR in VIEWER 403, arhivirana 409, ADMIN 201, vnos druge skupine 404)
-- [ ] T056 [US6] FR-016-26 — matrika: vrstica `GET …/contacts/{contactId}/history, …/versions/{ref}, …/compare` (401, 404, VIEWER 200, arhivirana 200, ref druge skupine 404, tipi in deli naslova v odgovoru)
-- [ ] T057 [US6] FR-016-26 — matrika: vrstica `POST …/contacts/{contactId}/restore` (401, 404, VIEWER 403, arhivirana 409, 400 neveljavno za trenutni tip, EDITOR 201, druga skupina 404)
-- [ ] T058 [P] [US6] FR-016-24 FR-016-26 — FE: uvoz (`features/import`: izbira tipa novega ključa, preslikava delov naslova, predogled), dvojniki, zgodovina in primerjava različic (`features/history`, `duplicates`: tipi, deli naslova prek oblikovalnikov), izvoz; testi s skupnimi pomočniki + axe
-- [ ] T059 [US6] FR-016-24 FR-016-25 FR-016-26 — E2E: uvoz Excela s tipoma, izvoz kanoničen, sled spremembe tipa, rollback tipa, zgodovina kontakta; axe pri 360 in 1280
+- [x] T052 [US6] FR-016-26 — `audit`: `ChangeDiff`/`ChangeField` za tipe in dele naslova, filter `action=ATTRIBUTE_TYPE`, `…/audit/{entryId}`, `…/changes`; IT `AuditAttributeTypeIT`; FE `auditSentence.ts` in sled (stavek spremembe tipa, deli naslova prek `formatAddress`), ključi sl/en
+- [x] T053 [US6] FR-016-26 — `RollbackService`: obnova tipa ključa (celotni vnos in `initial-state/rollback`; konflikt, če vrednosti niso več veljavne → po pravilih 005), `ContactSnapshots`/`RestoreService`: veljavnost za trenutni tip ključa (sicer 400), dobesedna obnova delov naslova; IT `RollbackAttributeTypeIT`, `RestoreTypedIT`
+- [x] T054 [US6] FR-016-26 — matrika: vrstica `GET …/audit?action=ATTRIBUTE_TYPE, …/audit/{entryId}, …/changes` (401, 404, VIEWER 200, arhivirana 200, vnos druge skupine 404)
+- [x] T055 [US6] FR-016-26 — matrika: vrstica `POST …/audit/{entryId}/rollback, …/initial-state/rollback` (401, 404, EDITOR in VIEWER 403, arhivirana 409, ADMIN 201, vnos druge skupine 404)
+- [x] T056 [US6] FR-016-26 — matrika: vrstica `GET …/contacts/{contactId}/history, …/versions/{ref}, …/compare` (401, 404, VIEWER 200, arhivirana 200, ref druge skupine 404, tipi in deli naslova v odgovoru)
+- [x] T057 [US6] FR-016-26 — matrika: vrstica `POST …/contacts/{contactId}/restore` (401, 404, VIEWER 403, arhivirana 409, 400 neveljavno za trenutni tip, EDITOR 201, druga skupina 404)
+- [x] T058 [P] [US6] FR-016-24 FR-016-26 — FE: uvoz (`features/import`: izbira tipa novega ključa, preslikava delov naslova, predogled), dvojniki, zgodovina in primerjava različic (`features/history`, `duplicates`: tipi, deli naslova prek oblikovalnikov), izvoz; testi s skupnimi pomočniki + axe
+- [x] T059 [US6] FR-016-24 FR-016-25 FR-016-26 — E2E: uvoz Excela s tipoma, izvoz kanoničen, sled spremembe tipa, rollback tipa, zgodovina kontakta; axe pri 360 in 1280
 
 ## Phase 9: Polish
 

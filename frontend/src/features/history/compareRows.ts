@@ -20,11 +20,11 @@ export interface CompareRow {
 
 type Basic = Exclude<ChangeFieldName, 'ATTRIBUTE' | 'TAGS'>;
 
-const BASIC: { field: Basic; read: (state: ContactStateView) => string | null }[] = [
+const BASIC: { field: Basic; read: (state: ContactStateView) => ChangeValue }[] = [
   { field: 'FIRST_NAME', read: (s) => s.firstName },
   { field: 'LAST_NAME', read: (s) => s.lastName },
   { field: 'COMPANY', read: (s) => s.company },
-  { field: 'ADDRESS', read: (s) => s.address },
+  { field: 'ADDRESS', read: (s) => s.addressParts ?? s.address },
   { field: 'COUNTRY', read: (s) => s.country },
   { field: 'EMAIL', read: (s) => s.email },
   { field: 'PHONE', read: (s) => s.phone },
@@ -35,7 +35,7 @@ const empty = (value: ChangeValue) =>
 
 function asList(value: ChangeValue): string[] {
   if (Array.isArray(value)) return value;
-  return value ? [value] : [];
+  return typeof value === 'string' && value ? [value] : [];
 }
 
 function fromChange(change: ChangeField): CompareRow[] {
@@ -86,6 +86,13 @@ function tagRow(tag: string, kind: 'ADDED' | 'REMOVED' | 'UNCHANGED'): CompareRo
   };
 }
 
+function attributeValue(attribute: ContactStateView['attributes'][number]): ChangeValue {
+  return {
+    type: attribute.type ?? 'OTHER',
+    ...(attribute.parts ? { parts: attribute.parts } : { value: attribute.value ?? '' }),
+  };
+}
+
 /**
  * Vrstice primerjave: spremenjena polja iz odgovora (značke posamično, dodan/odstranjen atribut) in nespremenjena iz
  * stanj različic (samo izpolnjena); spremenjena so prva.
@@ -118,8 +125,8 @@ export function buildRows(comparison: Comparison): {
         id: `attribute:${attribute.key}`,
         label: { kind: 'attribute', key: attribute.key },
         kind: 'UNCHANGED',
-        before: attribute.value,
-        after: attribute.value,
+        before: attributeValue(attribute),
+        after: attributeValue(attribute),
         country: false,
         presence: false,
       });

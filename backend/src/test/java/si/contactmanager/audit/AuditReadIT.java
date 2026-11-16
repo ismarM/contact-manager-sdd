@@ -310,7 +310,7 @@ class AuditReadIT extends AuditApiTest {
                 .containsEntry("field", "ATTRIBUTE")
                 .containsEntry("key", "kompetenca")
                 .containsEntry("before", null)
-                .containsEntry("after", "web dev");
+                .containsEntry("after", Map.of("type", "OTHER", "value", "web dev"));
         Map<String, Object> deletedContact = asObjects(deleted.get("items")).get(0);
         assertThat(deletedContact).containsEntry("kind", "REMOVED").containsEntry("displayName", "Janez Kovač");
         assertThat(asObjects(deletedContact.get("fields")))

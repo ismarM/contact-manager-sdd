@@ -4,7 +4,9 @@ import { expect, type Page, test } from '@playwright/test';
 import { idToken } from './support/audit';
 import { signIn, type TestUser, uniqueUser } from './support/auth';
 import { seedContact } from './support/duplicates';
-import { createGroup, setRole } from './support/groups';
+import { createGroup, setRole, sql } from './support/groups';
+import { NAMES, xlsxBuffer } from './support/importExport';
+import { readXlsx } from './support/xlsx';
 import { createSearchContact } from './support/contacts';
 import {
   addressPartsOf,
@@ -485,4 +487,113 @@ test('FR-016-22: nenajden, približen in nedosegljiv naslov atributa so sporoči
   await expect(page.getByRole('heading', { level: 2, name: 'Nedosegljiv' })).toBeVisible();
 
   expect([...origins]).toEqual([new URL(page.url()).origin]);
+});
+
+// US6: tipi v uvozu, izvozu, sledi, rollbacku in zgodovini kontakta.
+test('FR-016-24 FR-016-25: uvoz Excela s tipom Telefon in deli naslova, izvoz je kanoničen', async ({
+  page,
+}) => {
+  await signedIn(page);
+  const id = await createGroup(page, { title: 'Uvoz s tipi' });
+  const file = await xlsxBuffer([
+    ['Ime', 'Priimek', 'Ulica', 'Kraj', 'Mobitel'],
+    ['Ana', 'Kos', 'Trg 1', 'Ljubljana', '041 123 456'],
+  ]);
+
+  await page.goto(`/groups/${id}/contacts`);
+  await page.getByRole('button', { name: NAMES.importMenu }).click();
+  await page.getByRole('menuitem', { name: NAMES.fromExcel }).click();
+  await page
+    .getByLabel(NAMES.xlsxFile)
+    .setInputFiles({ name: 'kontakti.xlsx', mimeType: 'application/octet-stream', buffer: file });
+  await page.getByRole('button', { name: NAMES.read }).click();
+
+  await page
+    .getByLabel('Uvozi stolpec Ulica v')
+    .selectOption({ label: 'Naslov: ulica in hišna številka' });
+  await page.getByLabel('Uvozi stolpec Kraj v').selectOption({ label: 'Naslov: kraj' });
+  await expect(page.getByLabel('Ključ atributa za stolpec Mobitel')).toHaveValue('Mobitel');
+  await page.getByLabel('Tip ključa za stolpec Mobitel').selectOption({ label: 'Telefon' });
+  const confirm = page.getByRole('button', { name: NAMES.confirm(1) });
+  await expect(confirm).toBeEnabled();
+  await expect(page.getByRole('table', { name: 'Vrstice za uvoz' })).toContainText('Trg 1');
+  await expectNoAxeViolations(page);
+  await confirm.click();
+
+  await expect(page).toHaveURL(new RegExp(`/groups/${id}/contacts$`));
+  expect(keyTypeOf(id, 'Mobitel')).toBe('PHONE');
+  expect(valuesOfKey(id, 'Mobitel')).toEqual(['+38641123456']);
+  const contact = sql(`select id from contact where group_id = '${id}'::uuid`);
+  expect(addressPartsOf(contact)).toEqual({ street: 'Trg 1', city: 'Ljubljana' });
+  expect(auditActions(id)).toEqual(['IMPORT']);
+
+  // Izvoz ostane kanoničen: telefon E.164, naslov po pravilih države (ne po shemi uporabnika).
+  await page.getByRole('checkbox', { name: 'Izberi Ana Kos', exact: true }).check();
+  const downloading = page.waitForEvent('download');
+  await page
+    .getByRole('toolbar', { name: 'Dejanja izbora' })
+    .getByRole('button', { name: 'Izvozi v Excel' })
+    .click();
+  const exported = await readXlsx(await (await downloading).path());
+  const cells = exported.rows.flat();
+  expect(cells).toContain('+38641123456');
+  expect(cells.some((cell) => cell.includes('Trg 1') && cell.includes('Ljubljana'))).toBe(true);
+});
+
+test('FR-016-26: sprememba tipa ključa v sledi in zgodovini kontakta, rollback na začetno stanje vrne tip in vrednost', async ({
+  page,
+}) => {
+  await signedIn(page);
+  const id = await createGroup(page, { title: 'Sled tipov' });
+  const contact = createContactWithTypedAttribute(id, 'Ana Prva', 'Mobilni', '041 123 456');
+
+  await openAttributes(page, id);
+  await page.getByRole('button', { name: 'Spremeni tip ključa Mobilni' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Sprememba tipa ključa' });
+  await dialog.getByRole('combobox', { name: 'Novi tip' }).selectOption({ label: 'Telefon' });
+  await dialog.getByRole('button', { name: 'Spremeni tip', exact: true }).click();
+  await expect(toast(page)).toContainText('Tip ključa »Mobilni« je spremenjen.');
+  expect(keyTypeOf(id, 'Mobilni')).toBe('PHONE');
+  expect(valuesOfKey(id, 'Mobilni')).toEqual(['+38641123456']);
+
+  // Sled: en vnos s ključem in tipoma; podrobnosti pokažejo vrednost pred in po s pripisom spremembe tipa.
+  await page.goto(`/groups/${id}/audit`);
+  const trail = page.getByRole('list', { name: 'Vnosi revizijske sledi' });
+  const entry = trail.getByRole('listitem').first();
+  await expect(entry).toContainText(
+    'spremenil(a) tip ključa »Mobilni« iz Drugo v Telefon (1 kontakt)',
+  );
+  await entry.getByRole('group', { name: 'Podrobnosti' }).click();
+  await entry
+    .getByRole('list', { name: 'Prizadeti kontakti' })
+    .getByRole('group', { name: 'Ana Prva' })
+    .click();
+  const table = entry.getByRole('table', { name: 'Spremembe kontakta Ana Prva' });
+  await expect(table.getByRole('row', { name: /Mobilni/ })).toContainText('tip: Drugo → Telefon');
+  await expect(table.getByRole('row', { name: /Mobilni/ })).toContainText('041 123 456');
+  await expect(table.getByRole('row', { name: /Mobilni/ })).toContainText('+386 41 123 456');
+  await expectNoAxeViolations(page);
+
+  // Zgodovina kontakta kaže isto spremembo.
+  await page.goto(`/groups/${id}/contacts/${contact}/history`);
+  const events = page.getByRole('list', { name: 'Dogodki zgodovine kontakta' });
+  await expect(events.getByRole('listitem')).toHaveCount(1);
+  await events.getByRole('listitem').first().getByRole('group', { name: 'Podrobnosti' }).click();
+  await expect(page.getByRole('table', { name: 'Spremembe kontakta Ana Prva' })).toContainText(
+    'tip: Drugo → Telefon',
+  );
+  await expectNoAxeViolations(page);
+
+  // Rollback skupine na začetno stanje vrne prejšnji tip in vrednost dobesedno.
+  await page.goto(`/groups/${id}/audit`);
+  const initial = trail.getByRole('listitem').filter({ hasText: /Začetno stanje/ });
+  await initial.getByRole('button', { name: 'Povrni skupino na to točko' }).click();
+  const rollback = page.getByRole('dialog', { name: 'Povrnem skupino na začetno stanje?' });
+  await expectNoAxeViolations(page);
+  await rollback.getByRole('button', { name: 'Povrni skupino' }).click();
+
+  await expect(toast(page)).toContainText('Skupina je povrnjena na začetno stanje.');
+  expect(keyTypeOf(id, 'Mobilni')).toBe('OTHER');
+  expect(valuesOfKey(id, 'Mobilni')).toEqual(['041 123 456']);
+  expect(auditActions(id)).toEqual(['ATTRIBUTE_TYPE', 'ROLLBACK']);
 });

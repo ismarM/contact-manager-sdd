@@ -35,7 +35,10 @@ export function VersionFields({ version }: { version: Version }) {
   const { state } = version;
   const rows: [string, string][] = [
     [t('contacts.view.company'), state.company ?? ''],
-    [t('contacts.view.address'), state.address ?? ''],
+    [
+      t('contacts.view.address'),
+      state.addressParts ? format.address(state.addressParts) : (state.address ?? ''),
+    ],
     [t('contacts.view.country'), state.country ? countryName(state.country, language) : ''],
     [t('contacts.view.email'), state.email ?? ''],
     [t('contacts.view.phone'), state.phone ? format.phone(state.phone) : ''],
@@ -60,7 +63,11 @@ export function VersionFields({ version }: { version: Version }) {
             {state.attributes.map((attribute) => (
               <div key={attribute.key} className="contents">
                 <dt className="font-bold break-words">{attribute.key}</dt>
-                <dd className="break-words whitespace-pre-line">{attribute.value}</dd>
+                <dd className="break-words whitespace-pre-line">
+                  {attribute.parts
+                    ? format.address(attribute.parts, true)
+                    : format.byType(attribute.type, attribute.value ?? '')}
+                </dd>
               </div>
             ))}
           </dl>

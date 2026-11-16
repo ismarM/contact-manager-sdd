@@ -1,8 +1,10 @@
 package si.contactmanager.audit;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import si.contactmanager.contact.Address;
 import si.contactmanager.contact.Attribute;
 import si.contactmanager.contact.ContactState;
 import si.contactmanager.group.UserRef;
@@ -46,6 +48,7 @@ final class HistoryViews {
             String firstName,
             String lastName,
             String address,
+            @JsonInclude(JsonInclude.Include.NON_NULL) Address addressParts,
             String email,
             String phone,
             String company,
@@ -59,6 +62,7 @@ final class HistoryViews {
                     s.firstName(),
                     s.lastName(),
                     s.address(),
+                    s.addressParts(),
                     s.email(),
                     s.phone(),
                     s.company(),
