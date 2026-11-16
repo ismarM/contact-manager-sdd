@@ -22,6 +22,8 @@ import { CountryField } from './CountryField';
 import { SuggestInput } from './SuggestInput';
 import { TagInput } from './TagInput';
 import type { ContactDetail, ContactInput } from './types';
+import { allCountries, foldText, isCountryCode } from './countries';
+import type { CardCandidate } from './qr/vcardTypes';
 import {
   type AttributeRow,
   type ErrorKey,
@@ -70,6 +72,47 @@ function fromContact(contact: ContactDetail): FormValues {
   };
 }
 
+/**
+ * Začetne vrednosti iz kode QR (014, FR-014-18): država se izbere samo ob natančnem ujemanju kode ali imena (sl/en),
+ * sicer ostane prazna s predlogom ob polju; atributi in značke so prenesene, kot so.
+ */
+function fromCandidate(candidate: CardCandidate): {
+  values: FormValues;
+  countryHint: string | null;
+} {
+  const text = candidate.countryText?.trim() ?? '';
+  const code = text === '' ? '' : exactCountry(text);
+  return {
+    values: {
+      firstName: candidate.firstName ?? '',
+      lastName: candidate.lastName ?? '',
+      company: candidate.company ?? '',
+      address: candidate.address ?? '',
+      country: code,
+      email: candidate.email ?? '',
+      phone: candidate.phone ?? '',
+      attributes: candidate.attributes.map((attribute) => ({
+        id: newRowId(),
+        ...attribute,
+        original: attribute.key,
+      })),
+      tags: [...candidate.tags],
+    },
+    countryHint: text !== '' && code === '' ? text : null,
+  };
+}
+
+function exactCountry(text: string): string {
+  const upper = text.toUpperCase();
+  if (isCountryCode(upper)) return upper;
+  const folded = foldText(text);
+  for (const language of ['sl', 'en'] as const) {
+    const match = allCountries(language).find((option) => foldText(option.name) === folded);
+    if (match) return match.code;
+  }
+  return '';
+}
+
 /** Telo zahtevka: obrezane vrednosti, prazno polje `null`, popolnoma prazne vrstice atributov se ne pošljejo. */
 function toInput(values: FormValues): { input: ContactInput; rows: AttributeRow[] } {
   const optional = (value: string) => (value.trim() === '' ? null : value.trim());
@@ -100,9 +143,12 @@ const serialize = (values: FormValues) => JSON.stringify(toInput(values).input);
 export function ContactForm({
   contact,
   labelledBy,
+  prefill,
 }: {
   contact?: ContactDetail;
   labelledBy: string;
+  /** 014: podatki iz kode QR za nov kontakt (FR-014-18). */
+  prefill?: CardCandidate;
 }) {
   const { t } = useTranslation();
   const api = useContactsApi();
@@ -110,10 +156,16 @@ export function ContactForm({
   const location = useLocation();
   const navigate = useNavigate();
   const prefix = useId();
-  const [values, setValues] = useState<FormValues>(() => (contact ? fromContact(contact) : EMPTY));
+  const [initial] = useState(() => (prefill && !contact ? fromCandidate(prefill) : null));
+  const [values, setValues] = useState<FormValues>(() =>
+    contact ? fromContact(contact) : (initial?.values ?? EMPTY),
+  );
   const [baseline, setBaseline] = useState(() => serialize(contact ? fromContact(contact) : EMPTY));
   const [version, setVersion] = useState(contact?.version ?? 0);
-  const [errors, setErrors] = useState<Record<string, ErrorKey>>({});
+  const [errors, setErrors] = useState<Record<string, ErrorKey>>(() =>
+    initial ? validate(initial.values) : {},
+  );
+  const countryHint = initial?.countryHint ?? null;
   const [summary, setSummary] = useState(false);
   const [failure, setFailure] = useState<FailureKey | null>(null);
   const [conflict, setConflict] = useState<ContactDetail | null>(null);
@@ -403,6 +455,7 @@ export function ContactForm({
 
   return (
     <>
+      {initial && <p role="status">{t('contacts.form.qrPrefilled')}</p>}
       {summary && listed.length > 0 && (
         <div ref={summaryRef} role="alert" tabIndex={-1} className={`${errorAlert} flex-col`}>
           <p className="flex gap-2 font-bold">
@@ -511,6 +564,11 @@ export function ContactForm({
               {...describe('country')}
             />
             {message('country')}
+            {countryHint && !values.country && (
+              <p role="note" className="text-muted-foreground">
+                {t('contacts.form.qrCountryHint', { text: countryHint })}
+              </p>
+            )}
           </div>
           {textField('email', t('contacts.form.email'), { type: 'email', autoComplete: 'off' })}
           {textField('phone', t('contacts.form.phone'), { type: 'tel', autoComplete: 'off' })}

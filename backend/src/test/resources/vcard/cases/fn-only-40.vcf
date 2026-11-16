@@ -1,0 +1,9 @@
+BEGIN:VCARD
+VERSION:4.0
+FN:Dr. Ana Marija Kos
+EMAIL;PREF=2:ana@primer.si
+EMAIL;PREF=1:ana.kos@primer.si
+TEL;VALUE=uri;TYPE=cell:tel:+386-41-000-111
+ADR;TYPE=work:;;Glavni trg 1;Kranj;;4000;Avstrija
+ADR;PREF=1:;Nadstropje 2;Ulica 5;Celje;Štajerska;3000;Slovenija
+END:VCARD

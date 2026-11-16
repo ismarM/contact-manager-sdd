@@ -47,6 +47,11 @@ export function useAuditSentence() {
         if (single && name) return t('audit.sentence.DELETE_named', { name });
         if (single && options.anonymous) return t('audit.sentence.DELETE_single');
         return t('audit.sentence.DELETE_count', { count: entry.contactCount });
+      case 'IMPORT':
+        // 014 (FR-014-05): uvoz se prikaže kot vsak drug vnos z več kontakti.
+        if (single && name) return t('audit.sentence.IMPORT_named', { name });
+        if (single && options.anonymous) return t('audit.sentence.IMPORT_single');
+        return t('audit.sentence.IMPORT_count', { count: entry.contactCount });
       default:
         if (single && name) return t('audit.sentence.default_named', { name });
         if (single && options.anonymous) return t('audit.sentence.default_single');

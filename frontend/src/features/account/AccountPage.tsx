@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { Language } from '../../i18n/language';
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
 import { useAuth } from '../auth/authContext';
+import { AppPasswordsSection } from './AppPasswordsSection';
 import { DeleteAccountSection } from './DeleteAccountSection';
 import { MyDataSection } from './MyDataSection';
 import type { Theme } from './preferences';
@@ -82,6 +83,8 @@ export function AccountPage() {
       </section>
 
       <MyDataSection />
+
+      <AppPasswordsSection />
 
       <DeleteAccountSection />
 

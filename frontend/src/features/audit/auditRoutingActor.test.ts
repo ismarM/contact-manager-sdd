@@ -17,7 +17,7 @@ describe('auditRouting – izvajalec', () => {
   });
 
   it('neveljavna oblika je neveljaven filter, neznana vrsta dejanja se prezre', () => {
-    const view = readAuditView(new URLSearchParams('actor=foo&action=IMPORT'));
+    const view = readAuditView(new URLSearchParams('actor=foo&action=EXPORT'));
 
     expect(view.filters).toEqual({ actions: [], contact: null, actor: null });
     expect(view.contactInvalid).toBe(true);

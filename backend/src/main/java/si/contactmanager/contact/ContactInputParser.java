@@ -104,6 +104,14 @@ public final class ContactInputParser {
         } catch (JacksonException e) {
             return malformed();
         }
+        return parseNode(root, update);
+    }
+
+    /**
+     * Razčlenitev že prebranega objekta (014 uvoz: en kontakt iz seznama); enaka pravila kot {@link #parseCreate}. Ne-objekt
+     * je {@code body MALFORMED}.
+     */
+    public Parsed parseNode(JsonNode root, boolean update) {
         if (root == null || !root.isObject()) {
             return malformed();
         }

@@ -11,6 +11,7 @@ import { useDelayed } from '../groups/useDelayed';
 import { isNotFound, useContactsApi } from './api';
 import { canEditContacts } from './contactRouting';
 import { ContactForm } from './ContactForm';
+import type { QrPrefillState } from './qr/QrScanDialog';
 import type { ContactDetail } from './types';
 
 type State =
@@ -83,7 +84,12 @@ export function ContactFormPage({ contactId }: { contactId?: string }) {
       <h2 id={headingId} className="text-2xl font-bold">
         {t(contactId ? 'contacts.form.editHeading' : 'contacts.form.newHeading')}
       </h2>
-      {!contactId && <ContactForm labelledBy={headingId} />}
+      {!contactId && (
+        <ContactForm
+          labelledBy={headingId}
+          prefill={(location.state as QrPrefillState | null)?.qrCandidate}
+        />
+      )}
       {contactId && state.kind === 'ready' && (
         <ContactForm key={state.contact.id} contact={state.contact} labelledBy={headingId} />
       )}

@@ -40,4 +40,10 @@ describe('exportFileName', () => {
       'Projekt-FERI-kontakti-2026-01-01.xlsx',
     );
   });
+
+  it('FR-014-10: izvoz vizitk ima enako ime s končnico .vcf', () => {
+    expect(exportFileName('Projekt FERI', 'en', new Date(2026, 10, 2, 9, 0), 'vcf')).toBe(
+      'Projekt-FERI-contacts-2026-11-02.vcf',
+    );
+  });
 });

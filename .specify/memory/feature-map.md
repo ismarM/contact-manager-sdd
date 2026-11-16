@@ -26,6 +26,7 @@
 | 011 | dvojniki | iskanje podvojenih kontaktov po kategorijah, tabela razlik, združevanje (editor in višje) | `features/duplicates`, paket `contact` |
 | 012 | moji podatki | izvoz lastnih podatkov (JSON), izbris računa z vsemi posledicami (»izbrisan uporabnik«, trajno arhivirane skupine) | `features/account` |
 | 013 | pametni atributi | predefinirani polji *Podjetje* in *Država* (koda ISO 3166-1), predlogi ključev, vrednosti, podjetij, držav in značk, kanonični zapis ključev in značk, ročni prenos starih atributov | `features/contacts`, paket `contact` |
+| 014 | uvoz in izvoz | uvoz iz Excela in vizitk s predogledom (editor in višje), izvoz vCard (izbor, en kontakt), koda QR kontakta (deljenje, branje s kamero ali iz slike), CardDAV samo za branje z gesli za aplikacijo | `features/import`, `features/contacts/qr`, `features/account`, paketi `contact`, `account`, `carddav` |
 | 015 | napredna revizija | filter sledi po uporabniku (tudi nekdanji in izbrisani), zgodovina posameznega kontakta, ogled in primerjava različic, obnova enega kontakta, seznam izbrisanih kontaktov | `features/audit`, `features/contacts`, paket `audit` |
 
 Poti: `features/*` je `frontend/src/features/*`, paketi so `backend/src/main/java/si/contactmanager/*`, E2E scenariji so v `e2e/tests/*.spec.ts`.
@@ -54,7 +55,8 @@ Pri vsakem zahtevku nad podatki skupine se preverja v tem vrstnem redu; prvi neu
 | 6 | neveljavni podatki | `400` s kodo `VALIDATION_FAILED` in napakami po poljih |
 | 7 | kršitev poslovnega pravila (npr. lastnik zapušča skupino, izbris skupine z več člani) | `409` z imenovano kodo, ki jo določi funkcionalnost (register v §2.10) |
 
-- Viri, vezani na uporabnika (povabila, moji podatki, moj račun): `401` brez prijave, `404` za tuj vir (npr. tuje povabilo).
+- Viri, vezani na uporabnika (povabila, moji podatki, moj račun, gesla za aplikacijo): `401` brez prijave, `404` za tuj vir (npr. tuje povabilo).
+- CardDAV (014, nov tip klicatelja): prijava samo s HTTP Basic (e-naslov računa + geslo za aplikacijo) na `/dav/**`; vrstni red `401` → `404` (skupina ali kontakt ni viden) → `403` (vsako pisanje). Firebase žeton tam ne velja, Basic ne velja na `/api`.
 - Napake imajo strojno berljivo kodo; vmesnik jo prevede v razumljivo sporočilo v sl/en (brez tehničnih kod v vmesniku).
 - Vsak uspeh in neuspeh je v vmesniku viden (design.md 8.13).
 
@@ -67,7 +69,8 @@ Pri vsakem zahtevku nad podatki skupine se preverja v tem vrstnem redu; prvi neu
 
 - **Arhivirana skupina** (arhivira jo lastnik): vsi člani imajo efektivno pravice bralca. Dovoljeno je samo:
   - branje (kontakti, podrobnosti, iskanje, filtri, revizijska sled, člani, podatki skupine);
-  - izvoz izbranih kontaktov v Excel;
+  - izvoz izbranih kontaktov v Excel in vCard (014), vizitka enega kontakta in koda QR;
+  - branje imenikov prek CardDAV (014; CardDAV je vedno samo za branje);
   - zapuščanje skupine (pravila 007);
   - izbris skupine (pravila 003);
   - odarhiviranje (samo lastnik, ne pri trajno arhivirani);
@@ -101,7 +104,7 @@ Povsod, kjer bi bilo prikazano ime ali e-naslov uporabnika, ki je izbrisal raču
 
 ### 2.7 Revizijska sled
 
-Od funkcionalnosti 005 naprej **vsaka** sprememba kontaktov (ustvarjanje, urejanje, izbris, množične spremembe, združevanje, rollback) ustvari vnos v revizijski sledi skupine. Funkcionalnosti 009 in 011 to zahtevata v svojih FR; 005 doda beleženje operacij iz 004.
+Od funkcionalnosti 005 naprej **vsaka** sprememba kontaktov (ustvarjanje, urejanje, izbris, množične spremembe, združevanje, rollback, obnova enega kontakta – `RESTORE`, 015, uvoz – `IMPORT`, 014) ustvari vnos v revizijski sledi skupine. Branje (izvoz, CardDAV) se ne beleži. Funkcionalnosti 009 in 011 to zahtevata v svojih FR; 005 doda beleženje operacij iz 004.
 
 ### 2.8 Nevarne operacije
 
@@ -127,5 +130,6 @@ Skupne kode (§2.2): `UNAUTHENTICATED` (401), `FORBIDDEN` (403, D-25), `GROUP_AR
 | `SELECTION_CHANGED` | 009 | izbrani kontakti medtem ne obstajajo več |
 | `EXPORT_EMPTY` | 010 | izvoz, v katerem ne ostane noben kontakt |
 | `OWNS_ACTIVE_GROUPS` | 012 | izbris računa lastnika nearhivirane skupine |
+| `APP_PASSWORD_LIMIT` | 014 | ustvarjanje enajstega gesla za aplikacijo |
 | `RESTORE_NO_CHANGES` | 015 | obnova kontakta, ki ne bi spremenila nobenega polja |
 | `RESTORE_NOT_ALLOWED` | 015 | obnova kontakta, ki je bil z združevanjem odstranjen (neposredna obnova ni dovoljena) |

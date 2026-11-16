@@ -19,8 +19,8 @@ const PATH = `/groups/${GROUP_ID}/audit`;
 
 const TARGET = { entryId: entryId(1), createdAt: '2026-10-12T12:32:00Z' };
 const ENTRIES = [
-  auditEntry({ id: entryId(5), action: 'IMPORT', contactCount: 1000, contactName: null }),
-  auditEntry({ id: entryId(4), action: 'IMPORT', contactCount: 1, contactName: 'Janez Novak' }),
+  auditEntry({ id: entryId(5), action: 'EXPORT', contactCount: 1000, contactName: null }),
+  auditEntry({ id: entryId(4), action: 'EXPORT', contactCount: 1, contactName: 'Janez Novak' }),
   auditEntry({
     id: entryId(3),
     action: 'RESTORE',
@@ -43,7 +43,7 @@ describe('AuditUnknownAction', () => {
     await i18n.changeLanguage('sl');
   });
 
-  it('FR-015-18: neznana vrsta (IMPORT) je splošen stavek, brez napake; RESTORE ima svoj stavek s povezavo na različico', async () => {
+  it('FR-015-18: neznana vrsta (EXPORT; IMPORT je od 014 znana) je splošen stavek, brez napake; RESTORE ima svoj stavek s povezavo na različico', async () => {
     renderAuditApp(PATH, { role: 'VIEWER', handlers: { list: auditPageReply(ENTRIES) } });
 
     const items = within(
@@ -66,7 +66,7 @@ describe('AuditUnknownAction', () => {
   });
 
   it('FR-015-18: filter pozna vrsto obnova, neznana vrsta v poti se prezre', async () => {
-    const { user, api } = renderAuditApp(`${PATH}?action=IMPORT&action=RESTORE`, {
+    const { user, api } = renderAuditApp(`${PATH}?action=EXPORT&action=RESTORE`, {
       role: 'VIEWER',
       handlers: { list: auditPageReply(ENTRIES) },
     });

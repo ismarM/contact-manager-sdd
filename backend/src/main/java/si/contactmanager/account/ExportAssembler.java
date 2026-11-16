@@ -17,6 +17,8 @@ final class ExportAssembler {
 
     record OwnedRow(String title, String description, String color, boolean archived, Instant createdAt) {}
 
+    record AppPasswordRow(String name, Instant createdAt, Instant lastUsedAt) {}
+
     private ExportAssembler() {}
 
     static final String DELETED_USER = "izbrisan uporabnik";
@@ -28,6 +30,18 @@ final class ExportAssembler {
             List<ReceivedRow> received,
             List<SentRow> sent,
             List<OwnedRow> owned) {
+        return assemble(exportedAt, profile, memberships, received, sent, owned, List.of());
+    }
+
+    /** 014: z gesli za aplikacijo (FR-014-25), po času nastanka. */
+    static MyData assemble(
+            Instant exportedAt,
+            ProfileRow profile,
+            List<MembershipRow> memberships,
+            List<ReceivedRow> received,
+            List<SentRow> sent,
+            List<OwnedRow> owned,
+            List<AppPasswordRow> appPasswords) {
         return new MyData(
                 1,
                 exportedAt,
@@ -55,6 +69,10 @@ final class ExportAssembler {
                                 row.color(),
                                 row.archived() ? "ARCHIVED" : "ACTIVE",
                                 row.createdAt()))
+                        .toList(),
+                appPasswords.stream()
+                        .sorted(Comparator.comparing(AppPasswordRow::createdAt).thenComparing(AppPasswordRow::name))
+                        .map(row -> new MyData.AppPassword(row.name(), row.createdAt(), row.lastUsedAt()))
                         .toList());
     }
 

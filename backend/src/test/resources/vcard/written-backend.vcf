@@ -1,0 +1,16 @@
+BEGIN:VCARD
+VERSION:3.0
+N:Kos Šuštar;Ana Marija
+FN:Ana Marija Kos Šuštar
+ORG:Žaga\, d.o.o.\; Kranj
+EMAIL;TYPE=internet:ana.kos@primer.si
+TEL;TYPE=voice:+386 41 123 456
+ADR;X-CM-CC=AT:;;Celovška cesta 12\n1000 Ljubljana;;;;Avstrija
+CATEGORIES:alumni,konferenca2025,čšž
+attr1.X-CM-KEY:Vloga
+attr1.X-CM-VALUE:mentor
+attr2.X-CM-KEY:Formula
+attr2.X-CM-VALUE:=SUM(A1\;B2)\, +1
+attr3.X-CM-KEY:Pot
+attr3.X-CM-VALUE:C:\\mapa\\datoteka
+END:VCARD

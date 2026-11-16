@@ -137,6 +137,7 @@ export function SelectionActionBar({
           </>
         )}
         <ExportButton />
+        <ExportButton format="vcf" />
         <button type="button" className={`ml-auto px-2 underline ${focusRing}`} onClick={onClear}>
           {t('contacts.selection.clear')}
         </button>

@@ -77,6 +77,46 @@
       "confirm": "Izbriši račun",
       "failed": "Računa ni bilo mogoče izbrisati. Poskusi znova.",
       "ownsActiveGroups": "Račun ne more biti izbrisan, ker si medtem postal lastnik nearhivirane skupine. Prenesi lastništvo ali arhiviraj te skupine."
+    },
+    "appPasswords": {
+      "heading": "Gesla za aplikacijo (CardDAV)",
+      "description": "Z geslom za aplikacijo telefon ali poštni odjemalec prek CardDAV prikaže kontakte tvojih skupin. Imeniki so samo za branje.",
+      "create": "Novo geslo",
+      "nameLabel": "Ime naprave",
+      "nameRequired": "Vpiši ime naprave.",
+      "nameTooLong": "Ime je predolgo (največ 50 znakov).",
+      "createSubmit": "Ustvari geslo",
+      "cancel": "Prekliči",
+      "createdTitle": "Geslo za {{name}}",
+      "showOnce": "Geslo je prikazano samo enkrat. Kopiraj ga zdaj.",
+      "server": "Naslov strežnika",
+      "username": "Uporabniško ime",
+      "password": "Geslo",
+      "copy": "Kopiraj {{what}}",
+      "copied": "Kopirano.",
+      "close": "Zapri",
+      "list": "Gesla za aplikacijo",
+      "empty": "Še nimaš gesel za aplikacijo.",
+      "created": "Ustvarjeno {{date}}",
+      "lastUsed": "zadnja uporaba {{date}}",
+      "neverUsed": "še ni uporabljeno",
+      "revoke": "Prekliči geslo {{name}}",
+      "revokeTitle": "Prekliči geslo {{name}}?",
+      "revokeBody": "Naprave, ki uporabljajo to geslo, ne bodo več dobile kontaktov. Druga gesla delujejo naprej.",
+      "revokeConfirm": "Prekliči geslo",
+      "revoked": "Geslo {{name}} je preklicano.",
+      "limit": "Imaš že 10 gesel. Prekliči katero, preden ustvariš novo.",
+      "failed": "Gesla ni bilo mogoče ustvariti. Poskusi znova.",
+      "revokeFailed": "Gesla ni bilo mogoče preklicati. Poskusi znova.",
+      "loadFailed": "Gesel ni bilo mogoče naložiti. Poskusi znova.",
+      "retry": "Poskusi znova",
+      "help": {
+        "heading": "Kako povežem telefon ali poštni odjemalec",
+        "step1": "Ustvari geslo za aplikacijo in ga kopiraj.",
+        "step2": "V nastavitvah naprave dodaj račun CardDAV (iPhone: Nastavitve → Stiki → Računi → Dodaj račun → Drugo; Android: DAVx5; Thunderbird: Imenik → Nov imenik CardDAV).",
+        "step3": "Vpiši naslov strežnika {{server}}, uporabniško ime {{username}} in geslo za aplikacijo.",
+        "https": "Povezava deluje samo prek varne povezave HTTPS."
+      }
     }
   },
   "roles": {
@@ -282,7 +322,9 @@
       "countryList": "Države",
       "companySuggestions": "Predlagana podjetja",
       "keySuggestions": "Predlagani ključi",
-      "valueSuggestions": "Predlagane vrednosti"
+      "valueSuggestions": "Predlagane vrednosti",
+      "qrCountryHint": "Država iz kode QR: »{{text}}«. Izberi državo s seznama.",
+      "qrPrefilled": "Podatki iz kode QR so vpisani. Preveri jih in shrani kontakt."
     },
     "errors": {
       "nameRequired": "Vpiši vsaj ime ali priimek.",
@@ -542,6 +584,51 @@
       "unknown": "Vrednosti ni bilo mogoče prepoznati. Izberi državo s seznama; atribut se odstrani šele, ko shraniš kontakt.",
       "pickLegend": "Izberi državo"
     },
+    "importMenu": {
+      "button": "Uvozi",
+      "xlsx": "Iz Excela (.xlsx)",
+      "vcf": "Iz vizitk (.vcf)"
+    },
+    "vcard": {
+      "download": "Prenesi vizitko (.vcf)",
+      "selection": "Izvozi v vCard (.vcf)",
+      "busy": "Pripravljam vizitke…",
+      "failed": "Vizitke ni bilo mogoče prenesti. Poskusi znova."
+    },
+    "qrShare": {
+      "button": "Deli s kodo QR",
+      "title": "Koda QR – {{name}}",
+      "warning": "Kdor kodo poskenira, vidi vključene podatke.",
+      "alt": "Koda QR s kontaktom {{name}}",
+      "included": "Vključeno: {{fields}}.",
+      "omitted": "Ni vključeno: {{fields}}.",
+      "download": "Prenesi sliko",
+      "close": "Zapri",
+      "failed": "Kode QR ni bilo mogoče izdelati.",
+      "fields": {
+        "name": "ime in priimek",
+        "company": "podjetje",
+        "email": "e-naslov",
+        "phone": "telefon",
+        "country": "država",
+        "address": "naslov",
+        "tags": "značke",
+        "attributes": "dodatni atributi"
+      }
+    },
+    "qrScan": {
+      "button": "Dodaj s kodo QR",
+      "title": "Dodaj s kodo QR",
+      "instruction": "Usmeri kamero v kodo QR.",
+      "video": "Slika kamere",
+      "noCamera": "Kamera ni na voljo. Izberi sliko s kodo QR.",
+      "pickImage": "Izberi sliko",
+      "noCode": "Na sliki ni kode QR s kontaktom.",
+      "manyCodes": "Na sliki je več kod QR. Izberi sliko z eno kodo.",
+      "tooLarge": "Slika je večja od 10 MB.",
+      "reading": "Berem kodo…",
+      "close": "Zapri"
+    },
     "deletedLink": "Izbrisani kontakti"
   },
   "audit": {
@@ -584,6 +671,11 @@
       "MERGE_count_other": "združil(a) {{count}} kontaktov",
       "ROLLBACK_target": "povrnil(a) skupino na stanje",
       "ROLLBACK_initial": "povrnil(a) skupino na začetno stanje",
+      "IMPORT_named": "uvozil(a) kontakt {{name}}",
+      "IMPORT_count_one": "uvozil(a) {{count}} kontakt",
+      "IMPORT_count_two": "uvozil(a) {{count}} kontakta",
+      "IMPORT_count_few": "uvozil(a) {{count}} kontakte",
+      "IMPORT_count_other": "uvozil(a) {{count}} kontaktov",
       "CREATE_single": "dodal(a) kontakt",
       "UPDATE_single": "uredil(a) kontakt",
       "DELETE_single": "izbrisal(a) kontakt",
@@ -596,7 +688,8 @@
       "default_count_one": "spremenil(a) {{count}} kontakt",
       "default_count_two": "spremenil(a) {{count}} kontakta",
       "default_count_few": "spremenil(a) {{count}} kontakte",
-      "default_count_other": "spremenil(a) {{count}} kontaktov"
+      "default_count_other": "spremenil(a) {{count}} kontaktov",
+      "IMPORT_single": "uvozil(a) kontakt"
     },
     "filters": {
       "toggle": "Filtri",
@@ -610,6 +703,7 @@
         "DELETE": "odstranjevanje",
         "MERGE": "združevanje",
         "ROLLBACK": "rollback",
+        "IMPORT": "uvoz",
         "RESTORE": "obnova"
       },
       "removeAction": "Odstrani filter Vrsta: {{action}}",
@@ -959,6 +1053,128 @@
   "suggest": {
     "count": "Predlogov: {{total}}",
     "none": "Ni predlogov"
+  },
+  "import": {
+    "heading": "Uvoz kontaktov",
+    "screenXlsx": "Uvoz iz Excela",
+    "screenVcf": "Uvoz iz vizitk",
+    "back": "Nazaj na seznam kontaktov",
+    "fileXlsx": "Preglednica Excel (.xlsx)",
+    "fileVcf": "Datoteka vizitk (.vcf)",
+    "read": "Preberi datoteko",
+    "reading": "Berem datoteko…",
+    "sheets": "Uvozi se samo prvi list preglednice.",
+    "omittedPhoto": "Fotografije in drugi podatki vizitk, ki jih kontakt nima, se ne uvozijo.",
+    "fileErrors": {
+      "REQUIRED": "Izberi datoteko.",
+      "FILE_TOO_LARGE": "Datoteka je večja od 10 MB.",
+      "NOT_XLSX": "Datoteka ni preglednica Excel (.xlsx).",
+      "NOT_VCF": "Datoteka ni datoteka vizitk (.vcf).",
+      "NO_HEADER": "Preglednica nima vrstice glave.",
+      "TOO_MANY_ROWS": "Naenkrat lahko uvoziš največ 10 000 kontaktov.",
+      "TOO_MANY_COLUMNS": "Preglednica ima preveč stolpcev.",
+      "failed": "Datoteke ni bilo mogoče prebrati. Poskusi znova."
+    },
+    "mapping": {
+      "heading": "Preslikava stolpcev",
+      "column": "Stolpec",
+      "target": "Uvozi v",
+      "targetFor": "Uvozi stolpec {{column}} v",
+      "keyFor": "Ključ atributa za stolpec {{column}}",
+      "duplicateTarget": "To polje je že izbrano za drug stolpec.",
+      "duplicateKey": "Ta ključ je že izbran za drug stolpec.",
+      "emptyKey": "Vpiši ključ atributa.",
+      "targets": {
+        "FIRST_NAME": "Ime",
+        "LAST_NAME": "Priimek",
+        "ADDRESS": "Naslov",
+        "EMAIL": "E-naslov",
+        "PHONE": "Telefon",
+        "COUNTRY": "Država",
+        "COMPANY": "Podjetje",
+        "TAGS": "Značke",
+        "ATTRIBUTE": "Dodatni atribut",
+        "SKIP": "Ne uvozi"
+      }
+    },
+    "preview": {
+      "heading": "Predogled",
+      "checking": "Preverjam vrstice…",
+      "ready_one": "{{count}} kontakt je pripravljen za uvoz.",
+      "ready_two": "{{count}} kontakta sta pripravljena za uvoz.",
+      "ready_few": "{{count}} kontakti so pripravljeni za uvoz.",
+      "ready_other": "{{count}} kontaktov je pripravljenih za uvoz.",
+      "invalid_one": "{{count}} vrstica ima napake.",
+      "invalid_two": "{{count}} vrstici imata napake.",
+      "invalid_few": "{{count}} vrstice imajo napake.",
+      "invalid_other": "{{count}} vrstic ima napake.",
+      "skipped_one": "{{count}} vrstica je preskočena kot dvojnik.",
+      "skipped_two": "{{count}} vrstici sta preskočeni kot dvojnik.",
+      "skipped_few": "{{count}} vrstice so preskočene kot dvojnik.",
+      "skipped_other": "{{count}} vrstic je preskočenih kot dvojnik.",
+      "table": "Vrstice za uvoz",
+      "row": "Vrstica",
+      "name": "Ime in priimek",
+      "status": "Stanje",
+      "rowNumber": "Vrstica {{row}}",
+      "ok": "Pripravljeno",
+      "invalid": "Napaka",
+      "duplicateNAME": "Enako ime kot {{name}}",
+      "duplicateEMAIL": "Enak e-naslov kot {{name}}",
+      "duplicatePHONE": "Enak telefon kot {{name}}",
+      "duplicateInFile": "Enako kot vrstica {{row}}",
+      "decision": "Dvojnik v vrstici {{row}}",
+      "skip": "Preskoči",
+      "create": "Ustvari",
+      "fieldError": "{{field}}: {{reason}}",
+      "fields": {
+        "firstName": "Ime",
+        "lastName": "Priimek",
+        "address": "Naslov",
+        "email": "E-naslov",
+        "phone": "Telefon",
+        "company": "Podjetje",
+        "country": "Država",
+        "attributes": "Dodatni atributi",
+        "tags": "Značke",
+        "body": "Vrstica"
+      },
+      "reasons": {
+        "REQUIRED": "manjka (vpiši vsaj ime ali priimek)",
+        "TOO_LONG": "predolgo",
+        "INVALID_VALUE": "neveljavna vrednost",
+        "DUPLICATE": "podvojeno",
+        "RESERVED_KEY": "rezervirano ime predefiniranega polja",
+        "TOO_MANY": "preveč vrednosti",
+        "UNKNOWN_FIELD": "neznano polje",
+        "MALFORMED": "neberljivo"
+      },
+      "data": "Podatki"
+    },
+    "countries": {
+      "heading": "Države",
+      "choose": "Država za »{{text}}«",
+      "leaveEmpty": "Pusti prazno",
+      "pick": "Izberi državo",
+      "ambiguous": "»{{text}}« je dvoumno.",
+      "unknown": "»{{text}}« ni prepoznana država.",
+      "unresolved": "Razreši vse države, preden uvoziš."
+    },
+    "confirm_one": "Uvozi {{count}} kontakt",
+    "confirm_two": "Uvozi {{count}} kontakta",
+    "confirm_few": "Uvozi {{count}} kontakte",
+    "confirm_other": "Uvozi {{count}} kontaktov",
+    "importing": "Uvažam kontakte…",
+    "done": "Uvoženih kontaktov: {{count}}.",
+    "doneSkipped": "Preskočenih dvojnikov: {{count}}.",
+    "failed": "Uvoz ni uspel, noben kontakt ni bil ustvarjen.",
+    "archived": "Skupina je arhivirana, uvoz ni mogoč.",
+    "retry": "Poskusi znova",
+    "nothing": "Ni veljavnih vrstic za uvoz.",
+    "pagination": "Strani predogleda",
+    "page": "Stran {{page}} od {{pages}}",
+    "previous": "Prejšnja stran",
+    "next": "Naslednja stran"
   },
   "history": {
     "kind": {

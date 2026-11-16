@@ -129,6 +129,65 @@ public class ContactSnapshots {
     }
 
     /**
+     * Uvoz (FR-014-05): nove kontakte vstavi s stavki {@code unnest} po kosih, v vrstnem redu seznama (id-ji
+     * {@code uuidv7()} naraščajo, kontakti imajo enak čas nastanka); vrne id-je v istem vrstnem redu.
+     */
+    List<UUID> insertNew(UUID groupId, long actor, List<ContactInput> inputs) {
+        List<UUID> ids = jdbc.sql("SELECT uuidv7() AS id FROM generate_series(1, :n) ORDER BY id")
+                .param("n", inputs.size())
+                .query(UUID.class)
+                .list();
+        for (int from = 0; from < inputs.size(); from += CHUNK) {
+            int to = Math.min(inputs.size(), from + CHUNK);
+            List<ContactInput> chunk = inputs.subList(from, to);
+            update(
+                    "INSERT INTO contact (id, group_id, first_name, last_name, address, email, phone, company, country,"
+                            + " sort_last, sort_first, updated_by)"
+                            + " SELECT v.id, ?, v.first_name, v.last_name, v.address, v.email, v.phone, v.company,"
+                            + " v.country, v.sort_last, v.sort_first, ?"
+                            + " FROM unnest(?::uuid[], ?::text[], ?::text[], ?::text[], ?::text[], ?::text[], ?::text[],"
+                            + " ?::text[], ?::text[], ?::text[])"
+                            + " AS v(id, first_name, last_name, address, email, phone, company, country, sort_last,"
+                            + " sort_first)",
+                    groupId,
+                    actor,
+                    array("uuid", ids.subList(from, to).stream()),
+                    array("text", chunk.stream().map(ContactInput::firstName)),
+                    array("text", chunk.stream().map(ContactInput::lastName)),
+                    array("text", chunk.stream().map(ContactInput::address)),
+                    array("text", chunk.stream().map(ContactInput::email)),
+                    array("text", chunk.stream().map(ContactInput::phone)),
+                    array("text", chunk.stream().map(ContactInput::company)),
+                    array("text", chunk.stream().map(ContactInput::country)),
+                    array("text", chunk.stream().map(c -> sortKey(c.lastName()))),
+                    array("text", chunk.stream().map(c -> sortKey(c.firstName()))));
+        }
+        List<Target> children = new ArrayList<>(inputs.size());
+        for (int i = 0; i < inputs.size(); i++) {
+            ContactInput input = inputs.get(i);
+            children.add(new Target(
+                    ids.get(i),
+                    new ContactState(
+                            input.firstName(),
+                            input.lastName(),
+                            input.address(),
+                            input.email(),
+                            input.phone(),
+                            input.company(),
+                            input.country(),
+                            input.attributes(),
+                            input.tags(),
+                            0,
+                            java.time.Instant.EPOCH,
+                            java.time.Instant.EPOCH,
+                            actor),
+                    false));
+        }
+        insertChildren(children);
+        return ids;
+    }
+
+    /**
      * Obnova enega kontakta (015, research R-05): vrstica dobi vrednosti ciljnega stanja, novo verzijo, dejanskega
      * izvajalca in čas obnove ({@code now()}), brez oznake rollbacka; {@code exists == false} vstavi izbrisan kontakt z
      * istim id. Atributi in značke se zamenjajo. Vedno s pogojem {@code group_id}; drugih kontaktov se ne dotakne.
@@ -247,7 +306,7 @@ public class ContactSnapshots {
     }
 
     /** Vstavljanje atributov in značk z večvrstičnimi stavki (unnest); neodvisno od {@code reWriteBatchedInserts}. */
-    private void insertChildren(List<Target> targets) {
+    void insertChildren(List<Target> targets) {
         List<UUID> attributeContact = new ArrayList<>();
         List<Integer> attributePosition = new ArrayList<>();
         List<String> attributeKey = new ArrayList<>();

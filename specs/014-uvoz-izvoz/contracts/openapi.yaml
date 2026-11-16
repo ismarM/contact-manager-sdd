@@ -1,0 +1,166 @@
+openapi: 3.0.3
+info: {title: 014 uvoz in izvoz (samo nove poti; CardDAV v carddav.md), version: 1.0.0}
+paths:
+  /api/groups/{groupId}/imports/parse:
+    post:
+      summary: Razčlenitev datoteke za uvoz (EDITOR, arhivirana 409). Datoteka se ne hrani. format in language sta lahko polji multipart ali parametra poizvedbe (frontend uporablja poizvedbo).
+      parameters:
+        - {name: groupId, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: format, in: query, required: false, schema: {type: string, enum: [XLSX, VCF]}}
+        - {name: language, in: query, required: false, schema: {type: string, enum: [sl, en]}}
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, format]
+              properties:
+                file: {type: string, format: binary, description: "≤ 10 MB"}
+                format: {type: string, enum: [XLSX, VCF]}
+                language: {type: string, enum: [sl, en], description: "imena atributov iz vizitk (E-naslov 2 / Email 2 …)"}
+      responses:
+        '200': {content: {application/json: {schema: {oneOf: [{$ref: '#/components/schemas/ImportSheet'}, {$ref: '#/components/schemas/ImportCards'}]}}}}
+        '400': {description: "VALIDATION_FAILED; file: FILE_TOO_LARGE | NOT_XLSX | NOT_VCF | NO_HEADER | TOO_MANY_ROWS | TOO_MANY_COLUMNS | EMPTY; format: INVALID_VALUE"}
+        '401': {description: UNAUTHENTICATED}
+        '403': {description: FORBIDDEN (VIEWER)}
+        '404': {description: skupina ne obstaja ali ni član}
+        '409': {description: GROUP_ARCHIVED}
+  /api/groups/{groupId}/imports/preview:
+    post:
+      summary: Preverjanje kandidatov, prepoznava držav, dvojniki (EDITOR, arhivirana 409)
+      parameters:
+        - {name: groupId, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        content: {application/json: {schema: {type: object, required: [candidates], properties: {candidates: {type: array, minItems: 1, maxItems: 10000, items: {$ref: '#/components/schemas/ImportCandidate'}}}}}}
+      responses:
+        '200': {content: {application/json: {schema: {type: object, properties: {rows: {type: array, items: {$ref: '#/components/schemas/PreviewRow'}}}}}}}
+        '400': {description: "VALIDATION_FAILED (candidates REQUIRED | TOO_MANY)"}
+        '401': {description: UNAUTHENTICATED}
+        '403': {description: FORBIDDEN}
+        '404': {description: ni član}
+        '409': {description: GROUP_ARCHIVED}
+  /api/groups/{groupId}/imports:
+    post:
+      summary: Potrditev uvoza – atomarno, en vnos sledi IMPORT (EDITOR, arhivirana 409)
+      parameters:
+        - {name: groupId, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [source, contacts]
+              properties:
+                source: {type: string, enum: [XLSX, VCF]}
+                contacts: {type: array, minItems: 1, maxItems: 10000, items: {$ref: '#/components/schemas/ImportContact'}}
+      responses:
+        '201': {content: {application/json: {schema: {type: object, required: [created, auditEntryId], properties: {created: {type: integer}, auditEntryId: {type: string, format: uuid}}}}}}
+        '400': {description: "VALIDATION_FAILED; napake po poljih contacts[i].firstName …; nič ne nastane"}
+        '401': {description: UNAUTHENTICATED}
+        '403': {description: FORBIDDEN}
+        '404': {description: ni član}
+        '409': {description: GROUP_ARCHIVED}
+  /api/groups/{groupId}/contacts/export/vcard:
+    post:
+      summary: Izvoz izbora v .vcf (VIEWER, arhivirana dovoljena); telo in pravila kot POST …/contacts/export (010)
+      parameters:
+        - {name: groupId, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: "text/vcard; charset=utf-8; glave X-Export-Count, X-Export-Skipped"}
+        '400': {description: VALIDATION_FAILED (kot 010)}
+        '401': {description: UNAUTHENTICATED}
+        '404': {description: ni član ali tuj identifikator}
+        '409': {description: EXPORT_EMPTY}
+  /api/groups/{groupId}/contacts/{contactId}/vcard:
+    get:
+      summary: Vizitka enega kontakta (VIEWER, arhivirana dovoljena)
+      parameters:
+        - {name: groupId, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: contactId, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: language, in: query, required: false, schema: {type: string, enum: [sl, en]}}
+      responses:
+        '200': {description: "text/vcard; charset=utf-8"}
+        '401': {description: UNAUTHENTICATED}
+        '404': {description: ni član, kontakt druge skupine ali ne obstaja}
+  /api/me/app-passwords:
+    get:
+      summary: Seznam gesel za aplikacijo (prijavljen uporabnik); nikoli gesla
+      responses:
+        '200': {content: {application/json: {schema: {type: object, properties: {items: {type: array, maxItems: 10, items: {$ref: '#/components/schemas/AppPassword'}}}}}}}
+        '401': {description: UNAUTHENTICATED}
+    post:
+      summary: Novo geslo; vrednost je v odgovoru samo enkrat
+      requestBody:
+        content: {application/json: {schema: {type: object, required: [name], properties: {name: {type: string, minLength: 1, maxLength: 50}}}}}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - {$ref: '#/components/schemas/AppPassword'}
+                  - {type: object, required: [password, username], properties: {password: {type: string, description: "xxxx-xxxx-xxxx-xxxx-xxxx-xxxx-xxxx"}, username: {type: string, description: e-naslov računa}}}
+        '400': {description: "VALIDATION_FAILED (name REQUIRED | TOO_LONG)"}
+        '401': {description: UNAUTHENTICATED}
+        '409': {description: APP_PASSWORD_LIMIT (že 10)}
+  /api/me/app-passwords/{passwordId}:
+    delete:
+      summary: Preklic gesla
+      parameters:
+        - {name: passwordId, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '204': {description: preklicano}
+        '401': {description: UNAUTHENTICATED}
+        '404': {description: tuje ali neobstoječe geslo}
+components:
+  schemas:
+    ImportCandidate:
+      type: object
+      properties:
+        firstName: {type: string, nullable: true}
+        lastName: {type: string, nullable: true}
+        address: {type: string, nullable: true}
+        email: {type: string, nullable: true}
+        phone: {type: string, nullable: true}
+        company: {type: string, nullable: true}
+        countryText: {type: string, nullable: true, description: besedilo iz datoteke}
+        attributes: {type: array, items: {type: object, required: [key, value], properties: {key: {type: string}, value: {type: string}}}}
+        tags: {type: array, items: {type: string}}
+    ImportContact:
+      description: kot ContactInput 004/013 brez version; country je koda ISO ali null
+      allOf:
+        - {$ref: '#/components/schemas/ImportCandidate'}
+        - {type: object, properties: {country: {type: string, nullable: true, pattern: '^[A-Z]{2}$'}}}
+    ImportSheet:
+      type: object
+      required: [format, sheetCount, headers, suggestedMapping, rows]
+      properties:
+        format: {type: string, enum: [XLSX]}
+        sheetCount: {type: integer}
+        headers: {type: array, items: {type: string}}
+        suggestedMapping: {type: array, items: {type: object, required: [column, target], properties: {column: {type: integer}, target: {type: string, enum: [FIRST_NAME, LAST_NAME, ADDRESS, EMAIL, PHONE, COUNTRY, COMPANY, TAGS, ATTRIBUTE, SKIP]}, key: {type: string, nullable: true}}}}
+        rows: {type: array, maxItems: 10000, items: {type: object, required: [rowNumber, cells], properties: {rowNumber: {type: integer}, cells: {type: array, items: {type: string}}}}}
+    ImportCards:
+      type: object
+      required: [format, candidates]
+      properties:
+        format: {type: string, enum: [VCF]}
+        candidates: {type: array, maxItems: 10000, items: {$ref: '#/components/schemas/ImportCandidate'}}
+        omitted: {type: array, items: {type: string, enum: [PHOTO, OTHER]}, description: "lastnosti, ki se ne uvozijo (za obvestilo v predogledu)"}
+    PreviewRow:
+      type: object
+      required: [index, errors, country]
+      properties:
+        index: {type: integer}
+        errors: {type: array, items: {type: object, required: [field, code], properties: {field: {type: string}, code: {type: string}}}}
+        country: {type: object, required: [status], properties: {status: {type: string, enum: [FOUND, AMBIGUOUS, UNKNOWN, EMPTY]}, code: {type: string, nullable: true}, candidates: {type: array, items: {type: string}}}}
+        duplicate: {type: object, nullable: true, properties: {reason: {type: string, enum: [NAME, EMAIL, PHONE]}, contactName: {type: string, nullable: true}, inFileIndex: {type: integer, nullable: true}}}
+        normalized: {type: object, properties: {attributeKeys: {type: array, items: {type: string}}, tags: {type: array, items: {type: string}}}}
+    AppPassword:
+      type: object
+      required: [id, name, createdAt]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        createdAt: {type: string, format: date-time}
+        lastUsedAt: {type: string, format: date-time, nullable: true}

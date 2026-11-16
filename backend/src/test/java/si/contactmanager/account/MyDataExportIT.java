@@ -178,7 +178,8 @@ class MyDataExportIT extends AccountApiTest {
                         "memberships",
                         "receivedInvitations",
                         "sentInvitations",
-                        "ownedGroups");
+                        "ownedGroups",
+                        "appPasswords");
         assertThat(body).doesNotContain("\"id\"").doesNotContain("memberId").doesNotContain("firebase");
     }
 
@@ -191,7 +192,8 @@ class MyDataExportIT extends AccountApiTest {
         assertThat(data.get("profile").get("email").asString()).isEqualTo(email(nova));
         assertThat(data.get("profile").get("language").isNull()).isTrue();
         assertThat(data.get("profile").get("theme").isNull()).isTrue();
-        for (String list : new String[] {"memberships", "receivedInvitations", "sentInvitations", "ownedGroups"}) {
+        for (String list :
+                new String[] {"memberships", "receivedInvitations", "sentInvitations", "ownedGroups", "appPasswords"}) {
             assertThat(data.get(list).isArray()).as(list).isTrue();
             assertThat(data.get(list)).as(list).isEmpty();
         }

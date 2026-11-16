@@ -1,0 +1,22 @@
+BEGIN:VCARD
+VERSION:3.0
+N:Novak;Janez;;;
+FN:Janez Novak
+EMAIL;TYPE=INTERNET:janez@delo.si
+EMAIL;TYPE=INTERNET,pref:janez@doma.si
+TEL;TYPE=CELL:041 111 111
+TEL;TYPE=WORK:01 222 222
+TEL;TYPE=HOME:01 333 333
+BDAY:1990-05-17
+PHOTO;ENCODING=b;TYPE=JPEG:/9j/4AAQSkZJRg==
+URL:https://primer.si
+NOTE:Srečala na konferenci\, Bled
+ORG:Univerza v Mariboru;FERI
+CATEGORIES:stranka,nov kontakt
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:;;;;
+FN:Brez Imena
+TEL:041 999 888
+END:VCARD

@@ -10,6 +10,7 @@ export const AUDIT_ACTIONS = [
   'MERGE',
   'ROLLBACK',
   'RESTORE',
+  'IMPORT',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

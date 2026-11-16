@@ -221,8 +221,8 @@ describe('ContactHistoryPage', () => {
     ).toHaveAttribute('href', `/groups/${GROUP_ID}/contacts/${CONTACT_ID}/history/${entryId(1)}`);
   });
 
-  it('FR-015-18: neznana vrsta dejanja (IMPORT) je splošen stavek s poljih, brez napake', async () => {
-    render([historyEvent(2, { action: 'IMPORT', entryContactCount: 1000 })]);
+  it('FR-015-18: neznana vrsta dejanja (EXPORT; IMPORT je od 014 znana) je splošen stavek s poljih, brez napake', async () => {
+    render([historyEvent(2, { action: 'EXPORT', entryContactCount: 1000 })]);
 
     const item = await eventItem('Ana Novak');
     expect(item).toHaveTextContent('spremenil(a) kontakt');
