@@ -1,0 +1,51 @@
+openapi: 3.0.3
+info: {title: 017 – spremembe obstoječih končnih točk, version: 1.0.0}
+x-conventions:
+  errors: "401 UNAUTHENTICATED; 403 EMAIL_NOT_VERIFIED | REAUTHENTICATION_REQUIRED | FORBIDDEN; 400 VALIDATION_FAILED {errors:[{field,code}]}"
+  order: "401 → 403 EMAIL_NOT_VERIFIED (filter, pred vsem) → nadaljevanje po feature-map §2.2"
+paths:
+  /api/groups:
+    get:
+      summary: "002 + iskanje po nazivu (uporabnik; le nearhivirane)"
+      parameters:
+        - {name: q, in: query, required: false, schema: {type: string, maxLength: 100}, description: "del naziva, brez razlike velikosti črk in diakritik; prazno = brez filtra; >100 znakov → 400 INVALID_VALUE"}
+        - {name: role, in: query, required: false, schema: {type: string, enum: [OWNER, ADMIN, EDITOR, VIEWER]}}
+        - {name: page, in: query, schema: {type: integer, minimum: 0}}
+        - {name: size, in: query, schema: {type: integer, enum: [25, 50, 100]}}
+        - {name: lang, in: query, schema: {type: string, enum: [sl, en]}}
+      responses:
+        '200': {description: "razdelki po vlogi; total = število zadetkov razdelka (le neprazni razdelki)"}
+        '400': {description: VALIDATION_FAILED}
+        '401': {description: UNAUTHENTICATED}
+        '403': {description: EMAIL_NOT_VERIFIED}
+  /api/groups/archived:
+    get:
+      summary: "003 + iskanje in filter vlog"
+      parameters:
+        - {name: q, in: query, required: false, schema: {type: string, maxLength: 100}}
+        - {name: role, in: query, required: false, style: form, explode: true, schema: {type: array, items: {type: string, enum: [OWNER, ADMIN, EDITOR, VIEWER]}}, description: "ponovljiv; neznana vrednost → 400 INVALID_VALUE"}
+        - {name: page, in: query, schema: {type: integer, minimum: 0}}
+        - {name: size, in: query, schema: {type: integer, enum: [25, 50, 100]}}
+        - {name: lang, in: query, schema: {type: string, enum: [sl, en]}}
+      responses:
+        '200': {description: "ploski seznam; total = število zadetkov"}
+        '400': {description: VALIDATION_FAILED}
+        '401': {description: UNAUTHENTICATED}
+        '403': {description: EMAIL_NOT_VERIFIED}
+  /api/me:
+    put:
+      summary: "001 – profil nastane šele za potrjen e-naslov"
+      responses:
+        '200': {description: OK}
+        '201': {description: ustvarjen}
+        '401': {description: UNAUTHENTICATED}
+        '403': {description: "EMAIL_NOT_VERIFIED – profil se ne ustvari ali posodobi"}
+        '409': {description: "ACCOUNT_CONFLICT – e-naslov je že v profilu z drugim Firebase UID; nič se ne spremeni"}
+  /api/me/deletion:
+    post:
+      summary: "012 + ponovna avtentikacija (auth_time ≤ 300 s)"
+      responses:
+        '202': {description: IDENTITY_DELETION_PENDING}
+        '204': {description: izbrisano}
+        '401': {description: UNAUTHENTICATED}
+        '403': {description: "EMAIL_NOT_VERIFIED | REAUTHENTICATION_REQUIRED"}

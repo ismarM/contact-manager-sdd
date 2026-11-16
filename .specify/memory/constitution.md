@@ -41,8 +41,8 @@ dnevnika sprememb testov in brez dokumentov, ki jih Spec Kit sam ne pozna.
 
 ### III. Izolacija skupin in vloge
 
-- Zaledje je dostopno samo prek zavarovanega REST vmesnika. Firebase Authentication (ponudnik
-  Google) zagotavlja **samo identiteto**; avtorizacija je lastna, po vlogah v skupini
+- Zaledje je dostopno samo prek zavarovanega REST vmesnika. Firebase Authentication (ponudnika
+  Google in e-pošta z geslom) zagotavlja **samo identiteto**; avtorizacija je lastna, po vlogah v skupini
   `VIEWER < EDITOR < ADMIN < OWNER`, in se vedno preverja na zaledju.
 - Kontakti, revizijska sled in člani so strogo izolirani med skupinami.
 - Matrika izolacije: neprijavljen `401`; nečlan `404` (obstoj skupine ali vira se ne razkrije);
@@ -75,7 +75,7 @@ dnevnika sprememb testov in brez dokumentov, ki jih Spec Kit sam ne pozna.
 
 - Uporabnik lahko izvozi svoje podatke (JSON) in izbriše račun; posledice izbrisa so opisane v
   `feature-map.md` §2.4–2.5 in izbrisan uporabnik je povsod prikazan kot »izbrisan uporabnik«.
-- Hranijo se samo osebni podatki, ki jih aplikacija potrebuje (ime in e-naslov iz Google računa)
+- Hranijo se samo osebni podatki, ki jih aplikacija potrebuje (ime in e-naslov iz Google računa ali računa z geslom; gesel aplikacija ne hrani, upravlja jih Firebase)
   in uporabnikova izbira jezika in teme, ki velja na vseh njegovih napravah; kopija izbire v
   brskalniku velja tudi pred prijavo in po odjavi.
 - Skrivnosti niso v Gitu (gitleaks v pre-commit); pisave in drugi viri se gostijo lokalno, brez
@@ -275,7 +275,7 @@ največ 20 vrstic; celoten izpis zadnjega zagona je v `.verify/last.log`.
   Tabler Icons, pisavi Atkinson Hyperlegible Next/Mono, PWA; streže ga nginx.
 - **Backend:** Spring Boot (Java 21), REST, preverjanje Firebase ID žetonov.
 - **Podatkovna baza:** PostgreSQL z migracijami.
-- **Avtentikacija:** Firebase Authentication, samo ponudnik Google; registracija ob prvi prijavi.
+- **Avtentikacija:** Firebase Authentication, ponudnika Google in e-pošta z geslom; registracija ob prvi prijavi; dostop do API ima samo uporabnik s potrjenim e-naslovom (`403 EMAIL_NOT_VERIFIED`); gesla hrani samo Firebase.
 - **Izvajanje:** Docker Compose (PostgreSQL, Firebase Auth Emulator za razvoj in teste, backend,
   frontend za nginx).
 - **Orodja:** Spotless, JUnit 5, Testcontainers · Prettier, ESLint (`jsx-a11y`), Vitest, React
@@ -305,4 +305,6 @@ gre za arhitekturno odločitev (§2.6).
   `.specify/templates/overrides/` se spreminjajo s pull requestom, ki ga potrdita oba razvijalca.
 - `CLAUDE.md` je kratek kazalec na ta dokument (do ~25 vrstic) in se vzdržuje ročno.
 
-**Version**: 3.2.0 | **Ratified**: 2026-11-02 | **Last Amended**: 2026-11-16
+**Version**: 3.3.0 | **Ratified**: 2026-11-02 | **Last Amended**: 2026-11-16
+
+<!-- Sprememba 3.3.0 (§5, III, VI: dodana prijava z e-pošto in geslom) je predlog v PR funkcionalnosti 017. Odstopanje od §7: spremembo je odobril razvijalec funkcionalnosti 017, Patrikova potrditev ob pripravi PR še ni zabeležena; PR se ne združi samodejno, Patrik jo potrdi (ali zavrne) v pregledu PR. -->

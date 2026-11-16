@@ -13,7 +13,7 @@
 | Oznaka | Funkcionalnost | Obseg | Koda |
 |---|---|---|---|
 | 000 | ogrodje | ogrodje BE/FE/E2E, Docker Compose, žetoni v Tailwindu, i18n sl/en, PWA ogrodje, `verify.sh`, CI, gitleaks | `scripts/verify/`, `verify.sh`, `compose*.yaml` |
-| 001 | prijava | prijava in registracija z Googlom (Firebase), odjava, zaščitene poti, ogrodje aplikacije, stran za neobstoječe poti, *Moj račun* – *Profil* in *Videz* (jezik, tema) | `features/auth`, `features/account`, `shared/layout` |
+| 001 | prijava | prijava in registracija z Googlom (Firebase; od 017 tudi z geslom), odjava, zaščitene poti, ogrodje aplikacije, stran za neobstoječe poti, *Moj račun* – *Profil* in *Videz* (jezik, tema) | `features/auth`, `features/account`, `shared/layout` |
 | 002 | skupine | ustvarjanje skupine (naslov, opis, barva; ustvarjalec postane lastnik), seznam mojih skupin po vlogah, glava in zavihki skupine, urejanje skupine (lastnik, admin) | `features/groups`, paket `group` |
 | 003 | arhiviranje | arhiviranje in odarhiviranje (lastnik), seznam arhiviranih skupin, način samo za branje, stanje »trajno arhivirana«, izbris skupine (edini član) | `features/groups`, paket `group` |
 | 004 | kontakti | ustvarjanje, ogled, urejanje in izbris kontakta (predefinirani in dodatni atributi, značke), seznam s paginacijo, optimistično zaklepanje | `features/contacts`, paket `contact` |
@@ -28,6 +28,7 @@
 | 013 | pametni atributi | predefinirani polji *Podjetje* in *Država* (koda ISO 3166-1), predlogi ključev, vrednosti, podjetij, držav in značk, kanonični zapis ključev in značk, ročni prenos starih atributov | `features/contacts`, paket `contact` |
 | 014 | uvoz in izvoz | uvoz iz Excela in vizitk s predogledom (editor in višje), izvoz vCard (izbor, en kontakt), koda QR kontakta (deljenje, branje s kamero ali iz slike), CardDAV samo za branje z gesli za aplikacijo | `features/import`, `features/contacts/qr`, `features/account`, paketi `contact`, `account`, `carddav` |
 | 015 | napredna revizija | filter sledi po uporabniku (tudi nekdanji in izbrisani), zgodovina posameznega kontakta, ogled in primerjava različic, obnova enega kontakta, seznam izbrisanih kontaktov | `features/audit`, `features/contacts`, paket `audit` |
+| 017 | prijava z geslom in skupine | registracija, prijava in ponastavitev gesla (Email/Password poleg Googla), obvezna potrditev e-naslova (`403 EMAIL_NOT_VERIFIED`), izrecno povezovanje Googla in gesla v isti račun (isti UID), ponovna avtentikacija pri izbrisu računa; iskanje in filtri skupin (naziv, vloga, aktivne/arhivirane); zapusti skupino z razlago za lastnika | `features/auth`, `features/account`, `features/groups`, `features/members`, paketa `account`, `group`, `shared/security` |
 
 Poti: `features/*` je `frontend/src/features/*`, paketi so `backend/src/main/java/si/contactmanager/*`, E2E scenariji so v `e2e/tests/*.spec.ts`.
 
@@ -48,6 +49,7 @@ Pri vsakem zahtevku nad podatki skupine se preverja v tem vrstnem redu; prvi neu
 | # | Pogoj | Odgovor |
 |---|---|---|
 | 1 | ni žetona, neveljaven ali potekel žeton | `401` s kodo `UNAUTHENTICATED` |
+| 1a | žeton je veljaven, vendar `email_verified` ni `true` (017; velja za vse `/api/**` razen `GET /api/health`) | `403` s kodo `EMAIL_NOT_VERIFIED`, nič se ne ustvari ali spremeni |
 | 2 | skupina ne obstaja ali uporabnik ni njen član (tudi vir v tuji skupini, npr. kontakt druge skupine) | `404` – ne razkrije obstoja |
 | 3 | vloga člana je pod najnižjo dovoljeno ali krši pravilo »le nižjim od sebe« | `403` s kodo `FORBIDDEN` (D-25) |
 | 4 | pisanje v arhivirani skupini (§2.4) | `409` s kodo `GROUP_ARCHIVED` |
@@ -78,7 +80,7 @@ Pri vsakem zahtevku nad podatki skupine se preverja v tem vrstnem redu; prvi neu
   
   Vse drugo (tudi pošiljanje povabil, spremembe vlog, odstranjevanje članov, prenos lastništva, urejanje skupine, rollback, dvojniki) → `409 GROUP_ARCHIVED`, če ima član sicer zadostno vlogo; sicer `403` (§2.2).
 - **Trajno arhivirana skupina** nastane, ko lastnik arhivirane skupine izbriše račun (012). Nima lastnika (kot lastnik je prikazan »izbrisan uporabnik«), ne more se odarhivirati, zadnji član je ne more zapustiti, lahko jo le izbriše; izbriše jo lahko tudi član, ki ni lastnik, če je edini član.
-- Arhivirane skupine niso na seznamu skupin po vlogah, ampak na ločenem seznamu *Arhivirane skupine*.
+- Arhivirane skupine niso na seznamu skupin po vlogah, ampak na ločenem seznamu *Arhivirane skupine*; od 017 so dosegljive tudi z domače strani prek filtra *Stanje* (isti seznam z iskanjem po nazivu in filtrom vlog).
 
 ### 2.5 Izbrisan uporabnik
 
@@ -133,3 +135,6 @@ Skupne kode (§2.2): `UNAUTHENTICATED` (401), `FORBIDDEN` (403, D-25), `GROUP_AR
 | `APP_PASSWORD_LIMIT` | 014 | ustvarjanje enajstega gesla za aplikacijo |
 | `RESTORE_NO_CHANGES` | 015 | obnova kontakta, ki ne bi spremenila nobenega polja |
 | `RESTORE_NOT_ALLOWED` | 015 | obnova kontakta, ki je bil z združevanjem odstranjen (neposredna obnova ni dovoljena) |
+| `EMAIL_NOT_VERIFIED` (403) | 017 | zahtevek z žetonom nepotrjenega e-naslova |
+| `REAUTHENTICATION_REQUIRED` (403) | 017 | izbris računa, ko je `auth_time` starejši od 5 minut |
+| `ACCOUNT_CONFLICT` (409) | 017 | e-naslov je že v profilu z drugim Firebase UID |
