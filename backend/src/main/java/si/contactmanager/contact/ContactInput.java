@@ -10,9 +10,24 @@ public record ContactInput(
         String firstName,
         String lastName,
         String address,
+        Address addressParts,
         String email,
         String phone,
         String company,
         String country,
         List<Attribute> attributes,
-        List<String> tags) {}
+        List<String> tags) {
+    /** Stanje brez razčlenjenega naslova (pred 016): {@code addressParts} je {@code null}. */
+    public ContactInput(
+            String firstName,
+            String lastName,
+            String address,
+            String email,
+            String phone,
+            String company,
+            String country,
+            List<Attribute> attributes,
+            List<String> tags) {
+        this(firstName, lastName, address, null, email, phone, company, country, attributes, tags);
+    }
+}

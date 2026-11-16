@@ -65,7 +65,8 @@ function fromContact(contact: ContactDetail): FormValues {
     phone: contact.phone ?? '',
     attributes: contact.attributes.map((attribute) => ({
       id: newRowId(),
-      ...attribute,
+      key: attribute.key,
+      value: attribute.value ?? '',
       original: attribute.key,
     })),
     tags: [...contact.tags],
@@ -93,7 +94,8 @@ function fromCandidate(candidate: CardCandidate): {
       phone: candidate.phone ?? '',
       attributes: candidate.attributes.map((attribute) => ({
         id: newRowId(),
-        ...attribute,
+        key: attribute.key,
+        value: attribute.value ?? '',
         original: attribute.key,
       })),
       tags: [...candidate.tags],

@@ -1,4 +1,5 @@
 import type { UserRef } from '../groups/types';
+import type { Address, AttributeType } from '../attributes/types';
 
 // Oblike odgovorov API kontaktov (specs/004-kontakti/contracts/openapi.yaml).
 
@@ -16,7 +17,15 @@ export interface RevertInfo {
 
 export interface Attribute {
   key: string;
-  value: string;
+  /**
+   * 016: tip ključa v skupini. Odgovor ga vedno vsebuje; zahtevek ga pošlje samo za nov ključ (sicer velja tip ključa),
+   * manjkajoč = `OTHER`.
+   */
+  type?: AttributeType;
+  /** Kanonična vrednost; `null` pri razčlenjenem naslovu (`parts`). */
+  value: string | null;
+  /** 016: deli naslova (samo tip `ADDRESS`); natanko eno od `value` in `parts`. */
+  parts?: Address | null;
 }
 
 /** Telo `POST …/contacts` in (z `version`) `PUT …/contacts/{contactId}`. */
@@ -26,6 +35,8 @@ export interface ContactInput {
   /** 013: do 200 znakov. */
   company: string | null;
   address: string | null;
+  /** 016: razčlenjen naslov; največ eno od `address` in `addressParts` ni `null`; manjka = `null`. */
+  addressParts?: Address | null;
   /** 013: koda ISO 3166-1 alpha-2 (npr. `SI`). */
   country: string | null;
   email: string | null;

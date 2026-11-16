@@ -1,5 +1,6 @@
 package si.contactmanager.contact;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.Instant;
 import java.util.List;
 
@@ -12,6 +13,7 @@ public record ContactState(
         String firstName,
         String lastName,
         String address,
+        @JsonInclude(JsonInclude.Include.NON_NULL) Address addressParts,
         String email,
         String phone,
         String company,
@@ -22,6 +24,37 @@ public record ContactState(
         Instant createdAt,
         Instant updatedAt,
         Long updatedById) {
+    /** Stanje brez razčlenjenega naslova (pred 016): {@code addressParts} je {@code null}. */
+    public ContactState(
+            String firstName,
+            String lastName,
+            String address,
+            String email,
+            String phone,
+            String company,
+            String country,
+            List<Attribute> attributes,
+            List<String> tags,
+            long version,
+            Instant createdAt,
+            Instant updatedAt,
+            Long updatedById) {
+        this(
+                firstName,
+                lastName,
+                address,
+                null,
+                email,
+                phone,
+                company,
+                country,
+                attributes,
+                tags,
+                version,
+                createdAt,
+                updatedAt,
+                updatedById);
+    }
 
     /** Stanje brez polj podjetje in država (posnetki pred 013, FR-013-02): obe polji sta prazni. */
     public ContactState(

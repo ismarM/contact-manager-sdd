@@ -54,3 +54,31 @@ management:
 logging:
   pattern:
     console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p [%X{requestId:-}] %logger{36} : %m%n"
+
+# 016 kartografski posrednik (specs/016-tipizirani-atributi/research.md R-08): OpenStreetMap samo prek strežnika;
+# URL-ji so nastavljivi (v testih nadomestni strežnik). User-Agent brez osebnih podatkov. Vsi predpomnilniki so v pomnilniku.
+maps:
+  enabled: ${MAPS_ENABLED:true}
+  nominatim-url: ${MAPS_NOMINATIM_URL:https://nominatim.openstreetmap.org}
+  photon-url: ${MAPS_PHOTON_URL:https://photon.komoot.io}
+  tile-url: ${MAPS_TILE_URL:https://tile.openstreetmap.org/{z}/{x}/{y}.png}
+  user-agent: ${MAPS_USER_AGENT:ContactManager/1.0 (+https://github.com/ismarM/contact-manager-sdd)}
+  connect-timeout: 2s
+  read-timeout: 2500ms
+  locations:
+    entries: 1000
+    ttl: 24h
+  suggestions:
+    entries: 2000
+    ttl: 1h
+  tiles:
+    max-cache-bytes: 52428800
+    max-age: 7d
+  limits:
+    nominatim-per-second: 1
+    max-wait: 1s
+    photon-per-second: 5
+    photon-per-user-per-second: 2
+    tiles-per-user-per-window: 60
+    tiles-window: 10s
+    tiles-per-second: 20

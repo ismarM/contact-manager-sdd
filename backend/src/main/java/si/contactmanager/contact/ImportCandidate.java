@@ -1,5 +1,6 @@
 package si.contactmanager.contact;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
 
 /**
@@ -14,7 +15,9 @@ public record ImportCandidate(
         String phone,
         String company,
         String countryText,
-        List<Attribute> attributes,
+        // 016: kandidat iz datoteke še ne nosi tipov (preslikava tipov v uvozu je v zgodbi US6); v JSON ostane brez
+        // njih.
+        @JsonIgnoreProperties({"type", "parts"}) List<Attribute> attributes,
         List<String> tags) {
 
     public ImportCandidate {

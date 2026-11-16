@@ -82,6 +82,21 @@ describe('GroupLayout', () => {
     expect(screen.queryByRole('region', { name: 'Projekt FERI' })).not.toBeInTheDocument();
   });
 
+  it('FR-016-05: razdelek Atributi skupine je znan (ni »Te strani ni«), podpot ni', async () => {
+    renderGroupsApp(`/groups/${GROUP_ID}/attributes`, { get: () => asEditor() });
+
+    expect(await screen.findByRole('region', { name: 'Projekt FERI' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Te strani ni' })).not.toBeInTheDocument();
+  });
+
+  it('FR-016-05: podpot razdelka Atributi skupine prikaže »Te strani ni«', async () => {
+    renderGroupsApp(`/groups/${GROUP_ID}/attributes/neznano`, { get: () => asEditor() });
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Te strani ni' }),
+    ).toBeInTheDocument();
+  });
+
   it('FR-002-08: neznan podrazdelek skupine prikaže »Te strani ni«', async () => {
     renderGroupsApp(`/groups/${GROUP_ID}/neznano`, { get: () => asEditor() });
 

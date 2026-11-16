@@ -117,6 +117,30 @@
         "step3": "Enter the server address {{server}}, the username {{username}} and the app password.",
         "https": "The connection works only over a secure HTTPS connection."
       }
+    },
+    "formats": {
+      "heading": "Format",
+      "description": "Only affects how data is shown; stored data does not change.",
+      "default": "Default",
+      "phone": {
+        "label": "Phone numbers",
+        "INTERNATIONAL": "International (+386 41 123 456)",
+        "NATIONAL": "National (041 123 456)",
+        "E164": "No spaces (+38641123456)"
+      },
+      "date": {
+        "label": "Dates",
+        "LOCALE": "By interface language",
+        "ISO": "ISO (2026-11-16)",
+        "LONG": "Long form (16 November 2026)"
+      },
+      "address": {
+        "label": "Addresses",
+        "COUNTRY": "By country rules",
+        "SINGLE_LINE": "On one line"
+      },
+      "saved": "The format is saved.",
+      "failed": "The format could not be saved. Try again."
     }
   },
   "roles": {
@@ -1325,5 +1349,123 @@
       "loadFailed": "Could not load the deleted contacts. Try again.",
       "retry": "Try again"
     }
+  },
+  "attributes": {
+    "heading": "Group attributes",
+    "description": "The keys of additional attributes in this group and their type. The type applies to every contact with that key.",
+    "types": {
+      "OTHER": "Other",
+      "NOTES": "Notes",
+      "EMAIL": "Email",
+      "PHONE": "Phone",
+      "ADDRESS": "Address",
+      "URL": "Web address",
+      "DATE": "Date"
+    },
+    "type": {
+      "label": "Type",
+      "fixed": "The type of this key in the group is {{type}}. An editor can change it under Group attributes.",
+      "new": "Type of the new key",
+      "hint": "The type applies to every contact with this key in the group."
+    },
+    "list": {
+      "key": "Key",
+      "type": "Type",
+      "count": "Contacts",
+      "search": "Search keys",
+      "empty": "The group has no additional attributes yet.",
+      "noResults": "No key matches the search.",
+      "loading": "Loading keys…",
+      "loadFailed": "The keys could not be loaded.",
+      "retry": "Try again",
+      "changeType": "Change type",
+      "changeTypeFor": "Change the type of key {{key}}",
+      "total": "Number of keys: {{total}}"
+    },
+    "change": {
+      "title": "Change the key type",
+      "body": "The key “{{key}}” will have the type {{type}} for all contacts ({{count}}). Values are checked and stored in canonical form; it is one change and it can be undone by rolling back in the audit trail.",
+      "current": "Current type: {{type}}",
+      "newType": "New type",
+      "confirm": "Change type",
+      "cancel": "Cancel",
+      "success": "The type of key “{{key}}” was changed.",
+      "unchanged": "The key “{{key}}” already has this type.",
+      "failed": "The type could not be changed. Try again.",
+      "versionConflict": "Someone else has changed the key type in the meantime. The current type is shown.",
+      "gone": "The key is no longer in use.",
+      "forbidden": "You are not allowed to change the key type.",
+      "archived": "The group is archived, the type cannot be changed."
+    },
+    "conflict": {
+      "title": "Some values are not valid for the type {{type}}",
+      "intro": "For {{total}} contacts the value does not fit the type {{type}}. Fix them and try again; nothing was changed.",
+      "open": "Open contact {{name}}",
+      "value": "Value: {{value}}",
+      "more": "and {{count}} more",
+      "retry": "Try again"
+    }
+  },
+  "address": {
+    "legend": "Address",
+    "parts": {
+      "street": "Street and house number",
+      "extra": "Additional line",
+      "postalCode": "Postal code",
+      "city": "City",
+      "region": "Region",
+      "country": "Country"
+    },
+    "unstructured": "Address (text)",
+    "split": "Split address",
+    "splitHint": "The address is stored as text. Split it into parts and save.",
+    "suggestions": {
+      "label": "Address suggestions",
+      "count": "Address suggestions: {{total}}",
+      "none": "No address suggestions."
+    },
+    "errors": {
+      "REQUIRED": "Enter a street or a city.",
+      "TOO_LONG": "The value is too long.",
+      "INVALID_VALUE": "The value is not valid."
+    }
+  },
+  "typedValue": {
+    "normalized": "Stored as: {{value}}",
+    "errors": {
+      "REQUIRED": "Enter a value.",
+      "TOO_LONG": "The value is too long.",
+      "INVALID_VALUE": {
+        "EMAIL": "Enter a valid email address.",
+        "PHONE": "Enter a valid phone number.",
+        "URL": "Enter a valid web address (http or https).",
+        "DATE": "Enter a valid date (YYYY-MM-DD).",
+        "OTHER": "The value is not valid.",
+        "NOTES": "The value is not valid.",
+        "ADDRESS": "The value is not valid."
+      }
+    },
+    "openLink": "Open {{value}}",
+    "call": "Call {{value}}",
+    "mail": "Send an email to {{value}}"
+  },
+  "map": {
+    "show": "Show on map",
+    "title": "Map",
+    "dialogTitle": "Address map",
+    "close": "Close map",
+    "loading": "Looking up the address…",
+    "approximate": "The location is approximate: a city or street was found, not the house number.",
+    "notFound": "The address could not be found.",
+    "unavailable": "The map is not available right now. Try again later.",
+    "retry": "Try again",
+    "attribution": "© OpenStreetMap contributors",
+    "label": "Map with the address location",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out"
+  },
+  "errorsTyped": {
+    "ATTRIBUTE_TYPE_CONFLICT": "Some values are not valid for the selected type.",
+    "MAP_SERVICE_UNAVAILABLE": "The map is not available right now."
   }
 }

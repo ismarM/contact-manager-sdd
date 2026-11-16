@@ -10,9 +10,25 @@ record ExportRow(
         String firstName,
         String lastName,
         String address,
+        Address addressParts,
         String email,
         String phone,
         String country,
         String company,
         Map<String, String> attributes,
-        List<String> tags) {}
+        List<String> tags) {
+    /** Stanje brez razčlenjenega naslova (pred 016): {@code addressParts} je {@code null}. */
+    public ExportRow(
+            UUID id,
+            String firstName,
+            String lastName,
+            String address,
+            String email,
+            String phone,
+            String country,
+            String company,
+            Map<String, String> attributes,
+            List<String> tags) {
+        this(id, firstName, lastName, address, null, email, phone, country, company, attributes, tags);
+    }
+}

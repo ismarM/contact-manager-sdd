@@ -331,9 +331,10 @@ class ContactHistoryIT extends HistoryApiTest {
                     .isEqualTo(200);
         } finally {
             jdbc.update("update audit_entry set action = 'CREATE' where id = ?", entry);
-            // Unija vseh vrst dejanj po V12 (014 doda IMPORT); vrstice IMPORT iz drugih testov morajo ostati veljavne.
+            // Unija vseh vrst dejanj po V13 (014 doda IMPORT, 016 ATTRIBUTE_TYPE); vrstice IMPORT iz drugih testov
+            // morajo ostati veljavne.
             jdbc.update("alter table audit_entry add constraint audit_entry_action_check check (action in"
-                    + " ('CREATE', 'UPDATE', 'DELETE', 'MERGE', 'ROLLBACK', 'RESTORE', 'IMPORT'))");
+                    + " ('CREATE', 'UPDATE', 'DELETE', 'MERGE', 'ROLLBACK', 'RESTORE', 'IMPORT', 'ATTRIBUTE_TYPE'))");
             jdbc.update("alter table audit_entry enable trigger audit_entry_immutable");
         }
     }
