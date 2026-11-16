@@ -41,6 +41,12 @@ class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("APP_PASSWORD_LIMIT"));
     }
 
+    /** Že 10 aktivnih API ključev (019, FR-019-01). */
+    @ExceptionHandler(ApiKeyLimitException.class)
+    ResponseEntity<ErrorResponse> apiKeyLimit() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("API_KEY_LIMIT"));
+    }
+
     /** Množična operacija: napake zahtevka ali končnih stanj kontaktov (research R-06). */
     @ExceptionHandler(BulkValidationException.class)
     ResponseEntity<BulkValidationError> bulkValidation(BulkValidationException exception) {
