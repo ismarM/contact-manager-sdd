@@ -6,11 +6,24 @@
 
 **Input**: User description: "API ključi (posebej endpointi za API, ki v ozadju uporabljajo enake service kot navadni endpointi, le avtorizacija je drugačna - preko API ključa), stran za razlago in uporabo API-ja."
 
+## Clarifications
+
+### Session 2026-11-16
+
+- Q: Kje so operacije API in kako se ločijo od spletne aplikacije? → A: Ločen imenski prostor `/v1/**` z lastno varnostno verigo (brez Firebase žetona in brez preverjanja potrjenega e-naslova iz 017). Upravljanje ključev (ustvari, seznam, prekliči, statistika) ostane pod `/api/**` za prijavljenega uporabnika. Firebase žeton na `/v1` → `401`, API ključ na `/api` → `401`.
+- Q: Ali ustvarjanje ključa zahteva svežo prijavo (017 *FreshAuthentication*)? → A: Ne.
+- Q: Ali lastnik skupine nadzira API dostop članov? → A: Ne (prva različica). Ključ člana bere, kar član vidi v aplikaciji (tudi VIEWER); stran *API* to izrecno navede.
+- Q: Kakšen je obseg ključa? → A: Izbrane skupine, vsaka s svojo pravico (*branje* ali *branje in pisanje*), ALI »vse moje skupine, tudi prihodnje« z eno pravico. Učinkovita pravica je ob vsaki zahtevi min(pravica ključa, trenutna vloga uporabnika v skupini).
+- Q: Rok veljavnosti? → A: Nastavljiv: 30, 90 (privzeto), 365 dni ali brez roka.
+- Q: Kakšen je mehanizem ključa? → A: Ključ JE podpisan JWT (s prepoznavno predpono `cmk_`), ki nosi identiteto lastnika, rok veljavnosti, obseg (skupine in pravice) in id ključa (`jti`). Strežnik preveri podpis in trditve, nato vrstico ključa po `jti` (ni preklican, račun obstaja); vrstica nosi ime, prikazne podatke, zadnjo uporabo, statistiko in omejitev 10 aktivnih. Žeton in njegova zgoščena vrednost se ne hranita. Podpisni ključ je iz konfiguracije okolja (v testih generiran). Odločitev: `docs/decisions/2026-11-16-api-kljuc-jwt.md`.
+- Q: CORS na `/v1/**`? → A: Brez CORS; stran *API* razloži, da je vmesnik namenjen strežniškim programom in skriptam, ne brskalniku na drugi domeni.
+- Q: Odvisnost od 017? → A: PR 017 (e-pošta in geslo) se združi pred 019; plan upošteva njegovo vedenje (`EmailVerifiedFilter` na `/api/**`, *FreshAuthentication*, spremembe `SecurityConfig`, *Moj račun*, `ApiExceptionHandler`).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Ustvarjanje in preklic API ključa (Priority: P1)
 
-Uporabnik želi kontakte svojih skupin uporabljati v lastnem programu ali skripti (npr. sinhronizacija s CRM, nočni izvoz). V *Mojem računu* na zavihku *API ključi* ustvari ključ z imenom (npr. »Nočni izvoz«), izbere, za katere skupine velja, ali sme samo brati ali tudi pisati, in rok veljavnosti. Ključ se pokaže **enkrat**; kasneje ga lahko le prekliče.
+Uporabnik želi kontakte svojih skupin uporabljati v lastnem programu ali skripti (npr. sinhronizacija s CRM, nočni izvoz). V *Mojem računu* v razdelku *API ključi* ustvari ključ z imenom (npr. »Nočni izvoz«), izbere, za katere skupine velja, ali sme samo brati ali tudi pisati, in rok veljavnosti. Ključ se pokaže **enkrat**; kasneje ga lahko le prekliče.
 
 **Why this priority**: brez ključa programski vmesnik ni dosegljiv; preklic je varnostni pogoj za vse ostalo.
 
@@ -18,7 +31,7 @@ Uporabnik želi kontakte svojih skupin uporabljati v lastnem programu ali skript
 
 **Acceptance Scenarios**:
 
-1. **[FR-019-01]** **Given** prijavljen uporabnik na zavihku *API ključi*, **When** ustvari ključ »Nočni izvoz« (skupina Klub, samo branje, velja 90 dni), **Then** se ključ pokaže **enkrat** z gumbom *Kopiraj* in opozorilom, da ga ne bo več mogoče videti; po zaprtju okna je na seznamu »Nočni izvoz« s skupinami, pravico, časom nastanka, rokom veljavnosti in »še ni uporabljen«, nikoli z vrednostjo ključa.
+1. **[FR-019-01]** **Given** prijavljen uporabnik v razdelku *API ključi*, **When** ustvari ključ »Nočni izvoz« (skupina Klub, samo branje, velja 90 dni), **Then** se ključ pokaže **enkrat** z gumbom *Kopiraj* in opozorilom, da ga ne bo več mogoče videti; po zaprtju okna je na seznamu »Nočni izvoz« s skupinami, pravico, časom nastanka, rokom veljavnosti in »še ni uporabljen«, nikoli z vrednostjo ključa.
 2. **[FR-019-01]** **Given** uporabnik ima 10 aktivnih ključev, **When** ustvari enajstega, **Then** je zahteva zavrnjena (`409 API_KEY_LIMIT`), vmesnik pove, da mora najprej preklicati obstoječega, in nič ne nastane.
 3. **[FR-019-02]** **Given** ključ »Nočni izvoz« je bil uporabljen, **When** uporabnik odpre seznam, **Then** vidi čas zadnje uporabe.
 4. **[FR-019-03]** **Given** aktiven ključ »Nočni izvoz«, **When** ga uporabnik prekliče in potrdi v dialogu, **Then** naslednja zahteva s tem ključem dobi `401`, drugi ključi delujejo naprej, ključ je na seznamu označen kot preklican.
@@ -82,7 +95,7 @@ Razvijalec integracije odpre stran *API* in na njej najde vse, kar potrebuje: ka
 
 ### User Story 5 - Statistika uporabe ključa (Priority: P2)
 
-Uporabnik želi videti, kako njegovi programi uporabljajo ključe: koliko zahtev pošiljajo, koliko je napak in zavrnitev zaradi omejitve pogostosti, ali kateri ključ sploh še teče. Na zavihku *API ključi* v *Mojem računu* odpre statistiko posameznega ključa.
+Uporabnik želi videti, kako njegovi programi uporabljajo ključe: koliko zahtev pošiljajo, koliko je napak in zavrnitev zaradi omejitve pogostosti, ali kateri ključ sploh še teče. V razdelku *API ključi* v *Mojem računu* odpre statistiko posameznega ključa.
 
 **Why this priority**: uporabnik brez nje ne opazi pokvarjenega programa ali zlorabe ključa; ni pa pogoj za samo uporabo API.
 
@@ -141,7 +154,8 @@ Operacije API so nov tip klicatelja (konstitucija §2.1, *tvegana funkcionalnost
 - **Uporabnik zapusti skupino ali je odstranjen**: ključ za to skupino dobi `404`, za druge skupine deluje naprej; ob ponovnem članstvu ključ za skupino spet deluje, če je še aktiven.
 - **Skupina izbrisana**: ključ zanjo dobi `404`; če ključ ne velja za nobeno drugo skupino, je na seznamu označen »brez veljavnih skupin«.
 - **Vrednost ključa v zahtevi na napačnem mestu** (npr. v naslovu URL): zahteva se zavrne z `401`, ključ se ne zabeleži v dnevnike.
-- **Ključ se pojavi v dnevnikih strežnika ali napakah**: nikoli; beleži se samo prepoznavni del (predpona), ne celoten ključ.
+- **Ključ se pojavi v dnevnikih strežnika ali napakah**: nikoli; beleži se samo id ključa (`jti`), ne celoten ključ.
+- **Ključ za skupino, kjer je uporabnik bralec, s pravico pisanja**: ustvarjanje je dovoljeno (vloga se lahko kasneje poviša); učinkovita pravica ob zahtevi je branje (`403` pri pisanju).
 - **Dvojna zahteva za ustvarjanje kontakta** (ponovitev po prekinjeni povezavi): nastaneta dva kontakta, kot v spletni aplikaciji; dvojnike razreši 011.
 - **Uporabnik preklice ključ med tekočo zahtevo**: tekoča zahteva se izvede do konca; vsaka naslednja dobi `401`.
 
@@ -149,26 +163,26 @@ Operacije API so nov tip klicatelja (konstitucija §2.1, *tvegana funkcionalnost
 
 ### Functional Requirements
 
-**Upravljanje ključev** (v *Mojem računu*, zavihek *API ključi*)
+**Upravljanje ključev** (v *Mojem računu*, razdelek *API ključi*)
 
-- **FR-019-01**: Sistem MORA prijavljenemu uporabniku omogočiti ustvarjanje API ključa z imenom (1–50 znakov), izbiro skupin, za katere velja (ena ali več skupin, katerih član je, ali »vse moje skupine«, tudi prihodnje), pravico (*samo branje* – privzeto – ali *branje in pisanje*) in rokom veljavnosti (30, 90 – privzeto –, 365 dni ali brez roka); največ 10 aktivnih ključev na uporabnika (`409 API_KEY_LIMIT`). Ključ se pokaže samo enkrat; sistem ga hrani samo v obliki, iz katere ga ni mogoče razbrati. *(najnižja vloga: — (vezano na uporabnika); skupine samo tiste, katerih je član)*
-- **FR-019-02**: Sistem MORA na seznamu ključev prikazati ime, prepoznavni začetek ključa, skupine, pravico, čas nastanka, rok veljavnosti, čas zadnje uporabe in stanje (aktiven, potekel, preklican), nikoli celotne vrednosti. *(—)*
+- **FR-019-01**: Sistem MORA prijavljenemu uporabniku (brez sveže prijave) omogočiti ustvarjanje API ključa z imenom (1–50 znakov) in obsegom: ena ali več izbranih skupin, katerih član je (največ 50), vsaka s svojo pravico (*samo branje* – privzeto – ali *branje in pisanje*), ALI »vse moje skupine, tudi prihodnje« z eno pravico; ter z rokom veljavnosti (30, 90 – privzeto –, 365 dni ali brez roka); največ 10 aktivnih ključev na uporabnika (`409 API_KEY_LIMIT`). Ključ se pokaže samo enkrat; sistem ne hrani ne ključa ne njegove zgoščene vrednosti (ključ je podpisan žeton, ki ga strežnik preveri ob vsaki zahtevi). *(najnižja vloga: — (vezano na uporabnika); skupine samo tiste, katerih je član)*
+- **FR-019-02**: Sistem MORA na seznamu ključev prikazati ime, prepoznavni del ključa (predpona in zadnjih 6 znakov), skupine s pravico (ali »vse moje skupine«), čas nastanka, rok veljavnosti, čas zadnje uporabe in stanje (aktiven, potekel, preklican), nikoli celotne vrednosti. *(—)*
 - **FR-019-03**: Sistem MORA uporabniku omogočiti preklic lastnega ključa s potrditvenim dialogom (feature-map §2.8); preklican ključ takoj neha delovati (`401`), drugi ostanejo. Ključa ni mogoče spremeniti (ime, skupine, pravica, rok) – za drugačne nastavitve uporabnik ustvari novega. *(—)*
 - **FR-019-04**: Sistem MORA ključ po izteku roka veljavnosti zavrniti z `401` in ga na seznamu prikazati kot potekel; 7 dni pred iztekom ga na seznamu označi kot »kmalu poteče«. *(—)*
-- **FR-019-05**: Izbris računa (012) MORA preklicati vse ključe uporabnika; izvoz lastnih podatkov (012) MORA vključiti imena, skupine, pravice in čase ključev, ne pa vrednosti ali prepoznavnega začetka. *(—)*
+- **FR-019-05**: Izbris računa (012) MORA preklicati vse ključe uporabnika; izvoz lastnih podatkov (012) MORA vključiti imena, skupine, pravice in čase ključev, ne pa vrednosti ali prepoznavnega dela. *(—)*
 
 **Programski vmesnik**
 
 - **FR-019-06**: Sistem MORA klicatelju z veljavnim ključem vrniti seznam skupin, za katere ključ velja in katerih član je uporabnik (tudi arhivirane), s podatki skupine in uporabnikovo vlogo. *(najnižja vloga: VIEWER)*
 - **FR-019-07**: Sistem MORA klicatelju z veljavnim ključem omogočiti branje kontaktov skupine (paginiran seznam z iskanjem, filtri in razvrščanjem po 008) in posameznega kontakta z verzijo; rezultat je za isti uporabnik in isto skupino enak kot v spletni aplikaciji. *(najnižja vloga: VIEWER; dovoljeno v arhivirani skupini)*
 - **FR-019-08**: Branje prek API MORA biti dovoljeno tudi v arhivirani skupini in se ne beleži v revizijski sledi (feature-map §2.7). *(VIEWER)*
-- **FR-019-09**: Sistem MORA članstvo, vlogo in stanje skupine preveriti ob **vsaki** zahtevi; ključ nikoli ne da več pravic, kot jih ima uporabnik v tistem trenutku. *(—)*
+- **FR-019-09**: Sistem MORA članstvo, vlogo in stanje skupine preveriti ob **vsaki** zahtevi; učinkovita pravica je min(pravica ključa za skupino, trenutna vloga uporabnika) – ključ nikoli ne da več pravic, kot jih ima uporabnik v tistem trenutku. Lastnik skupine API dostopa članov ne nadzira. *(—)*
 - **FR-019-10**: Sistem MORA klicatelju s ključem za pisanje omogočiti ustvarjanje, spremembo in izbris kontakta z enakimi pravili kot spletna aplikacija (004, 013, 016: preverjanje, normalizacija, kanonični zapis ključev in značk, kode napak). *(najnižja vloga: EDITOR; v arhivirani skupini `409 GROUP_ARCHIVED`)*
 - **FR-019-11**: Sprememba in izbris kontakta prek API MORATA zahtevati verzijo kontakta; ob neujemanju `409 VERSION_CONFLICT` in nič se ne spremeni (feature-map §2.3). *(EDITOR)*
 - **FR-019-12**: Vsaka sprememba kontakta prek API MORA ustvariti vnos v revizijski sledi skupine z uporabnikom kot izvajalcem in imenom ključa; pregled sledi (005, 015) prikaže oznako »prek API«, filter po uporabniku jo vključuje. *(—)*
 - **FR-019-13**: Ključ *samo za branje* MORA vsako pisanje zavrniti s `403` ne glede na vlogo uporabnika. *(—)*
 - **FR-019-16**: Sistem MORA omejiti pogostost zahtev na 120 na minuto na ključ; preseženo → `429 RATE_LIMITED` s časom do ponovnega poskusa. Omejitev ne vpliva na druge ključe in spletno aplikacijo. *(—)*
-- **FR-019-17**: Operacije API MORAJO sprejemati samo API ključ; Firebase žeton in seja spletne aplikacije tam ne veljata, API ključ pa ne velja na endpointih spletne aplikacije in CardDAV. *(—)*
+- **FR-019-17**: Operacije API (imenski prostor `/v1/**`) MORAJO sprejemati samo API ključ v glavi `Authorization: Bearer`; Firebase žeton in seja spletne aplikacije tam ne veljata, API ključ pa ne velja na endpointih spletne aplikacije (`/api/**`) in CardDAV. Operacije API nimajo CORS. *(—)*
 - **FR-019-18**: Ključe je mogoče ustvariti, pregledati in preklicati samo v prijavljeni spletni aplikaciji, ne prek API. *(—)*
 - **FR-019-19**: Vmesnik MORA biti označen z različico; nezdružljiva sprememba (odstranjeno ali preimenovano polje, spremenjen pomen) pomeni novo različico, obstoječa pa ostane nespremenjena. Dodajanje novih neobveznih polj ni nezdružljivo. *(—)*
 
@@ -179,14 +193,14 @@ Operacije API so nov tip klicatelja (konstitucija §2.1, *tvegana funkcionalnost
 
 **Stran API**
 
-- **FR-019-14**: Sistem MORA ponuditi stran *API*, dostopno brez prijave in povezano iz *API ključev* in noge aplikacije, ki v sl in en razloži: namen, varnostna priporočila (ključ hraniti kot geslo, najmanjše potrebne pravice, preklic ob sumu zlorabe), ustvarjanje in pošiljanje ključa, vse operacije z najnižjo vlogo in pravico ključa, primere zahtev in odgovorov, paginacijo, kode napak, omejitve pogostosti in različice. Primeri kode imajo gumb *Kopiraj*; stran sledi design.md in WCAG 2.1 AA. *(—)*
+- **FR-019-14**: Sistem MORA ponuditi stran *API*, dostopno brez prijave in povezano iz *API ključev* in s strani za prijavo, ki v sl in en razloži: namen, varnostna priporočila (ključ hraniti kot geslo, najmanjše potrebne pravice, preklic ob sumu zlorabe), da ključ člana bere vse, kar član vidi v aplikaciji (tudi bralec) in da lastnik skupine API dostopa ne nadzira, da vmesnik nima CORS (namenjen je strežniškim programom in skriptam), ustvarjanje in pošiljanje ključa, vse operacije z najnižjo vlogo in pravico ključa, primere zahtev in odgovorov, paginacijo, kode napak, omejitve pogostosti in različice. Primeri kode imajo gumb *Kopiraj*; stran sledi design.md in WCAG 2.1 AA. *(—)*
 - **FR-019-15**: Stran *API* MORA ponuditi prenos strojno berljivega opisa vmesnika, ki se samodejno ujema z dejanskimi operacijami API. *(—)*
 
 ### Key Entities
 
-- **API ključ**: pripada enemu uporabniku; ime, nerazberljiva oblika ključa, prepoznavni začetek, skupine (seznam ali »vse moje skupine«), pravica (branje / branje in pisanje), čas nastanka, rok veljavnosti, čas zadnje uporabe, stanje (aktiven / preklican; potekel izhaja iz roka).
-- **Dnevni povzetek uporabe ključa**: ključ, dan, števila po izidu (uspešna branja, uspešna pisanja, napake klicatelja, zavrnitve zaradi omejitve); hrani se 90 dni.
-- **Vnos revizijske sledi** (obstoječ, 005): dobi neobvezen podatek o ključu (ime), prek katerega je bila sprememba narejena.
+- **API ključ**: pripada enemu uporabniku; sam ključ je podpisan žeton (lastnik, `jti`, obseg, rok), ki se ne hrani. Vrstica ključa: ime, prepoznavni del, obseg za prikaz (skupine s pravico ali »vse moje skupine« z eno pravico), čas nastanka, rok veljavnosti, čas zadnje uporabe, čas preklica; stanje (aktiven / preklican; potekel izhaja iz roka).
+- **Povzetek uporabe ključa**: ključ, ura, števila po izidu (uspešna branja, uspešna pisanja, napake, zavrnitve zaradi omejitve); prikazuje se po dnevih in za zadnjih 24 ur; hrani se 90 dni.
+- **Vnos revizijske sledi** (obstoječ, 005): dobi neobvezen podatek o ključu (ime), prek katerega je bila sprememba narejena; ob izbrisu računa izvajalca se ime ključa odstrani skupaj z izvajalcem.
 
 ## Success Criteria *(mandatory)*
 
@@ -205,8 +219,9 @@ Operacije API so nov tip klicatelja (konstitucija §2.1, *tvegana funkcionalnost
 - **Velikost in tveganje**: nov tip klicatelja in nova poverilnica → *tvegana funkcionalnost* (konstitucija §2.1); varnostne odločitve potrdi razvijalec, `plan.md` se pred nalogami pokaže razvijalcu; zapis odločitve v `docs/decisions/` (nova poverilnica, §2.6).
 - **Enake storitve**: operacije API so ločeni endpointi, ki uporabljajo iste storitve (poslovno logiko, preverjanje, revizijo) kot endpointi spletne aplikacije; razlikujeta se samo prijava in oblika vhoda v vmesnik. Zato API ne podvaja pravil 004, 008, 013, 016.
 - **Obseg prve različice**: skupine (branje), kontakti (branje, iskanje, ustvarjanje, sprememba, izbris). Člani, povabila, revizijska sled, množične operacije, uvoz, izvoz v Excel/vCard, dvojniki in upravljanje skupin niso del API; dodajo se kasneje kot nove operacije iste različice.
-- **Model ključa** sledi geslom za aplikacijo (014): vezan na uporabnika, viden enkrat, hranjen nerazberljivo, omejen na 10 aktivnih. Ključ ima prepoznavno predpono, da ga orodja za iskanje skrivnosti (gitleaks) prepoznajo.
-- **Omejitev pogostosti** 120 zahtev na minuto na ključ je razumen privzetek za integracije; ugibanje ključa preprečuje njegova dolžina (naključnost), zato ni ločene omejitve neuspelih poskusov kot pri CardDAV.
+- **Model ključa** (razvijalec, posvet): ključ je podpisan JWT s predpono `cmk_`, da ga orodja za iskanje skrivnosti (gitleaks) prepoznajo; vezan na uporabnika, viden enkrat, omejen na 10 aktivnih. Strežnik ne hrani ne žetona ne zgoščene vrednosti; preklic in obstoj računa se preverita v vrstici ključa po `jti`. Sprememba podpisnega ključa okolja razveljavi vse ključe.
+- **Omejitev pogostosti** 120 zahtev na minuto na ključ je razumen privzetek za integracije; ponarejanje ključa preprečuje podpis, zato ni ločene omejitve neuspelih poskusov kot pri CardDAV.
 - **Stran API** je javna, ker ne vsebuje podatkov uporabnikov; ustvarjanje ključa zahteva prijavo.
-- **Odvisnosti**: 001 (prijava, *Moj račun*), 002–004 (skupine, kontakti), 005/015 (sled), 008 (iskanje), 012 (izbris računa, izvoz), 013/016 (normalizacija). Ni odvisnosti od 017 in 018.
+- **Odvisnosti**: 001 (prijava, *Moj račun*), 002–004 (skupine, kontakti), 005/015 (sled), 008 (iskanje), 012 (izbris računa, izvoz), 013/016 (normalizacija), 017 (združi se pred 019: `EmailVerifiedFilter` velja za upravljanje ključev na `/api/**`, ne za `/v1/**`; ustvarjanje ključa ne zahteva sveže prijave). Ni odvisnosti od 018.
+- **Dnevi statistike** se štejejo v časovnem pasu `Europe/Ljubljana` (nastavljivo); števila se hranijo po urah, da je število »zadnjih 24 ur« točno.
 - **Skupna pravila**: nove kode `API_KEY_LIMIT` (409) in `RATE_LIMITED` (429), novi tip klicatelja v §2.2, oznaka »prek API« v §2.7 in vrstica 019 v §1 se v istem PR prenesejo v `feature-map.md`.
