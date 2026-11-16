@@ -85,7 +85,7 @@ afterEach(() => {
 });
 
 describe('firebaseGateway – povezovanje', () => {
-  it('FR-017-10: REST accounts:signUp z idToken, e-naslovom računa in geslom; ne accounts:update', async () => {
+  it('FR-017-10: emulator: REST accounts:update z idToken, e-naslovom računa in geslom (ne linkWithCredential)', async () => {
     const user = fakeUser();
     const { gateway, auth } = setup(user);
     reply(200, { localId: 'uid-ana' });
@@ -99,8 +99,8 @@ describe('firebaseGateway – povezovanje', () => {
     await gateway.linkPassword('testno-geslo');
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toContain('/identitytoolkit.googleapis.com/v1/accounts:signUp?key=api-key');
-    expect(url).not.toContain('accounts:update');
+    expect(url).toContain('/identitytoolkit.googleapis.com/v1/accounts:update?key=api-key');
+    expect(url).not.toContain('accounts:signUp');
     expect(JSON.parse(init.body as string)).toEqual({
       idToken: 'fresh-token',
       email: 'ana@primer.si',
@@ -114,6 +114,30 @@ describe('firebaseGateway – povezovanje', () => {
       'ana@primer.si',
       'testno-geslo',
     );
+  });
+
+  it('FR-017-10: pravi projekt (z EEP): accounts:signUp z idToken na identitytoolkit.googleapis.com, ne accounts:update', async () => {
+    vi.stubEnv('VITE_FIREBASE_EMULATOR', 'false');
+    try {
+      const { gateway, auth } = setup(fakeUser());
+      reply(200, { localId: 'uid-ana' });
+      sdk.signInWithEmailAndPassword.mockImplementation(() => {
+        auth.currentUser = fakeUser();
+        return Promise.resolve();
+      });
+
+      await gateway.linkPassword('testno-geslo');
+
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=api-key');
+      expect(JSON.parse(init.body as string)).toMatchObject({
+        idToken: 'fresh-token',
+        email: 'ana@primer.si',
+      });
+      expect(sdk.linkWithCredential).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it('FR-017-10: po povezovanju poslušalci dobijo istega uporabnika z ponudnikom password', async () => {

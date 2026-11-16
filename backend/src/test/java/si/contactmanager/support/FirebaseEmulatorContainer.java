@@ -84,6 +84,19 @@ public final class FirebaseEmulatorContainer extends GenericContainer<FirebaseEm
                 response.get("idToken").asString(), response.get("localId").asString());
     }
 
+    /**
+     * Doda geslo obstoječemu računu (017, research R-03) kot aplikacija v emulatorju: {@code accounts:update} z
+     * {@code idToken}, e-naslovom računa in geslom (emulator EEP ne posnema in {@code accounts:signUp} z {@code idToken}
+     * zavrne z EMAIL_EXISTS; pri pravem projektu z EEP aplikacija uporabi {@code signUp}). Vrne {@code localId}.
+     */
+    public String linkPassword(String idToken, String email, String password) throws IOException, InterruptedException {
+        return post(
+                        "accounts:update",
+                        Map.of("idToken", idToken, "email", email, "password", password, "returnSecureToken", true))
+                .get("localId")
+                .asString();
+    }
+
     /** Prijava z e-naslovom in geslom; nov ID žeton odraža trenutno stanje računa (npr. potrjen e-naslov). */
     public SignedIn signInWithPassword(String email, String password) throws IOException, InterruptedException {
         JsonNode response = post(
@@ -143,12 +156,39 @@ public final class FirebaseEmulatorContainer extends GenericContainer<FirebaseEm
                 response.get("idToken").asString(), response.get("localId").asString());
     }
 
-    /** Spremeni ime in e-naslov uporabnika (kot sprememba v Googlovem računu) in vrne nov ID žeton. */
+    /**
+     * Spremeni ime in e-naslov uporabnika (kot sprememba v Googlovem računu) in vrne nov ID žeton. Google e-naslov je
+     * potrjen; emulator ob spremembi e-naslova prek {@code accounts:update} potrditev odstrani, zato jo test kot
+     * administrator znova nastavi in žeton osveži (017: zaledje nepotrjen e-naslov zavrne z 403).
+     */
     public String updateUser(String idToken, String displayName, String email)
             throws IOException, InterruptedException {
         Map<String, Object> body =
                 Map.of("idToken", idToken, "displayName", displayName, "email", email, "returnSecureToken", true);
-        return post("accounts:update", body).get("idToken").asString();
+        JsonNode updated = post("accounts:update", body);
+        HttpRequest verify = HttpRequest.newBuilder(URI.create(
+                        baseUrl() + "/identitytoolkit.googleapis.com/v1/projects/" + PROJECT_ID + "/accounts:update"))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer owner")
+                .POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(
+                        Map.of("localId", updated.get("localId").asString(), "emailVerified", true))))
+                .build();
+        HttpResponse<String> verified = http.send(verify, HttpResponse.BodyHandlers.ofString());
+        if (verified.statusCode() != 200) {
+            throw new IllegalStateException("accounts:update (admin) failed: " + verified.body());
+        }
+        String form = "grant_type=refresh_token&refresh_token="
+                + URLEncoder.encode(updated.get("refreshToken").asString(), StandardCharsets.UTF_8);
+        HttpRequest refresh = HttpRequest.newBuilder(
+                        URI.create(baseUrl() + "/securetoken.googleapis.com/v1/token?key=fake-api-key"))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(form))
+                .build();
+        HttpResponse<String> refreshed = http.send(refresh, HttpResponse.BodyHandlers.ofString());
+        if (refreshed.statusCode() != 200) {
+            throw new IllegalStateException("token refresh failed: " + refreshed.body());
+        }
+        return JSON.readTree(refreshed.body()).get("id_token").asString();
     }
 
     /** Ustavi vsebnik emulatorja (zamrznitev procesov; omrežje ostane). Vedno v paru z {@link #unpause()}. */

@@ -193,18 +193,19 @@ export function createFirebaseGateway(auth: Auth = createAuth()): AuthGateway {
       const user = current();
       const { uid, email } = user;
       if (!email) throw new SignInError('failed');
-      // EEP: `accounts:signUp` z idToken (research R-03), ne `accounts:update` in ne `linkWithCredential`.
-      const base =
-        env.VITE_FIREBASE_EMULATOR !== 'false'
-          ? window.location.origin
-          : 'https://identitytoolkit.googleapis.com';
-      const prefix =
-        env.VITE_FIREBASE_EMULATOR !== 'false' ? '/identitytoolkit.googleapis.com' : '';
+      // Pravi projekt (z EEP): `accounts:signUp` z idToken (research R-03), ne `accounts:update` in ne
+      // `linkWithCredential`. Emulator EEP ne posnema in `signUp` z idToken zavrne z EMAIL_EXISTS, zato testi in E2E
+      // uporabijo `accounts:update`; produkcijska pot se preveri ročno (T024).
+      const emulator = env.VITE_FIREBASE_EMULATOR !== 'false';
+      const base = emulator
+        ? `${window.location.origin}/identitytoolkit.googleapis.com`
+        : 'https://identitytoolkit.googleapis.com';
+      const method = emulator ? 'accounts:update' : 'accounts:signUp';
       let response: Response;
       try {
         const idToken = await user.getIdToken(true);
         response = await fetch(
-          `${base}${prefix}/v1/accounts:signUp?key=${encodeURIComponent(auth.app.options.apiKey ?? '')}`,
+          `${base}/v1/${method}?key=${encodeURIComponent(auth.app.options.apiKey ?? '')}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
