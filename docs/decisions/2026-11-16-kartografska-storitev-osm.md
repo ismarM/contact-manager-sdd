@@ -1,7 +1,7 @@
 # Kartografska storitev OpenStreetMap samo prek zaledja
 
 - **Datum:** 2026-11-16
-- **Avtor:** osnutek (izvajalec 016); potrdi razvijalec ob pregledu plan.md
+- **Avtor:** razvijalec (potrjeno ob pregledu plan.md, 2026-11-16)
 - **Nadomešča:** –
 
 ## Kontekst
@@ -10,7 +10,8 @@ storitve iz brskalnika; besedilo naslova kontakta je osebni podatek.
 
 ## Odločitev
 - Zaledje (paket `maps`) je edini odjemalec: lokacija – Nominatim, predlogi – Photon (podatki OSM; Nominatim samodokončanja
-  ne dovoljuje), ploščice – `tile.openstreetmap.org`. URL-ji nastavljivi (`MAPS_*`).
+  ne dovoljuje), ploščice – `tile.openstreetmap.org` prek posrednika. URL-ji nastavljivi (`MAPS_NOMINATIM_URL`,
+  `MAPS_PHOTON_URL`, `MAPS_TILE_URL`), tako da je mogoč lasten strežnik.
 - Posreduje se samo besedilo naslova na izrecno zahtevo (gumb zemljevida, vpis s samodokončanjem, *Razčleni naslov*);
   `User-Agent: ContactManager/<različica> (+https://github.com/ismarM/contact-manager-sdd)`, brez e-naslova, piškotkov in
   podatkov uporabnika; besedilo naslova se ne beleži.
@@ -22,5 +23,6 @@ storitve iz brskalnika; besedilo naslova kontakta je osebni podatek.
 
 ## Posledice
 - Konstitucija VI se dopolni z izjemo za strežniške klice OSM in z »obliko zapisa« med hranjenimi podatki.
+- Ploščice javnega strežnika OSM so dovoljene le za majhen promet; ob rasti prehod na ponudnika ploščic (nov ADR).
 - En primerek zaledja (omejevalnik v pomnilniku); več primerkov bi potrebovalo skupen omejevalnik.
 - Zavrnjeno: klici iz brskalnika (FR-016-23), komercialni ponudnik (ključi, pogodba), statična slika (ni premikanja).

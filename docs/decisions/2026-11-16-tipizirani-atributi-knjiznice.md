@@ -1,7 +1,7 @@
 # Knjižnice za telefonske številke in zemljevid
 
 - **Datum:** 2026-11-16
-- **Avtor:** osnutek (izvajalec 016); potrdi razvijalec ob pregledu plan.md
+- **Avtor:** razvijalec (potrjeno ob pregledu plan.md, 2026-11-16)
 - **Nadomešča:** –
 
 ## Kontekst

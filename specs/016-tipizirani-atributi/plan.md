@@ -4,7 +4,7 @@
 
 **Input**: Feature specification from `/specs/016-tipizirani-atributi/spec.md`
 
-> Tvegana funkcionalnost (zunanja storitev, konstitucija §2.1): plan pred nalogami pregleda razvijalec – glej *Open Questions*.
+> Tvegana funkcionalnost (zunanja storitev, konstitucija §2.1): plan je razvijalec pregledal 2026-11-16; odločitvi v *Open Questions*.
 
 ## Summary
 
@@ -134,10 +134,19 @@ docs/decisions/2026-11-16-kartografska-storitev-osm.md, 2026-11-16-tipizirani-at
 
 **Structure Decision**: tipi in normalizacija so v paketu `contact` (uporabljajo paketno zasebne `ContactInputParser`, `CanonicalForms`, `ContactSnapshots`); posrednik OSM je nov paket `maps`, ker uvaja zunanjo storitev in ne dostopa do podatkov skupine sam (naslov mu preda `contact` po preverjanju dostopa). Na frontendu so oblikovalniki shem skupni (`features/formats`), ker jih uporabljajo seznam, pogled, dvojniki, sled in zgodovina.
 
-## Open Questions (za razvijalca pred nalogami)
+## Open Questions
 
-1. **Samodokončanje prek Photon (komoot) namesto Nominatim.** Pogoji uporabe Nominatim izrecno prepovedujejo samodokončanje; Photon je javna storitev nad podatki OSM, ki jo upravlja komoot. *Predlog:* Photon za predloge, Nominatim za lokacijo, oba nastavljiva (`MAPS_PHOTON_URL`, `MAPS_NOMINATIM_URL`), tako da je mogoč lasten strežnik. Od tega so odvisni R-08, odločitev v `docs/decisions/` in besedilo dopolnitve konstitucije VI.
-2. **Ploščice `tile.openstreetmap.org` prek strežnika.** Dovoljene za majhen promet z User-Agent in predpomnjenjem, prepovedane za »težko« uporabo. *Predlog:* sprejmemo za to aplikacijo, URL nastavljiv; ob rasti prehod na ponudnika ploščic.
+Razrešeno: razvijalec je 2026-11-16 potrdil oba predloga.
+
+1. **Samodokončanje: Photon (komoot) za predloge, Nominatim samo za lokacijo na zemljevidu** – odločeno. Pogoji uporabe Nominatim samodokončanja izrecno prepovedujejo. URL-ja nastavljiva (`MAPS_PHOTON_URL`, `MAPS_NOMINATIM_URL`), tako da je mogoč lasten strežnik. Zapisano v R-08 in `docs/decisions/2026-11-16-kartografska-storitev-osm.md`.
+2. **Ploščice: `tile.openstreetmap.org` prek posrednika v zaledju** – odločeno, URL nastavljiv (`MAPS_TILE_URL`); dovoljeno za majhen promet z User-Agent in predpomnjenjem; ob rasti prehod na ponudnika ploščic (nov ADR). Zapisano v R-08 in odločitvi OSM.
+
+Odprtih vprašanj ni.
+
+### Besedilo dopolnitve konstitucije VI (vnese se v `constitution.md` v istem PR)
+
+> - Hranijo se samo osebni podatki, ki jih aplikacija potrebuje (ime in e-naslov iz Google računa) in uporabnikovi nastavitvi: izbira jezika in teme ter *oblika zapisa* (telefon, datum, naslov); veljata na vseh njegovih napravah, kopija v brskalniku velja tudi pred prijavo in po odjavi. Oboje je v izvozu podatkov in se izbriše z računom.
+> - Edina izjema od prepovedi klicev na tuje storitve je kartografska storitev OpenStreetMap (Nominatim, Photon, ploščice; `docs/decisions/2026-11-16-kartografska-storitev-osm.md`): kliče jo samo zaledje, samo na izrecno zahtevo uporabnika (gumb zemljevida, samodokončanje naslova, *Razčleni naslov*), pošlje samo besedilo naslova brez podatkov uporabnika in kontakta, nič se ne shrani (predpomnilnik samo v pomnilniku, koordinate se ne hranijo) in besedilo naslova se ne beleži. Brskalnik ne kliče nobene tuje storitve.
 
 ## Complexity Tracking
 
