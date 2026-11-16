@@ -58,7 +58,7 @@ test('FR-016-01 FR-016-04: nov ključ s tipom Telefon, drugi kontakt prevzame ti
   const id = await createGroup(page, { title: 'Projekt FERI' });
 
   await newContact(page, id, 'Ana');
-  await page.getByRole('combobox', { name: 'Ključ' }).fill('Mobilni');
+  await page.getByRole('combobox', { name: 'Ključ', exact: true }).fill('Mobilni');
   await page
     .getByRole('combobox', { name: 'Tip novega ključa' })
     .selectOption({ label: 'Telefon' });
@@ -77,7 +77,7 @@ test('FR-016-01 FR-016-04: nov ključ s tipom Telefon, drugi kontakt prevzame ti
   await expectNoAxeViolations(page);
 
   await newContact(page, id, 'Bojan');
-  await page.getByRole('combobox', { name: 'Ključ' }).fill('MOBILNI');
+  await page.getByRole('combobox', { name: 'Ključ', exact: true }).fill('MOBILNI');
   await page.getByLabel('Vrednost', { exact: true }).click();
   // getByText: namig je golo besedilo brez vloge.
   await expect(page.getByText('Tip ključa v tej skupini je Telefon.')).toBeVisible();
@@ -193,7 +193,8 @@ test('FR-016-02 FR-016-08 FR-016-10 FR-016-11: telefon v različnih zapisih – 
   const rows = page
     .getByRole('table', { name: 'Kontakti skupine Projekt FERI' })
     .getByRole('rowheader');
-  await expect(rows).toHaveText(['Ana', 'Cene Star'].map((n) => new RegExp(n)));
+  // Kontakt brez priimka je v privzetem vrstnem redu zadnji (NULLS LAST).
+  await expect(rows).toHaveText(['Cene Star', 'Ana'].map((n) => new RegExp(n)));
   await expectNoAxeViolations(page);
 
   await page.goto(`/groups/${id}/contacts`);
@@ -217,9 +218,9 @@ const contactIdFromUrl = (page: Page) => new URL(page.url()).pathname.split('/')
 test('FR-016-12 FR-016-13: naslov po delih s samodokončanjem prek našega strežnika in s tipkovnico', async ({
   page,
 }) => {
-  const origins = new Set<string>();
-  page.on('request', (request) => origins.add(new URL(request.url()).origin));
   await signedIn(page);
+  // Sledimo po prijavi: prijava sama nalaga Firebase SDK; merimo zahteve funkcionalnosti naslova.
+  const origins = trackOrigins(page);
   const id = await createGroup(page, { title: 'Projekt FERI' });
   await page.goto(`/groups/${id}/contacts/new`);
   await page.getByRole('textbox', { name: 'Ime', exact: true }).fill('Ana');
@@ -381,8 +382,9 @@ function trackOrigins(page: Page) {
 test('FR-016-20 FR-016-21 FR-016-23 @w768: zemljevid razčlenjenega naslova s ploščicami prek našega strežnika, tipkovnica in pripis', async ({
   page,
 }) => {
-  const origins = trackOrigins(page);
   await signedIn(page);
+  // Sledimo po prijavi: prijava sama nalaga Firebase SDK; merimo zahteve funkcionalnosti.
+  const origins = trackOrigins(page);
   const id = await createGroup(page, { title: 'Projekt FERI' });
   const contact = createSearchContact(id, { first: 'Ana', last: 'Zemljevid' });
   setAddressParts(contact, {
@@ -432,26 +434,27 @@ test('FR-016-20 FR-016-21 FR-016-23 @w768: zemljevid razčlenjenega naslova s pl
 test('FR-016-22: nenajden, približen in nedosegljiv naslov atributa so sporočila; Poskusi znova', async ({
   page,
 }) => {
-  const origins = trackOrigins(page);
   await signedIn(page);
+  // Sledimo po prijavi: prijava sama nalaga Firebase SDK; merimo zahteve funkcionalnosti.
+  const origins = trackOrigins(page);
   const id = await createGroup(page, { title: 'Projekt FERI' });
   const missing = createContactWithTypedAttribute(
     id,
-    'Neznan',
+    'Neznan Naslov',
     'Dostava',
     'Neznana ulica 99\n9999 Atlantida',
     'ADDRESS',
   );
   const approximate = createContactWithTypedAttribute(
     id,
-    'Približen',
+    'Približen Naslov',
     'Dostava',
     'Maribor',
     'ADDRESS',
   );
   const offline = createContactWithTypedAttribute(
     id,
-    'Nedosegljiv',
+    'Nedosegljiv Naslov',
     'Dostava',
     'Nedosegljiva ulica 1',
     'ADDRESS',
@@ -491,7 +494,7 @@ test('FR-016-22: nenajden, približen in nedosegljiv naslov atributa so sporoči
   expect((await retry).status()).toBe(503);
   await expect(dialog.getByRole('alert')).toContainText('Zemljevid trenutno ni na voljo.');
   await page.keyboard.press('Escape');
-  await expect(page.getByRole('heading', { level: 2, name: 'Nedosegljiv' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Nedosegljiv Naslov' })).toBeVisible();
 
   expect([...origins]).toEqual([new URL(page.url()).origin]);
 });
@@ -543,7 +546,8 @@ test('FR-016-24 FR-016-25: uvoz Excela s tipom Telefon in deli naslova, izvoz je
     .click();
   const exported = await readXlsx(await (await downloading).path());
   const cells = exported.rows.flat();
-  expect(cells).toContain('+38641123456');
+  // Izvoz pred vrednost, ki se začne z »+«, doda »'« (zaščita pred formulami v Excelu); vsebina je E.164.
+  expect(cells).toContain("'+38641123456");
   expect(cells.some((cell) => cell.includes('Trg 1') && cell.includes('Ljubljana'))).toBe(true);
 });
 
@@ -584,7 +588,8 @@ test('FR-016-26: sprememba tipa ključa v sledi in zgodovini kontakta, rollback 
   // Zgodovina kontakta kaže isto spremembo.
   await page.goto(`/groups/${id}/contacts/${contact}/history`);
   const events = page.getByRole('list', { name: 'Dogodki zgodovine kontakta' });
-  await expect(events.getByRole('listitem')).toHaveCount(1);
+  // Seznam: en dogodek in vrstica »Izhodiščno stanje«.
+  await expect(events.getByRole('listitem')).toHaveCount(2);
   await events.getByRole('listitem').first().getByRole('group', { name: 'Podrobnosti' }).click();
   await expect(page.getByRole('table', { name: 'Spremembe kontakta Ana Prva' })).toContainText(
     'tip: Drugo → Telefon',
