@@ -18,32 +18,32 @@ Faze US1–US4 uvajajo Email/Password, kar spreminja §5. Razvijalec funkcionaln
 ## Phase 1: Setup
 
 - [x] T001 — Vrata §5: razvijalec je blokado odstranil (2026-11-16); predlog §5 v tem PR, odstopanje od §7 v opisu PR.
-- [ ] T002 [P] (izvedeno delno: `groups.search.*`, `members.leave.owner.*` sl+en; `auth.*` in `account.methods.*` čakajo na T001) — i18n ključi v `frontend/src/i18n/sl.json` in `en.json` samo pod predponami `auth.register.*`, `auth.verify.*`, `auth.forgot.*`, `auth.password.*`, `account.methods.*`, `groups.search.*`, `members.leave.owner.*` (brez posega v ključe 016)
-- [ ] T003 [P] — skupni testni pomočniki: `frontend/src/test/authFake.ts` (nov gateway z geslom/potrditvijo/povezovanjem), `e2e/tests/support/auth.ts` (registracija z geslom, koda OOB prek emulatorja, prijava z geslom), imena elementov iz prevodov
+- [ ] T002 [P] (izvedeno delno: `groups.search.*`, `members.leave.owner.*`, `auth.*` sl+en; `account.methods.*` čaka na US3) — i18n ključi v `frontend/src/i18n/sl.json` in `en.json` samo pod predponami `auth.register.*`, `auth.verify.*`, `auth.forgot.*`, `auth.password.*`, `account.methods.*`, `groups.search.*`, `members.leave.owner.*` (brez posega v ključe 016)
+- [ ] T003 [P] (izvedeno delno: geslo, potrditev, ponastavitev, ponovna avtentikacija; povezovanje čaka na US3) — skupni testni pomočniki: `frontend/src/test/authFake.ts` (nov gateway z geslom/potrditvijo/povezovanjem), `e2e/tests/support/auth.ts` (registracija z geslom, koda OOB prek emulatorja, prijava z geslom), imena elementov iz prevodov
 
 ## Phase 2: Foundational
 
 - [x] T004 FR-017-02, -04 — `EmailVerifiedFilter` v `backend/src/main/java/si/contactmanager/shared/security/` za `BearerTokenAuthenticationFilter` (registracija v `SecurityConfig`): `Jwt` brez `email_verified=true` → `403 {code: EMAIL_NOT_VERIFIED}`; izjema `GET /api/health`; `/dav/**` nespremenjen. Test: `EmailVerifiedSecurityIT` (vsi HTTP načini na reprezentativnih potih skupin, `/api/me`, `/api/invitations`: nepotrjen 403, potrjen kot prej, 401 ostane 401, `PUT /api/me` ne ustvari vrstice `app_user`) + enotski test filtra
 - [x] T005 FR-017-11 (izvedeno brez vrstice 403 `EMAIL_NOT_VERIFIED`, filtra še ni) — `ProfileRepository` ujame trk `lower(email)` pri drugem UID (po obstoječem ponovnem poskusu) → `409 {code: ACCOUNT_CONFLICT}` prek `ApiExceptionHandler`; profil drugega UID nespremenjen. Test: `AccountConflictIT`; vnos matrike za uporabniški vir `PUT /api/me`: 401 neprijavljen, 403 `EMAIL_NOT_VERIFIED`, 409 ob trku (dva UID, isti e-naslov, razlika samo v velikosti črk; članstva prvega nespremenjena)
-- [ ] T007 FR-017-12 — gateway `reauthenticate()` (geslo ali Google popup po ponudniku, vrne svež ID žeton z novim `auth_time`) v `AuthGateway.ts`/`firebaseGateway.ts` s testom z lažnim SDK; potrebujeta ga US3 (T020) in US4 (T031)
+- [x] T007 FR-017-12 — gateway `reauthenticate()` (geslo ali Google popup po ponudniku, vrne svež ID žeton z novim `auth_time`) v `AuthGateway.ts`/`firebaseGateway.ts` s testom z lažnim SDK; potrebujeta ga US3 (T020) in US4 (T031)
 - [x] T006 [P] FR-017-10 — dokumentiraj v `docs/decisions/2026-11-16-email-geslo-povezovanje.md` (§2.6: sprememba avtentikacije): `accounts:signUp` z `idToken` ob vključeni EEP, ponovna prijava z geslom po povezovanju, brez izklopa EEP, brez spremembe UID
 
 ## Phase 3: User Story 1 – Registracija in potrditev e-naslova (P1) 🎯
 
 **Goal**: registracija z geslom, zaslon *Potrdite e-naslov*, vstop po potrditvi. **Independent Test**: emulator – registracija, 403 z nepotrjenim žetonom, potrditev, vstop.
 
-- [ ] T010 [US1] FR-017-01, -03, -13 — `AuthGateway` (`frontend/src/features/auth/AuthGateway.ts`, `firebaseGateway.ts`): `signUpWithPassword`, `sendVerificationEmail` (omejitev pogostosti, napaka `too-many-requests` prevedena), `refreshVerification` (`reload()` → `getIdToken(true)` → obvesti poslušalce), `AuthUser.emailVerified`; kode napak v `signInErrorCode.ts`; test z lažnim SDK (`firebaseGateway.test.ts`)
-- [ ] T011 [US1] FR-017-01, -22 — `RegisterPage.tsx` (`/register`): e-naslov, geslo (najmanj 8 znakov: „najmanj 8 znakov“, preverba v `passwordValidation.ts`, tudi Firebase password policy), potrditev gesla, napake po poljih (`aria-describedby`, `role=alert`), nevtralno sporočilo za `email-already-in-use`; povezava na prijavo; test (RTL + MSW + vitest-axe)
-- [ ] T012 [US1] FR-017-02, -03, -13 — `VerifyEmailPage.tsx` (`/verify-email`): *Ponovno pošlji*, *Potrdil sem* (obvestilo, če še ni potrjeno), *Odjava*; `RequireAuth.tsx` in `AuthProvider.tsx`: nepotrjen uporabnik → `/verify-email`, `PUT /api/me` se ne kliče pred potrditvijo; ob odgovoru `403 EMAIL_NOT_VERIFIED` isti zaslon; testi
-- [ ] T013 [US1] FR-017-01 … 04 — E2E `e2e/tests/prijava-geslo.spec.ts`: registracija → API 403 → koda OOB → *Potrdil sem* → vstop brez ponovne prijave; povabilo na ta e-naslov se pokaže šele po potrditvi (axe, 360/1280 px)
+- [x] T010 [US1] FR-017-01, -03, -13 — `AuthGateway` (`frontend/src/features/auth/AuthGateway.ts`, `firebaseGateway.ts`): `signUpWithPassword`, `sendVerificationEmail` (omejitev pogostosti, napaka `too-many-requests` prevedena), `refreshVerification` (`reload()` → `getIdToken(true)` → obvesti poslušalce), `AuthUser.emailVerified`; kode napak v `signInErrorCode.ts`; test z lažnim SDK (`firebaseGateway.test.ts`)
+- [x] T011 [US1] FR-017-01, -22 — `RegisterPage.tsx` (`/register`): e-naslov, geslo (najmanj 8 znakov: „najmanj 8 znakov“, preverba v `passwordValidation.ts`, tudi Firebase password policy), potrditev gesla, napake po poljih (`aria-describedby`, `role=alert`), nevtralno sporočilo za `email-already-in-use`; povezava na prijavo; test (RTL + MSW + vitest-axe)
+- [x] T012 [US1] FR-017-02, -03, -13 — `VerifyEmailPage.tsx` (`/verify-email`): *Ponovno pošlji*, *Potrdil sem* (obvestilo, če še ni potrjeno), *Odjava*; `RequireAuth.tsx` in `AuthProvider.tsx`: nepotrjen uporabnik → `/verify-email`, `PUT /api/me` se ne kliče pred potrditvijo; ob odgovoru `403 EMAIL_NOT_VERIFIED` isti zaslon; testi
+- [x] T013 [US1] FR-017-01 … 04 — E2E `e2e/tests/prijava-geslo.spec.ts`: registracija → API 403 → koda OOB → *Potrdil sem* → vstop brez ponovne prijave; povabilo na ta e-naslov se pokaže šele po potrditvi (axe, 360/1280 px)
 
 **Checkpoint**: US1 deluje; `./verify.sh quick` + `backend` zelena
 
 ## Phase 4: User Story 2 – Prijava z geslom in ponastavitev (P1)
 
-- [ ] T014 [US2] FR-017-05, -06 — gateway `signInWithPassword`; `LoginPage.tsx` razširjen (obrazec z geslom, *Nadaljuj z Googlom* nespremenjen, povezave *Registracija*, *Pozabljeno geslo*); en nevtralen niz za `invalid-credential`/`user-not-found`/`wrong-password`; `next` poti (001) ohranjena; test
-- [ ] T015 [US2] FR-017-07 — gateway `sendPasswordReset`; `ForgotPasswordPage.tsx` (`/forgot-password`): vedno isto potrdilo; test, da je izpis enak ob uspehu in ob napaki `user-not-found`
-- [ ] T016 [US2] FR-017-05 … 08 — E2E (`prijava-geslo.spec.ts`): prijava z geslom, napačno geslo, pozabljeno geslo (koda OOB), Google prijava obstoječega uporabnika brez izgube članstev, gesel za aplikacijo (014) in nastavitev (SC-002)
+- [x] T014 [US2] FR-017-05, -06 — gateway `signInWithPassword`; `LoginPage.tsx` razširjen (obrazec z geslom, *Nadaljuj z Googlom* nespremenjen, povezave *Registracija*, *Pozabljeno geslo*); en nevtralen niz za `invalid-credential`/`user-not-found`/`wrong-password`; `next` poti (001) ohranjena; test
+- [x] T015 [US2] FR-017-07 — gateway `sendPasswordReset`; `ForgotPasswordPage.tsx` (`/forgot-password`): vedno isto potrdilo; test, da je izpis enak ob uspehu in ob napaki `user-not-found`
+- [x] T016 [US2] FR-017-05 … 08 — E2E (`prijava-geslo.spec.ts`): prijava z geslom, napačno geslo, pozabljeno geslo (koda OOB), Google prijava obstoječega uporabnika brez izgube članstev, gesel za aplikacijo (014) in nastavitev (SC-002)
 
 ## Phase 5: User Story 3 – Povezovanje Googla in gesla (P1)
 

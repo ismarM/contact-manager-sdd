@@ -35,7 +35,10 @@ test('FR-001-01 FR-001-02 FR-001-14: nov uporabnik se prijavi z Googlom in ima p
 
   await expect(signInButton(page)).toBeVisible();
   expect(page.url()).toContain('/login');
-  await expect(page.getByRole('textbox')).toHaveCount(0);
+  // 017: stran za prijavo ima poleg Googla še obrazec z e-naslovom in geslom (edini besedilni polji).
+  await expect(page.getByRole('textbox')).toHaveCount(2);
+  await expect(page.getByLabel('E-naslov', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Geslo', { exact: true })).toBeVisible();
   await expectNoAxeViolations(page);
 
   await signIn(page, user);
