@@ -193,7 +193,7 @@ describe('Tip ključa v obrazcu kontakta', () => {
 
     await waitFor(() => expect(currentLocation()).toBe(`${LIST}/${CONTACT_ID}`));
     expect((api.of('POST', CREATE)[0]?.body as { phone: string }).phone).toBe('041 123-456');
-    expect(await screen.findByText('+38641123456')).toBeVisible();
+    expect(await screen.findByText('+386 41 123 456')).toBeVisible();
   });
 
   it('FR-016-08, FR-016-19: neveljaven telefon strežnik zavrne in napaka je ob polju z aria-describedby', async () => {

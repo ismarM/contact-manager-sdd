@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { focusRing } from '../../shared/ui/styles';
 import { countryName } from '../contacts/countries';
 import { useUiLanguage } from '../contacts/useUiLanguage';
+import { useFormatters } from '../formats/useFormatters';
 import { contactName, gridFor, startAt } from './CompareColumns';
 import type { CompareRow } from './mergeModel';
 import type { CompareContact } from './types';
@@ -33,6 +34,7 @@ export function CompareField({
 }) {
   const { t } = useTranslation();
   const language = useUiLanguage();
+  const format = useFormatters();
   const prefix = useId();
   const errorId = `${id}-error`;
   const legend =
@@ -43,7 +45,9 @@ export function CompareField({
       ? t('duplicates.compare.emptyValue')
       : row.key === 'country'
         ? countryName(option, language)
-        : option;
+        : row.key === 'phone'
+          ? format.phone(option)
+          : option;
 
   return (
     <fieldset

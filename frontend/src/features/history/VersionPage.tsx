@@ -10,6 +10,7 @@ import { useAuditSentence } from '../audit/auditSentence';
 import { useAuditTime } from '../audit/formatTime';
 import { countryName } from '../contacts/countries';
 import { useUiLanguage } from '../contacts/useUiLanguage';
+import { useFormatters } from '../formats/useFormatters';
 import { useGroup } from '../groups/groupContext';
 import { useDelayed } from '../groups/useDelayed';
 import { isNotFound, useHistoryApi } from './api';
@@ -30,13 +31,14 @@ const link = `text-primary underline underline-offset-4 ${focusRing}`;
 export function VersionFields({ version }: { version: Version }) {
   const { t } = useTranslation();
   const language = useUiLanguage();
+  const format = useFormatters();
   const { state } = version;
   const rows: [string, string][] = [
     [t('contacts.view.company'), state.company ?? ''],
     [t('contacts.view.address'), state.address ?? ''],
     [t('contacts.view.country'), state.country ? countryName(state.country, language) : ''],
     [t('contacts.view.email'), state.email ?? ''],
-    [t('contacts.view.phone'), state.phone ?? ''],
+    [t('contacts.view.phone'), state.phone ? format.phone(state.phone) : ''],
   ];
   const filled = rows.filter(([, value]) => value !== '');
   return (

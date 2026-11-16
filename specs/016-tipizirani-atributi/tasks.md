@@ -82,11 +82,11 @@ description: "Tasks for 016-tipizirani-atributi (po zgodbah, testi znotraj vsake
 
 **Independent Test**: sprememba oblike telefona, datuma in naslova v *Mojem računu* spremeni vse prikaze takoj in na drugi napravi; podatki, izvoz in API ostanejo kanonični.
 
-- [ ] T036 [US4] FR-016-16 FR-016-17 FR-016-18 — zaledje `account`: `DisplayFormat` enumi, `Preferences`/`PreferencesParser`/`ProfileRepository`/`Profile` (`phoneFormat`, `dateFormat`, `addressFormat`; manjka = nespremenjeno, `null` = privzeto, neveljavna vrednost 400 `INVALID_VALUE`; neznana vrednost v bazi se bere kot privzeta); `MyData.preferences` v izvozu 012; izbris računa; IT `DisplayFormatsIT` (`PUT /api/me/preferences` in `PUT /api/me`, izvoz, izbris, API vedno kanoničen)
-- [ ] T037 [US4] FR-016-16 — matrika: vrstica `PUT /api/me/preferences, /api/me` (401, pokvarjen/potekel žeton, 400 neveljavna vrednost, 200/201; vpliv samo na lastni profil)
-- [ ] T038 [US4] FR-016-17 — matrika: vrstica `GET /api/me/export` (401; `preferences` vsebuje oblike zapisa samo lastnega uporabnika)
-- [ ] T039 [P] [US4] FR-016-16 FR-016-17 FR-016-19 — FE `features/formats/`: `DisplayFormatsProvider`, `formatPhone`, `formatDate`, `formatAddress`, `addressFormats.json` (kopija + test enakosti z zaledjem); `features/account/DisplayFormatSection.tsx`, `preferences.ts` (kopija v `localStorage`, ob prvi prijavi `COALESCE`, profil ima prednost); vsi prikazi (seznam, pogled, dvojniki, sled, zgodovina) prek oblikovalnikov; testi `formatPhone/Date/Address.test.ts` (po državah), `DisplayFormatSection.test.tsx`, axe
-- [ ] T040 [US4] FR-016-16 FR-016-17 FR-016-18 — E2E: sprememba sheme v *Mojem računu*, prikaz v seznamu in pogledu, ohranitev po ponovni prijavi, izvoz kanoničen; axe pri 360 in 1280
+- [x] T036 [US4] FR-016-16 FR-016-17 FR-016-18 — zaledje `account`: `DisplayFormat` enumi, `Preferences`/`PreferencesParser`/`ProfileRepository`/`Profile` (`phoneFormat`, `dateFormat`, `addressFormat`; manjka = nespremenjeno, `null` = privzeto, neveljavna vrednost 400 `INVALID_VALUE`; neznana vrednost v bazi se bere kot privzeta); `MyData.preferences` v izvozu 012; izbris računa; IT `DisplayFormatsIT` (`PUT /api/me/preferences` in `PUT /api/me`, izvoz, izbris, API vedno kanoničen)
+- [x] T037 [US4] FR-016-16 — matrika: vrstica `PUT /api/me/preferences, /api/me` (401, pokvarjen/potekel žeton, 400 neveljavna vrednost, 200/201; vpliv samo na lastni profil)
+- [x] T038 [US4] FR-016-17 — matrika: vrstica `GET /api/me/export` (401; `preferences` vsebuje oblike zapisa samo lastnega uporabnika)
+- [x] T039 [P] [US4] FR-016-16 FR-016-17 FR-016-19 — FE `features/formats/`: `DisplayFormatsProvider`, `formatPhone`, `formatDate`, `formatAddress`, `addressFormats.json` (kopija + test enakosti z zaledjem); `features/account/DisplayFormatSection.tsx`, `preferences.ts` (kopija v `localStorage`, ob prvi prijavi `COALESCE`, profil ima prednost); vsi prikazi (seznam, pogled, dvojniki, sled, zgodovina) prek oblikovalnikov; testi `formatPhone/Date/Address.test.ts` (po državah), `DisplayFormatSection.test.tsx`, axe
+- [x] T040 [US4] FR-016-16 FR-016-17 FR-016-18 — E2E: sprememba sheme v *Mojem računu*, prikaz v seznamu in pogledu, ohranitev po ponovni prijavi, izvoz kanoničen; axe pri 360 in 1280
 
 ## Phase 7: User Story 5 – Zemljevid za naslove (P2)
 

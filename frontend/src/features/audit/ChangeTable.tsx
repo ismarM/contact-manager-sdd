@@ -2,15 +2,27 @@ import { useTranslation } from 'react-i18next';
 
 import { countryName } from '../contacts/countries';
 import { useUiLanguage } from '../contacts/useUiLanguage';
+import { useFormatters } from '../formats/useFormatters';
 import type { ChangeField, ChangeValue, ContactChange } from './types';
 
 /** Vrednost celice: besedilo, značke ločene z vejico ali »—« z vizualno skritim »prazno« (design.md 8.6). */
-function Value({ value, country = false }: { value: ChangeValue; country?: boolean }) {
+function Value({
+  value,
+  country = false,
+  phone = false,
+}: {
+  value: ChangeValue;
+  country?: boolean;
+  phone?: boolean;
+}) {
   const { t } = useTranslation();
   const language = useUiLanguage();
+  const format = useFormatters();
   const joined = Array.isArray(value) ? value.join(', ') : value;
   // 013: pri državi sta `before`/`after` kodi ISO; ime v jeziku vmesnika, neznana koda ostane surova.
-  const text = country && joined ? countryName(joined, language) : joined;
+  let text = joined;
+  if (country && joined) text = countryName(joined, language);
+  else if (phone && joined) text = format.phone(joined);
   if (text === null || text === '') {
     return (
       <>
@@ -60,10 +72,18 @@ export function ChangeTable({ change }: { change: ContactChange }) {
                 <FieldLabel field={field} />
               </th>
               <td className="p-2 break-words">
-                <Value value={field.before} country={field.field === 'COUNTRY'} />
+                <Value
+                  value={field.before}
+                  country={field.field === 'COUNTRY'}
+                  phone={field.field === 'PHONE'}
+                />
               </td>
               <td className="p-2 break-words">
-                <Value value={field.after} country={field.field === 'COUNTRY'} />
+                <Value
+                  value={field.after}
+                  country={field.field === 'COUNTRY'}
+                  phone={field.field === 'PHONE'}
+                />
               </td>
             </tr>
           ))}

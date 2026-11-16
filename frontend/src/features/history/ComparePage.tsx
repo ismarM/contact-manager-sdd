@@ -9,6 +9,7 @@ import { NotFoundPage } from '../../shared/pages/NotFoundPage';
 import { errorAlert, focusRing, secondaryButton } from '../../shared/ui/styles';
 import { countryName } from '../contacts/countries';
 import { useUiLanguage } from '../contacts/useUiLanguage';
+import { useFormatters } from '../formats/useFormatters';
 import { useGroup } from '../groups/groupContext';
 import { useDelayed } from '../groups/useDelayed';
 import { useHistoryApi } from './api';
@@ -31,12 +32,16 @@ const link = `text-primary underline underline-offset-4 ${focusRing}`;
 function Cell({ row, side }: { row: CompareRow; side: 'before' | 'after' }) {
   const { t } = useTranslation();
   const language = useUiLanguage();
+  const format = useFormatters();
   const value = row[side];
   const joined = Array.isArray(value) ? value.join(', ') : value;
   const label = t(side === 'before' ? 'history.compare.from' : 'history.compare.to');
   let content: string | null;
   if (row.presence) content = t(joined ? 'history.compare.present' : 'history.compare.absent');
-  else content = row.country && joined ? countryName(joined, language) : joined;
+  else if (row.country && joined) content = countryName(joined, language);
+  else if (row.label.kind === 'field' && row.label.field === 'PHONE' && joined)
+    content = format.phone(joined);
+  else content = joined;
   return (
     <td className="p-2 break-words max-sm:block max-sm:px-0 max-sm:py-1">
       <span className="font-bold sm:hidden">{label}: </span>

@@ -8,6 +8,9 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
+import si.contactmanager.account.DisplayFormat.AddressFormat;
+import si.contactmanager.account.DisplayFormat.DateFormat;
+import si.contactmanager.account.DisplayFormat.PhoneFormat;
 import si.contactmanager.account.ExportAssembler.MembershipRow;
 import si.contactmanager.account.ExportAssembler.OwnedRow;
 import si.contactmanager.account.ExportAssembler.ProfileRow;
@@ -31,7 +34,8 @@ class MyDataRepository {
     }
 
     Optional<ProfileWithId> profile(String firebaseUid) {
-        return jdbc.sql("SELECT id, name, email, created_at, language, theme FROM app_user WHERE firebase_uid = :uid")
+        return jdbc.sql("SELECT id, name, email, created_at, language, theme, phone_format, date_format, address_format"
+                        + " FROM app_user WHERE firebase_uid = :uid")
                 .param("uid", firebaseUid)
                 .query((rs, row) -> new ProfileWithId(
                         rs.getLong("id"),
@@ -40,8 +44,17 @@ class MyDataRepository {
                                 rs.getString("email"),
                                 instant(rs, "created_at"),
                                 rs.getString("language"),
-                                rs.getString("theme"))))
+                                rs.getString("theme"),
+                                known(PhoneFormat.class, rs.getString("phone_format")),
+                                known(DateFormat.class, rs.getString("date_format")),
+                                known(AddressFormat.class, rs.getString("address_format")))))
                 .optional();
+    }
+
+    /** Neznana vrednost v bazi se izvozi kot privzeta ({@code null}), enako kot v profilu. */
+    private static <E extends Enum<E>> String known(Class<E> type, String name) {
+        E value = DisplayFormat.read(type, name);
+        return value == null ? null : value.name();
     }
 
     List<MembershipRow> memberships(long user) {

@@ -15,6 +15,7 @@ import {
 } from '../../shared/ui/styles';
 import { useAuth } from '../auth/authContext';
 import { downloadBlob } from '../../shared/download';
+import { useFormatters } from '../formats/useFormatters';
 import { useGroup } from '../groups/groupContext';
 import { useDelayed } from '../groups/useDelayed';
 import { isNotFound, useContactsApi } from './api';
@@ -58,6 +59,7 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
   const [reloads, setReloads] = useState(0);
   const [conflict, setConflict] = useState<ContactDetail | null>(null);
   const language = useUiLanguage();
+  const format = useFormatters();
   const showLoader = useDelayed(state.kind === 'loading');
   const conflictMessage = useConflictMessage();
   const editable = canEditContacts(group);
@@ -195,9 +197,14 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
 
       <ShareActions contact={contact} />
 
-      {[contact.company, contact.address, contact.country, contact.email, contact.phone].some(
-        (value) => value != null,
-      ) && (
+      {[
+        contact.company,
+        contact.address,
+        contact.addressParts,
+        contact.country,
+        contact.email,
+        contact.phone,
+      ].some((value) => value != null) && (
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
           {contact.company != null && (
             <>
@@ -205,10 +212,12 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
               <dd className="break-words">{contact.company}</dd>
             </>
           )}
-          {contact.address !== null && (
+          {(contact.address != null || contact.addressParts != null) && (
             <>
               <dt className="font-bold">{t('contacts.view.address')}</dt>
-              <dd className="break-words whitespace-pre-line">{contact.address}</dd>
+              <dd className="break-words whitespace-pre-line">
+                {format.address(contact.addressParts ?? contact.address ?? '')}
+              </dd>
             </>
           )}
           {contact.country != null && (
@@ -232,7 +241,7 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
               <dt className="font-bold">{t('contacts.view.phone')}</dt>
               <dd>
                 <a href={telHref(contact.phone)} className={link}>
-                  {contact.phone}
+                  {format.phone(contact.phone)}
                 </a>
               </dd>
             </>
@@ -250,7 +259,11 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
               <div key={attribute.key} className="contents">
                 <dt className="font-bold break-words">{attribute.key}</dt>
                 <dd className="break-words">
-                  <TypedValueView type={attribute.type} value={attribute.value ?? ''} />
+                  <TypedValueView
+                    type={attribute.type}
+                    value={attribute.value ?? ''}
+                    parts={attribute.parts}
+                  />
                 </dd>
               </div>
             ))}

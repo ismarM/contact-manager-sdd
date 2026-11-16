@@ -2,6 +2,8 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 
+import '../../../i18n';
+
 import { TypedValueView } from './TypedValueView';
 
 // Prikaz vrednosti po tipu: povezave, golo besedilo, varnost (FR-016-03, FR-016-07).
@@ -19,7 +21,7 @@ describe('TypedValueView', () => {
   it('FR-016-03: telefon je povezava tel', () => {
     render(<TypedValueView type="PHONE" value="+38641123456" />);
 
-    expect(screen.getByRole('link', { name: '+38641123456' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: '+386 41 123 456' })).toHaveAttribute(
       'href',
       'tel:+38641123456',
     );
@@ -63,7 +65,7 @@ describe('TypedValueView', () => {
     );
 
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
-    for (const text of ['IT', '2026-11-16', 'Ulica 1']) {
+    for (const text of ['IT', '16/11/2026', 'Ulica 1']) {
       expect(screen.getByText(text)).toBeInTheDocument();
     }
   });

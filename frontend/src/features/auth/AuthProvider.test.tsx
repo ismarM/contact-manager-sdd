@@ -22,7 +22,13 @@ describe('AuthProvider – sinhronizacija profila in izbire', () => {
     const sync = api.requests.find((r) => r.path === '/api/me');
     expect(sync?.method).toBe('PUT');
     expect(sync?.authorization).toBe('Bearer token-uid-ana');
-    expect(sync?.body).toEqual({ language: 'sl', theme: 'light' });
+    expect(sync?.body).toEqual({
+      language: 'sl',
+      theme: 'light',
+      phoneFormat: null,
+      dateFormat: null,
+      addressFormat: null,
+    });
   });
 
   it('FR-001-19: izbira iz profila preglasi izbiro naprave in se shrani na napravi', async () => {
@@ -49,6 +55,9 @@ describe('AuthProvider – sinhronizacija profila in izbire', () => {
     expect(api.requests.find((r) => r.path === '/api/me')?.body).toEqual({
       language: null,
       theme: null,
+      phoneFormat: null,
+      dateFormat: null,
+      addressFormat: null,
     });
     expect(await screen.findByRole('button', { name: 'Meni računa' })).toBeInTheDocument();
     expect(localStorage.getItem('language')).toBeNull();

@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 
+import { idToken } from './support/audit';
 import { signIn, type TestUser, uniqueUser } from './support/auth';
 import { seedContact } from './support/duplicates';
 import { createGroup, setRole } from './support/groups';
@@ -66,7 +67,7 @@ test('FR-016-01 FR-016-04: nov ključ s tipom Telefon, drugi kontakt prevzame ti
   await expect(toast(page)).toContainText('Kontakt Ana je shranjen.');
   expect(keyTypeOf(id, 'Mobilni')).toBe('PHONE');
   expect(valuesOfKey(id, 'Mobilni')).toEqual(['+38641123456']);
-  await expect(page.getByRole('link', { name: '+38641123456' })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: '+386 41 123 456' })).toHaveAttribute(
     'href',
     'tel:+38641123456',
   );
@@ -165,7 +166,7 @@ test('FR-016-02 FR-016-08 FR-016-10 FR-016-11: telefon v različnih zapisih – 
   await expectNoAxeViolations(page);
   await page.getByRole('button', { name: 'Shrani kontakt' }).click();
   await expect(toast(page)).toContainText('Kontakt Ana je shranjen.');
-  await expect(page.getByRole('link', { name: '+38641123456' })).toBeVisible();
+  await expect(page.getByRole('link', { name: '+386 41 123 456' })).toBeVisible();
 
   // Neveljavna vrednost: napaka ob polju z imenom, nič se ne shrani.
   await page.goto(`/groups/${id}/contacts/new`);
@@ -287,4 +288,73 @@ test('FR-016-14: nerazčlenjen naslov iz časa pred 016 – Razčleni naslov, po
     postalCode: '2000',
     city: 'Maribor',
   });
+});
+
+// US4: izbira prikazne sheme v Mojem računu; strežnik in izvoz ostaneta kanonična.
+test('FR-016-16 FR-016-17 FR-016-18: shema telefona in datuma v Mojem računu spremeni prikaz, velja po ponovni prijavi, API je kanoničen', async ({
+  page,
+  browser,
+}) => {
+  const user = await signedIn(page);
+  const id = await createGroup(page, { title: 'Projekt FERI' });
+  const phone = createContactWithTypedAttribute(
+    id,
+    'Ana Telefon',
+    'Mobilni',
+    '+436641234567',
+    'PHONE',
+  );
+  const date = createContactWithTypedAttribute(
+    id,
+    'Bojan Datum',
+    'Rojstni dan',
+    '2026-11-16',
+    'DATE',
+  );
+
+  await page.goto(`/groups/${id}/contacts/${phone}`);
+  await expect(page.getByRole('link', { name: '+43 664 1234567' })).toBeVisible();
+  await page.goto(`/groups/${id}/contacts/${date}`);
+  await expect(page.getByText('16. 11. 2026')).toBeVisible();
+
+  await page.goto('/account');
+  const formats = page.getByRole('region', { name: 'Oblika zapisa' });
+  await expect(formats).toBeVisible();
+  await expectNoAxeViolations(page);
+  await formats.getByRole('radio', { name: /^Nacionalna/ }).check();
+  await formats.getByRole('radio', { name: /^Dolga oblika/ }).check();
+  await expect(formats.getByRole('status')).toContainText('Oblika zapisa je shranjena.');
+  await expectNoAxeViolations(page);
+
+  // Po osvežitvi strani velja izbira iz profila.
+  await page.goto(`/groups/${id}/contacts/${phone}`);
+  await expect(page.getByRole('link', { name: '0664 1234567' })).toHaveAttribute(
+    'href',
+    'tel:+436641234567',
+  );
+  await page.goto(`/groups/${id}/contacts/${date}`);
+  await expect(page.getByText('16. november 2026')).toBeVisible();
+  await expectNoAxeViolations(page);
+
+  // Ponovna prijava na drugi napravi: izbira velja (profil), API in izvoz pa ostaneta kanonična.
+  const other = await browser.newContext({ locale: 'sl-SI' });
+  const second = await other.newPage();
+  await second.goto('/');
+  await signIn(second, user);
+  await second.goto('/account');
+  const secondFormats = second.getByRole('region', { name: 'Oblika zapisa' });
+  await expect(secondFormats.getByRole('radio', { name: /^Nacionalna/ })).toBeChecked();
+  await expect(secondFormats.getByRole('radio', { name: /^Dolga oblika/ })).toBeChecked();
+
+  const headers = { Authorization: `Bearer ${await idToken(second)}` };
+  const contact = await second.request.get(`/api/groups/${id}/contacts/${phone}`, { headers });
+  expect(await contact.text()).toContain('+436641234567');
+  const exported = await second.request.get('/api/me/export', { headers });
+  const profile = ((await exported.json()) as { profile: Record<string, unknown> }).profile;
+  expect(profile).toMatchObject({
+    phoneFormat: 'NATIONAL',
+    dateFormat: 'LONG',
+    addressFormat: null,
+  });
+  await other.close();
 });
