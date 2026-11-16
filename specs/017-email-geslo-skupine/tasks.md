@@ -56,7 +56,7 @@ Faze US1–US4 uvajajo Email/Password, kar spreminja §5. Razvijalec funkcionaln
 ## Phase 6: User Story 4 – Ponovna avtentikacija (P2)
 
 - [x] T030 [US4] FR-017-12 — `FreshAuthentication` v `shared/security/` + uporaba v `AccountDeletionController`: `now − auth_time > 300 s` ali brez claima → `403 REAUTHENTICATION_REQUIRED` pred obdelavo; koda v `ApiExceptionHandler`; testi: enota (meja 300 s, manjkajoč claim) in `AccountDeletionReauthIT` (stari žeton: nič ne izbrisano; svež: 204/202), vnos matrike za uporabniške vire (401 neprijavljen, 403 nepotrjen, 403 star `auth_time`)
-- [x] T031 [US4] FR-017-12 — `DeleteAccountDialog.tsx` (uporablja `reauthenticate()` iz T007): ponovna avtentikacija pred `POST /api/me/deletion`, nato `getIdToken(true)`; `REAUTHENTICATION_REQUIRED` → ponovni poskus s ponovno avtentikacijo; napačno geslo ne spremeni ničesar; test; dodajanje metode (T021) uporablja isti dialog
+- [x] T031 [US4] FR-017-12 — `DeleteAccountDialog.tsx` (uporablja `reauthenticate()` iz T007): ponovna avtentikacija pred `POST /api/me/deletion`, nato `getIdToken(true)`; `REAUTHENTICATION_REQUIRED` → sporočilo v dialogu, uporabnik ponovi dejanje (nova ponovna avtentikacija ob naslednji oddaji); napačno geslo ne spremeni ničesar; test; dodajanje metode (T021) uporablja isti dialog
 - [x] T032 [US4] FR-017-12 — E2E: izbris računa z geslom zahteva geslo (axe)
 
 ## Phase 7: User Story 5 – Iskanje in filtriranje skupin (P2)

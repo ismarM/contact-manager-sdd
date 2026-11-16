@@ -64,6 +64,7 @@ export function createAuthFake(
   let nextUser: AuthUser = ANA;
   let nextError: SignInErrorCode | null = null;
   let tokenFails = false;
+  let freshToken = false;
   let signOutCalls = 0;
   let signInCalls = 0;
   let verificationEmails = 0;
@@ -193,6 +194,7 @@ export function createAuthFake(
           return Promise.reject(new SignInError('invalid-credentials'));
         }
       }
+      freshToken = true;
       return Promise.resolve(`token-${user.uid}-fresh`);
     },
     linkPassword(password) {
@@ -227,7 +229,7 @@ export function createAuthFake(
     },
     getIdToken() {
       if (tokenFails) return Promise.reject(new Error('token refresh failed'));
-      return Promise.resolve(user ? `token-${user.uid}` : null);
+      return Promise.resolve(user ? `token-${user.uid}${freshToken ? '-fresh' : ''}` : null);
     },
     failNextSignIn(code) {
       nextError = code;

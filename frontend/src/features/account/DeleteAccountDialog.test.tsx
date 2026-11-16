@@ -122,7 +122,8 @@ describe('DeleteAccountDialog – potrditev izbrisa z vpisom e-naslova', () => {
     await waitFor(() => expect(api.deletionRequests()).toHaveLength(1));
     const request = api.deletionRequests()[0];
     expect(request?.method).toBe('POST');
-    expect(request?.authorization).toBe('Bearer token-uid-ana');
+    // 017: po ponovni avtentikaciji zahtevek nosi svež žeton (FR-017-12)
+    expect(request?.authorization).toBe('Bearer token-uid-ana-fresh');
     const body = request?.body as { email: string };
     expect(Object.keys(body)).toEqual(['email']);
     expect(body.email.trim().toLowerCase()).toBe('ana@primer.si');
@@ -327,6 +328,8 @@ describe('DeleteAccountDialog – ponovna avtentikacija (FR-017-12)', () => {
 
     await waitFor(() => expect(api.deletionRequests()).toHaveLength(1));
     expect(gateway.reauthentications).toEqual(['password']);
+    // zahtevek nosi žeton, pridobljen po ponovni avtentikaciji (FR-017-12)
+    expect(api.deletionRequests()[0]?.authorization).toMatch(/-fresh$/);
   });
 
   it('Google uporabnik: brez polja za geslo, ponovna avtentikacija z Googlom', async () => {
@@ -339,6 +342,8 @@ describe('DeleteAccountDialog – ponovna avtentikacija (FR-017-12)', () => {
 
     await waitFor(() => expect(api.deletionRequests()).toHaveLength(1));
     expect(gateway.reauthentications).toEqual(['google']);
+    // zahtevek nosi žeton, pridobljen po ponovni avtentikaciji (FR-017-12)
+    expect(api.deletionRequests()[0]?.authorization).toMatch(/-fresh$/);
   });
 
   it('preklic pojavnega okna Googla: sporočilo, nič izbrisano', async () => {

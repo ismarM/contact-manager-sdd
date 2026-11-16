@@ -100,6 +100,8 @@ class GroupSearchIT extends ApiTest {
         assertThat(titles(sections(ok("/api/groups?q=in_ve", ana.idToken())).getFirst()))
                 .containsExactly("Popust 50% in_več \\ konec");
         assertThat(sections(ok("/api/groups?q=_", ana.idToken())).getFirst()).containsEntry("total", 1);
+        assertThat(titles(sections(ok("/api/groups?q=%5C", ana.idToken())).getFirst()))
+                .containsExactly("Popust 50% in_več \\ konec");
     }
 
     @Test
@@ -168,7 +170,7 @@ class GroupSearchIT extends ApiTest {
     void anotherUsersGroupIsNeverRevealedBySearch() throws Exception {
         SignedIn ana = registeredUser("Ana Izolacija");
         SignedIn bojan = registeredUser("Bojan Izolacija");
-        UUID secret = fixtures.createGroup(fixtures.userId(bojan.uid()), "Tajna skupina Zlatorog");
+        fixtures.createGroup(fixtures.userId(bojan.uid()), "Tajna skupina Zlatorog");
         UUID secretArchived = fixtures.createGroup(fixtures.userId(bojan.uid()), "Tajni arhiv Zlatorog");
         fixtures.archive(secretArchived);
 
@@ -177,6 +179,5 @@ class GroupSearchIT extends ApiTest {
                 .containsEntry("total", 0)
                 .containsEntry("items", List.of());
         assertThat(sections(ok("/api/groups?q=zlatorog", bojan.idToken()))).hasSize(1);
-        assertThat(secret).isNotNull();
     }
 }
