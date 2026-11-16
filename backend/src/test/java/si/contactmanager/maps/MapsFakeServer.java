@@ -25,8 +25,12 @@ public final class MapsFakeServer implements AutoCloseable {
     /** Prejeta zahteva; imena glav so z malimi črkami. */
     public record Request(String method, String path, String query, Map<String, String> headers) {}
 
-    /** Odgovor; {@code delay} zadrži odgovor (preizkus časovnih omejitev). */
-    public record Response(int status, String contentType, byte[] body, Duration delay) {
+    /** Odgovor; {@code delay} zadrži odgovor (preizkus časovnih omejitev); {@code headers} so dodatne glave. */
+    public record Response(int status, String contentType, byte[] body, Duration delay, Map<String, String> headers) {
+
+        public Response(int status, String contentType, byte[] body, Duration delay) {
+            this(status, contentType, body, delay, Map.of());
+        }
 
         public static Response json(String body) {
             return new Response(200, "application/json", body.getBytes(StandardCharsets.UTF_8), Duration.ZERO);
@@ -41,7 +45,13 @@ public final class MapsFakeServer implements AutoCloseable {
         }
 
         public Response delayed(Duration delay) {
-            return new Response(status, contentType, body, delay);
+            return new Response(status, contentType, body, delay, headers);
+        }
+
+        public Response withHeader(String name, String value) {
+            Map<String, String> more = new LinkedHashMap<>(headers);
+            more.put(name, value);
+            return new Response(status, contentType, body, delay, Map.copyOf(more));
         }
     }
 
@@ -116,6 +126,8 @@ public final class MapsFakeServer implements AutoCloseable {
             }
         }
         exchange.getResponseHeaders().set("Content-Type", response.contentType());
+        response.headers()
+                .forEach((name, value) -> exchange.getResponseHeaders().set(name, value));
         boolean noBody = response.body().length == 0;
         exchange.sendResponseHeaders(response.status(), noBody ? -1 : response.body().length);
         if (!noBody) {

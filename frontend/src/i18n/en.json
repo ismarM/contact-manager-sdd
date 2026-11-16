@@ -1455,19 +1455,24 @@
     "mail": "Send an email to {{value}}"
   },
   "map": {
-    "show": "Show on map",
-    "title": "Map",
-    "dialogTitle": "Address map",
-    "close": "Close map",
+    "showShort": "Show on map",
+    "show": "Show on map: {{name}}",
+    "title": "Map: {{name}}",
     "loading": "Looking up the address…",
+    "notFound": "The address could not be found on the map.",
     "approximate": "The location is approximate: a city or street was found, not the house number.",
-    "notFound": "The address could not be found.",
-    "unavailable": "The map is not available right now. Try again later.",
+    "unavailable": "The map is not available right now. The contact's details are still available.",
     "retry": "Try again",
+    "region": "Map: {{name}}. Arrow keys move the map, + and − zoom in and out.",
+    "descriptionExact": "The marker is at the address location (latitude {{lat}}, longitude {{lon}}).",
+    "descriptionApproximate": "The marker is at the approximate address location (latitude {{lat}}, longitude {{lon}}).",
     "attribution": "© OpenStreetMap contributors",
-    "label": "Map with the address location",
+    "openExternal": "Open the location in OpenStreetMap",
+    "searchExternal": "Search for the address in OpenStreetMap",
+    "newTab": "(opens in a new tab)",
     "zoomIn": "Zoom in",
-    "zoomOut": "Zoom out"
+    "zoomOut": "Zoom out",
+    "close": "Close map"
   },
   "errorsTyped": {
     "ATTRIBUTE_TYPE_CONFLICT": "Some values are not valid for the selected type.",

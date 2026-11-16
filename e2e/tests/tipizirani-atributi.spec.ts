@@ -12,6 +12,7 @@ import {
   auditActions,
   createContactWithTypedAttribute,
   keyTypeOf,
+  setAddressParts,
   valuesOfKey,
 } from './support/typedAttributes';
 
@@ -357,4 +358,131 @@ test('FR-016-16 FR-016-17 FR-016-18: shema telefona in datuma v Mojem računu sp
     addressFormat: null,
   });
   await other.close();
+});
+
+// --- US5: zemljevid za naslove (zaledje kliče osm-stub: Nominatim in ploščice; brskalnik samo naš izvor) -------------
+
+/** Izvori vseh zahtev HTTP brskalnika (brez `blob:` in `data:`). */
+function trackOrigins(page: Page) {
+  const origins = new Set<string>();
+  page.on('request', (request) => {
+    const url = new URL(request.url());
+    if (url.protocol === 'http:' || url.protocol === 'https:') origins.add(url.origin);
+  });
+  return origins;
+}
+
+test('FR-016-20 FR-016-21 FR-016-23 @w768: zemljevid razčlenjenega naslova s ploščicami prek našega strežnika, tipkovnica in pripis', async ({
+  page,
+}) => {
+  const origins = trackOrigins(page);
+  await signedIn(page);
+  const id = await createGroup(page, { title: 'Projekt FERI' });
+  const contact = createSearchContact(id, { first: 'Ana', last: 'Zemljevid' });
+  setAddressParts(contact, {
+    street: 'Slovenska cesta 1',
+    postalCode: '1000',
+    city: 'Ljubljana',
+    country: 'SI',
+  });
+
+  await page.goto(`/groups/${id}/contacts/${contact}`);
+  const button = page.getByRole('button', { name: 'Pokaži na zemljevidu: Naslov' });
+  await button.click();
+
+  const dialog = page.getByRole('dialog', { name: 'Zemljevid: Naslov' });
+  const map = dialog.getByRole('region', { name: /^Zemljevid: Naslov\./ });
+  await expect(map).toBeVisible();
+  await expect(dialog).toContainText('Slovenska cesta 1');
+  await expect(dialog).toContainText(
+    'Oznaka je na lokaciji naslova (geografska širina 46,05120, dolžina 14,50510).',
+  );
+  await expect(dialog.getByRole('link', { name: '© prispevalci OpenStreetMap' })).toBeVisible();
+  await expect(
+    dialog.getByRole('link', { name: 'Odpri lokacijo v OpenStreetMap (odpre se v novem zavihku)' }),
+  ).toBeVisible();
+  // Ploščice so naložene prek /api/map-tiles in prikazane kot blob: URL.
+  await expect
+    .poll(() =>
+      map
+        .locator('img')
+        .evaluateAll(
+          (images) =>
+            images.filter((image) => (image as HTMLImageElement).src.startsWith('blob:')).length,
+        ),
+    )
+    .toBeGreaterThan(0);
+  await expectNoAxeViolations(page);
+
+  await dialog.getByRole('button', { name: 'Povečaj' }).click();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(button).toBeFocused();
+  // Brskalnik ne kliče tujih strežnikov (FR-016-23, SC-006).
+  expect([...origins]).toEqual([new URL(page.url()).origin]);
+});
+
+test('FR-016-22: nenajden, približen in nedosegljiv naslov atributa so sporočila; Poskusi znova', async ({
+  page,
+}) => {
+  const origins = trackOrigins(page);
+  await signedIn(page);
+  const id = await createGroup(page, { title: 'Projekt FERI' });
+  const missing = createContactWithTypedAttribute(
+    id,
+    'Neznan',
+    'Dostava',
+    'Neznana ulica 99\n9999 Atlantida',
+    'ADDRESS',
+  );
+  const approximate = createContactWithTypedAttribute(
+    id,
+    'Približen',
+    'Dostava',
+    'Maribor',
+    'ADDRESS',
+  );
+  const offline = createContactWithTypedAttribute(
+    id,
+    'Nedosegljiv',
+    'Dostava',
+    'Nedosegljiva ulica 1',
+    'ADDRESS',
+  );
+
+  await page.goto(`/groups/${id}/contacts/${missing}`);
+  await page.getByRole('button', { name: 'Pokaži na zemljevidu: Dostava' }).click();
+  let dialog = page.getByRole('dialog', { name: 'Zemljevid: Dostava' });
+  await expect(dialog.getByText('Naslova ni bilo mogoče najti na zemljevidu.')).toBeVisible();
+  await expect(dialog.getByRole('region')).toHaveCount(0);
+  await expect(
+    dialog.getByRole('link', { name: 'Poišči naslov v OpenStreetMap (odpre se v novem zavihku)' }),
+  ).toBeVisible();
+  await expectNoAxeViolations(page);
+  await page.keyboard.press('Escape');
+
+  await page.goto(`/groups/${id}/contacts/${approximate}`);
+  await page.getByRole('button', { name: 'Pokaži na zemljevidu: Dostava' }).click();
+  dialog = page.getByRole('dialog', { name: 'Zemljevid: Dostava' });
+  await expect(dialog.getByRole('region', { name: /^Zemljevid: Dostava\./ })).toBeVisible();
+  await expect(
+    dialog.getByText('Lokacija je približna: najden je bil kraj ali ulica, ne hišna številka.'),
+  ).toBeVisible();
+  await expectNoAxeViolations(page);
+  await page.keyboard.press('Escape');
+
+  await page.goto(`/groups/${id}/contacts/${offline}`);
+  await page.getByRole('button', { name: 'Pokaži na zemljevidu: Dostava' }).click();
+  dialog = page.getByRole('dialog', { name: 'Zemljevid: Dostava' });
+  const alert = dialog.getByRole('alert');
+  await expect(alert).toContainText('Zemljevid trenutno ni na voljo.');
+  await expectNoAxeViolations(page);
+  const retry = page.waitForResponse((response) => response.url().includes('/address-location'));
+  await alert.getByRole('button', { name: 'Poskusi znova' }).click();
+  expect((await retry).status()).toBe(503);
+  await expect(dialog.getByRole('alert')).toContainText('Zemljevid trenutno ni na voljo.');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('heading', { level: 2, name: 'Nedosegljiv' })).toBeVisible();
+
+  expect([...origins]).toEqual([new URL(page.url()).origin]);
 });

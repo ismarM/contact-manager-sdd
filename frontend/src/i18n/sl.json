@@ -1455,19 +1455,24 @@
     "mail": "Pošlji e-pošto na {{value}}"
   },
   "map": {
-    "show": "Pokaži na zemljevidu",
-    "title": "Zemljevid",
-    "dialogTitle": "Zemljevid naslova",
-    "close": "Zapri zemljevid",
+    "showShort": "Pokaži na zemljevidu",
+    "show": "Pokaži na zemljevidu: {{name}}",
+    "title": "Zemljevid: {{name}}",
     "loading": "Iskanje naslova …",
+    "notFound": "Naslova ni bilo mogoče najti na zemljevidu.",
     "approximate": "Lokacija je približna: najden je bil kraj ali ulica, ne hišna številka.",
-    "notFound": "Naslova ni bilo mogoče najti.",
-    "unavailable": "Zemljevid trenutno ni na voljo. Poskusi znova pozneje.",
+    "unavailable": "Zemljevid trenutno ni na voljo. Podatki kontakta so še vedno dostopni.",
     "retry": "Poskusi znova",
+    "region": "Zemljevid: {{name}}. Puščice premikajo zemljevid, + in − ga povečata in pomanjšata.",
+    "descriptionExact": "Oznaka je na lokaciji naslova (geografska širina {{lat}}, dolžina {{lon}}).",
+    "descriptionApproximate": "Oznaka je na približni lokaciji naslova (geografska širina {{lat}}, dolžina {{lon}}).",
     "attribution": "© prispevalci OpenStreetMap",
-    "label": "Zemljevid z lokacijo naslova",
+    "openExternal": "Odpri lokacijo v OpenStreetMap",
+    "searchExternal": "Poišči naslov v OpenStreetMap",
+    "newTab": "(odpre se v novem zavihku)",
     "zoomIn": "Povečaj",
-    "zoomOut": "Pomanjšaj"
+    "zoomOut": "Pomanjšaj",
+    "close": "Zapri zemljevid"
   },
   "errorsTyped": {
     "ATTRIBUTE_TYPE_CONFLICT": "Nekatere vrednosti niso veljavne za izbrani tip.",

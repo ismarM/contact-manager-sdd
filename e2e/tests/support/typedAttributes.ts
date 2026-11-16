@@ -67,3 +67,11 @@ export function addressPartsOf(contactId: string): Record<string, string> | null
 export function addressTextOf(contactId: string): string {
   return sql(`select coalesce(address, '') from contact where id = ${literal(contactId)}::uuid`);
 }
+
+/** Razčlenjen predefiniran naslov kontakta (`address_parts`; besedilo `address` se izprazni). */
+export function setAddressParts(contactId: string, parts: Record<string, string>): void {
+  sql(
+    `update contact set address = null, address_parts = ${literal(JSON.stringify(parts))}::jsonb
+     where id = ${literal(contactId)}::uuid`,
+  );
+}

@@ -17,6 +17,7 @@ import { useAuth } from '../auth/authContext';
 import { downloadBlob } from '../../shared/download';
 import { useFormatters } from '../formats/useFormatters';
 import { useGroup } from '../groups/groupContext';
+import { ShowOnMapButton } from '../map/ShowOnMapButton';
 import { useDelayed } from '../groups/useDelayed';
 import { isNotFound, useContactsApi } from './api';
 import { useConflictMessage } from './conflictMessage';
@@ -215,8 +216,16 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
           {(contact.address != null || contact.addressParts != null) && (
             <>
               <dt className="font-bold">{t('contacts.view.address')}</dt>
-              <dd className="break-words whitespace-pre-line">
-                {format.address(contact.addressParts ?? contact.address ?? '')}
+              <dd className="break-words">
+                <span className="whitespace-pre-line">
+                  {format.address(contact.addressParts ?? contact.address ?? '')}
+                </span>
+                <ShowOnMapButton
+                  groupId={group.id}
+                  contactId={contact.id}
+                  name={t('contacts.view.address')}
+                  address={format.address(contact.addressParts ?? contact.address ?? '')}
+                />
               </dd>
             </>
           )}
@@ -264,6 +273,15 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
                     value={attribute.value ?? ''}
                     parts={attribute.parts}
                   />
+                  {attribute.type === 'ADDRESS' && (
+                    <ShowOnMapButton
+                      groupId={group.id}
+                      contactId={contact.id}
+                      attributeKey={attribute.key}
+                      name={attribute.key}
+                      address={format.address(attribute.parts ?? attribute.value ?? '', true)}
+                    />
+                  )}
                 </dd>
               </div>
             ))}
