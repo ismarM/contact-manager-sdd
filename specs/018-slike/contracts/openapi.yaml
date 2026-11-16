@@ -1,0 +1,165 @@
+openapi: 3.0.3
+info:
+  title: Contact Manager – 018 slike (samo spremembe)
+  version: 0.1.0
+paths:
+  /api/me/photo:
+    get:
+      summary: Lastna profilna slika
+      parameters: [{ $ref: '#/components/parameters/Size' }]
+      responses:
+        '200': { $ref: '#/components/responses/Image' }
+        '401': { description: UNAUTHENTICATED }
+        '404': { description: brez slike }
+    put:
+      summary: Naloži ali zamenjaj lastno sliko
+      requestBody: { $ref: '#/components/requestBodies/Upload' }
+      responses:
+        '200': { $ref: '#/components/responses/PhotoResult' }
+        '400': { $ref: '#/components/responses/ImageInvalid' }
+        '401': { description: UNAUTHENTICATED }
+        '429': { description: RATE_LIMITED }
+    delete:
+      summary: Odstrani lastno sliko (idempotentno)
+      responses:
+        '204': { description: odstranjena ali je ni bilo }
+        '401': { description: UNAUTHENTICATED }
+  /api/me/photo/google:
+    post:
+      summary: Prevzemi sliko Google računa (brez telesa; naslov iz preverjenega žetona)
+      responses:
+        '200': { $ref: '#/components/responses/PhotoResult' }
+        '401': { description: UNAUTHENTICATED }
+        '409': { description: GOOGLE_PHOTO_UNAVAILABLE }
+        '429': { description: RATE_LIMITED }
+  /api/groups/{groupId}/members/{memberId}/photo:
+    get:
+      summary: Slika člana skupine (VIEWER+)
+      parameters:
+        - { $ref: '#/components/parameters/GroupId' }
+        - { name: memberId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Size' }
+      responses:
+        '200': { $ref: '#/components/responses/Image' }
+        '401': { description: UNAUTHENTICATED }
+        '404': { description: nečlan, tuj član ali brez slike }
+  /api/groups/{groupId}/photo:
+    get:
+      summary: Slika skupine (VIEWER+, tudi arhivirana)
+      parameters: [{ $ref: '#/components/parameters/GroupId' }, { $ref: '#/components/parameters/Size' }]
+      responses:
+        '200': { $ref: '#/components/responses/Image' }
+        '401': { description: UNAUTHENTICATED }
+        '404': { description: nečlan ali brez slike }
+    put:
+      summary: Naloži ali zamenjaj sliko skupine (ADMIN+)
+      parameters: [{ $ref: '#/components/parameters/GroupId' }]
+      requestBody: { $ref: '#/components/requestBodies/UploadVersioned' }
+      responses:
+        '200': { $ref: '#/components/responses/PhotoResult' }
+        '400': { $ref: '#/components/responses/ImageInvalid' }
+        '401': { description: UNAUTHENTICATED }
+        '403': { description: FORBIDDEN }
+        '404': { description: nečlan }
+        '409': { description: GROUP_ARCHIVED ali VERSION_CONFLICT }
+        '429': { description: RATE_LIMITED }
+    delete:
+      summary: Odstrani sliko skupine (ADMIN+)
+      parameters:
+        - { $ref: '#/components/parameters/GroupId' }
+        - { $ref: '#/components/parameters/VersionQuery' }
+      responses:
+        '200': { $ref: '#/components/responses/PhotoResult' }
+        '401': { description: UNAUTHENTICATED }
+        '403': { description: FORBIDDEN }
+        '404': { description: nečlan }
+        '409': { description: GROUP_ARCHIVED ali VERSION_CONFLICT }
+  /api/groups/{groupId}/contacts/{contactId}/photo:
+    get:
+      summary: Slika kontakta (VIEWER+, tudi arhivirana)
+      parameters:
+        - { $ref: '#/components/parameters/GroupId' }
+        - { $ref: '#/components/parameters/ContactId' }
+        - { $ref: '#/components/parameters/Size' }
+      responses:
+        '200': { $ref: '#/components/responses/Image' }
+        '401': { description: UNAUTHENTICATED }
+        '404': { description: nečlan, kontakt tuje skupine, izbrisan kontakt ali brez slike }
+    put:
+      summary: Naloži ali zamenjaj sliko kontakta (EDITOR+); poveča verzijo, vnos v sledi
+      parameters: [{ $ref: '#/components/parameters/GroupId' }, { $ref: '#/components/parameters/ContactId' }]
+      requestBody: { $ref: '#/components/requestBodies/UploadVersioned' }
+      responses:
+        '200': { $ref: '#/components/responses/PhotoResult' }
+        '400': { $ref: '#/components/responses/ImageInvalid' }
+        '401': { description: UNAUTHENTICATED }
+        '403': { description: FORBIDDEN }
+        '404': { description: nečlan ali kontakt ni v skupini }
+        '409': { description: GROUP_ARCHIVED ali VERSION_CONFLICT }
+        '429': { description: RATE_LIMITED }
+    delete:
+      summary: Odstrani sliko kontakta (EDITOR+); poveča verzijo, vnos v sledi
+      parameters:
+        - { $ref: '#/components/parameters/GroupId' }
+        - { $ref: '#/components/parameters/ContactId' }
+        - { $ref: '#/components/parameters/VersionQuery' }
+      responses:
+        '200': { $ref: '#/components/responses/PhotoResult' }
+        '401': { description: UNAUTHENTICATED }
+        '403': { description: FORBIDDEN }
+        '404': { description: nečlan ali kontakt ni v skupini }
+        '409': { description: GROUP_ARCHIVED ali VERSION_CONFLICT }
+components:
+  parameters:
+    GroupId: { name: groupId, in: path, required: true, schema: { type: string, format: uuid } }
+    ContactId: { name: contactId, in: path, required: true, schema: { type: string, format: uuid } }
+    Size: { name: size, in: query, required: false, schema: { type: integer, enum: [96, 256, 512], default: 256 } }
+    VersionQuery: { name: version, in: query, required: true, schema: { type: integer, format: int64 } }
+  requestBodies:
+    Upload:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required: [file]
+            properties: { file: { type: string, format: binary } }
+    UploadVersioned:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required: [file, version]
+            properties:
+              file: { type: string, format: binary }
+              version: { type: integer, format: int64 }
+  responses:
+    Image:
+      description: obdelana slika
+      headers:
+        Cache-Control: { schema: { type: string, example: 'private, no-cache' } }
+        ETag: { schema: { type: string } }
+        X-Content-Type-Options: { schema: { type: string, example: nosniff } }
+      content:
+        image/jpeg: { schema: { type: string, format: binary } }
+        image/png: { schema: { type: string, format: binary } }
+    PhotoResult:
+      description: stanje po spremembi
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/PhotoResult' }
+    ImageInvalid:
+      description: VALIDATION_FAILED, polje file (INVALID_IMAGE, IMAGE_TOO_LARGE, FILE_TOO_LARGE, REQUIRED)
+  schemas:
+    PhotoResult:
+      type: object
+      required: [photoRevision]
+      properties:
+        photoRevision: { type: integer, format: int64, nullable: true }
+        version: { type: integer, format: int64, description: verzija skupine ali kontakta po spremembi }
+    PhotoRevision:
+      description: dodatno polje v Profile, GroupSummary, GroupDetail, ArchivedGroupSummary, ContactSummary, ContactDetail, Member
+      type: object
+      properties:
+        photoRevision: { type: integer, format: int64, nullable: true }
