@@ -209,8 +209,9 @@ class ApiKeyManagementIT extends ApiTest {
     void eleventhActiveKeyIsRejectedAndRevokedOrExpiredDoNotCount() throws Exception {
         keys.revoked(anaId, ALL_READ);
         keys.expired(anaId, ALL_READ);
+        List<Key> active = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
-            keys.create(anaId, "Ključ " + i, ALL_READ);
+            active.add(keys.create(anaId, "Ključ " + i, ALL_READ));
         }
 
         HttpResponse<String> rejected = create(klubBody("Enajsti", klub));
@@ -219,8 +220,7 @@ class ApiKeyManagementIT extends ApiTest {
         assertThat(Http.compact(rejected.body())).isEqualTo("{\"code\":\"API_KEY_LIMIT\"}");
         assertThat(keyCount()).isEqualTo(12);
 
-        String first = list().get(0).get("id").asString();
-        assertThat(Http.send("DELETE", url(KEYS + "/" + first), Http.bearer(ana.idToken()))
+        assertThat(Http.send("DELETE", url(KEYS + "/" + active.getFirst().id()), Http.bearer(ana.idToken()))
                         .statusCode())
                 .isEqualTo(204);
         assertThat(create(klubBody("Enajsti", klub)).statusCode()).isEqualTo(201);
