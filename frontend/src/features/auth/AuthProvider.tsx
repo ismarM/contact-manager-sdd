@@ -25,11 +25,14 @@ const JSON_HEADERS = { 'Content-Type': 'application/json' };
  * Stanje seje (research R-06): ob vsakem prijavljenem uporabniku sinhronizira profil (`PUT /api/me`) z izbiro naprave
  * in uveljavi izbiro iz profila (FR-001-19). Loči lokalno odjavo (na prijavo brez sporočila) od izgube seje – odjava v
  * drugem zavihku, nepodaljšljiv žeton ali 401 – ki vodi na prijavo s sporočilom in ciljno potjo (FR-001-10). Kam
- * preusmeri, določi `exitTo`, ki ga uporabi RequireAuth; stran za prijavo ga ob prikazu porabi.
+ * preusmeri, določi `exitTo`, ki ga uporabi RequireAuth; stran za prijavo ga ob prikazu porabi. Uporabnik z
+ * nepotrjenim e-naslovom (017) ostane v stanju `unverified`: profil se ne sinhronizira, dokler potrditev in svež žeton
+ * nista znana; odgovor `403 EMAIL_NOT_VERIFIED` ga vrne v to stanje (FR-017-02, FR-017-13).
  */
 export function AuthProvider({ gateway, children }: { gateway: AuthGateway; children: ReactNode }) {
   const { i18n } = useTranslation();
   const [status, setStatus] = useState<AuthStatus>('unknown');
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [signInError, setSignInError] = useState<SignInErrorCode | null>(null);
   const [theme, setTheme] = useState<Theme | null>(() => readStoredTheme());
@@ -73,16 +76,40 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
     [clearSession, gateway],
   );
 
+  /** Zaledje je zavrnilo nepotrjen e-naslov: zaslon potrditve namesto aplikacije, seja ostane (FR-017-02). */
+  const markUnverified = useCallback(() => {
+    if (statusRef.current === 'signedOut') return;
+    generation.current += 1;
+    setProfile(null);
+    updateStatus('unverified');
+  }, [updateStatus]);
+
+  const watchUnverified = useCallback(
+    <R,>(request: Promise<R>): Promise<R> =>
+      request.catch((error: unknown) => {
+        if (
+          error instanceof ApiError &&
+          error.status === 403 &&
+          error.code === 'EMAIL_NOT_VERIFIED'
+        ) {
+          markUnverified();
+        }
+        throw error;
+      }),
+    [markUnverified],
+  );
+
   // Odjemalec se ustvari ob klicu (v dogodku), ne med izrisom.
   const authFetch: AuthFetch = useCallback(
     <T,>(path: string, init?: RequestInit) =>
-      createAuthFetch(gateway, () => sessionLost(true))<T>(path, init),
-    [gateway, sessionLost],
+      watchUnverified(createAuthFetch(gateway, () => sessionLost(true))<T>(path, init)),
+    [gateway, sessionLost, watchUnverified],
   );
 
   const authFetchBlob: AuthFetchBlob = useCallback(
-    (path, init) => createAuthFetchBlob(gateway, () => sessionLost(true))(path, init),
-    [gateway, sessionLost],
+    (path, init) =>
+      watchUnverified(createAuthFetchBlob(gateway, () => sessionLost(true))(path, init)),
+    [gateway, sessionLost, watchUnverified],
   );
 
   const applyProfilePreferences = useCallback(
@@ -122,8 +149,17 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
   }, [applyProfilePreferences, authFetch, clearSession, gateway, updateStatus]);
 
   const onAuthChange = useCallback(
-    (user: AuthUser | null) => {
-      if (user) {
+    (next: AuthUser | null) => {
+      setUser(next);
+      if (next && !next.emailVerified) {
+        // Brez PUT /api/me: profil nastane šele po potrditvi (FR-017-02, FR-017-04).
+        generation.current += 1;
+        setProfile(null);
+        setSignInError(null);
+        updateStatus('unverified');
+        return;
+      }
+      if (next) {
         void synchronize();
         return;
       }
@@ -156,6 +192,37 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
       setSignInError(error instanceof SignInError ? error.code : 'failed');
     }
   }, [gateway]);
+
+  const signInWithPassword = useCallback(
+    async (email: string, password: string) => {
+      setSignInError(null);
+      try {
+        await gateway.signInWithPassword(email, password);
+      } catch (error) {
+        setSignInError(error instanceof SignInError ? error.code : 'failed');
+      }
+    },
+    [gateway],
+  );
+
+  const signUpWithPassword = useCallback(
+    (email: string, password: string) => {
+      setSignInError(null);
+      return gateway.signUpWithPassword(email, password);
+    },
+    [gateway],
+  );
+
+  const resendVerification = useCallback(() => gateway.sendVerificationEmail(), [gateway]);
+  const confirmVerification = useCallback(() => gateway.refreshVerification(), [gateway]);
+  const sendPasswordReset = useCallback(
+    (email: string) => gateway.sendPasswordReset(email),
+    [gateway],
+  );
+  const reauthenticate = useCallback(
+    (password?: string) => gateway.reauthenticate(password),
+    [gateway],
+  );
 
   const signOut = useCallback(async () => {
     expectingSignOut.current = true;
@@ -216,11 +283,18 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
   const value = useMemo<AuthContextValue>(
     () => ({
       status,
+      user,
       profile,
       signInError,
       exitTo,
       consumeExit: () => setExitTo(null),
       signIn,
+      signInWithPassword,
+      signUpWithPassword,
+      resendVerification,
+      confirmVerification,
+      sendPasswordReset,
+      reauthenticate,
       signOut,
       accountDeleted,
       authFetch,
@@ -233,10 +307,17 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
     }),
     [
       status,
+      user,
       profile,
       signInError,
       exitTo,
       signIn,
+      signInWithPassword,
+      signUpWithPassword,
+      resendVerification,
+      confirmVerification,
+      sendPasswordReset,
+      reauthenticate,
       signOut,
       accountDeleted,
       authFetch,

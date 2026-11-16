@@ -35,6 +35,61 @@
     "accountDeleted": "Your account has been deleted.",
     "accountDeletedPending": "Your account has been deleted. Removing the link to your Google account is still in progress, so you may not be able to register again with the same Google account for a while. Please try again in a few minutes."
   },
+  "auth": {
+    "error": {
+      "invalidCredentials": "The email or password is incorrect.",
+      "emailInUse": "You can't create an account with this email. If you already have an account, sign in (with Google or a password) or reset your password; you can then add a password in My account.",
+      "invalidEmail": "Enter a valid email address, e.g. name@example.com.",
+      "weakPassword": "The password doesn't meet the rules. Use at least 8 characters.",
+      "tooManyRequests": "Too many attempts. Wait a few minutes and try again.",
+      "requiresRecentLogin": "Sign in again to do this."
+    },
+    "form": {
+      "email": "Email",
+      "password": "Password",
+      "passwordConfirm": "Repeat password",
+      "passwordHint": "At least 8 characters.",
+      "summary": "Fix the marked fields:",
+      "errors": {
+        "emailRequired": "Enter your email.",
+        "emailInvalid": "Enter a valid email address, e.g. name@example.com.",
+        "passwordRequired": "Enter your password.",
+        "passwordTooShort": "The password must have at least 8 characters.",
+        "passwordMismatch": "The passwords don't match."
+      }
+    },
+    "login": {
+      "or": "or",
+      "submit": "Sign in with password",
+      "forgot": "Forgot password?",
+      "register": "Create an account with email"
+    },
+    "register": {
+      "documentTitle": "Create account – Contacts",
+      "heading": "Create account",
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in"
+    },
+    "verify": {
+      "documentTitle": "Verify your email – Contacts",
+      "heading": "Verify your email",
+      "intro": "We sent a verification link to {{email}}. Open it, then choose “I have verified”. Until then, the app's data is not available.",
+      "resend": "Resend",
+      "confirm": "I have verified",
+      "signOut": "Sign out",
+      "sent": "The verification email has been sent.",
+      "notYet": "Your email is not verified yet. Open the link in the email and try again."
+    },
+    "forgot": {
+      "documentTitle": "Forgot password – Contacts",
+      "heading": "Forgot password",
+      "intro": "Enter your account email. We'll send you a link to set a new password.",
+      "submit": "Send link",
+      "sent": "If an account with this email exists, we've sent it a link to set a new password.",
+      "back": "Back to sign in"
+    }
+  },
   "shell": {
     "skipLink": "Skip to content",
     "accountMenu": "Account menu",

@@ -35,6 +35,61 @@
     "accountDeleted": "Tvoj račun je izbrisan.",
     "accountDeletedPending": "Tvoj račun je izbrisan. Brisanje povezave z Google računom še poteka, zato se z istim Google računom nekaj časa morda ne boš mogel znova registrirati. Poskusi znova čez nekaj minut."
   },
+  "auth": {
+    "error": {
+      "invalidCredentials": "E-naslov ali geslo ni pravilno.",
+      "emailInUse": "Registracija s tem e-naslovom ni mogoča. Če že imaš račun, se prijavi (z Googlom ali geslom) ali ponastavi geslo; geslo lahko nato dodaš v Mojem računu.",
+      "invalidEmail": "Vpiši veljaven e-naslov, npr. ime@primer.si.",
+      "weakPassword": "Geslo ne ustreza pravilom. Uporabi najmanj 8 znakov.",
+      "tooManyRequests": "Preveč poskusov. Počakaj nekaj minut in poskusi znova.",
+      "requiresRecentLogin": "Za to dejanje se moraš znova prijaviti."
+    },
+    "form": {
+      "email": "E-naslov",
+      "password": "Geslo",
+      "passwordConfirm": "Ponovi geslo",
+      "passwordHint": "Najmanj 8 znakov.",
+      "summary": "Popravi označena polja:",
+      "errors": {
+        "emailRequired": "Vpiši e-naslov.",
+        "emailInvalid": "Vpiši veljaven e-naslov, npr. ime@primer.si.",
+        "passwordRequired": "Vpiši geslo.",
+        "passwordTooShort": "Geslo mora imeti najmanj 8 znakov.",
+        "passwordMismatch": "Gesli se ne ujemata."
+      }
+    },
+    "login": {
+      "or": "ali",
+      "submit": "Prijava z geslom",
+      "forgot": "Pozabljeno geslo?",
+      "register": "Ustvari račun z e-naslovom"
+    },
+    "register": {
+      "documentTitle": "Registracija – Kontakti",
+      "heading": "Ustvari račun",
+      "submit": "Ustvari račun",
+      "haveAccount": "Že imaš račun?",
+      "signIn": "Prijava"
+    },
+    "verify": {
+      "documentTitle": "Potrdi e-naslov – Kontakti",
+      "heading": "Potrdi e-naslov",
+      "intro": "Na {{email}} smo poslali povezavo za potrditev. Odpri jo in nato izberi »Potrdil sem«. Do potrditve podatki aplikacije niso dostopni.",
+      "resend": "Ponovno pošlji",
+      "confirm": "Potrdil sem",
+      "signOut": "Odjava",
+      "sent": "Sporočilo za potrditev je poslano.",
+      "notYet": "E-naslov še ni potrjen. Odpri povezavo v sporočilu in poskusi znova."
+    },
+    "forgot": {
+      "documentTitle": "Pozabljeno geslo – Kontakti",
+      "heading": "Pozabljeno geslo",
+      "intro": "Vpiši e-naslov računa. Poslali ti bomo povezavo za novo geslo.",
+      "submit": "Pošlji povezavo",
+      "sent": "Če račun s tem e-naslovom obstaja, smo nanj poslali sporočilo s povezavo za novo geslo.",
+      "back": "Nazaj na prijavo"
+    }
+  },
   "shell": {
     "skipLink": "Preskoči na vsebino",
     "accountMenu": "Meni računa",
