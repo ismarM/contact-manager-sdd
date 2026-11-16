@@ -58,10 +58,10 @@ function fakeUser(overrides: Partial<FakeUser> = {}): FakeUser {
 }
 
 function setup(user: FakeUser | null) {
-  const auth = { currentUser: user, app: { options: { apiKey: 'api-key' } } } as unknown as Auth & {
+  const auth = { currentUser: user, app: { options: { apiKey: 'api-key' } } } as unknown as {
     currentUser: FakeUser | null;
   };
-  const gateway = createFirebaseGateway(auth);
+  const gateway = createFirebaseGateway(auth as unknown as Auth);
   const seen: (AuthUser | null)[] = [];
   gateway.onChange((next) => seen.push(next));
   seen.length = 0;

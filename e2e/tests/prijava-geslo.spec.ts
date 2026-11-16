@@ -3,6 +3,7 @@ import { expect, type Page, test } from '@playwright/test';
 
 import {
   createVerifiedPasswordAccount,
+  reauthenticateWithGoogle,
   hasPasswordResetCode,
   PASSWORD_NAMES as N,
   passwordIdToken,
@@ -200,4 +201,84 @@ test('FR-017-08 SC-002: Google prijava obstoječega uporabnika ohrani skupine, n
     page.getByRole('group', { name: 'Tema' }).getByRole('radio', { name: 'Temna' }),
   ).toBeChecked();
   await expect(page.getByRole('button', { name: APP_PASSWORD.revoke('Telefon') })).toBeVisible();
+});
+
+const methods = (page: Page) => page.getByRole('region', { name: 'Prijavne metode' });
+
+test('FR-017-09 FR-017-10 FR-017-11: Google uporabnik doda geslo, se odjavi in vstopi z geslom – iste skupine, en profil; registracija z istim e-naslovom ne ustvari drugega', async ({
+  page,
+}) => {
+  const user = uniqueUser('Gaja Google');
+  const password = testPassword();
+  await page.goto('/');
+  await signIn(page, user);
+  await expect(accountMenu(page)).toBeVisible();
+  await createGroup(page, { title: 'Skupina pred geslom' });
+  await page.goto('/account');
+  await expect(methods(page)).toContainText('E-naslov in geslo: ni povezano');
+
+  await methods(page).getByRole('button', { name: 'Dodaj geslo' }).click();
+  await expect(methods(page).getByLabel(N.email, { exact: true })).toHaveAttribute('readonly', '');
+  await expect(methods(page).getByLabel(N.email, { exact: true })).toHaveValue(user.email);
+  await expectNoAxeViolations(page);
+  await methods(page).getByLabel(N.password, { exact: true }).fill(password);
+  await methods(page).getByLabel(N.passwordConfirm, { exact: true }).fill(password);
+  await reauthenticateWithGoogle(page, user, () =>
+    methods(page).getByRole('button', { name: 'Dodaj geslo' }).click(),
+  );
+
+  await expect(methods(page).getByRole('status')).toContainText('Geslo je dodano.');
+  await expect(methods(page)).toContainText('E-naslov in geslo: povezano');
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+  expect(userExists(user.email)).toBe(true);
+  await signOut(page);
+
+  await page.goto('/login');
+  await signInWithPassword(page, user.email, password);
+
+  await expect(accountMenu(page)).toBeVisible();
+  await expect(
+    page.getByRole('main').getByRole('link', { name: 'Skupina pred geslom' }),
+  ).toBeVisible();
+  expect(userExists(user.email)).toBe(true);
+  await signOut(page);
+
+  await page.goto('/register');
+  await registerWithPassword(page, user.email, testPassword());
+  await expect(page.getByRole('alert')).toHaveText(N.emailInUse);
+  expect(userExists(user.email)).toBe(true);
+});
+
+test('FR-017-12: izbris računa z geslom zahteva geslo; napačno geslo ne spremeni ničesar', async ({
+  page,
+  request,
+}) => {
+  const email = uniqueUser().email;
+  const password = testPassword();
+  await createVerifiedPasswordAccount(request, email, password);
+  await page.goto('/login');
+  await signInWithPassword(page, email, password);
+  await expect(accountMenu(page)).toBeVisible();
+  await page.goto('/account');
+  const section = page.getByRole('region', { name: 'Izbris računa' });
+  await section.getByRole('button', { name: 'Izbriši račun' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Izbrišem račun?' });
+  await dialog.getByRole('textbox', { name: 'Za potrditev vpiši svoj e-naslov' }).fill(email);
+  await dialog.getByLabel('Za potrditev vpiši svoje geslo').fill(`${password}-napacno`);
+  await expectNoAxeViolations(page);
+
+  await dialog.getByRole('button', { name: 'Izbriši račun' }).click();
+
+  await expect(dialog.getByLabel('Za potrditev vpiši svoje geslo')).toHaveAccessibleDescription(
+    N.invalidCredentials,
+  );
+  expect(userExists(email)).toBe(true);
+  await expectNoAxeViolations(page);
+
+  await dialog.getByLabel('Za potrditev vpiši svoje geslo').fill(password);
+  await dialog.getByRole('button', { name: 'Izbriši račun' }).click();
+
+  await expect(page).toHaveURL(/\/login\?reason=account-deleted$/);
+  expect(userExists(email)).toBe(false);
 });

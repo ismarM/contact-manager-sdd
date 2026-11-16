@@ -14,11 +14,8 @@ export function uniqueUser(name = 'Ana Novak'): TestUser {
   return { email: `e2e-${randomUUID()}@primer.si`, name };
 }
 
-/** Klikne »Prijava z Googlom« (sl ali en) in v oknu emulatorja izbere obstoječ račun ali ga ustvari. */
-export async function signIn(page: Page, user: TestUser): Promise<void> {
-  const popupOpened = page.waitForEvent('popup');
-  await page.getByRole('button', { name: /^(Prijava z Googlom|Sign in with Google)$/ }).click();
-  const popup = await popupOpened;
+/** V pojavnem oknu emulatorja izbere obstoječ račun ali ga ustvari; počaka na zaprtje okna. */
+export async function completeGooglePopup(popup: Page, user: TestUser): Promise<void> {
   await popup.waitForLoadState();
   const popupClosed = popup.waitForEvent('close');
 
@@ -34,6 +31,24 @@ export async function signIn(page: Page, user: TestUser): Promise<void> {
     await submit.click();
   }
   await popupClosed;
+}
+
+/** Klikne »Prijava z Googlom« (sl ali en) in v oknu emulatorja izbere obstoječ račun ali ga ustvari. */
+export async function signIn(page: Page, user: TestUser): Promise<void> {
+  const popupOpened = page.waitForEvent('popup');
+  await page.getByRole('button', { name: /^(Prijava z Googlom|Sign in with Google)$/ }).click();
+  await completeGooglePopup(await popupOpened, user);
+}
+
+/** Dejanje, ki odpre pojavno okno Googla za ponovno avtentikacijo (017, FR-017-12); v oknu izbere račun. */
+export async function reauthenticateWithGoogle(
+  page: Page,
+  user: TestUser,
+  trigger: () => Promise<void>,
+): Promise<void> {
+  const popupOpened = page.waitForEvent('popup');
+  await trigger();
+  await completeGooglePopup(await popupOpened, user);
 }
 
 // 017: prijava z e-naslovom in geslom. Sporočila (potrditev, ponastavitev) emulator ne pošilja: kode OOB so na
