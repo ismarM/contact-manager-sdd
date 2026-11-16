@@ -577,6 +577,10 @@
       "tooManyAttributesFor_two": "Pri {{count}} kontaktih bi bilo preveč dodatnih atributov: {{names}}.",
       "tooManyAttributesFor_few": "Pri {{count}} kontaktih bi bilo preveč dodatnih atributov: {{names}}.",
       "tooManyAttributesFor_other": "Pri {{count}} kontaktih bi bilo preveč dodatnih atributov: {{names}}.",
+      "invalidValueFor_one": "Pri {{count}} kontaktu vrednost ni veljavna za tip ključa: {{names}}.",
+      "invalidValueFor_two": "Pri {{count}} kontaktih vrednost ni veljavna za tip ključa: {{names}}.",
+      "invalidValueFor_few": "Pri {{count}} kontaktih vrednost ni veljavna za tip ključa: {{names}}.",
+      "invalidValueFor_other": "Pri {{count}} kontaktih vrednost ni veljavna za tip ključa: {{names}}.",
       "andMore": "… in še {{count}}",
       "errors": {
         "REQUIRED": "Vpiši vrednost.",
@@ -1366,7 +1370,8 @@
       "label": "Tip",
       "fixed": "Tip ključa v tej skupini je {{type}}. Spremeni ga lahko urejevalec v razdelku Atributi skupine.",
       "new": "Tip novega ključa",
-      "hint": "Tip velja za vse kontakte s tem ključem v skupini."
+      "hint": "Tip velja za vse kontakte s tem ključem v skupini.",
+      "mismatch": "Ključ že obstaja z drugim tipom. Izberi predlagani ključ ali drugo ime ključa."
     },
     "list": {
       "key": "Ključ",

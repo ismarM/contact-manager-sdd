@@ -73,7 +73,9 @@ class DuplicateCompareIT extends DuplicateApiTest {
         assertThat(OffsetDateTime.parse((String) first.get("createdAt")).toInstant())
                 .isEqualTo(BASE);
         assertThat(asObjects(first.get("attributes")))
-                .containsExactly(Map.of("key", "Zadnji", "value", "z"), Map.of("key", "Prvi", "value", "p"));
+                .containsExactly(
+                        Map.of("key", "Zadnji", "type", "OTHER", "value", "z"),
+                        Map.of("key", "Prvi", "type", "OTHER", "value", "p"));
         Map<String, Object> second = result.get(1);
         assertThat(second)
                 .containsEntry("version", 1)
@@ -87,7 +89,8 @@ class DuplicateCompareIT extends DuplicateApiTest {
         assertThat(third.get("email")).isNull();
         assertThat(third.get("phone")).isNull();
         assertThat(third).containsEntry("tags", List.of("vip"));
-        assertThat(asObjects(third.get("attributes"))).containsExactly(Map.of("key", "Oddelek", "value", "IT"));
+        assertThat(asObjects(third.get("attributes")))
+                .containsExactly(Map.of("key", "Oddelek", "type", "OTHER", "value", "IT"));
         assertUnchanged(before, snapshot(s.group()));
     }
 

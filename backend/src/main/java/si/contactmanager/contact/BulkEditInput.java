@@ -20,6 +20,12 @@ public record BulkEditInput(
         CUSTOM
     }
 
-    /** Nastavitev polja ali dodatnega atributa; {@code key} samo pri {@link Field#CUSTOM}, prazna vrednost odstrani. */
-    public record AttributeSet(Field field, String key, String value) {}
+    /** Nastavitev polja ali dodatnega atributa; {@code key} samo pri {@link Field#CUSTOM}, prazna vrednost odstrani; {@code type} samo pri novem ključu (016). */
+    public record AttributeSet(Field field, String key, String value, AttributeType type) {
+
+        /** Nastavitev brez tipa (tip obstoječega ključa ali {@code OTHER} za nov ključ). */
+        public AttributeSet(Field field, String key, String value) {
+            this(field, key, value, null);
+        }
+    }
 }

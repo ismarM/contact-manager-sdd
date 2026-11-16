@@ -1,6 +1,8 @@
 // Preverjanje kontakta v brskalniku po istih pravilih kot strežnik (research R-06, feature-map §2.6); strežnik ostane
 // vir resnice, njegove napake po poljih se prikažejo enako (`serverErrorKey`).
 
+import type { AttributeType } from '../attributes/types';
+
 export const LIMITS = {
   name: 100,
   address: 300,
@@ -76,7 +78,9 @@ export type ErrorKey =
   | 'contacts.errors.tagSpaces'
   | 'contacts.errors.tagDuplicate'
   | 'contacts.errors.tooManyTags'
-  | 'contacts.errors.tagTooLong';
+  | 'contacts.errors.tagTooLong'
+  | 'attributes.type.mismatch'
+  | `typedValue.errors.INVALID_VALUE.${AttributeType}`;
 
 export interface AttributeRow {
   id: string;
@@ -84,6 +88,10 @@ export interface AttributeRow {
   value: string;
   /** 013: ključ, kot ga je kontakt že imel ob nalaganju (obstoječ atribut); novi atributi ga nimajo. */
   original?: string;
+  /** 016: tip ključa (manjkajoč = `OTHER`). */
+  type?: AttributeType;
+  /** 016: tip je tip ključa, ki ga skupina že ima (ne izbira se); nov ključ ima izbiro tipa. */
+  typeLocked?: boolean;
 }
 
 export interface FormValues {

@@ -40,6 +40,7 @@ class BulkService {
     private final AuditLog audit;
     private final ContactService contactService;
     private final CanonicalForms canonical;
+    private final TypedAttributes typedAttributes;
     private final ContactQueryParser queryParser = new ContactQueryParser();
 
     BulkService(
@@ -47,8 +48,10 @@ class BulkService {
             ContactSnapshots snapshots,
             AuditLog audit,
             ContactService contactService,
-            CanonicalForms canonical) {
+            CanonicalForms canonical,
+            TypedAttributes typedAttributes) {
         this.canonical = canonical;
+        this.typedAttributes = typedAttributes;
         this.contacts = contacts;
         this.snapshots = snapshots;
         this.audit = audit;
@@ -146,6 +149,7 @@ class BulkService {
         UUID group = membership.groupId();
         lockWritable(group);
         BulkEditInput edit = canonical.bulk(group, requested);
+        Map<String, AttributeType> types = resolveTypes(group, edit);
         Set<UUID> locked = contacts.lockExisting(group, edit.contactIds());
         Map<UUID, ContactState> states = snapshots.load(group, locked);
         Collator collator = collator();
@@ -157,8 +161,9 @@ class BulkService {
             if (before == null) {
                 continue;
             }
-            ContactState after = BulkEdit.apply(before, edit);
-            List<FieldError> violations = BulkEdit.violations(after);
+            ContactState after = BulkEdit.apply(before, edit, types);
+            List<FieldError> violations = new ArrayList<>(BulkEdit.typedErrors(before, edit, types));
+            violations.addAll(BulkEdit.violations(after));
             if (!violations.isEmpty()) {
                 invalid.add(new ContactErrors(id, name(after), violations));
             } else if (BulkEdit.changed(before, after)) {
@@ -188,6 +193,31 @@ class BulkService {
                                 c.contactId(), name(c.after()), c.before(), written.get(c.contactId())))
                         .toList());
         return changes.size();
+    }
+
+    /**
+     * Učinkoviti tipi ključev nastavitev z vrednostjo (016, FR-016-06): obstoječ ključ ima svoj tip, nov ključ zahtevani
+     * tip ali {@code OTHER}; drugačen zahtevani tip za ključ v uporabi je napaka zahtevka (nič se ne spremeni).
+     */
+    private Map<String, AttributeType> resolveTypes(UUID group, BulkEditInput edit) {
+        Map<String, AttributeType> types = new LinkedHashMap<>();
+        List<FieldError> errors = new ArrayList<>();
+        for (int i = 0; i < edit.attributes().size(); i++) {
+            BulkEditInput.AttributeSet set = edit.attributes().get(i);
+            if (set.field() != BulkEditInput.Field.CUSTOM || set.value().isEmpty()) {
+                continue;
+            }
+            String norm = ContactInputParser.normalize(set.key());
+            AttributeType effective =
+                    types.computeIfAbsent(norm, n -> typedAttributes.effective(group, n, set.type(), true));
+            if (set.type() != null && set.type() != effective) {
+                errors.add(new FieldError("attributes[" + i + "].type", "INVALID_VALUE"));
+            }
+        }
+        if (!errors.isEmpty()) {
+            throw new BulkValidationException(errors, List.of());
+        }
+        return types;
     }
 
     /** Množični izbris (FR-009-13, FR-009-14); vrne število izbrisanih kontaktov. */

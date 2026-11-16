@@ -17,6 +17,12 @@ public record ContactInput(
         String country,
         List<Attribute> attributes,
         List<String> tags) {
+    /** Isti vnos z drugimi atributi (po razrešitvi tipov in normalizaciji vrednosti, 016). */
+    public ContactInput withAttributes(List<Attribute> newAttributes) {
+        return new ContactInput(
+                firstName, lastName, address, addressParts, email, phone, company, country, newAttributes, tags);
+    }
+
     /** Stanje brez razčlenjenega naslova (pred 016): {@code addressParts} je {@code null}. */
     public ContactInput(
             String firstName,

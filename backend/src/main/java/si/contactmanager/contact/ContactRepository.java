@@ -368,6 +368,15 @@ class ContactRepository {
                     .param("value", attribute.value())
                     .update();
         }
+        if (!attributes.isEmpty()) {
+            // Ključ v uporabi ima vedno vrstico s tipom (016); poti brez razreševanja tipov (uvoz) dobijo OTHER.
+            jdbc.sql("INSERT INTO attribute_key (group_id, key_norm)"
+                            + " SELECT DISTINCT c.group_id, a.key_norm FROM contact_attribute a"
+                            + " JOIN contact c ON c.id = a.contact_id WHERE a.contact_id = :id"
+                            + " ON CONFLICT (group_id, key_norm) DO NOTHING")
+                    .param("id", id)
+                    .update();
+        }
         List<String> tags = input.tags();
         for (int i = 0; i < tags.size(); i++) {
             jdbc.sql(
@@ -381,9 +390,15 @@ class ContactRepository {
     }
 
     private List<Attribute> attributes(UUID id) {
-        return jdbc.sql("SELECT key, value FROM contact_attribute WHERE contact_id = :id ORDER BY position")
+        return jdbc.sql("SELECT a.key, a.value, k.type FROM contact_attribute a JOIN contact c ON c.id = a.contact_id"
+                        + " LEFT JOIN attribute_key k ON k.group_id = c.group_id AND k.key_norm = a.key_norm"
+                        + " WHERE a.contact_id = :id ORDER BY a.position")
                 .param("id", id)
-                .query((rs, row) -> new Attribute(rs.getString("key"), rs.getString("value")))
+                .query((rs, row) -> new Attribute(
+                        rs.getString("key"),
+                        rs.getString("type") == null ? null : AttributeType.valueOf(rs.getString("type")),
+                        rs.getString("value"),
+                        null))
                 .list();
     }
 

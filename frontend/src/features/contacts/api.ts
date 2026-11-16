@@ -211,3 +211,27 @@ export function useCanonical(type: 'key' | 'tag'): (text: string) => Promise<str
     [api, group.id, type],
   );
 }
+
+/**
+ * Ključ skupine (016): med predlogi ključev poišče zapis z enakim `toLowerCase` kot vpis in vrne predlog s tipom
+ * ključa (`attributeType`); napaka ali brez zadetka vrne `null` (ključ je nov).
+ */
+export function useKeyLookup(): (text: string) => Promise<Suggestion | null> {
+  const api = useContactsApi();
+  const { group } = useGroup();
+  return useMemo(
+    () => async (text: string) => {
+      const wanted = text.trim();
+      if (wanted === '') return null;
+      try {
+        const result = await api.suggestions(group.id, { type: 'key', q: wanted });
+        return (
+          result.items.find((item) => item.text.toLowerCase() === wanted.toLowerCase()) ?? null
+        );
+      } catch {
+        return null;
+      }
+    },
+    [api, group.id],
+  );
+}

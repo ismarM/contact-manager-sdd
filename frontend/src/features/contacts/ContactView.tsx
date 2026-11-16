@@ -28,6 +28,7 @@ import { contactFileName, QrShareDialog } from './qr/QrShareDialog';
 import { RevertedBadge } from './RevertedBadge';
 import type { ContactDetail } from './types';
 import { useUiLanguage } from './useUiLanguage';
+import { TypedValueView } from './typed/TypedValueView';
 
 type State =
   | { kind: 'loading' }
@@ -248,7 +249,9 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
             {contact.attributes.map((attribute) => (
               <div key={attribute.key} className="contents">
                 <dt className="font-bold break-words">{attribute.key}</dt>
-                <dd className="break-words whitespace-pre-line">{attribute.value}</dd>
+                <dd className="break-words">
+                  <TypedValueView type={attribute.type} value={attribute.value ?? ''} />
+                </dd>
               </div>
             ))}
           </dl>

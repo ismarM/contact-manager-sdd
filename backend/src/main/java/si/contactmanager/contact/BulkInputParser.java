@@ -35,7 +35,7 @@ public final class BulkInputParser {
     private static final Set<String> DELETE_FIELDS = Set.of("contactIds");
     private static final Set<String> CHECK_FIELDS = Set.of("contactIds", "queries");
     private static final Set<String> QUERY_FIELDS = Set.of("q", "f", "tag", "contactIds", "excludedIds");
-    private static final Set<String> ATTRIBUTE_FIELDS = Set.of("field", "key", "value");
+    private static final Set<String> ATTRIBUTE_FIELDS = Set.of("field", "key", "value", "type");
 
     /** Rezultat: {@code value} je {@code null} ob kateri koli napaki. */
     public record Parsed<T>(T value, List<FieldError> errors) {
@@ -306,6 +306,7 @@ public final class BulkInputParser {
                 errors.add(new FieldError(prefix + ".field", "DUPLICATE"));
             }
             String value = value(row.get("value"), field, prefix, errors);
+            AttributeType type = type(row.get("type"), field, prefix, errors);
             // Nova rezervirana imena (FR-013-08): nastavitev je zavrnjena, odstranitev (prazna vrednost) ostane mogoča.
             if (field == Field.CUSTOM
                     && key != null
@@ -315,10 +316,28 @@ public final class BulkInputParser {
                 errors.add(new FieldError(prefix + ".key", "RESERVED_KEY"));
             }
             if (field != null && value != null) {
-                result.add(new AttributeSet(field, field == Field.CUSTOM ? key : null, value));
+                result.add(new AttributeSet(field, field == Field.CUSTOM ? key : null, value, type));
             }
         }
         return List.copyOf(result);
+    }
+
+    /** Neobvezen {@code type} (016): samo pri {@code custom}; neznan tip ali tip pri drugem polju je neveljaven. */
+    private static AttributeType type(JsonNode node, Field field, String prefix, List<FieldError> errors) {
+        if (node == null || node.isNull()) {
+            return null;
+        }
+        if (field == Field.CUSTOM && node.isString()) {
+            for (AttributeType type : AttributeType.values()) {
+                if (type.name().equals(node.asString())) {
+                    return type;
+                }
+            }
+        }
+        if (field != null) {
+            errors.add(new FieldError(prefix + ".type", "INVALID_VALUE"));
+        }
+        return null;
     }
 
     private static Field field(JsonNode node, String prefix, List<FieldError> errors) {

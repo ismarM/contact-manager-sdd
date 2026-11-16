@@ -118,7 +118,7 @@ class AuditRollbackIT extends AuditApiTest {
                 .containsEntry("id", c.get("id"))
                 .containsEntry("firstName", "Cene")
                 .containsEntry("phone", "01 333 333")
-                .containsEntry("attributes", List.of(Map.of("key", "oddelek", "value", "IT")))
+                .containsEntry("attributes", List.of(Map.of("key", "oddelek", "type", "OTHER", "value", "IT")))
                 .containsEntry("tags", List.of("vip", "stari"))
                 .containsEntry("createdAt", c.get("createdAt"));
         // Kontakt izpred beleženja je nespremenjen.

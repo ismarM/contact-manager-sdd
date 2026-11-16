@@ -69,8 +69,8 @@ class ContactUpdateIT extends ContactApiTest {
                 .containsEntry(
                         "attributes",
                         List.of(
-                                Map.of("key", "Oddelek", "value", "IT"),
-                                Map.of("key", "kompetenca", "value", "web dev")))
+                                Map.of("key", "Oddelek", "type", "OTHER", "value", "IT"),
+                                Map.of("key", "kompetenca", "type", "OTHER", "value", "web dev")))
                 .containsEntry(
                         "updatedBy",
                         Map.of(

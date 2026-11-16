@@ -6,6 +6,7 @@ import { Navigate, useLocation, useParams } from 'react-router';
 import { ApiError } from '../../shared/api/client';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
 import { errorAlert } from '../../shared/ui/styles';
+import { GroupAttributesPage } from '../attributes/GroupAttributesPage';
 import { AuditEntryPage } from '../audit/AuditEntryPage';
 import { AuditPage } from '../audit/AuditPage';
 import { ContactsPage } from '../contacts/ContactsPage';
@@ -222,7 +223,9 @@ function GroupScreen({
           ) : (
             <AuditEntryPage entryId={entryId} />
           )
-        ) : screen === 'attributes' ? null /* zaslon *Atributi skupine*: T020 */ : (
+        ) : screen === 'attributes' ? (
+          <GroupAttributesPage />
+        ) : (
           <SettingsPage />
         )}
       </SelectionProvider>

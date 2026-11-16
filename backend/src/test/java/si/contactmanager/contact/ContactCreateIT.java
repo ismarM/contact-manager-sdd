@@ -61,8 +61,8 @@ class ContactCreateIT extends ContactApiTest {
                 .containsEntry(
                         "attributes",
                         List.of(
-                                Map.of("key", "kompetenca", "value", "web dev"),
-                                Map.of("key", "Oddelek", "value", "IT")));
+                                Map.of("key", "kompetenca", "type", "OTHER", "value", "web dev"),
+                                Map.of("key", "Oddelek", "type", "OTHER", "value", "IT")));
         assertThat(created.get("updatedBy"))
                 .isEqualTo(Map.of(
                         "name",

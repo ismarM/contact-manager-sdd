@@ -85,6 +85,8 @@ export interface Suggestion {
   /** Besedilo predloga; pri `country` koda ISO. */
   text: string;
   count: number;
+  /** 016: tip ključa v skupini (samo pri `type=key`). */
+  attributeType?: AttributeType;
 }
 
 export interface Suggestions {
@@ -150,6 +152,8 @@ export interface AttributeSet {
   field: BulkField;
   /** Samo pri `custom`. */
   key?: string;
+  /** 016: tip novega ključa (samo pri `custom`); za obstoječ ključ velja njegov tip. */
+  type?: AttributeType;
   value: string;
 }
 

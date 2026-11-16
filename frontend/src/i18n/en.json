@@ -555,6 +555,10 @@
       "tooManyTagsFor_other": "{{count}} contacts would have too many tags: {{names}}.",
       "tooManyAttributesFor_one": "{{count}} contact would have too many custom attributes: {{names}}.",
       "tooManyAttributesFor_other": "{{count}} contacts would have too many custom attributes: {{names}}.",
+      "invalidValueFor_one": "{{count}} contact has a value that is not valid for the key type: {{names}}.",
+      "invalidValueFor_two": "{{count}} contacts have a value that is not valid for the key type: {{names}}.",
+      "invalidValueFor_few": "{{count}} contacts have a value that is not valid for the key type: {{names}}.",
+      "invalidValueFor_other": "{{count}} contacts have a value that is not valid for the key type: {{names}}.",
       "andMore": "… and {{count}} more",
       "errors": {
         "REQUIRED": "Enter a value.",
@@ -1366,7 +1370,8 @@
       "label": "Type",
       "fixed": "The type of this key in the group is {{type}}. An editor can change it under Group attributes.",
       "new": "Type of the new key",
-      "hint": "The type applies to every contact with this key in the group."
+      "hint": "The type applies to every contact with this key in the group.",
+      "mismatch": "This key already exists with a different type. Pick the suggested key or use another key name."
     },
     "list": {
       "key": "Key",

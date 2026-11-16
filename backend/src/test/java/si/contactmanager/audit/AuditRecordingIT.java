@@ -94,7 +94,7 @@ class AuditRecordingIT extends AuditApiTest {
                 .containsEntry("lastName", "Novak")
                 .containsEntry("email", "janez@primer.si")
                 .containsEntry("phone", "01 234 567")
-                .containsEntry("attributes", List.of(Map.of("key", "Oddelek", "value", "IT")))
+                .containsEntry("attributes", List.of(Map.of("key", "Oddelek", "type", "OTHER", "value", "IT")))
                 .containsEntry("tags", List.of("vip", "konferenca2025"))
                 .containsEntry("version", 0);
         assertThat(((Number) afterCreate.get("updatedById")).longValue()).isEqualTo(s.id(Who.EDITOR));
@@ -111,8 +111,8 @@ class AuditRecordingIT extends AuditApiTest {
                 .containsEntry(
                         "attributes",
                         List.of(
-                                Map.of("key", "Oddelek", "value", "IT"),
-                                Map.of("key", "kompetenca", "value", "web dev")))
+                                Map.of("key", "Oddelek", "type", "OTHER", "value", "IT"),
+                                Map.of("key", "kompetenca", "type", "OTHER", "value", "web dev")))
                 .containsEntry("version", 1);
 
         Map<String, Object> delete =

@@ -36,7 +36,7 @@ paths:
         '403': {description: FORBIDDEN (VIEWER)}
         '404': {description: ni član ali ključ ni v uporabi}
         '409':
-          description: "GROUP_ARCHIVED | VERSION_CONFLICT (details.current: AttributeKey) | ATTRIBUTE_TYPE_CONFLICT (details: TypeConflict). Enak tip kot trenutni → 200 brez spremembe in brez vnosa."
+          description: "GROUP_ARCHIVED | VERSION_CONFLICT (current: AttributeKey, kot pri drugih virih) | ATTRIBUTE_TYPE_CONFLICT (details: TypeConflict). Enak tip kot trenutni → 200 brez spremembe in brez vnosa."
           content: {application/json: {schema: {$ref: '#/components/schemas/TypeConflictError'}}}
   /api/groups/{groupId}/contacts/{contactId}/address-location:
     get:
@@ -144,15 +144,16 @@ components:
       required: [code]
       properties:
         code: {type: string, enum: [ATTRIBUTE_TYPE_CONFLICT, VERSION_CONFLICT, GROUP_ARCHIVED]}
+        current: {$ref: '#/components/schemas/AttributeKey', description: "samo pri VERSION_CONFLICT"}
         details:
           type: object
+          description: "samo pri ATTRIBUTE_TYPE_CONFLICT"
           properties:
             total: {type: integer}
             contacts:
               type: array
               maxItems: 100
               items: {type: object, required: [contactId, displayName, value], properties: {contactId: {type: string, format: uuid}, displayName: {type: string}, value: {type: string}}}
-            current: {$ref: '#/components/schemas/AttributeKey'}
     AddressLocation:
       type: object
       required: [status]

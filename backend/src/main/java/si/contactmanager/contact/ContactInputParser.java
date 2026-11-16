@@ -67,12 +67,22 @@ public final class ContactInputParser {
             "version");
 
     /** Rezultat: {@code input} je {@code null} ob kateri koli napaki; {@code version} je {@code null}, če ga ni. */
-    public record Parsed(ContactInput input, Long version, List<FieldError> errors) {
+    public record Parsed(ContactInput input, Long version, List<FieldError> errors, List<AttributeExtra> extras) {
+
+        public Parsed(ContactInput input, Long version, List<FieldError> errors) {
+            this(input, version, errors, List.of());
+        }
 
         public boolean valid() {
             return errors.isEmpty();
         }
     }
+
+    /**
+     * Podatki vrstice atributa, ki jih {@link Attribute} ne nosi (016): zahtevani tip ({@code null}: ni naveden) in
+     * dobesedna vrednost brez obreza (za tip opombe). Seznam v {@link Parsed} je poravnan z {@code input.attributes()}.
+     */
+    public record AttributeExtra(AttributeType type, String raw) {}
 
     private final JsonMapper json;
 
@@ -142,13 +152,14 @@ public final class ContactInputParser {
         if (country != null && !hasError(errors, "country") && !CountryNames.isValid(country)) {
             errors.add(new FieldError("country", "INVALID_VALUE"));
         }
-        List<Attribute> attributes = attributes(root, errors);
+        List<AttributeExtra> extras = new ArrayList<>();
+        List<Attribute> attributes = attributes(root, errors, extras);
         List<String> tags = tags(root, errors);
         Long version = update ? version(root, errors) : null;
         ContactInput input = errors.isEmpty()
                 ? new ContactInput(firstName, lastName, address, email, phone, company, country, attributes, tags)
                 : null;
-        return new Parsed(input, version, List.copyOf(errors));
+        return new Parsed(input, version, List.copyOf(errors), List.copyOf(extras));
     }
 
     /** Neobvezno besedilno polje: obrezano, prazno = {@code null}; naslov s poenotenimi prelomi vrstic. */
@@ -171,7 +182,7 @@ public final class ContactInputParser {
         return value;
     }
 
-    private static List<Attribute> attributes(JsonNode root, List<FieldError> errors) {
+    private static List<Attribute> attributes(JsonNode root, List<FieldError> errors, List<AttributeExtra> extrasOut) {
         JsonNode node = root.get("attributes");
         if (node == null || node.isNull()) {
             return List.of();
@@ -181,6 +192,7 @@ public final class ContactInputParser {
             return List.of();
         }
         List<Attribute> attributes = new ArrayList<>();
+        List<AttributeExtra> extras = new ArrayList<>();
         Set<String> keys = new HashSet<>();
         int index = 0;
         for (JsonNode row : node) {
@@ -191,12 +203,18 @@ public final class ContactInputParser {
                 continue;
             }
             for (Map.Entry<String, JsonNode> property : row.properties()) {
-                if (!property.getKey().equals("key") && !property.getKey().equals("value")) {
+                if (!property.getKey().equals("key")
+                        && !property.getKey().equals("value")
+                        && !property.getKey().equals("type")) {
                     errors.add(new FieldError(prefix + "." + property.getKey(), "UNKNOWN_FIELD"));
                 }
             }
             String key = rowText(row, "key", prefix, errors);
             String value = rowText(row, "value", prefix, errors);
+            AttributeType requested = requestedType(row, prefix, errors);
+            String raw = row.get("value") != null && row.get("value").isString()
+                    ? row.get("value").asString()
+                    : "";
             if (key != null && key.isEmpty() && value != null && value.isEmpty()) {
                 // Popolnoma prazna vrstica se ne shrani (Edge Cases).
                 continue;
@@ -221,13 +239,37 @@ public final class ContactInputParser {
                 }
             }
             attributes.add(new Attribute(key, value));
+            extras.add(new AttributeExtra(requested, raw));
         }
         if (attributes.size() > ATTRIBUTES_MAX) {
             errors.add(new FieldError("attributes", "TOO_MANY"));
         }
-        return List.copyOf(attributes.stream()
-                .filter(a -> a.key() != null && a.value() != null)
-                .toList());
+        List<Attribute> kept = new ArrayList<>();
+        for (int i = 0; i < attributes.size(); i++) {
+            Attribute a = attributes.get(i);
+            if (a.key() != null && a.value() != null) {
+                kept.add(a);
+                extrasOut.add(extras.get(i));
+            }
+        }
+        return List.copyOf(kept);
+    }
+
+    /** Neobvezen {@code type} vrstice: ime tipa; neznano ali ne-niz je {@code INVALID_VALUE} (016). */
+    private static AttributeType requestedType(JsonNode row, String prefix, List<FieldError> errors) {
+        JsonNode node = row.get("type");
+        if (node == null || node.isNull()) {
+            return null;
+        }
+        if (node.isString()) {
+            for (AttributeType type : AttributeType.values()) {
+                if (type.name().equals(node.asString())) {
+                    return type;
+                }
+            }
+        }
+        errors.add(new FieldError(prefix + ".type", "INVALID_VALUE"));
+        return null;
     }
 
     /** Besedilo v vrstici atributa: obrezano, manjkajoče = prazno; ne-niz je napaka ({@code null}). */

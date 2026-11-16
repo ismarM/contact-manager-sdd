@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import si.contactmanager.audit.AuditAction;
 import si.contactmanager.audit.AuditLog;
 import si.contactmanager.audit.ContactChange;
+import si.contactmanager.contact.ContactInputParser.AttributeExtra;
 import si.contactmanager.contact.ContactInputParser.Parsed;
 import si.contactmanager.group.GroupAccess.Membership;
 import si.contactmanager.group.Role;
@@ -29,12 +30,19 @@ class ContactService {
     private final ContactSnapshots snapshots;
     private final AuditLog audit;
     private final CanonicalForms canonical;
+    private final TypedAttributes typed;
 
-    ContactService(ContactRepository contacts, ContactSnapshots snapshots, AuditLog audit, CanonicalForms canonical) {
+    ContactService(
+            ContactRepository contacts,
+            ContactSnapshots snapshots,
+            AuditLog audit,
+            CanonicalForms canonical,
+            TypedAttributes typed) {
         this.contacts = contacts;
         this.snapshots = snapshots;
         this.audit = audit;
         this.canonical = canonical;
+        this.typed = typed;
     }
 
     /**
@@ -112,14 +120,20 @@ class ContactService {
 
     /** Ustvarjanje (FR-004-01): pod zaklepom skupine, ki zapre dirko z arhiviranjem (research R-05). */
     @Transactional
-    ContactDetail create(Membership membership, ContactInput requested) {
+    ContactDetail create(Membership membership, ContactInput requested, List<AttributeExtra> extras) {
         lockWritableGroup(membership);
         List<si.contactmanager.shared.error.ValidationError.FieldError> reserved =
                 AttributeKeys.reservedErrors(requested.attributes(), java.util.Set.of());
         if (!reserved.isEmpty()) {
             throw new ValidationException(reserved);
         }
-        ContactInput input = canonical.input(membership.groupId(), requested, List.of(), List.of());
+        ContactInput canonicalInput = canonical.input(membership.groupId(), requested, List.of(), List.of());
+        TypedAttributes.Resolution resolved = typed.resolve(
+                membership.groupId(), canonicalInput.attributes(), extras, List.of(), canonicalInput.country(), true);
+        if (!resolved.errors().isEmpty()) {
+            throw new ValidationException(resolved.errors());
+        }
+        ContactInput input = canonicalInput.withAttributes(resolved.attributes());
         UUID id = contacts.insert(membership.groupId(), input, membership.userId());
         ContactState created = snapshots.snapshot(membership.groupId(), id);
         audit.record(
@@ -145,14 +159,25 @@ class ContactService {
                 ? AttributeKeys.reservedErrors(
                         parsed.input().attributes(), AttributeKeys.normalizedKeys(current.attributes()))
                 : List.of();
-        ContactInput input = parsed.valid() && reserved.isEmpty()
+        ContactInput canonicalInput = parsed.valid() && reserved.isEmpty()
                 ? canonical.input(
                         membership.groupId(),
                         parsed.input(),
                         current.attributes().stream().map(Attribute::key).toList(),
                         current.tags())
                 : null;
-        boolean same = input != null && sameValues(current, input);
+        // Tipi in vrednosti po tipu (016): najprej samo branje, da vrstni red preverjanj ostane §2.2.
+        TypedAttributes.Resolution preview = canonicalInput == null
+                ? null
+                : typed.resolve(
+                        membership.groupId(),
+                        canonicalInput.attributes(),
+                        parsed.extras(),
+                        current.attributes(),
+                        canonicalInput.country(),
+                        false);
+        ContactInput input = canonicalInput == null ? null : canonicalInput.withAttributes(preview.attributes());
+        boolean same = preview != null && preview.errors().isEmpty() && sameValues(current, input);
         if (parsed.version() != null && parsed.version() != version) {
             if (same) {
                 return current;
@@ -165,9 +190,23 @@ class ContactService {
         if (!reserved.isEmpty()) {
             throw new ValidationException(reserved);
         }
+        if (!preview.errors().isEmpty()) {
+            throw new ValidationException(preview.errors());
+        }
         if (same) {
             return current;
         }
+        TypedAttributes.Resolution resolved = typed.resolve(
+                membership.groupId(),
+                canonicalInput.attributes(),
+                parsed.extras(),
+                current.attributes(),
+                canonicalInput.country(),
+                true);
+        if (!resolved.errors().isEmpty()) {
+            throw new ValidationException(resolved.errors());
+        }
+        input = canonicalInput.withAttributes(resolved.attributes());
         ContactState before = snapshots.snapshot(membership.groupId(), id);
         contacts.update(membership.groupId(), id, input, membership.userId());
         ContactState after = snapshots.snapshot(membership.groupId(), id);

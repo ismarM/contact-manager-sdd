@@ -133,7 +133,8 @@ describe('SuggestInput', () => {
     const { user } = await openForm();
     await addRow(user);
 
-    const options = await screen.findAllByRole('option');
+    // Obrazec ima od 016 tudi izbiro tipa (`select`) z lastnimi možnostmi: ciljna površina velja za seznam predlogov.
+    const options = within(await screen.findByRole('listbox')).getAllByRole('option');
 
     for (const option of options) expect(option.className).toContain('min-h-11');
   });

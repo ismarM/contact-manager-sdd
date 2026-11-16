@@ -344,6 +344,18 @@ public class ContactSnapshots {
                     array("text", attributeNorm.subList(from, to).stream()),
                     array("text", attributeValue.subList(from, to).stream()));
         }
+        for (int from = 0; from < attributeContact.size(); from += ROWS) {
+            int to = Math.min(attributeContact.size(), from + ROWS);
+            // Ključ v uporabi ima vedno vrstico s tipom (016): ponovno vstavljeni atributi (rollback, združitev, uvoz).
+            update(
+                    "INSERT INTO attribute_key (group_id, key_norm)"
+                            + " SELECT DISTINCT c.group_id, t.key_norm"
+                            + " FROM unnest(?::uuid[], ?::text[]) AS t(contact_id, key_norm)"
+                            + " JOIN contact c ON c.id = t.contact_id"
+                            + " ON CONFLICT (group_id, key_norm) DO NOTHING",
+                    array("uuid", attributeContact.subList(from, to).stream()),
+                    array("text", attributeNorm.subList(from, to).stream()));
+        }
         for (int from = 0; from < tagContact.size(); from += ROWS) {
             int to = Math.min(tagContact.size(), from + ROWS);
             update(
@@ -382,13 +394,21 @@ public class ContactSnapshots {
 
     private Map<UUID, List<Attribute>> attributes(List<UUID> ids) {
         Map<UUID, List<Attribute>> result = new LinkedHashMap<>();
-        jdbc.sql("SELECT contact_id, key, value FROM contact_attribute WHERE contact_id IN (:ids)"
-                        + " ORDER BY contact_id, position")
+        jdbc.sql("SELECT a.contact_id, a.key, a.value, k.type FROM contact_attribute a"
+                        + " JOIN contact c ON c.id = a.contact_id"
+                        + " LEFT JOIN attribute_key k ON k.group_id = c.group_id AND k.key_norm = a.key_norm"
+                        + " WHERE a.contact_id IN (:ids) ORDER BY a.contact_id, a.position")
                 .param("ids", ids)
                 .query((ResultSet rs) -> {
                     while (rs.next()) {
                         result.computeIfAbsent(rs.getObject("contact_id", UUID.class), k -> new ArrayList<>())
-                                .add(new Attribute(rs.getString("key"), rs.getString("value")));
+                                .add(new Attribute(
+                                        rs.getString("key"),
+                                        rs.getString("type") == null
+                                                ? null
+                                                : AttributeType.valueOf(rs.getString("type")),
+                                        rs.getString("value"),
+                                        null));
                     }
                     return result;
                 });

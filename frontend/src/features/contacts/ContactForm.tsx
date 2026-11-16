@@ -15,12 +15,16 @@ import {
 } from '../../shared/ui/styles';
 import { fieldErrors } from '../groups/api';
 import { useGroup } from '../groups/groupContext';
-import { conflictCurrent, type FailureKey, failureKey, useContactsApi } from './api';
+import { conflictCurrent, type FailureKey, failureKey, useContactsApi, useKeyLookup } from './api';
 import { ContactConflictAlert } from './ContactConflictAlert';
 import { AttributeTransferDialog, type TransferRequest } from './AttributeTransfer';
 import { CountryField } from './CountryField';
 import { SuggestInput } from './SuggestInput';
 import { TagInput } from './TagInput';
+import { TypeSelect } from './typed/TypeSelect';
+import { TypedValueInput } from './typed/TypedValueInput';
+import { typeNameKey } from '../attributes/typeNames';
+import type { AttributeType } from '../attributes/types';
 import type { ContactDetail, ContactInput } from './types';
 import { allCountries, foldText, isCountryCode } from './countries';
 import type { CardCandidate } from './qr/vcardTypes';
@@ -68,6 +72,8 @@ function fromContact(contact: ContactDetail): FormValues {
       key: attribute.key,
       value: attribute.value ?? '',
       original: attribute.key,
+      type: attribute.type ?? 'OTHER',
+      typeLocked: true,
     })),
     tags: [...contact.tags],
   };
@@ -128,7 +134,13 @@ function toInput(values: FormValues): { input: ContactInput; rows: AttributeRow[
       country: optional(values.country),
       email: optional(values.email),
       phone: optional(values.phone),
-      attributes: rows.map((row) => ({ key: row.key.trim(), value: row.value.trim() })),
+      attributes: rows.map((row) => ({
+        key: row.key.trim(),
+        // 016: tip se pošlje samo za nov ključ z izbranim tipom; za obstoječ ključ velja tip ključa.
+        ...(!row.typeLocked && row.type && row.type !== 'OTHER' ? { type: row.type } : {}),
+        // Opombe so dobesedne (FR-016-07): brez obreza vrednosti.
+        value: row.type === 'NOTES' ? row.value : row.value.trim(),
+      })),
       tags: values.tags,
     },
     rows,
@@ -154,6 +166,7 @@ export function ContactForm({
 }) {
   const { t } = useTranslation();
   const api = useContactsApi();
+  const keyLookup = useKeyLookup();
   const { group } = useGroup();
   const location = useLocation();
   const navigate = useNavigate();
@@ -229,15 +242,52 @@ export function ContactForm({
   const setRow = (id: string, part: 'key' | 'value', value: string) => {
     setValues((current) => ({
       ...current,
-      attributes: current.attributes.map((row) =>
-        row.id === id ? { ...row, [part]: value } : row,
-      ),
+      attributes: current.attributes.map((row) => {
+        if (row.id !== id) return row;
+        const changed = { ...row, [part]: value };
+        // Drug ključ nima tipa prejšnjega: izbira tipa spet prosta (nov ključ → OTHER), dokler iskanje ne najde ključa.
+        if (
+          part === 'key' &&
+          row.typeLocked &&
+          normalizeKey(value.trim()) !== normalizeKey(row.key.trim())
+        ) {
+          return { ...changed, typeLocked: false, type: 'OTHER' };
+        }
+        return changed;
+      }),
     }));
     setErrors((current) => {
       const next = { ...current };
       delete next[`attributes.${id}.${part}`];
+      if (part === 'key') delete next[`attributes.${id}.type`];
       return next;
     });
+  };
+
+  const setType = (id: string, type: AttributeType) => {
+    setValues((current) => ({
+      ...current,
+      attributes: current.attributes.map((row) => (row.id === id ? { ...row, type } : row)),
+    }));
+    setErrors((current) => {
+      const next = { ...current };
+      delete next[`attributes.${id}.type`];
+      delete next[`attributes.${id}.value`];
+      return next;
+    });
+  };
+
+  /** Ključ skupine ima svoj tip (FR-016-01): vrstica ga prevzame in izbira tipa se zaklene; nov ključ ostane prost. */
+  const lookupKey = async (id: string, text: string) => {
+    const found = await keyLookup(text);
+    setValues((current) => ({
+      ...current,
+      attributes: current.attributes.map((row) => {
+        if (row.id !== id || normalizeKey(row.key.trim()) !== normalizeKey(text.trim())) return row;
+        if (found?.attributeType) return { ...row, type: found.attributeType, typeLocked: true };
+        return row.typeLocked ? { ...row, typeLocked: false, type: 'OTHER' } : row;
+      }),
+    }));
   };
 
   const addRow = () => {
@@ -248,7 +298,10 @@ export function ContactForm({
     const id = newRowId();
     setValues((current) => ({
       ...current,
-      attributes: [...current.attributes, { id, key: '', value: '' }],
+      attributes: [
+        ...current.attributes,
+        { id, key: '', value: '', type: 'OTHER', typeLocked: false },
+      ],
     }));
     setFocusTarget({ id: domId(`attributes.${id}.key`) });
   };
@@ -325,12 +378,14 @@ export function ContactForm({
   };
 
   // Vrstice atributov so memoizirane (do 50 vrstic); stabilni vmesnik vedno kliče najnovejše rokovalnike.
-  const latest = useRef({ setRow, blur, removeRow, startTransfer });
+  const latest = useRef({ setRow, setType, lookupKey, blur, removeRow, startTransfer });
   useEffect(() => {
-    latest.current = { setRow, blur, removeRow, startTransfer };
+    latest.current = { setRow, setType, lookupKey, blur, removeRow, startTransfer };
   });
   const [rowActions] = useState<RowActions>(() => ({
     setRow: (id, part, value) => latest.current.setRow(id, part, value),
+    setType: (id, type) => latest.current.setType(id, type),
+    lookupKey: (id, text) => void latest.current.lookupKey(id, text),
     blur: (field) => latest.current.blur(field),
     removeRow: (id) => latest.current.removeRow(id),
     transfer: (id) => void latest.current.startTransfer(id),
@@ -359,6 +414,16 @@ export function ContactForm({
       } else if (invalid.length > 0) {
         const mapped: Record<string, ErrorKey> = {};
         for (const { field, code } of invalid) {
+          const typed = /^attributes\[(\d+)\]\.(type|value)$/.exec(field);
+          const sentTyped = typed ? rows[Number(typed[1])] : undefined;
+          if (typed && sentTyped && code === 'INVALID_VALUE') {
+            // 016: neveljavna vrednost za tip ključa ali tip, ki ni tip ključa v uporabi.
+            mapped[`attributes.${sentTyped.id}.${typed[2]}`] =
+              typed[2] === 'type'
+                ? 'attributes.type.mismatch'
+                : `typedValue.errors.INVALID_VALUE.${sentTyped.type ?? 'OTHER'}`;
+            continue;
+          }
           const key = serverErrorKey(field, code);
           if (!key) continue;
           const row = /^attributes\[(\d+)\]\.(key|value)$/.exec(field);
@@ -407,6 +472,7 @@ export function ContactForm({
     'phone',
     ...values.attributes.flatMap((row) => [
       `attributes.${row.id}.key`,
+      `attributes.${row.id}.type`,
       `attributes.${row.id}.value`,
     ]),
   ];
@@ -584,6 +650,7 @@ export function ContactForm({
               row={row}
               prefix={prefix}
               keyError={errors[`attributes.${row.id}.key`]}
+              typeError={errors[`attributes.${row.id}.type`]}
               valueError={errors[`attributes.${row.id}.value`]}
               keysSignature={keysSignature}
               transferFailed={transferFailed === row.id}
@@ -657,6 +724,8 @@ export function ContactForm({
 
 interface RowActions {
   setRow: (id: string, part: 'key' | 'value', value: string) => void;
+  setType: (id: string, type: AttributeType) => void;
+  lookupKey: (id: string, text: string) => void;
   blur: (field: string) => void;
   removeRow: (id: string) => void;
   transfer: (id: string) => void;
@@ -667,6 +736,7 @@ const AttributeFields = memo(function AttributeFields({
   row,
   prefix,
   keyError,
+  typeError,
   valueError,
   keysSignature,
   transferFailed,
@@ -675,6 +745,7 @@ const AttributeFields = memo(function AttributeFields({
   row: AttributeRow;
   prefix: string;
   keyError: ErrorKey | undefined;
+  typeError: ErrorKey | undefined;
   valueError: ErrorKey | undefined;
   /** Normalizirani ključi vseh vrstic (ločeni z `\u0000`): vrstica izloči ključe drugih vrstic iz predlogov. */
   keysSignature: string;
@@ -684,6 +755,8 @@ const AttributeFields = memo(function AttributeFields({
   const { t } = useTranslation();
   const keyField = `attributes.${row.id}.key`;
   const valueField = `attributes.${row.id}.value`;
+  const typeField = `attributes.${row.id}.type`;
+  const type: AttributeType = row.type ?? 'OTHER';
   const domId = (field: string) => `${prefix}-${field}`;
   const errorId = (field: string) => `${prefix}-${field}-error`;
   const describe = (field: string, error: ErrorKey | undefined) =>
@@ -715,23 +788,53 @@ const AttributeFields = memo(function AttributeFields({
           type="key"
           value={row.key}
           onChange={(text) => actions.setRow(row.id, 'key', text)}
-          onBlur={() => actions.blur(keyField)}
+          onBlur={() => {
+            actions.blur(keyField);
+            actions.lookupKey(row.id, row.key);
+          }}
           exclude={excludeKey}
           canonical="key"
           showCount
           listLabel={t('contacts.form.keySuggestions')}
-          onSelect={() => document.getElementById(domId(valueField))?.focus()}
+          onSelect={(text) => {
+            actions.lookupKey(row.id, text);
+            document.getElementById(domId(valueField))?.focus();
+          }}
           {...describe(keyField, keyError)}
         />
         {message(keyField, keyError)}
       </div>
+      {row.typeLocked ? (
+        type !== 'OTHER' && (
+          <p className="flex min-w-40 basis-full flex-col gap-1">
+            <span className="font-bold">{t('attributes.type.label')}</span>
+            <span id={`${domId(typeField)}-fixed`}>
+              {t('attributes.type.fixed', { type: t(typeNameKey(type)) })}
+            </span>
+          </p>
+        )
+      ) : (
+        <div className="flex min-w-40 flex-1 flex-col gap-1">
+          <TypeSelect
+            id={domId(typeField)}
+            value={type}
+            onChange={(next) => actions.setType(row.id, next)}
+            aria-describedby={typeError ? errorId(typeField) : `${domId(typeField)}-hint`}
+            aria-invalid={typeError ? true : undefined}
+          />
+          <p id={`${domId(typeField)}-hint`} className="text-sm text-muted-foreground">
+            {t('attributes.type.hint')}
+          </p>
+          {message(typeField, typeError)}
+        </div>
+      )}
       <div className="flex min-w-40 flex-[2] flex-col gap-1">
         <label htmlFor={domId(valueField)} className="font-bold">
           {t('contacts.form.value')}
         </label>
-        <SuggestInput
+        <TypedValueInput
           id={domId(valueField)}
-          type="value"
+          type={type}
           keyParam={row.key}
           value={row.value}
           onChange={(text) => actions.setRow(row.id, 'value', text)}
