@@ -51,8 +51,8 @@ class ContactConcurrencyIT extends ContactApiTest {
         UUID id = contacts.insert(s.group(), s.id(Who.OWNER), "Janez", "Novak");
 
         List<HttpResponse<String>> responses = race(
-                () -> put(contactPath(s.group(), id), s.token(Who.EDITOR), body(phoneChange("01 111 111"))),
-                () -> put(contactPath(s.group(), id), s.token(Who.ADMIN), body(phoneChange("01 222 222"))));
+                () -> put(contactPath(s.group(), id), s.token(Who.EDITOR), body(phoneChange("+38690111111"))),
+                () -> put(contactPath(s.group(), id), s.token(Who.ADMIN), body(phoneChange("+38690222222"))));
 
         assertThat(responses).extracting(HttpResponse::statusCode).containsExactlyInAnyOrder(200, 409);
         HttpResponse<String> loser = responses.stream()
@@ -61,7 +61,7 @@ class ContactConcurrencyIT extends ContactApiTest {
                 .orElseThrow();
         assertThat(json(loser.body())).containsEntry("code", "VERSION_CONFLICT");
         assertThat(contacts.version(id)).isEqualTo(1);
-        assertThat(contacts.row(id).get("phone")).isIn("01 111 111", "01 222 222");
+        assertThat(contacts.row(id).get("phone")).isIn("+38690111111", "+38690222222");
     }
 
     @RepeatedTest(10)
@@ -73,7 +73,7 @@ class ContactConcurrencyIT extends ContactApiTest {
         UUID id = contacts.insert(s.group(), s.id(Who.OWNER), "Janez", "Novak");
 
         List<HttpResponse<String>> responses = race(
-                () -> put(contactPath(s.group(), id), s.token(Who.EDITOR), body(phoneChange("01 111 111"))),
+                () -> put(contactPath(s.group(), id), s.token(Who.EDITOR), body(phoneChange("+38690111111"))),
                 () -> delete(contactPath(s.group(), id) + "?version=0", s.token(Who.ADMIN)));
 
         HttpResponse<String> edit = responses.get(0);
@@ -111,7 +111,7 @@ class ContactConcurrencyIT extends ContactApiTest {
         UUID id = contacts.insert(s.group(), s.id(Who.OWNER), "Janez", "Novak");
 
         List<HttpResponse<String>> responses = race(
-                () -> put(contactPath(s.group(), id), s.token(Who.EDITOR), body(phoneChange("01 111 111"))),
+                () -> put(contactPath(s.group(), id), s.token(Who.EDITOR), body(phoneChange("+38690111111"))),
                 () -> post("/api/groups/" + s.group() + "/archive", s.token(Who.OWNER), null));
 
         assertThat(responses.get(1).statusCode()).isEqualTo(200);

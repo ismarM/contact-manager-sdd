@@ -5,6 +5,7 @@ import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
 import { useAuth } from '../auth/authContext';
 import { AppPasswordsSection } from './AppPasswordsSection';
 import { DeleteAccountSection } from './DeleteAccountSection';
+import { DisplayFormatSection } from './DisplayFormatSection';
 import { MyDataSection } from './MyDataSection';
 import type { Theme } from './preferences';
 
@@ -81,6 +82,8 @@ export function AccountPage() {
           ))}
         </fieldset>
       </section>
+
+      <DisplayFormatSection />
 
       <MyDataSection />
 

@@ -31,7 +31,8 @@ class ExportAssemblerTest {
     private static final Instant T2 = Instant.parse("2026-10-03T10:00:00Z");
     private static final Instant T3 = Instant.parse("2026-10-04T10:00:00Z");
 
-    private static final ProfileRow PROFILE = new ProfileRow("Pia Kos", "pia.kos@primer.si", T1, "en", "dark");
+    private static final ProfileRow PROFILE =
+            new ProfileRow("Pia Kos", "pia.kos@primer.si", T1, "en", "dark", "NATIONAL", "ISO", "SINGLE_LINE");
 
     @Test
     void assemblesAllSectionsWithCodesAndIsoDates() {
@@ -49,7 +50,7 @@ class ExportAssemblerTest {
         MyData expected = new MyData(
                 1,
                 NOW,
-                new Profile("Pia Kos", "pia.kos@primer.si", T1, "en", "dark"),
+                new Profile("Pia Kos", "pia.kos@primer.si", T1, "en", "dark", "NATIONAL", "ISO", "SINGLE_LINE"),
                 List.of(
                         new Membership("Projekt FERI", "OWNER", T1, "ACTIVE"),
                         new Membership("Arhiv 2025", "EDITOR", T2, "ARCHIVED"),
@@ -110,9 +111,14 @@ class ExportAssemblerTest {
     @Test
     void emptySectionsStayEmptyListsAndNullPreferencesStayNull() {
         MyData actual = ExportAssembler.assemble(
-                NOW, new ProfileRow(null, "nov@primer.si", T1, null, null), List.of(), List.of(), List.of(), List.of());
+                NOW,
+                new ProfileRow(null, "nov@primer.si", T1, null, null, null, null, null),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of());
 
-        assertThat(actual.profile()).isEqualTo(new Profile(null, "nov@primer.si", T1, null, null));
+        assertThat(actual.profile()).isEqualTo(new Profile(null, "nov@primer.si", T1, null, null, null, null, null));
         assertThat(actual.memberships()).isEmpty();
         assertThat(actual.receivedInvitations()).isEmpty();
         assertThat(actual.sentInvitations()).isEmpty();

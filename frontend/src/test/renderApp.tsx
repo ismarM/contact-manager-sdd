@@ -13,6 +13,9 @@ export interface Profile {
   email: string;
   language: 'sl' | 'en' | null;
   theme: 'light' | 'dark' | null;
+  phoneFormat?: 'INTERNATIONAL' | 'NATIONAL' | 'E164' | null;
+  dateFormat?: 'LOCALE' | 'ISO' | 'LONG' | null;
+  addressFormat?: 'COUNTRY' | 'SINGLE_LINE' | null;
 }
 
 export const ANA_PROFILE: Profile = {

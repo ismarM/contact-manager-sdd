@@ -79,6 +79,7 @@ class RollbackService {
                     goal.firstName(),
                     goal.lastName(),
                     goal.address(),
+                    goal.addressParts(),
                     goal.email(),
                     goal.phone(),
                     goal.company(),
@@ -97,6 +98,8 @@ class RollbackService {
         }
         UUID entry = log.recordRollback(group, membership.userId(), changes, target, target == null);
         snapshots.apply(group, entry, targets);
+        // Tipi ključev iz posnetkov, dobesedno (016, FR-016-26): vrednosti se ne preverjajo in ne normalizirajo.
+        snapshots.restoreKeyTypes(group, targets);
         return repository.find(group, entry).orElseThrow();
     }
 
@@ -104,6 +107,7 @@ class RollbackService {
         return Objects.equals(a.firstName(), b.firstName())
                 && Objects.equals(a.lastName(), b.lastName())
                 && Objects.equals(a.address(), b.address())
+                && Objects.equals(a.addressParts(), b.addressParts())
                 && Objects.equals(a.email(), b.email())
                 && Objects.equals(a.phone(), b.phone())
                 && Objects.equals(a.company(), b.company())

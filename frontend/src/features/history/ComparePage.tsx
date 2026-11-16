@@ -7,8 +7,9 @@ import { ApiError } from '../../shared/api/client';
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
 import { errorAlert, focusRing, secondaryButton } from '../../shared/ui/styles';
-import { countryName } from '../contacts/countries';
-import { useUiLanguage } from '../contacts/useUiLanguage';
+import { typeNameKey } from '../attributes/typeNames';
+import { typeChange, useChangeText } from '../audit/changeText';
+import type { ChangeFieldName } from '../audit/types';
 import { useGroup } from '../groups/groupContext';
 import { useDelayed } from '../groups/useDelayed';
 import { useHistoryApi } from './api';
@@ -30,13 +31,18 @@ const link = `text-primary underline underline-offset-4 ${focusRing}`;
 
 function Cell({ row, side }: { row: CompareRow; side: 'before' | 'after' }) {
   const { t } = useTranslation();
-  const language = useUiLanguage();
+  const text = useChangeText();
   const value = row[side];
-  const joined = Array.isArray(value) ? value.join(', ') : value;
   const label = t(side === 'before' ? 'history.compare.from' : 'history.compare.to');
-  let content: string | null;
-  if (row.presence) content = t(joined ? 'history.compare.present' : 'history.compare.absent');
-  else content = row.country && joined ? countryName(joined, language) : joined;
+  const field: ChangeFieldName =
+    row.label.kind === 'field'
+      ? row.label.field
+      : row.label.kind === 'attribute'
+        ? 'ATTRIBUTE'
+        : 'TAGS';
+  const content: string | null = row.presence
+    ? t(value ? 'history.compare.present' : 'history.compare.absent')
+    : text(field, value);
   return (
     <td className="p-2 break-words max-sm:block max-sm:px-0 max-sm:py-1">
       <span className="font-bold sm:hidden">{label}: </span>
@@ -54,7 +60,22 @@ function Cell({ row, side }: { row: CompareRow; side: 'before' | 'after' }) {
 
 function RowLabel({ row }: { row: CompareRow }) {
   const { t } = useTranslation();
-  if (row.label.kind === 'attribute') return <span className="font-mono">{row.label.key}</span>;
+  if (row.label.kind === 'attribute') {
+    const types = typeChange(row.before, row.after);
+    return (
+      <>
+        <span className="font-mono">{row.label.key}</span>
+        {types && (
+          <span className="block text-sm font-normal text-muted-foreground">
+            {t('audit.details.typeChange', {
+              before: t(typeNameKey(types[0])),
+              after: t(typeNameKey(types[1])),
+            })}
+          </span>
+        )}
+      </>
+    );
+  }
   if (row.label.kind === 'tag') return <>{t('history.compare.tag', { tag: row.label.tag })}</>;
   return <>{t(`audit.details.fields.${row.label.field}`)}</>;
 }

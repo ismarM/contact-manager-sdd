@@ -39,7 +39,7 @@ class HistoryPerformanceIT extends HistoryApiTest {
     void theFirstPageOfAContactHistoryAppearsInUnderTwoSecondsWithHundredThousandEntries() throws Exception {
         Scenario s = scenario();
         audit.insertEntries(s.group(), s.id(Who.EDITOR), 100_000);
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         jdbc.update("analyze audit_entry");
         jdbc.update("analyze audit_change");
         // Še 30 sprememb istega kontakta, da ima stran vsebino.

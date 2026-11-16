@@ -113,7 +113,7 @@ class DuplicateSearchIT extends DuplicateApiTest {
 
     @Test
     @Tag("FR-011-05")
-    void phoneSearchComparesDigitsOnlyAndDropsTheInternationalPrefix() throws Exception {
+    void phoneSearchComparesTheCanonicalFormAcrossNationalAndInternationalWriting() throws Exception {
         Scenario s = scenario();
         UUID plus = add(s, "Ana", "Kos", null, "+386 41 123 456");
         UUID zeros = add(s, "Bojan", "Breg", null, "00386 41-123-456");
@@ -126,8 +126,8 @@ class DuplicateSearchIT extends DuplicateApiTest {
         assertThat(asObject(group.get("reason")))
                 .containsEntry("category", "phone")
                 .containsEntry("value", "+386 41 123 456");
-        assertThat(idsOf(group)).containsExactly(plus.toString(), zeros.toString());
-        assertThat(idsOf(group)).doesNotContain(national.toString());
+        // 016 (FR-016-11) nadomešča FR-011-05 »brez pretvorbe«: tudi nacionalni zapis spada v skupino.
+        assertThat(idsOf(group)).containsExactly(plus.toString(), zeros.toString(), national.toString());
     }
 
     @Test

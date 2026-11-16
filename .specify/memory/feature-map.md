@@ -28,6 +28,7 @@
 | 013 | pametni atributi | predefinirani polji *Podjetje* in *Država* (koda ISO 3166-1), predlogi ključev, vrednosti, podjetij, držav in značk, kanonični zapis ključev in značk, ročni prenos starih atributov | `features/contacts`, paket `contact` |
 | 014 | uvoz in izvoz | uvoz iz Excela in vizitk s predogledom (editor in višje), izvoz vCard (izbor, en kontakt), koda QR kontakta (deljenje, branje s kamero ali iz slike), CardDAV samo za branje z gesli za aplikacijo | `features/import`, `features/contacts/qr`, `features/account`, paketi `contact`, `account`, `carddav` |
 | 015 | napredna revizija | filter sledi po uporabniku (tudi nekdanji in izbrisani), zgodovina posameznega kontakta, ogled in primerjava različic, obnova enega kontakta, seznam izbrisanih kontaktov | `features/audit`, `features/contacts`, paket `audit` |
+| 016 | tipizirani atributi | tip ključa atributa v skupini (7 tipov), normalizacija na strežniku, strukturiran naslov s samodokončanjem, osebna prikazna shema (telefon, datum, naslov), zemljevid naslovov (OSM samo prek zaledja), tipi v uvozu, izvozu in sledi | `features/contacts`, `features/groups`, `features/account`, paketa `contact`, `maps` |
 
 Poti: `features/*` je `frontend/src/features/*`, paketi so `backend/src/main/java/si/contactmanager/*`, E2E scenariji so v `e2e/tests/*.spec.ts`.
 
@@ -92,11 +93,12 @@ Povsod, kjer bi bilo prikazano ime ali e-naslov uporabnika, ki je izbrisal raču
 | Opis skupine | neobvezen, do 1000 znakov |
 | Barva skupine | ena od 8 poimenovanih barv (design.md 4.2: tinta, mah, opeka, oker, sliva, morje, grafit, rja); privzeto *tinta* |
 | Ime, priimek | do 100 znakov; vsaj eno od obeh je obvezno |
-| Naslov (kontakta) | neobvezen, do 300 znakov, večvrstičen |
+| Naslov (kontakta) | neobvezen; od 016 po delih: ulica (do 200), dodatek (do 200), poštna številka (do 20), kraj (do 100), regija (do 100), država (koda ISO 3166-1); vsaj ulica ali kraj; shranijo se obrezani deli, strnjeni presledki, poštna številka z velikimi črkami. Obstoječi večvrstični naslov (do 300 znakov) ostane kot nerazčlenjen naslov, dokler ga uporabnik ne razčleni (*Razčleni naslov*, na izrecno zahtevo prek OSM); samodejne pretvorbe ni; naslov je nerazčlenjen ali razčlenjen, nikoli oboje |
 | Podjetje | neobvezno, do 200 znakov po obrezu presledkov |
 | Država | neobvezna; shrani se koda ISO 3166-1 alpha-2 (dve veliki črki, uradno dodeljena; `INVALID_VALUE` sicer); vmesnik prikazuje ime v jeziku (sl/en); iskanje po kodi in imenu v obeh jezikih; prepoznavanje iz besedila (npr. uvoz): natančno ujemanje ali odločitev uporabnika, nikoli samodejna popravka |
 | E-naslov (kontakta) | neobvezen, veljavna oblika e-naslova, do 254 znakov |
-| Telefon | neobvezen, do 30 znakov; dovoljeni števke, presledki in `+ - ( ) /` |
+| Telefon | neobvezen, do 30 znakov; od 016 veljaven po mednarodnem standardu številčenja (libphonenumber: veljavna številka ali veljavna kratka številka), shrani se E.164 (z razširitvijo `;ext=N`), kratke številke kot števke; prikaz po osebni shemi (§2.7); nespremenjena shranjena vrednost se ne preverja ponovno |
+| Tip ključa atributa (016) | vsak ključ v skupini ima tip: `OTHER` (privzeto), `NOTES`, `EMAIL`, `PHONE`, `ADDRESS`, `URL`, `DATE`; velja za vse kontakte skupine; sprememba (editor in višje) je mogoča, če so vse obstoječe vrednosti veljavne za novi tip, sicer `409 ATTRIBUTE_TYPE_CONFLICT` s seznamom kontaktov (največ 100) in nič se ne spremeni; tip se pri neuporabljenem ključu ob ponovni uporabi izbere znova. Normalizacija na strežniku: `OTHER`/`NOTES` obrez (`NOTES` vsaj en nepresledni znak), `EMAIL` obrez in domena z malimi črkami, `PHONE` kot telefon zgoraj, `URL` samo `http`/`https` z gostiteljem s piko, privzeto `https://`, `DATE` koledarski datum `LLLL-MM-DD`, `ADDRESS` deli kot naslov kontakta |
 | Dodatni atribut | ključ 1–50 znakov, edinstven v kontaktu (ne glede na velikost črk) in različen od imen predefiniranih atributov; vrednost 1–500 znakov; največ 50 atributov na kontakt; imena `država`, `country`, `podjetje`, `company` (poleg imen predefiniranih polj) so rezervirana za nove in spremenjene ključe, obstoječi atributi z njimi ostanejo; zapis ključa se ob pisanju uskladi s kanoničnim zapisom skupine (pogostejša različica, pri izenačenju najstarejši kontakt) |
 | Značka | 1–50 znakov, brez presledkov; edinstvena v kontaktu (ne glede na velikost črk); največ 30 značk na kontakt; zapis se ob pisanju uskladi s kanoničnim zapisom skupine kot pri ključih |
 | Paginacija | privzeto 25 na stran, izbira 25 / 50 / 100, največ 100 |
@@ -104,7 +106,9 @@ Povsod, kjer bi bilo prikazano ime ali e-naslov uporabnika, ki je izbrisal raču
 
 ### 2.7 Revizijska sled
 
-Od funkcionalnosti 005 naprej **vsaka** sprememba kontaktov (ustvarjanje, urejanje, izbris, množične spremembe, združevanje, rollback, obnova enega kontakta – `RESTORE`, 015, uvoz – `IMPORT`, 014) ustvari vnos v revizijski sledi skupine. Branje (izvoz, CardDAV) se ne beleži. Funkcionalnosti 009 in 011 to zahtevata v svojih FR; 005 doda beleženje operacij iz 004.
+Od funkcionalnosti 005 naprej **vsaka** sprememba kontaktov (ustvarjanje, urejanje, izbris, množične spremembe, združevanje, rollback, obnova enega kontakta – `RESTORE`, 015, uvoz – `IMPORT`, 014) ustvari vnos v revizijski sledi skupine. Branje (izvoz, CardDAV) se ne beleži. Od 016 tudi sprememba tipa ključa atributa ustvari vnos `ATTRIBUTE_TYPE` (ključ, tip prej in potem; brez vrednosti kontaktov).
+
+**Osebna prikazna shema (016):** uporabnikova nastavitev *oblika zapisa* (`phoneFormat`: `INTERNATIONAL` | `NATIONAL` | `E164`, `dateFormat`: `LOCALE` | `ISO` | `LONG`, `addressFormat`: `COUNTRY` | `SINGLE_LINE`; `null` = privzeto) se hrani ob jeziku in temi, velja na vseh napravah, je v izvozu *Moji podatki* in se izbriše z računom. Vpliva samo na prikaz; shranjeni podatki so vedno kanonični. Funkcionalnosti 009 in 011 to zahtevata v svojih FR; 005 doda beleženje operacij iz 004.
 
 ### 2.8 Nevarne operacije
 
@@ -133,3 +137,7 @@ Skupne kode (§2.2): `UNAUTHENTICATED` (401), `FORBIDDEN` (403, D-25), `GROUP_AR
 | `APP_PASSWORD_LIMIT` | 014 | ustvarjanje enajstega gesla za aplikacijo |
 | `RESTORE_NO_CHANGES` | 015 | obnova kontakta, ki ne bi spremenila nobenega polja |
 | `RESTORE_NOT_ALLOWED` | 015 | obnova kontakta, ki je bil z združevanjem odstranjen (neposredna obnova ni dovoljena) |
+| `ATTRIBUTE_TYPE_CONFLICT` | 016 | sprememba tipa ključa atributa, ki bi pustila neveljavne vrednosti (409; telo `details`: kontakti, največ 100, in `total`) |
+| `MAP_SERVICE_UNAVAILABLE` | 016 | kartografska storitev (OSM) nedosegljiva, počasna ali omejitev pogostosti (503; ne ovira dela s kontaktom) |
+
+Opomba (016): `TOO_SHORT` ni samostojna koda napake, ampak koda polja v `VALIDATION_FAILED` (400) za `q` pri predlogih naslova (krajše od najmanjše dolžine; poleg `REQUIRED`, `TOO_LONG`, `INVALID_VALUE`).

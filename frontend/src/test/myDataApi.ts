@@ -31,6 +31,9 @@ export function myData(overrides: Partial<MyData> = {}): MyData {
       registeredAt: '2026-01-05T08:00:00Z',
       language: 'sl',
       theme: null,
+      phoneFormat: null,
+      dateFormat: null,
+      addressFormat: null,
     },
     memberships: [
       {

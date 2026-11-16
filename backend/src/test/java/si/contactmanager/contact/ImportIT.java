@@ -125,7 +125,7 @@ class ImportIT extends ImportApiTest {
         List<Map<String, Object>> candidates = asObjects(body.get("candidates"));
         assertThat(candidates).hasSize(2);
         assertThat(asObjects(candidates.get(0).get("attributes")).get(0))
-                .isEqualTo(Map.of("key", "E-naslov 2", "value", "janez@delo.si"));
+                .isEqualTo(Map.of("key", "E-naslov 2", "type", "EMAIL", "value", "janez@delo.si"));
     }
 
     @Test

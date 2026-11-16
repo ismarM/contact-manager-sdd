@@ -38,10 +38,12 @@ public class ContactSnapshots {
 
     private final JdbcClient jdbc;
     private final NamedParameterJdbcTemplate batch;
+    private final AttributeKeyRepository keys;
 
-    ContactSnapshots(JdbcClient jdbc, NamedParameterJdbcTemplate batch) {
+    ContactSnapshots(JdbcClient jdbc, NamedParameterJdbcTemplate batch, AttributeKeyRepository keys) {
         this.jdbc = jdbc;
         this.batch = batch;
+        this.keys = keys;
     }
 
     /** Stanja izbranih kontaktov skupine; kontakti, ki jih ni, manjkajo v odgovoru. */
@@ -53,7 +55,8 @@ public class ContactSnapshots {
             Map<UUID, List<Attribute>> attributes = attributes(chunk);
             Map<UUID, List<String>> tags = tags(chunk);
             jdbc.sql(
-                            "SELECT id, first_name, last_name, address, email, phone, company, country, version,"
+                            "SELECT id, first_name, last_name, address, address_parts::text AS address_parts, email, phone,"
+                                    + " company, country, version,"
                                     + " created_at, updated_at, updated_by FROM contact WHERE group_id = :group AND id IN (:ids)")
                     .param("group", groupId)
                     .param("ids", chunk)
@@ -98,14 +101,16 @@ public class ContactSnapshots {
                                 .addValue("id", t.contactId()))
                         .toArray(SqlParameterSource[]::new));
         batch.batchUpdate(
-                "INSERT INTO contact (id, group_id, first_name, last_name, address, email, phone, company, country,"
-                        + " sort_last, sort_first, version, created_at, updated_at, updated_by, reverted_entry_id)"
-                        + " VALUES (:id, :group, :first, :last, :address, :email, :phone, :company, :country,"
+                "INSERT INTO contact (id, group_id, first_name, last_name, address, address_parts, email, phone,"
+                        + " company, country, sort_last, sort_first, version, created_at, updated_at, updated_by,"
+                        + " reverted_entry_id)"
+                        + " VALUES (:id, :group, :first, :last, :address, CAST(:parts AS jsonb), :email, :phone, :company, :country,"
                         + " :sortLast, :sortFirst, :version, :createdAt, :updatedAt,"
                         + " (SELECT id FROM app_user WHERE id = :by), :entry)",
                 rows(groupId, rollbackEntry, restored));
         batch.batchUpdate(
-                "UPDATE contact SET first_name = :first, last_name = :last, address = :address, email = :email,"
+                "UPDATE contact SET first_name = :first, last_name = :last, address = :address,"
+                        + " address_parts = CAST(:parts AS jsonb), email = :email,"
                         + " phone = :phone, company = :company, country = :country, sort_last = :sortLast,"
                         + " sort_first = :sortFirst, version = :version,"
                         + " created_at = :createdAt, updated_at = :updatedAt,"
@@ -129,6 +134,56 @@ public class ContactSnapshots {
     }
 
     /**
+     * Rollback (016, FR-016-26, research R-07): tip vsakega ključa, ki ga imajo obnovljeni kontakti, se nastavi na tip iz
+     * posnetka (verzija ključa + 1). Vrednosti obnovljenih kontaktov so dobesedne in se ne preverjajo; vrednosti
+     * kontaktov, ki jih rollback ni zajel, morajo biti veljavne za obnovljeni tip, sicer {@code 409
+     * ATTRIBUTE_TYPE_CONFLICT} in nič se ne spremeni (transakcija). Ključi so zaklenjeni po vrstnem redu {@code key_norm}.
+     */
+    public void restoreKeyTypes(UUID groupId, List<Target> targets) {
+        Map<String, AttributeType> wanted = new java.util.TreeMap<>();
+        java.util.Set<UUID> restored = new java.util.HashSet<>();
+        for (Target target : targets) {
+            if (target.state() == null) {
+                continue;
+            }
+            restored.add(target.contactId());
+            for (Attribute attribute : target.state().attributes()) {
+                wanted.putIfAbsent(ContactInputParser.normalize(attribute.key()), attribute.type());
+            }
+        }
+        for (Map.Entry<String, AttributeType> entry : wanted.entrySet()) {
+            String norm = entry.getKey();
+            keys.register(groupId, norm);
+            AttributeKeyRepository.Row row = keys.lockForUpdate(groupId, norm).orElseThrow();
+            if (row.type() == entry.getValue()) {
+                continue;
+            }
+            List<TypeConflict.Item> conflicts = new ArrayList<>();
+            long invalid = 0;
+            for (AttributeKeyRepository.Value value : keys.values(groupId, norm)) {
+                if (restored.contains(value.contactId())) {
+                    continue;
+                }
+                String text = value.parts() != null ? AddressFormats.text(value.parts()) : value.value();
+                if (!TypedValues.isValid(entry.getValue(), text, value.country())) {
+                    invalid++;
+                    if (conflicts.size() < 100) {
+                        conflicts.add(new TypeConflict.Item(
+                                value.contactId(),
+                                ContactRepository.displayName(value.firstName(), value.lastName()),
+                                text));
+                    }
+                }
+            }
+            if (invalid > 0) {
+                throw new si.contactmanager.shared.error.AttributeTypeConflictException(
+                        new TypeConflict(List.copyOf(conflicts), invalid));
+            }
+            keys.setType(groupId, norm, entry.getValue());
+        }
+    }
+
+    /**
      * Uvoz (FR-014-05): nove kontakte vstavi s stavki {@code unnest} po kosih, v vrstnem redu seznama (id-ji
      * {@code uuidv7()} naraščajo, kontakti imajo enak čas nastanka); vrne id-je v istem vrstnem redu.
      */
@@ -141,20 +196,21 @@ public class ContactSnapshots {
             int to = Math.min(inputs.size(), from + CHUNK);
             List<ContactInput> chunk = inputs.subList(from, to);
             update(
-                    "INSERT INTO contact (id, group_id, first_name, last_name, address, email, phone, company, country,"
-                            + " sort_last, sort_first, updated_by)"
-                            + " SELECT v.id, ?, v.first_name, v.last_name, v.address, v.email, v.phone, v.company,"
-                            + " v.country, v.sort_last, v.sort_first, ?"
+                    "INSERT INTO contact (id, group_id, first_name, last_name, address, address_parts, email, phone,"
+                            + " company, country, sort_last, sort_first, updated_by)"
+                            + " SELECT v.id, ?, v.first_name, v.last_name, v.address, v.address_parts::jsonb, v.email,"
+                            + " v.phone, v.company, v.country, v.sort_last, v.sort_first, ?"
                             + " FROM unnest(?::uuid[], ?::text[], ?::text[], ?::text[], ?::text[], ?::text[], ?::text[],"
-                            + " ?::text[], ?::text[], ?::text[])"
-                            + " AS v(id, first_name, last_name, address, email, phone, company, country, sort_last,"
-                            + " sort_first)",
+                            + " ?::text[], ?::text[], ?::text[], ?::text[])"
+                            + " AS v(id, first_name, last_name, address, address_parts, email, phone, company, country,"
+                            + " sort_last, sort_first)",
                     groupId,
                     actor,
                     array("uuid", ids.subList(from, to).stream()),
                     array("text", chunk.stream().map(ContactInput::firstName)),
                     array("text", chunk.stream().map(ContactInput::lastName)),
                     array("text", chunk.stream().map(ContactInput::address)),
+                    array("text", chunk.stream().map(c -> AddressJson.write(c.addressParts()))),
                     array("text", chunk.stream().map(ContactInput::email)),
                     array("text", chunk.stream().map(ContactInput::phone)),
                     array("text", chunk.stream().map(ContactInput::company)),
@@ -171,6 +227,7 @@ public class ContactSnapshots {
                             input.firstName(),
                             input.lastName(),
                             input.address(),
+                            input.addressParts(),
                             input.email(),
                             input.phone(),
                             input.company(),
@@ -199,6 +256,7 @@ public class ContactSnapshots {
                 .addValue("first", goal.firstName())
                 .addValue("last", goal.lastName())
                 .addValue("address", goal.address())
+                .addValue("parts", AddressJson.write(goal.addressParts()))
                 .addValue("email", goal.email())
                 .addValue("phone", goal.phone())
                 .addValue("company", goal.company())
@@ -210,7 +268,8 @@ public class ContactSnapshots {
                 .addValue("by", actor);
         if (exists) {
             batch.update(
-                    "UPDATE contact SET first_name = :first, last_name = :last, address = :address, email = :email,"
+                    "UPDATE contact SET first_name = :first, last_name = :last, address = :address,"
+                            + " address_parts = CAST(:parts AS jsonb), email = :email,"
                             + " phone = :phone, company = :company, country = :country, sort_last = :sortLast,"
                             + " sort_first = :sortFirst, version = :version, created_at = :createdAt,"
                             + " updated_at = now(), updated_by = :by, reverted_entry_id = NULL"
@@ -224,9 +283,9 @@ public class ContactSnapshots {
                     .update();
         } else {
             batch.update(
-                    "INSERT INTO contact (id, group_id, first_name, last_name, address, email, phone, company, country,"
-                            + " sort_last, sort_first, version, created_at, updated_at, updated_by)"
-                            + " VALUES (:id, :group, :first, :last, :address, :email, :phone, :company, :country,"
+                    "INSERT INTO contact (id, group_id, first_name, last_name, address, address_parts, email, phone,"
+                            + " company, country, sort_last, sort_first, version, created_at, updated_at, updated_by)"
+                            + " VALUES (:id, :group, :first, :last, :address, CAST(:parts AS jsonb), :email, :phone, :company, :country,"
                             + " :sortLast, :sortFirst, :version, :createdAt, now(), :by)",
                     p);
         }
@@ -246,15 +305,18 @@ public class ContactSnapshots {
         for (int from = 0; from < changes.size(); from += CHUNK) {
             List<Change> chunk = changes.subList(from, Math.min(changes.size(), from + CHUNK));
             update(
-                    "UPDATE contact c SET address = v.address, email = v.email, phone = v.phone,"
-                            + " company = v.company, country = v.country,"
+                    "UPDATE contact c SET address = v.address, address_parts = v.address_parts::jsonb,"
+                            + " email = v.email, phone = v.phone, company = v.company, country = v.country,"
                             + " version = c.version + 1, updated_by = ?, updated_at = now(), reverted_entry_id = NULL"
-                            + " FROM unnest(?::uuid[], ?::text[], ?::text[], ?::text[], ?::text[], ?::text[])"
-                            + " AS v(id, address, email, phone, company, country)"
+                            + " FROM unnest(?::uuid[], ?::text[], ?::text[], ?::text[], ?::text[], ?::text[], ?::text[])"
+                            + " AS v(id, address, address_parts, email, phone, company, country)"
                             + " WHERE c.group_id = ? AND c.id = v.id",
                     actor,
                     array("uuid", chunk.stream().map(Change::contactId)),
                     array("text", chunk.stream().map(c -> c.after().address())),
+                    array(
+                            "text",
+                            chunk.stream().map(c -> AddressJson.write(c.after().addressParts()))),
                     array("text", chunk.stream().map(c -> c.after().email())),
                     array("text", chunk.stream().map(c -> c.after().phone())),
                     array("text", chunk.stream().map(c -> c.after().company())),
@@ -290,6 +352,7 @@ public class ContactSnapshots {
                             .addValue("first", s.firstName())
                             .addValue("last", s.lastName())
                             .addValue("address", s.address())
+                            .addValue("parts", AddressJson.write(s.addressParts()))
                             .addValue("email", s.email())
                             .addValue("phone", s.phone())
                             .addValue("company", s.company())
@@ -312,6 +375,7 @@ public class ContactSnapshots {
         List<String> attributeKey = new ArrayList<>();
         List<String> attributeNorm = new ArrayList<>();
         List<String> attributeValue = new ArrayList<>();
+        List<String> attributeParts = new ArrayList<>();
         List<UUID> tagContact = new ArrayList<>();
         List<Integer> tagPosition = new ArrayList<>();
         List<String> tagName = new ArrayList<>();
@@ -323,7 +387,9 @@ public class ContactSnapshots {
                 attributePosition.add(i);
                 attributeKey.add(attrs.get(i).key());
                 attributeNorm.add(ContactInputParser.normalize(attrs.get(i).key()));
-                attributeValue.add(attrs.get(i).value());
+                Attribute attribute = attrs.get(i);
+                attributeValue.add(attribute.parts() == null ? attribute.value() : null);
+                attributeParts.add(AddressJson.write(attribute.parts()));
             }
             List<String> names = target.state().tags();
             for (int i = 0; i < names.size(); i++) {
@@ -336,13 +402,28 @@ public class ContactSnapshots {
         for (int from = 0; from < attributeContact.size(); from += ROWS) {
             int to = Math.min(attributeContact.size(), from + ROWS);
             update(
-                    "INSERT INTO contact_attribute (contact_id, position, key, key_norm, value)"
-                            + " SELECT * FROM unnest(?::uuid[], ?::int[], ?::text[], ?::text[], ?::text[])",
+                    "INSERT INTO contact_attribute (contact_id, position, key, key_norm, value, parts)"
+                            + " SELECT t.c, t.p, t.k, t.n, t.v, t.pa::jsonb"
+                            + " FROM unnest(?::uuid[], ?::int[], ?::text[], ?::text[], ?::text[], ?::text[])"
+                            + " AS t(c, p, k, n, v, pa)",
                     array("uuid", attributeContact.subList(from, to).stream()),
                     array("int4", attributePosition.subList(from, to).stream()),
                     array("text", attributeKey.subList(from, to).stream()),
                     array("text", attributeNorm.subList(from, to).stream()),
-                    array("text", attributeValue.subList(from, to).stream()));
+                    array("text", attributeValue.subList(from, to).stream()),
+                    array("text", attributeParts.subList(from, to).stream()));
+        }
+        for (int from = 0; from < attributeContact.size(); from += ROWS) {
+            int to = Math.min(attributeContact.size(), from + ROWS);
+            // Ključ v uporabi ima vedno vrstico s tipom (016): ponovno vstavljeni atributi (rollback, združitev, uvoz).
+            update(
+                    "INSERT INTO attribute_key (group_id, key_norm)"
+                            + " SELECT DISTINCT c.group_id, t.key_norm"
+                            + " FROM unnest(?::uuid[], ?::text[]) AS t(contact_id, key_norm)"
+                            + " JOIN contact c ON c.id = t.contact_id"
+                            + " ON CONFLICT (group_id, key_norm) DO NOTHING",
+                    array("uuid", attributeContact.subList(from, to).stream()),
+                    array("text", attributeNorm.subList(from, to).stream()));
         }
         for (int from = 0; from < tagContact.size(); from += ROWS) {
             int to = Math.min(tagContact.size(), from + ROWS);
@@ -382,13 +463,21 @@ public class ContactSnapshots {
 
     private Map<UUID, List<Attribute>> attributes(List<UUID> ids) {
         Map<UUID, List<Attribute>> result = new LinkedHashMap<>();
-        jdbc.sql("SELECT contact_id, key, value FROM contact_attribute WHERE contact_id IN (:ids)"
-                        + " ORDER BY contact_id, position")
+        jdbc.sql("SELECT a.contact_id, a.key, a.value, a.parts::text AS parts, k.type FROM contact_attribute a"
+                        + " JOIN contact c ON c.id = a.contact_id"
+                        + " LEFT JOIN attribute_key k ON k.group_id = c.group_id AND k.key_norm = a.key_norm"
+                        + " WHERE a.contact_id IN (:ids) ORDER BY a.contact_id, a.position")
                 .param("ids", ids)
                 .query((ResultSet rs) -> {
                     while (rs.next()) {
                         result.computeIfAbsent(rs.getObject("contact_id", UUID.class), k -> new ArrayList<>())
-                                .add(new Attribute(rs.getString("key"), rs.getString("value")));
+                                .add(new Attribute(
+                                        rs.getString("key"),
+                                        rs.getString("type") == null
+                                                ? null
+                                                : AttributeType.valueOf(rs.getString("type")),
+                                        rs.getString("value"),
+                                        AddressJson.read(rs.getString("parts"))));
                     }
                     return result;
                 });
@@ -414,6 +503,7 @@ public class ContactSnapshots {
                 rs.getString("first_name"),
                 rs.getString("last_name"),
                 rs.getString("address"),
+                AddressJson.read(rs.getString("address_parts")),
                 rs.getString("email"),
                 rs.getString("phone"),
                 rs.getString("company"),
@@ -433,13 +523,14 @@ public class ContactSnapshots {
      */
     public void replaceMerged(UUID groupId, long actor, UUID keeperId, ContactState after) {
         int rows = jdbc.sql("UPDATE contact SET first_name = :first, last_name = :last, address = :address,"
-                        + " email = :email, phone = :phone, company = :company, country = :country,"
+                        + " address_parts = CAST(:parts AS jsonb), email = :email, phone = :phone, company = :company, country = :country,"
                         + " sort_last = :sortLast, sort_first = :sortFirst,"
                         + " version = version + 1, updated_by = :actor, updated_at = now(), reverted_entry_id = NULL"
                         + " WHERE group_id = :group AND id = :id")
                 .param("first", after.firstName())
                 .param("last", after.lastName())
                 .param("address", after.address())
+                .param("parts", AddressJson.write(after.addressParts()))
                 .param("email", after.email())
                 .param("phone", after.phone())
                 .param("company", after.company())

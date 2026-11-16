@@ -21,6 +21,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoField;
 import java.time.temporal.Temporal;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -28,11 +30,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Branje vizitk vCard 2.1, 3.0 in 4.0 v kandidate uvoza (FR-014-13, research R-03): prednostni (sicer prvi) e-naslov,
  * telefon in naslov v predefinirana polja, naslednji v oštevilčene atribute; rojstni dan, spletna stran in opomba v
- * atribute v jeziku vmesnika; fotografije in drugih lastnosti ne uvozi.
+ * atribute v jeziku vmesnika; fotografije in drugih lastnosti ne uvozi. Tipi (016, FR-016-24): {@code ADR} po delih
+ * gre v {@code addressParts}, dodatni {@code EMAIL}, {@code TEL}, {@code ADR}, rojstni dan, spletna stran in opomba v
+ * atribute tipov <i>E-naslov</i>, <i>Telefon</i>, <i>Naslov</i>, <i>Datum</i>, <i>Spletni naslov</i> in <i>Opombe</i>;
+ * lastnosti v skupini z {@code X-CM-KEY} (izvoz te aplikacije) dobijo ključ iz skupine.
  */
 public final class VcardReader {
 
@@ -129,46 +136,53 @@ public final class VcardReader {
         }
 
         VcardMapping.AttributeList attributes = new VcardMapping.AttributeList();
-        extendedAttributes(card, attributes);
+        Set<VCardProperty> grouped = Collections.newSetFromMap(new IdentityHashMap<>());
+        groupedAttributes(card, attributes, grouped);
 
-        List<Email> emails = preferredFirst(card.getEmails(), Email::getPref, VcardReader::typePref);
-        List<Telephone> phones = preferredFirst(card.getTelephoneNumbers(), Telephone::getPref, VcardReader::typePref);
-        List<Address> addresses = preferredFirst(card.getAddresses(), Address::getPref, VcardReader::typePref);
+        List<Email> emails = preferredFirst(without(card.getEmails(), grouped), Email::getPref, VcardReader::typePref);
+        List<Telephone> phones =
+                preferredFirst(without(card.getTelephoneNumbers(), grouped), Telephone::getPref, VcardReader::typePref);
+        List<Address> addresses =
+                preferredFirst(without(card.getAddresses(), grouped), Address::getPref, VcardReader::typePref);
 
         String email = emails.isEmpty() ? null : emails.get(0).getValue();
         String phone = phones.isEmpty() ? null : phoneText(phones.get(0));
         String address = null;
+        si.contactmanager.contact.Address addressParts = null;
         String country = null;
         if (!addresses.isEmpty()) {
-            address = addressText(addresses.get(0));
+            addressParts = parts(addresses.get(0));
+            address = addressParts == null ? addressText(addresses.get(0)) : null;
             country = countryText(addresses.get(0));
         }
         for (int i = 1; i < emails.size(); i++) {
-            attributes.addNumbered(labels.email(), 2, emails.get(i).getValue());
+            attributes.addNumbered(
+                    labels.email(), 2, AttributeType.EMAIL, emails.get(i).getValue());
         }
         for (int i = 1; i < phones.size(); i++) {
-            attributes.addNumbered(labels.phone(), 2, phoneText(phones.get(i)));
+            attributes.addNumbered(labels.phone(), 2, AttributeType.PHONE, phoneText(phones.get(i)));
         }
         for (int i = 1; i < addresses.size(); i++) {
-            List<String> parts = new ArrayList<>();
-            String lines = addressText(addresses.get(i));
-            if (lines != null) {
-                parts.addAll(List.of(lines.split("\n")));
+            List<String> lines = new ArrayList<>();
+            String text = addressText(addresses.get(i));
+            if (text != null) {
+                lines.addAll(List.of(text.split("\n")));
             }
             String extraCountry = addresses.get(i).getCountry();
             if (extraCountry != null && !extraCountry.isBlank()) {
-                parts.add(extraCountry.strip());
+                lines.add(extraCountry.strip());
             }
-            attributes.addNumbered(labels.address(), 2, blankToNull(String.join(", ", parts)));
+            attributes.addNumbered(labels.address(), 2, AttributeType.ADDRESS, blankToNull(String.join(", ", lines)));
         }
-        if (card.getBirthday() != null) {
-            attributes.addNumbered(labels.birthday(), 1, birthday(card.getBirthday()));
+        List<Birthday> birthdays = without(card.getBirthdays(), grouped);
+        if (!birthdays.isEmpty()) {
+            attributes.addNumbered(labels.birthday(), 1, AttributeType.DATE, birthday(birthdays.get(0)));
         }
-        for (Url url : card.getUrls()) {
-            attributes.addNumbered(labels.website(), 1, url.getValue());
+        for (Url url : without(card.getUrls(), grouped)) {
+            attributes.addNumbered(labels.website(), 1, AttributeType.URL, url.getValue());
         }
-        for (Note note : card.getNotes()) {
-            attributes.addNumbered(labels.note(), 1, note.getValue());
+        for (Note note : without(card.getNotes(), grouped)) {
+            attributes.addNumbered(labels.note(), 1, AttributeType.NOTES, lf(note.getValue()));
         }
 
         String company = null;
@@ -185,25 +199,127 @@ public final class VcardReader {
                 }
             }
         }
-        return new ImportCandidate(first, last, address, email, phone, company, country, attributes.list(), tags);
+        return new ImportCandidate(
+                first, last, address, addressParts, email, phone, company, country, attributes.list(), tags);
     }
 
-    /** Pari {@code X-CM-KEY}/{@code X-CM-VALUE} po skupinah, v vrstnem redu prve lastnosti skupine. */
-    private static void extendedAttributes(VCard card, VcardMapping.AttributeList attributes) {
-        Map<String, String[]> pairs = new LinkedHashMap<>();
-        for (RawProperty raw : card.getExtendedProperties()) {
-            String name = raw.getPropertyName().toUpperCase(Locale.ROOT);
-            if (raw.getGroup() == null || (!name.equals(VcardMapping.KEY) && !name.equals(VcardMapping.VALUE))) {
+    private static final Pattern ATTR_GROUP = Pattern.compile("attr(\\d+)");
+
+    /** Lastnosti ene skupine vizitke: oznaka ključa, vrednost para {@code X-CM-VALUE} in tipizirana lastnost. */
+    private static final class Group {
+        String key;
+        String value;
+        VCardProperty typed;
+    }
+
+    private static <T> List<T> without(List<T> properties, Set<VCardProperty> consumed) {
+        return properties.stream()
+                .filter(p -> !(p instanceof VCardProperty vp && consumed.contains(vp)))
+                .toList();
+    }
+
+    /**
+     * Dodatni atributi po skupinah ({@code attrN}, po številki): par {@code X-CM-KEY}/{@code X-CM-VALUE} je tipa
+     * <i>Drugo</i>, tipizirana lastnost ({@code TEL}, {@code EMAIL}, {@code ADR}, {@code URL}, {@code BDAY},
+     * {@code NOTE}) z {@code X-CM-KEY} v isti skupini pa atribut ustreznega tipa; prebrane lastnosti se zapišejo v
+     * {@code consumed}, da jih predefinirana polja ne uporabijo znova.
+     */
+    private static void groupedAttributes(
+            VCard card, VcardMapping.AttributeList attributes, Set<VCardProperty> consumed) {
+        Map<String, Group> groups = new LinkedHashMap<>();
+        for (VCardProperty property : card.getProperties()) {
+            if (property.getGroup() == null) {
                 continue;
             }
-            String[] pair = pairs.computeIfAbsent(raw.getGroup().toLowerCase(Locale.ROOT), g -> new String[2]);
-            pair[name.equals(VcardMapping.KEY) ? 0 : 1] = VcardMapping.unescape(raw.getValue());
-        }
-        for (String[] pair : pairs.values()) {
-            if (pair[0] != null && pair[1] != null) {
-                attributes.add(pair[0], pair[1]);
+            Group group = groups.computeIfAbsent(property.getGroup().toLowerCase(Locale.ROOT), g -> new Group());
+            if (property instanceof RawProperty raw) {
+                String name = raw.getPropertyName().toUpperCase(Locale.ROOT);
+                if (name.equals(VcardMapping.KEY)) {
+                    group.key = VcardMapping.unescape(raw.getValue());
+                } else if (name.equals(VcardMapping.VALUE)) {
+                    group.value = VcardMapping.unescape(raw.getValue());
+                }
+            } else if (group.typed == null
+                    && (property instanceof Telephone
+                            || property instanceof Email
+                            || property instanceof Address
+                            || property instanceof Url
+                            || property instanceof Birthday
+                            || property instanceof Note)) {
+                group.typed = property;
             }
         }
+        groups.entrySet().stream()
+                .sorted(java.util.Comparator.comparingInt(e -> {
+                    Matcher m = ATTR_GROUP.matcher(e.getKey());
+                    return m.matches() ? Integer.parseInt(m.group(1)) : Integer.MAX_VALUE;
+                }))
+                .map(Map.Entry::getValue)
+                .filter(group -> group.key != null)
+                .forEach(group -> {
+                    if (group.value != null) {
+                        attributes.add(group.key, group.value);
+                    } else if (group.typed != null) {
+                        consumed.add(group.typed);
+                        typedAttribute(attributes, group.key, group.typed);
+                    }
+                });
+    }
+
+    private static void typedAttribute(VcardMapping.AttributeList attributes, String key, VCardProperty property) {
+        if (property instanceof Telephone telephone) {
+            attributes.add(key, AttributeType.PHONE, phoneText(telephone), null);
+        } else if (property instanceof Email email) {
+            attributes.add(key, AttributeType.EMAIL, email.getValue(), null);
+        } else if (property instanceof Url url) {
+            attributes.add(key, AttributeType.URL, url.getValue(), null);
+        } else if (property instanceof Note note) {
+            attributes.add(key, AttributeType.NOTES, lf(note.getValue()), null);
+        } else if (property instanceof Birthday birthday) {
+            attributes.add(key, AttributeType.DATE, birthday(birthday), null);
+        } else if (property instanceof Address address) {
+            si.contactmanager.contact.Address parts = parts(address);
+            attributes.add(key, AttributeType.ADDRESS, parts == null ? addressText(address) : null, parts);
+        }
+    }
+
+    /**
+     * Deli {@code ADR} (016, FR-016-24): ulica; dodatna vrstica iz poštnega predala in dodatnega naslova; kraj, regija,
+     * poštna številka; država samo kot koda ({@code X-CM-CC}). {@code null}, kadar naslov ni po delih (samo ulica, brez
+     * oznake {@code X-CM-PARTS}) ali nima ulice ne kraja.
+     */
+    static si.contactmanager.contact.Address parts(Address address) {
+        String street = lf(join(address.getStreetAddresses()));
+        String extra = lf(join(
+                java.util.stream.Stream.concat(address.getPoBoxes().stream(), address.getExtendedAddresses().stream())
+                        .toList()));
+        String city = join(address.getLocalities());
+        String region = join(address.getRegions());
+        String postal = join(address.getPostalCodes());
+        boolean marked = address.getParameters().first(VcardMapping.PARTS) != null;
+        boolean structured = marked || !extra.isEmpty() || !city.isEmpty() || !region.isEmpty() || !postal.isEmpty();
+        if (!structured || (street.isEmpty() && city.isEmpty())) {
+            return null;
+        }
+        return new si.contactmanager.contact.Address(
+                blankToNull(street),
+                blankToNull(extra),
+                blankToNull(postal),
+                blankToNull(city),
+                blankToNull(region),
+                code(address, VcardMapping.PARTS_COUNTRY));
+    }
+
+    private static String countryCode(Address address) {
+        return code(address, VcardMapping.COUNTRY_CODE);
+    }
+
+    private static String code(Address address, String parameter) {
+        String code = address.getParameters().first(parameter);
+        if (code != null && CountryNames.isValid(code.strip().toUpperCase(Locale.ROOT))) {
+            return code.strip().toUpperCase(Locale.ROOT);
+        }
+        return null;
     }
 
     private static boolean typePref(VCardProperty property) {
@@ -257,11 +373,8 @@ public final class VcardReader {
     }
 
     private static String countryText(Address address) {
-        String code = address.getParameters().first(VcardMapping.COUNTRY_CODE);
-        if (code != null && CountryNames.isValid(code.strip().toUpperCase(Locale.ROOT))) {
-            return code.strip().toUpperCase(Locale.ROOT);
-        }
-        return blankToNull(join(address.getCountries()));
+        String code = countryCode(address);
+        return code != null ? code : blankToNull(join(address.getCountries()));
     }
 
     private static String birthday(Birthday birthday) {
@@ -288,6 +401,11 @@ public final class VcardReader {
     private static String join(List<String> values) {
         return String.join(
                 ", ", values.stream().filter(v -> v != null && !v.isBlank()).toList());
+    }
+
+    /** Prelomi vrstic kot LF (knjižnica jih vrne po sistemu). */
+    private static String lf(String value) {
+        return value == null ? null : value.replace("\r\n", "\n").replace('\r', '\n');
     }
 
     private static String blankToNull(String value) {

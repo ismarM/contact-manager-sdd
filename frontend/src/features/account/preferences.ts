@@ -1,6 +1,12 @@
 // Izbira jezika in teme v brskalniku (research R-03, data-model.md). Branje in pisanje sta zaščitena, ker je
 // localStorage v zasebnem načinu lahko nedostopen – izbira tedaj velja do zaprtja strani.
 import { detectLanguage, type Language } from '../../i18n/language';
+import {
+  ADDRESS_FORMATS,
+  DATE_FORMATS,
+  type DisplayFormats,
+  PHONE_FORMATS,
+} from '../formats/types';
 
 export type { Language };
 export type Theme = 'light' | 'dark';
@@ -55,6 +61,32 @@ export function applyTheme(theme: Theme | null): void {
   if (theme) document.documentElement.dataset.theme = theme;
   else delete document.documentElement.dataset.theme;
   write(THEME_KEY, theme);
+}
+
+const FORMAT_KEYS = {
+  phoneFormat: PHONE_FORMATS,
+  dateFormat: DATE_FORMATS,
+  addressFormat: ADDRESS_FORMATS,
+} as const;
+
+/** Kopija prikaznih shem (016, FR-016-17); neznana ali manjkajoča vrednost je `null` (privzeto). */
+export function readStoredFormats(): DisplayFormats {
+  const pick = <T extends string>(key: string, allowed: readonly T[]): T | null => {
+    const value = read(key);
+    return allowed.find((candidate) => candidate === value) ?? null;
+  };
+  return {
+    phoneFormat: pick('phoneFormat', FORMAT_KEYS.phoneFormat),
+    dateFormat: pick('dateFormat', FORMAT_KEYS.dateFormat),
+    addressFormat: pick('addressFormat', FORMAT_KEYS.addressFormat),
+  };
+}
+
+/** Zapiše (ali ob `null` izbriše) kopijo prikaznih shem v localStorage. */
+export function storeFormats(formats: DisplayFormats): void {
+  write('phoneFormat', formats.phoneFormat);
+  write('dateFormat', formats.dateFormat);
+  write('addressFormat', formats.addressFormat);
 }
 
 /** Začetni jezik: shranjena izbira ima prednost, sicer jezik brskalnika (FR-001-16). */

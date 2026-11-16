@@ -34,7 +34,7 @@ export function writeVcard(contact: CardContact, language: CardLanguage): string
   if (contact.tags.length > 0) lines.push(`CATEGORIES:${contact.tags.map(escapeText).join(',')}`);
   contact.attributes.forEach((attribute, i) => {
     lines.push(`attr${i + 1}.X-CM-KEY:${escapeText(attribute.key)}`);
-    lines.push(`attr${i + 1}.X-CM-VALUE:${escapeText(attribute.value)}`);
+    lines.push(`attr${i + 1}.X-CM-VALUE:${escapeText(attribute.value ?? '')}`);
   });
   lines.push('END:VCARD');
   return lines.join('\r\n') + '\r\n';

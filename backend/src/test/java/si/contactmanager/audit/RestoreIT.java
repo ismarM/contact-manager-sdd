@@ -33,7 +33,7 @@ class RestoreIT extends HistoryApiTest {
     }
 
     private Map<String, Object> bigEdit(Map<String, Object> detail) {
-        Map<String, Object> values = withPhone(detail, "031 999 999");
+        Map<String, Object> values = withPhone(detail, "+38631999999");
         values.put("attributes", List.of(Map.of("key", "kompetenca", "value", "web dev")));
         values.put("tags", List.of("vip"));
         return values;
@@ -43,8 +43,8 @@ class RestoreIT extends HistoryApiTest {
     @Tag("FR-015-12")
     void restoringAnOlderVersionChangesOnlyThisContactAndAddsOneRestoreEntry() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
-        Map<String, Object> b = create(s, Who.EDITOR, contactInput("Bojan", "Drugi", "01 222 222"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
+        Map<String, Object> b = create(s, Who.EDITOR, contactInput("Bojan", "Drugi", "+38690222222"));
         Map<String, Object> editedA = update(s, Who.ADMIN, idOf(a), bigEdit(a), versionOf(a));
         UUID createEntry = entryIds(s).get(0);
         Map<String, Object> bBefore = contentOf(idOf(b));
@@ -59,7 +59,7 @@ class RestoreIT extends HistoryApiTest {
         assertThat(entry.get("contactCount")).isEqualTo(1);
         assertThat(asObject(entry.get("target")).get("entryId")).isEqualTo(createEntry.toString());
         Map<String, Object> restored = contentOf(idOf(a));
-        assertThat(restored.get("phone")).isEqualTo("01 111 111");
+        assertThat(restored.get("phone")).isEqualTo("+38690111111");
         assertThat((List<?>) restored.get("attributes")).isEmpty();
         assertThat((List<?>) restored.get("tags")).isEmpty();
         assertThat(((Number) restored.get("version")).longValue()).isEqualTo(versionOf(editedA) + 1);
@@ -89,7 +89,7 @@ class RestoreIT extends HistoryApiTest {
     @Tag("FR-015-13")
     void aVersionOlderThanTheRestoreIsAConflictForLaterEdits() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         Map<String, Object> edited = update(s, Who.EDITOR, idOf(a), bigEdit(a), versionOf(a));
         restore(s, Who.EDITOR, idOf(a), restoreBody(entryIds(s).get(0), versionOf(edited)));
         int entries = audit.count(s.group());
@@ -97,7 +97,7 @@ class RestoreIT extends HistoryApiTest {
         HttpResponse<String> stale = put(
                 contactPath(s.group(), idOf(a)),
                 s.token(Who.EDITOR),
-                body(withVersion(withPhone(edited, "031 555 555"), versionOf(edited))));
+                body(withVersion(withPhone(edited, "+38631555555"), versionOf(edited))));
 
         assertThat(stale.statusCode()).isEqualTo(409);
         assertThat(json(stale.body()).get("code")).isEqualTo("VERSION_CONFLICT");
@@ -108,7 +108,7 @@ class RestoreIT extends HistoryApiTest {
     @Tag("FR-015-14")
     void aDeletedContactIsRestoredWithTheSameIdAndContinuesItsTimeline() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         Map<String, Object> edited = update(s, Who.EDITOR, idOf(a), bigEdit(a), versionOf(a));
         remove(s, Who.EDITOR, idOf(a), versionOf(edited));
         Map<String, Object> history = history(s, Who.VIEWER, idOf(a), "");
@@ -121,7 +121,7 @@ class RestoreIT extends HistoryApiTest {
 
         assertThat(response.statusCode()).as(response.body()).isEqualTo(201);
         Map<String, Object> state = contentOf(idOf(a));
-        assertThat(state.get("phone")).isEqualTo("031 999 999");
+        assertThat(state.get("phone")).isEqualTo("+38631999999");
         assertThat((List<?>) state.get("tags")).isEqualTo(List.of("vip"));
         assertThat(((Number) state.get("version")).longValue()).isGreaterThan(versionOf(edited));
         List<Map<String, Object>> changes =
@@ -159,7 +159,7 @@ class RestoreIT extends HistoryApiTest {
     @Tag("FR-015-16")
     void rolesArchivedGroupAndValidationFollowTheCheckOrder() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         Map<String, Object> edited = update(s, Who.EDITOR, idOf(a), bigEdit(a), versionOf(a));
         UUID first = entryIds(s).get(0);
         int entries = audit.count(s.group());
@@ -201,8 +201,8 @@ class RestoreIT extends HistoryApiTest {
     @Tag("FR-015-14")
     void aMergedAwayContactCannotBeRestoredDirectly() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> keeper = create(s, Who.EDITOR, contactInput("Ana", "Ohranjena", "01 111 111"));
-        Map<String, Object> removed = create(s, Who.EDITOR, contactInput("Ana", "Odstranjena", "01 111 111"));
+        Map<String, Object> keeper = create(s, Who.EDITOR, contactInput("Ana", "Ohranjena", "+38690111111"));
+        Map<String, Object> removed = create(s, Who.EDITOR, contactInput("Ana", "Odstranjena", "+38690111111"));
         mergeInto(s, idOf(keeper), idOf(removed), s.id(Who.EDITOR));
         Map<String, Object> history = history(s, Who.VIEWER, idOf(removed), "");
         String last = (String) asObject(history.get("contact")).get("lastEntryId");
@@ -221,7 +221,7 @@ class RestoreIT extends HistoryApiTest {
     @Tag("FR-015-15")
     void restoringTheStateTheContactAlreadyHasChangesNothing() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         int entries = audit.count(s.group());
 
         HttpResponse<String> response =
@@ -238,12 +238,12 @@ class RestoreIT extends HistoryApiTest {
     @Tag("FR-015-14")
     void thePreviewListsTheChangesAndPossibleDuplicatesWithoutBlocking() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> inputA = contactInput("Ana", "Prva", "01 111 111");
+        Map<String, Object> inputA = contactInput("Ana", "Prva", "+38690111111");
         inputA.put("email", "ana@primer.si");
         Map<String, Object> a = create(s, Who.EDITOR, inputA);
         Map<String, Object> edited = update(s, Who.EDITOR, idOf(a), bigEdit(a), versionOf(a));
         UUID first = entryIds(s).get(0);
-        Map<String, Object> liveInput = contactInput("Druga", "Ana", "01 000 000");
+        Map<String, Object> liveInput = contactInput("Druga", "Ana", "+38690000000");
         liveInput.put("email", "ANA@primer.si ");
         create(s, Who.EDITOR, liveInput);
 
@@ -276,8 +276,8 @@ class RestoreIT extends HistoryApiTest {
     @Tag("FR-015-14")
     void thePreviewOfAMergedContactIsNotRestorableAndOfTheSameStateHasNoChanges() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> keeper = create(s, Who.EDITOR, contactInput("Ana", "Ohranjena", "01 111 111"));
-        Map<String, Object> removed = create(s, Who.EDITOR, contactInput("Ana", "Odstranjena", "01 111 111"));
+        Map<String, Object> keeper = create(s, Who.EDITOR, contactInput("Ana", "Ohranjena", "+38690111111"));
+        Map<String, Object> removed = create(s, Who.EDITOR, contactInput("Ana", "Odstranjena", "+38690111111"));
         mergeInto(s, idOf(keeper), idOf(removed), s.id(Who.EDITOR));
         String version =
                 (String) asObjects(history(s, Who.VIEWER, idOf(removed), "").get("items"))
@@ -303,17 +303,17 @@ class RestoreIT extends HistoryApiTest {
     @Tag("FR-015-17")
     void theGroupRollbackStillWorksAndTreatsTheRestoreLikeAnyEntry() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         Map<String, Object> edited = update(s, Who.EDITOR, idOf(a), bigEdit(a), versionOf(a));
         List<UUID> entries = entryIds(s);
         restore(s, Who.EDITOR, idOf(a), restoreBody(entries.get(0), versionOf(edited)));
-        assertThat(contentOf(idOf(a)).get("phone")).isEqualTo("01 111 111");
+        assertThat(contentOf(idOf(a)).get("phone")).isEqualTo("+38690111111");
 
         // Rollback skupine na stanje po urejanju razveljavi obnovo.
         HttpResponse<String> rolledBack = rollback(s, Who.ADMIN, entries.get(1), audit.latestEntryId(s.group()));
 
         assertThat(rolledBack.statusCode()).as(rolledBack.body()).isEqualTo(201);
-        assertThat(contentOf(idOf(a)).get("phone")).isEqualTo("031 999 999");
+        assertThat(contentOf(idOf(a)).get("phone")).isEqualTo("+38631999999");
         // Obnova po rollbacku in rollback na vnos obnove (stanje takoj po obnovi) še vedno delujeta.
         UUID restoreEntry = entryIds(s).get(2);
         Map<String, Object> current =
@@ -328,7 +328,7 @@ class RestoreIT extends HistoryApiTest {
     @Tag("FR-015-12")
     void aFailureWhileWritingTheEntryChangesNothingAtAll() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         Map<String, Object> edited = update(s, Who.EDITOR, idOf(a), bigEdit(a), versionOf(a));
         UUID first = entryIds(s).get(0);
         Map<String, Object> rowBefore = audit.contactState(idOf(a));
@@ -354,7 +354,7 @@ class RestoreIT extends HistoryApiTest {
     @Tag("FR-015-14")
     void theTokensOfADeletedAndOfALiveContactAreCheckedAgainstWhatTheContactIsNow() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         UUID created = entryIds(s).get(0);
         remove(s, Who.EDITOR, idOf(a), versionOf(a));
         Map<String, Object> history = history(s, Who.VIEWER, idOf(a), "");
@@ -387,7 +387,7 @@ class RestoreIT extends HistoryApiTest {
     @Tag("FR-015-10")
     void aViewerGetsForbiddenForADeletedContactAndNotFoundForAnUnknownOne() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         UUID created = entryIds(s).get(0);
         remove(s, Who.EDITOR, idOf(a), versionOf(a));
         String last = (String)
@@ -410,7 +410,7 @@ class RestoreIT extends HistoryApiTest {
         contacts.addAttribute(old, 0, key, value);
         Map<String, Object> detail =
                 json(get(contactPath(s.group(), old), s.token(Who.VIEWER)).body());
-        Map<String, Object> values = withPhone(detail, "031 123 456");
+        Map<String, Object> values = withPhone(detail, "+38631123456");
         values.put("attributes", List.of());
         update(s, Who.EDITOR, old, values, versionOf(detail));
         return old;
@@ -456,7 +456,7 @@ class RestoreIT extends HistoryApiTest {
         contacts.addAttribute(old, 0, "Država", "Slovenija");
         Map<String, Object> detail =
                 json(get(contactPath(s.group(), old), s.token(Who.VIEWER)).body());
-        Map<String, Object> edited = update(s, Who.EDITOR, old, withPhone(detail, "031 123 456"), versionOf(detail));
+        Map<String, Object> edited = update(s, Who.EDITOR, old, withPhone(detail, "+38631123456"), versionOf(detail));
 
         HttpResponse<String> response = restore(s, Who.EDITOR, old, restoreBody("initial", versionOf(edited)));
 
@@ -471,7 +471,7 @@ class RestoreIT extends HistoryApiTest {
     void restoredKeysAndTagsGetTheCanonicalSpellingOfTheGroupWhileTheRecordedVersionStaysLiteral() throws Exception {
         Scenario s = scenario();
         for (String name : List.of("Prvi", "Drugi")) {
-            Map<String, Object> input = contactInput(name, "Kompetenten", "01 000 000");
+            Map<String, Object> input = contactInput(name, "Kompetenten", "+38690000000");
             input.put("attributes", List.of(Map.of("key", "Kompetenca", "value", "web")));
             input.put("tags", List.of("VIP"));
             create(s, Who.EDITOR, input);
@@ -481,7 +481,7 @@ class RestoreIT extends HistoryApiTest {
         contacts.addTag(old, 0, "vip");
         Map<String, Object> detail =
                 json(get(contactPath(s.group(), old), s.token(Who.VIEWER)).body());
-        Map<String, Object> values = withPhone(detail, "031 123 456");
+        Map<String, Object> values = withPhone(detail, "+38631123456");
         values.put("attributes", List.of());
         values.put("tags", List.of());
         Map<String, Object> edited = update(s, Who.EDITOR, old, values, versionOf(detail));
@@ -508,7 +508,7 @@ class RestoreIT extends HistoryApiTest {
     @Tag("FR-013-13")
     void aRecordedStateWithAnInvalidCountryOrTooLongCompanyIsRejected() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         ContactState before = snapshots.snapshot(s.group(), idOf(a));
         ContactState bad = new ContactState(
                 before.firstName(),

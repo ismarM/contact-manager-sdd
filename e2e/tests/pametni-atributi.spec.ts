@@ -37,7 +37,7 @@ const company = (id: string) =>
   sql(`select coalesce(company, '') from contact where id = '${id}'::uuid`);
 
 async function chooseCountry(page: Page, query: string, option: string) {
-  const field = page.getByRole('combobox', { name: 'Država' });
+  const field = page.getByRole('combobox', { name: 'Država', exact: true });
   await field.click();
   await field.fill(query);
   await page.getByRole('option', { name: option }).click();
@@ -117,22 +117,22 @@ test('FR-013-09 FR-013-10 FR-013-11 FR-013-14 FR-013-18 SC-001: predlogi ključa
   await page.getByRole('textbox', { name: 'Priimek' }).fill('Novak');
   await page.getByRole('button', { name: 'Dodaj atribut' }).click();
 
-  const key = page.getByRole('combobox', { name: 'Ključ' });
+  const key = page.getByRole('combobox', { name: 'Ključ', exact: true });
   await key.focus();
-  await expect(page.getByRole('option')).toHaveCount(2);
-  await expect(page.getByRole('option').first()).toContainText('Kompetenca');
+  await expect(page.getByRole('listbox').getByRole('option')).toHaveCount(2);
+  await expect(page.getByRole('listbox').getByRole('option').first()).toContainText('Kompetenca');
   await key.press('ArrowDown');
   await key.press('Enter');
   await expect(key).toHaveValue('Kompetenca');
   const value = page.getByRole('combobox', { name: 'Vrednost' });
   await value.focus();
-  await expect(page.getByRole('option').first()).toContainText('data');
+  await expect(page.getByRole('listbox').getByRole('option').first()).toContainText('data');
   await value.fill('web');
   await page.getByRole('option', { name: /^web dev/ }).click();
   await expect(value).toHaveValue('web dev');
 
   await page.getByRole('button', { name: 'Dodaj atribut' }).click();
-  const second = page.getByRole('combobox', { name: 'Ključ' }).last();
+  const second = page.getByRole('combobox', { name: 'Ključ', exact: true }).last();
   await second.fill('VLOGA');
   await page.getByRole('combobox', { name: 'Vrednost' }).last().click();
   await expect(second).toHaveValue('Vloga');
@@ -140,7 +140,7 @@ test('FR-013-09 FR-013-10 FR-013-11 FR-013-14 FR-013-18 SC-001: predlogi ključa
 
   const tags = page.getByRole('combobox', { name: 'Dodaj značko' });
   await tags.focus();
-  await expect(page.getByRole('option').first()).toContainText('vip');
+  await expect(page.getByRole('listbox').getByRole('option').first()).toContainText('vip');
   await tags.fill('VIP');
   await page.keyboard.press('Enter');
   await expectNoAxeViolations(page);
@@ -167,7 +167,9 @@ test('FR-013-08 FR-013-20: star atribut Država se prenese v polje (ena država)
   await page.getByRole('textbox', { name: 'Priimek' }).fill('Prva');
   await expect(page.getByRole('button', { name: 'Premakni v polje Država' })).toBeVisible();
   await page.getByRole('button', { name: 'Premakni v polje Država' }).click();
-  await expect(page.getByRole('combobox', { name: 'Država' })).toHaveValue('Slovenija');
+  await expect(page.getByRole('combobox', { name: 'Država', exact: true })).toHaveValue(
+    'Slovenija',
+  );
   expect(attributesOf(found)).toEqual([['Država', 'Slovenija']]);
   expect(country(found)).toBe('');
   await expectNoAxeViolations(page);
@@ -182,17 +184,17 @@ test('FR-013-08 FR-013-20: star atribut Država se prenese v polje (ena država)
   await expect(dialog).toContainText('dvoumna');
   await expectNoAxeViolations(page);
   await dialog.getByRole('button', { name: 'Prekliči' }).click();
-  await expect(page.getByRole('combobox', { name: 'Država' })).toHaveValue('');
+  await expect(page.getByRole('combobox', { name: 'Država', exact: true })).toHaveValue('');
   expect(attributesOf(ambiguous)).toEqual([['Država', 'Korea']]);
   expect(country(ambiguous)).toBe('');
 
   await page.goto(`/groups/${id}/contacts/new`);
   await page.getByRole('textbox', { name: 'Ime', exact: true }).fill('Nov');
   await page.getByRole('button', { name: 'Dodaj atribut' }).click();
-  await page.getByRole('combobox', { name: 'Ključ' }).fill('Company');
+  await page.getByRole('combobox', { name: 'Ključ', exact: true }).fill('Company');
   await page.getByRole('combobox', { name: 'Vrednost' }).fill('Acme');
   await page.getByRole('button', { name: 'Shrani kontakt' }).click();
-  await expect(page.getByRole('combobox', { name: 'Ključ' })).toHaveAccessibleDescription(
-    /rezervirano/,
-  );
+  await expect(
+    page.getByRole('combobox', { name: 'Ključ', exact: true }),
+  ).toHaveAccessibleDescription(/rezervirano/);
 });

@@ -26,7 +26,8 @@ class AuditRepository {
 
     private static final String ENTRY_SELECT =
             "SELECT e.id, e.created_at, u.name AS actor_name, u.email AS actor_email, e.action, e.contact_count,"
-                    + " e.contact_name, t.id AS target_id, t.created_at AS target_at, e.target_initial"
+                    + " e.contact_name, t.id AS target_id, t.created_at AS target_at, e.target_initial, e.attribute_key,"
+                    + " e.type_before, e.type_after"
                     + " FROM audit_entry e LEFT JOIN app_user u ON u.id = e.actor_id"
                     + " LEFT JOIN audit_entry t ON t.id = e.target_entry_id";
 
@@ -65,6 +66,20 @@ class AuditRepository {
             List<ContactChange> changes,
             UUID targetEntry,
             boolean targetInitial) {
+        return insert(group, actor, action, changes, targetEntry, targetInitial, null, null, null);
+    }
+
+    /** Kot {@code insert}, z ključem in tipoma pred/po za vnos {@code ATTRIBUTE_TYPE} (016); sicer vsi trije {@code null}. */
+    UUID insert(
+            UUID group,
+            long actor,
+            AuditAction action,
+            List<ContactChange> changes,
+            UUID targetEntry,
+            boolean targetInitial,
+            String attributeKey,
+            String typeBefore,
+            String typeAfter) {
         UUID id = jdbc.sql("SELECT uuidv7()").query(UUID.class).single();
         long seq = jdbc.sql("INSERT INTO audit_head (group_id, last_seq, last_entry_id) VALUES (:group, 1, :id)"
                         + " ON CONFLICT (group_id) DO UPDATE SET last_seq = audit_head.last_seq + 1,"
@@ -77,8 +92,9 @@ class AuditRepository {
                 ? changes.get(0).displayName()
                 : null;
         jdbc.sql("INSERT INTO audit_entry (id, group_id, seq, actor_id, action, contact_count, contact_name,"
-                        + " target_entry_id, target_initial)"
-                        + " VALUES (:id, :group, :seq, :actor, :action, :count, :name, :target, :initial)")
+                        + " target_entry_id, target_initial, attribute_key, type_before, type_after)"
+                        + " VALUES (:id, :group, :seq, :actor, :action, :count, :name, :target, :initial, :akey,"
+                        + " :tbefore, :tafter)")
                 .param("id", id)
                 .param("group", group)
                 .param("seq", seq)
@@ -88,6 +104,9 @@ class AuditRepository {
                 .param("name", name)
                 .param("target", targetEntry)
                 .param("initial", targetInitial)
+                .param("akey", attributeKey)
+                .param("tbefore", typeBefore)
+                .param("tafter", typeAfter)
                 .update();
         // Večvrstični stavki (unnest) po AUDIT_CHUNK vrstic: en klic na kos namesto na spremembo (SC-002).
         for (int from = 0; from < changes.size(); from += AUDIT_CHUNK) {
@@ -359,6 +378,9 @@ class AuditRepository {
                         ? null
                         : new AuditEntry.Target(
                                 target, rs.getTimestamp("target_at").toInstant()),
-                rs.getBoolean("target_initial"));
+                rs.getBoolean("target_initial"),
+                rs.getString("attribute_key"),
+                rs.getString("type_before"),
+                rs.getString("type_after"));
     }
 }

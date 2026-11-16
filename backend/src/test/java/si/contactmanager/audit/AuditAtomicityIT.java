@@ -43,7 +43,7 @@ class AuditAtomicityIT extends AuditApiTest {
     @Tag("FR-005-04")
     void aFailingEntryWriteRollsBackCreateUpdateAndDelete() throws Exception {
         Scenario s = scenario();
-        UUID existing = idOf(create(s, Who.EDITOR, contactInput("Janez", "Novak", "01 234 567")));
+        UUID existing = idOf(create(s, Who.EDITOR, contactInput("Janez", "Novak", "+38690234567")));
         int entries = audit.count(s.group());
         long version = contacts.version(existing);
         Map<String, Object> rowBefore = contacts.row(existing);
@@ -52,7 +52,7 @@ class AuditAtomicityIT extends AuditApiTest {
             HttpResponse<String> created =
                     post(contactsPath(s.group()), s.token(Who.EDITOR), body(input("Nov", "Kontakt")));
             Map<String, Object> changed = input("Janez", "Novak");
-            changed.put("phone", "031 111 222");
+            changed.put("phone", "+38631111222");
             HttpResponse<String> updated =
                     put(contactPath(s.group(), existing), s.token(Who.EDITOR), body(withVersion(changed, version)));
             HttpResponse<String> deleted =
@@ -98,11 +98,11 @@ class AuditAtomicityIT extends AuditApiTest {
     @Tag("FR-005-11")
     void aFailingRollbackChangesNothingAtAll() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         UUID target = (UUID) audit.entries(s.group()).get(0).get("id");
-        Map<String, Object> b = create(s, Who.EDITOR, contactInput("Bojan", "Drugi", "01 222 222"));
+        Map<String, Object> b = create(s, Who.EDITOR, contactInput("Bojan", "Drugi", "+38690222222"));
         Map<String, Object> changed = valuesOf(a);
-        changed.put("phone", "031 999 999");
+        changed.put("phone", "+38631999999");
         update(s, Who.EDITOR, idOf(a), changed, versionOf(a));
         remove(s, Who.EDITOR, idOf(b), versionOf(b));
         int entries = audit.count(s.group());

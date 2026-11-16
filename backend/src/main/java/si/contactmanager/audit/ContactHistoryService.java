@@ -128,7 +128,7 @@ class ContactHistoryService {
         List<Violation> violations = List.of();
         try {
             goal = rules.conform(
-                    group, repository.fullState(group, contact, from).orElseThrow(NotFoundException::new), now);
+                    group, repository.fullState(group, contact, from).orElseThrow(NotFoundException::new), now, false);
         } catch (ValidationException e) {
             violations = e.errors().stream()
                     .map(f -> new Violation(f.field(), f.code()))
@@ -162,6 +162,7 @@ class ContactHistoryService {
                 s.firstName(),
                 s.lastName(),
                 s.address(),
+                s.addressParts(),
                 s.email(),
                 s.phone(),
                 s.company(),

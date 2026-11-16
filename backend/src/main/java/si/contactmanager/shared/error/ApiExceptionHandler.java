@@ -156,6 +156,19 @@ class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(VersionConflict.of(exception.current()));
     }
 
+    /** Sprememba tipa ključa atributa z neveljavnimi vrednostmi (016, FR-016-05, feature-map §2.10). */
+    @ExceptionHandler(AttributeTypeConflictException.class)
+    ResponseEntity<DetailedError> attributeTypeConflict(AttributeTypeConflictException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new DetailedError("ATTRIBUTE_TYPE_CONFLICT", exception.details()));
+    }
+
+    /** Kartografska storitev ni na voljo (016, FR-016-23): telo brez podatkov o naslovu. */
+    @ExceptionHandler(MapServiceUnavailableException.class)
+    ResponseEntity<ErrorResponse> mapServiceUnavailable() {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(new ErrorResponse("MAP_SERVICE_UNAVAILABLE"));
+    }
+
     /** Metoda za pot ne obstaja (npr. PUT/PATCH/DELETE vnosa sledi, FR-005-05): 405 s praznim telesom in glavo Allow. */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     ResponseEntity<Void> methodNotAllowed(HttpRequestMethodNotSupportedException exception) {

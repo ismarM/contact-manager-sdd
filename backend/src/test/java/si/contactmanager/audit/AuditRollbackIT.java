@@ -83,16 +83,16 @@ class AuditRollbackIT extends AuditApiTest {
         Scenario s = scenario();
         UUID untracked = contacts.insert(s.group(), s.id(Who.OWNER), "Izpred", "Beleženja");
         Map<String, Object> untrackedRow = contacts.row(untracked);
-        Map<String, Object> inputC = contactInput("Cene", "Cerar", "01 333 333");
+        Map<String, Object> inputC = contactInput("Cene", "Cerar", "+38690333333");
         inputC.put("attributes", List.of(Map.of("key", "oddelek", "value", "IT")));
         inputC.put("tags", List.of("vip", "stari"));
         Map<String, Object> c = create(s, Who.EDITOR, inputC);
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         UUID target = entryAt(s, 1);
         Map<String, Object> afterTarget = contactDetail(s, idOf(a));
-        Map<String, Object> b = create(s, Who.EDITOR, contactInput("Bojan", "Drugi", "01 222 222"));
+        Map<String, Object> b = create(s, Who.EDITOR, contactInput("Bojan", "Drugi", "+38690222222"));
         Map<String, Object> editedA = valuesOf(a);
-        editedA.put("phone", "031 999 999");
+        editedA.put("phone", "+38631999999");
         Map<String, Object> updatedA = update(s, Who.ADMIN, idOf(a), editedA, versionOf(a));
         remove(s, Who.EDITOR, idOf(c), versionOf(c));
         assertThat(audit.count(s.group())).isEqualTo(5);
@@ -111,14 +111,14 @@ class AuditRollbackIT extends AuditApiTest {
         assertThat(contacts.exists(idOf(b))).isFalse();
         Map<String, Object> restoredA = contactDetail(s, idOf(a));
         assertThat(restoredA)
-                .containsEntry("phone", "01 111 111")
+                .containsEntry("phone", "+38690111111")
                 .containsEntry("createdAt", afterTarget.get("createdAt"));
         Map<String, Object> restoredC = contactDetail(s, idOf(c));
         assertThat(restoredC)
                 .containsEntry("id", c.get("id"))
                 .containsEntry("firstName", "Cene")
-                .containsEntry("phone", "01 333 333")
-                .containsEntry("attributes", List.of(Map.of("key", "oddelek", "value", "IT")))
+                .containsEntry("phone", "+38690333333")
+                .containsEntry("attributes", List.of(Map.of("key", "oddelek", "type", "OTHER", "value", "IT")))
                 .containsEntry("tags", List.of("vip", "stari"))
                 .containsEntry("createdAt", c.get("createdAt"));
         // Kontakt izpred beleženja je nespremenjen.
@@ -137,7 +137,7 @@ class AuditRollbackIT extends AuditApiTest {
         assertThat(versionOf(restoredA)).isGreaterThan(versionOf(updatedA));
         assertThat(versionOf(restoredC)).isGreaterThan(versionOf(c));
         Map<String, Object> stale = valuesOf(restoredA);
-        stale.put("phone", "040 000 000");
+        stale.put("phone", "+38640000000");
         HttpResponse<String> conflict = put(
                 contactPath(s.group(), idOf(a)), s.token(Who.EDITOR), body(withVersion(stale, versionOf(updatedA))));
         assertThat(conflict.statusCode()).isEqualTo(409);
@@ -148,11 +148,11 @@ class AuditRollbackIT extends AuditApiTest {
     @Tag("FR-005-19")
     void rollbackSetsTheLastChangeFromTheTargetStateAndTheRevertedMarker() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         UUID target = entryAt(s, 0);
         Map<String, Object> afterTarget = contactDetail(s, idOf(a));
         Map<String, Object> edited = valuesOf(a);
-        edited.put("phone", "031 999 999");
+        edited.put("phone", "+38631999999");
         update(s, Who.ADMIN, idOf(a), edited, versionOf(a));
 
         Map<String, Object> entry = rollbackToEntry(s, target);
@@ -178,7 +178,7 @@ class AuditRollbackIT extends AuditApiTest {
 
         // Vsaka druga uspešna operacija oznako izbriše.
         Map<String, Object> again = valuesOf(detail);
-        again.put("phone", "040 000 000");
+        again.put("phone", "+38640000000");
         update(s, Who.EDITOR, idOf(a), again, versionOf(detail));
         assertThat(contactDetail(s, idOf(a))).containsEntry("reverted", null);
         assertThat(asObjects(json(get(contactsPath(s.group()), s.token(Who.VIEWER))
@@ -192,17 +192,17 @@ class AuditRollbackIT extends AuditApiTest {
     @Tag("FR-005-19")
     void aDeletedAccountOfTheTargetStateGivesNoLastChanger() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         UUID target = entryAt(s, 0);
         Map<String, Object> edited = valuesOf(a);
-        edited.put("phone", "031 999 999");
+        edited.put("phone", "+38631999999");
         update(s, Who.ADMIN, idOf(a), edited, versionOf(a));
         jdbc.update("delete from app_user where id = ?", s.id(Who.EDITOR));
 
         rollbackToEntry(s, target);
 
         Map<String, Object> detail = contactDetail(s, idOf(a));
-        assertThat(detail).containsEntry("updatedBy", null).containsEntry("phone", "01 111 111");
+        assertThat(detail).containsEntry("updatedBy", null).containsEntry("phone", "+38690111111");
         assertThat(audit.contactState(idOf(a))).containsEntry("updated_by", null);
     }
 
@@ -210,18 +210,18 @@ class AuditRollbackIT extends AuditApiTest {
     @Tag("FR-005-11")
     void aContactEditedManyTimesAndThenDeletedIsRestoredToTheStateRightAfterTheTarget() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         UUID target = entryAt(s, 0);
-        Map<String, Object> second = update(s, Who.EDITOR, idOf(a), contactValues(a, "02 222 222"), versionOf(a));
+        Map<String, Object> second = update(s, Who.EDITOR, idOf(a), contactValues(a, "+38690222221"), versionOf(a));
         Map<String, Object> third =
-                update(s, Who.EDITOR, idOf(a), contactValues(second, "03 333 333"), versionOf(second));
+                update(s, Who.EDITOR, idOf(a), contactValues(second, "+38690333334"), versionOf(second));
         remove(s, Who.EDITOR, idOf(a), versionOf(third));
         assertThat(contacts.exists(idOf(a))).isFalse();
 
         rollbackToEntry(s, target);
 
         Map<String, Object> restored = contactDetail(s, idOf(a));
-        assertThat(restored).containsEntry("phone", "01 111 111").containsEntry("firstName", "Ana");
+        assertThat(restored).containsEntry("phone", "+38690111111").containsEntry("firstName", "Ana");
         assertThat(versionOf(restored)).isGreaterThan(versionOf(third));
     }
 
@@ -235,19 +235,19 @@ class AuditRollbackIT extends AuditApiTest {
     @Tag("FR-005-12")
     void rollbackToTheEntryBeforeARollbackUndoesItAndToARollbackEntryRestoresItsState() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
-        Map<String, Object> second = update(s, Who.EDITOR, idOf(a), contactValues(a, "02 222 222"), versionOf(a));
-        update(s, Who.EDITOR, idOf(a), contactValues(second, "03 333 333"), versionOf(second));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
+        Map<String, Object> second = update(s, Who.EDITOR, idOf(a), contactValues(a, "+38690222221"), versionOf(a));
+        update(s, Who.EDITOR, idOf(a), contactValues(second, "+38690333334"), versionOf(second));
         UUID beforeRollback = entryAt(s, 2);
         UUID createEntry = entryAt(s, 0);
 
         Map<String, Object> first = rollbackToEntry(s, createEntry);
-        assertThat(contactDetail(s, idOf(a))).containsEntry("phone", "01 111 111");
+        assertThat(contactDetail(s, idOf(a))).containsEntry("phone", "+38690111111");
         Map<String, Object> undo = rollbackToEntry(s, beforeRollback);
-        assertThat(contactDetail(s, idOf(a))).containsEntry("phone", "03 333 333");
+        assertThat(contactDetail(s, idOf(a))).containsEntry("phone", "+38690333334");
         Map<String, Object> toRollbackEntry = rollbackToEntry(s, UUID.fromString((String) first.get("id")));
 
-        assertThat(contactDetail(s, idOf(a))).containsEntry("phone", "01 111 111");
+        assertThat(contactDetail(s, idOf(a))).containsEntry("phone", "+38690111111");
         assertThat(undo).containsEntry("action", "ROLLBACK");
         assertThat(toRollbackEntry).containsEntry("action", "ROLLBACK");
         assertThat(audit.count(s.group())).isEqualTo(6);
@@ -259,15 +259,15 @@ class AuditRollbackIT extends AuditApiTest {
         Scenario s = scenario();
         UUID untracked = contacts.insert(s.group(), s.id(Who.OWNER), "Izpred", "Beleženja");
         Map<String, Object> untrackedRow = contacts.row(untracked);
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
-        create(s, Who.EDITOR, contactInput("Bojan", "Drugi", "01 222 222"));
-        update(s, Who.EDITOR, idOf(a), contactValues(a, "02 222 222"), versionOf(a));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
+        create(s, Who.EDITOR, contactInput("Bojan", "Drugi", "+38690222222"));
+        update(s, Who.EDITOR, idOf(a), contactValues(a, "+38690222221"), versionOf(a));
 
         rollbackToEntry(s, entryAt(s, 0));
 
         assertThat(contacts.count(s.group())).isEqualTo(2);
         assertThat(contacts.row(untracked)).isEqualTo(untrackedRow);
-        assertThat(contactDetail(s, idOf(a))).containsEntry("phone", "01 111 111");
+        assertThat(contactDetail(s, idOf(a))).containsEntry("phone", "+38690111111");
     }
 
     /** Združevanje (011) zapiše vnos MERGE prek {@code AuditLog.record}; tu ga simulira test v transakciji. */
@@ -279,7 +279,7 @@ class AuditRollbackIT extends AuditApiTest {
                 keptBefore.lastName(),
                 keptBefore.address(),
                 keptBefore.email(),
-                "01 777 777",
+                "+38690777777",
                 keptBefore.attributes(),
                 keptBefore.tags(),
                 keptBefore.version() + 1,
@@ -288,7 +288,7 @@ class AuditRollbackIT extends AuditApiTest {
                 editor);
         return new TransactionTemplate(transactions).execute(status -> {
             jdbc.update(
-                    "update contact set phone = '01 777 777', version = version + 1, updated_at = ?, updated_by = ?"
+                    "update contact set phone = '+38690777777', version = version + 1, updated_at = ?, updated_by = ?"
                             + " where id = ?",
                     Timestamp.from(keptAfter.updatedAt()),
                     editor,
@@ -310,36 +310,36 @@ class AuditRollbackIT extends AuditApiTest {
     @Tag("FR-005-12")
     void rollbackAroundAMergeEntryRestoresTheRemovedContactsOrKeepsThemRemoved() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> kept = create(s, Who.EDITOR, contactInput("Janez", "Novak", "01 111 111"));
-        Map<String, Object> x = create(s, Who.EDITOR, contactInput("J.", "Novak", "01 222 222"));
-        Map<String, Object> y = create(s, Who.EDITOR, contactInput("Janez", "N.", "01 333 333"));
+        Map<String, Object> kept = create(s, Who.EDITOR, contactInput("Janez", "Novak", "+38690111111"));
+        Map<String, Object> x = create(s, Who.EDITOR, contactInput("J.", "Novak", "+38690222222"));
+        Map<String, Object> y = create(s, Who.EDITOR, contactInput("Janez", "N.", "+38690333333"));
         UUID beforeMerge = entryAt(s, 2);
         UUID mergeEntry = merge(s, kept, x, y);
         Map<String, Object> keptAfterMerge = contactDetail(s, idOf(kept));
-        update(s, Who.EDITOR, idOf(kept), contactValues(keptAfterMerge, "04 444 444"), versionOf(keptAfterMerge));
+        update(s, Who.EDITOR, idOf(kept), contactValues(keptAfterMerge, "+38690444444"), versionOf(keptAfterMerge));
         assertThat(audit.entries(s.group())).extracting(e -> e.get("action")).contains("MERGE");
 
         rollbackToEntry(s, mergeEntry);
 
-        assertThat(contactDetail(s, idOf(kept))).containsEntry("phone", "01 777 777");
+        assertThat(contactDetail(s, idOf(kept))).containsEntry("phone", "+38690777777");
         assertThat(contacts.exists(idOf(x))).isFalse();
         assertThat(contacts.exists(idOf(y))).isFalse();
 
         rollbackToEntry(s, beforeMerge);
 
-        assertThat(contactDetail(s, idOf(kept))).containsEntry("phone", "01 111 111");
-        assertThat(contactDetail(s, idOf(x))).containsEntry("id", x.get("id")).containsEntry("phone", "01 222 222");
-        assertThat(contactDetail(s, idOf(y))).containsEntry("id", y.get("id")).containsEntry("phone", "01 333 333");
+        assertThat(contactDetail(s, idOf(kept))).containsEntry("phone", "+38690111111");
+        assertThat(contactDetail(s, idOf(x))).containsEntry("id", x.get("id")).containsEntry("phone", "+38690222222");
+        assertThat(contactDetail(s, idOf(y))).containsEntry("id", y.get("id")).containsEntry("phone", "+38690333333");
     }
 
     @Test
     @Tag("FR-005-20")
     void rollbackToTheInitialStateRemovesContactsCreatedInTheTrailAndRestoresThoseDeletedFirst() throws Exception {
         Scenario s = scenario();
-        UUID untracked = contacts.insert(s.group(), s.id(Who.OWNER), "Izpred", "Beleženja", null, "01 000 000", null);
+        UUID untracked = contacts.insert(s.group(), s.id(Who.OWNER), "Izpred", "Beleženja", null, "+38690000000", null);
         UUID kept = contacts.insert(s.group(), s.id(Who.OWNER), "Ostane", "Nedotaknjen");
         Map<String, Object> keptRow = contacts.row(kept);
-        Map<String, Object> created = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> created = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         Map<String, Object> untrackedDetail = contactDetail(s, untracked);
         remove(s, Who.EDITOR, untracked, versionOf(untrackedDetail));
         assertThat(contacts.exists(untracked)).isFalse();
@@ -352,7 +352,7 @@ class AuditRollbackIT extends AuditApiTest {
         assertThat(entry).containsEntry("target", null);
         assertThat(contacts.exists(idOf(created))).isFalse();
         assertThat(contactDetail(s, untracked))
-                .containsEntry("phone", "01 000 000")
+                .containsEntry("phone", "+38690000000")
                 .containsEntry("lastName", "Beleženja");
         assertThat(contacts.row(kept)).isEqualTo(keptRow);
         assertThat(asObject(contactDetail(s, untracked).get("reverted")))
@@ -408,12 +408,15 @@ class AuditRollbackIT extends AuditApiTest {
                         create(
                                 s,
                                 Who.EDITOR,
-                                contactInput("Ime" + slot + "-" + i, "Priimek" + slot, "01 " + random.nextInt(900))));
+                                contactInput(
+                                        "Ime" + slot + "-" + i,
+                                        "Priimek" + slot,
+                                        "+38690" + String.format("%06d", random.nextInt(900)))));
                 slots[slot] = idOf(details.get(slot));
                 slotIds.computeIfAbsent(slot, key -> new ArrayList<>()).add(slots[slot]);
             } else if (kind < 7) {
                 Map<String, Object> values = valuesOf(details.get(slot));
-                values.put("phone", "0" + random.nextInt(9) + " " + random.nextInt(900) + " " + i);
+                values.put("phone", "+38690" + String.format("%06d", random.nextInt(1_000_000)));
                 values.put("tags", random.nextBoolean() ? List.of("t" + random.nextInt(5)) : List.of());
                 values.put(
                         "attributes",
@@ -442,7 +445,7 @@ class AuditRollbackIT extends AuditApiTest {
     @Tag("FR-005-11")
     void rollingBackAThousandContactsOutOfTenThousandTakesUnderTenSeconds() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> first = create(s, Who.EDITOR, contactInput("Prvi", "Kontakt", "01 000 001"));
+        Map<String, Object> first = create(s, Who.EDITOR, contactInput("Prvi", "Kontakt", "+38690000001"));
         UUID target = entryAt(s, 0);
         List<UUID> ids = contacts.insertMany(s.group(), s.id(Who.EDITOR), 10_000);
         List<UUID> affected = ids.subList(0, 1000);
@@ -467,7 +470,7 @@ class AuditRollbackIT extends AuditApiTest {
                     before.lastName(),
                     null,
                     null,
-                    "031 000 000",
+                    "+38631000000",
                     List.of(),
                     List.of(),
                     before.version() + 1,
@@ -503,10 +506,10 @@ class AuditRollbackIT extends AuditApiTest {
     @Tag("FR-005-11")
     void aTrackedContactNotChangedAfterTheTargetIsLeftAloneAndAbsentFromTheRollbackEntry() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> bystander = create(s, Who.EDITOR, contactInput("Dana", "Mirna", "01 000 000"));
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> bystander = create(s, Who.EDITOR, contactInput("Dana", "Mirna", "+38690000000"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         UUID target = entryAt(s, 1);
-        update(s, Who.EDITOR, idOf(a), contactValues(a, "02 222 222"), versionOf(a));
+        update(s, Who.EDITOR, idOf(a), contactValues(a, "+38690222221"), versionOf(a));
         Map<String, Object> rowBefore = contacts.row(idOf(bystander));
 
         Map<String, Object> entry = rollbackToEntry(s, target);
@@ -524,9 +527,9 @@ class AuditRollbackIT extends AuditApiTest {
     @Tag("FR-005-13")
     void deletingWithAVersionFromBeforeTheRollbackIsAConflict() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         UUID target = entryAt(s, 0);
-        Map<String, Object> second = update(s, Who.EDITOR, idOf(a), contactValues(a, "02 222 222"), versionOf(a));
+        Map<String, Object> second = update(s, Who.EDITOR, idOf(a), contactValues(a, "+38690222221"), versionOf(a));
         rollbackToEntry(s, target);
 
         HttpResponse<String> response =

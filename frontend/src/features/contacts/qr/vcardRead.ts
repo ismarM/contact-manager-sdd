@@ -1,3 +1,4 @@
+import type { Address } from '../../attributes/types';
 import { isCountryCode } from '../countries';
 import {
   AttributeList,
@@ -12,6 +13,21 @@ import {
 
 // Branje vizitk vCard 2.1, 3.0 in 4.0 (FR-014-13, FR-014-18; research R-03, R-07): enaka pravila kot `VcardReader`
 // v zaledju; skladnost varujejo skupne vizitke `backend/src/test/resources/vcard/`.
+
+/** Lastnosti ene skupine vizitke (`attrN`): oznaka ključa, vrednost para in tipizirana lastnost. */
+interface Group {
+  key: string | null;
+  value: string | null;
+  typed: Property | null;
+}
+
+const TYPED = new Set(['TEL', 'EMAIL', 'ADR', 'URL', 'BDAY', 'NOTE']);
+
+/** Vrstni red skupin: po številki v `attrN`, druge na koncu (stabilno). */
+function groupOrder(group: string): number {
+  const match = /^attr(\d+)$/.exec(group);
+  return match ? Number.parseInt(match[1]!, 10) : Number.MAX_SAFE_INTEGER;
+}
 
 interface Property {
   group: string | null;
@@ -68,21 +84,6 @@ function candidate(card: Property[], version: string, language: CardLanguage): C
     [firstName, lastName] = splitFullName(unescapeText(fn.value));
   }
 
-  const attributes = new AttributeList();
-  const pairs = new Map<string, [string | null, string | null]>();
-  for (const p of values) {
-    if (!p.group || (p.name !== 'X-CM-KEY' && p.name !== 'X-CM-VALUE')) continue;
-    const pair = pairs.get(p.group) ?? [null, null];
-    pair[p.name === 'X-CM-KEY' ? 0 : 1] = unescapeText(p.value);
-    pairs.set(p.group, pair);
-  }
-  for (const [key, value] of pairs.values()) {
-    if (key != null && value != null) attributes.add(key, value);
-  }
-
-  const emails = preferredFirst(all('EMAIL'));
-  const phones = preferredFirst(all('TEL'));
-  const addresses = preferredFirst(all('ADR'));
   const phoneText = (p: Property) => {
     const text = unescapeText(p.value);
     const uri =
@@ -93,22 +94,69 @@ function candidate(card: Property[], version: string, language: CardLanguage): C
       : text;
   };
 
+  // Dodatni atributi po skupinah `attrN` (016, kot `VcardReader`): par `X-CM-KEY`/`X-CM-VALUE` je tipa Drugo,
+  // tipizirana lastnost z `X-CM-KEY` v isti skupini pa atribut ustreznega tipa.
+  const attributes = new AttributeList();
+  const groups = new Map<string, Group>();
+  for (const p of values) {
+    if (!p.group) continue;
+    const group = groups.get(p.group) ?? { key: null, value: null, typed: null };
+    groups.set(p.group, group);
+    if (p.name === 'X-CM-KEY') group.key = unescapeText(p.value);
+    else if (p.name === 'X-CM-VALUE') group.value = unescapeText(p.value);
+    else if (group.typed == null && TYPED.has(p.name)) group.typed = p;
+  }
+  const grouped = new Set<Property>();
+  [...groups.entries()]
+    .sort(([a], [b]) => groupOrder(a) - groupOrder(b))
+    .forEach(([, group]) => {
+      if (group.key == null) return;
+      if (group.value != null) {
+        attributes.add(group.key, group.value, 'OTHER');
+      } else if (group.typed) {
+        grouped.add(group.typed);
+        const p = group.typed;
+        if (p.name === 'TEL') attributes.add(group.key, phoneText(p), 'PHONE');
+        else if (p.name === 'EMAIL') attributes.add(group.key, unescapeText(p.value), 'EMAIL');
+        else if (p.name === 'URL') attributes.add(group.key, unescapeText(p.value), 'URL');
+        else if (p.name === 'NOTE') attributes.add(group.key, lf(unescapeText(p.value)), 'NOTES');
+        else if (p.name === 'BDAY')
+          attributes.add(group.key, birthday(unescapeText(p.value)), 'DATE');
+        else {
+          const parts = addressParts(p);
+          attributes.add(group.key, parts ? null : addressText(p), 'ADDRESS', parts);
+        }
+      }
+    });
+  const rest = (name: string) => all(name).filter((p) => !grouped.has(p));
+
+  const emails = preferredFirst(rest('EMAIL'));
+  const phones = preferredFirst(rest('TEL'));
+  const addresses = preferredFirst(rest('ADR'));
+
   const email = emails[0] ? unescapeText(emails[0].value) : null;
   const phone = phones[0] ? phoneText(phones[0]) : null;
-  const address = addresses[0] ? addressText(addresses[0]) : null;
+  const parts = addresses[0] ? addressParts(addresses[0]) : null;
+  const address = addresses[0] && !parts ? addressText(addresses[0]) : null;
   const countryText = addresses[0] ? addressCountry(addresses[0]) : null;
-  emails.slice(1).forEach((p) => attributes.addNumbered(labels.email, 2, unescapeText(p.value)));
-  phones.slice(1).forEach((p) => attributes.addNumbered(labels.phone, 2, phoneText(p)));
+  emails
+    .slice(1)
+    .forEach((p) => attributes.addNumbered(labels.email, 2, unescapeText(p.value), 'EMAIL'));
+  phones.slice(1).forEach((p) => attributes.addNumbered(labels.phone, 2, phoneText(p), 'PHONE'));
   addresses.slice(1).forEach((p) => {
-    const parts = (addressText(p) ?? '').split('\n').filter((s) => s !== '');
+    const lines = (addressText(p) ?? '').split('\n').filter((s) => s !== '');
     const country = join(listItems(splitUnescaped(p.value, ';')[6] ?? ''));
-    if (country.trim() !== '') parts.push(country.trim());
-    attributes.addNumbered(labels.address, 2, blankToNull(parts.join(', ')));
+    if (country.trim() !== '') lines.push(country.trim());
+    attributes.addNumbered(labels.address, 2, blankToNull(lines.join(', ')), 'ADDRESS');
   });
-  const bday = first('BDAY');
-  if (bday) attributes.addNumbered(labels.birthday, 1, birthday(unescapeText(bday.value)));
-  all('URL').forEach((p) => attributes.addNumbered(labels.website, 1, unescapeText(p.value)));
-  all('NOTE').forEach((p) => attributes.addNumbered(labels.note, 1, unescapeText(p.value)));
+  const bday = rest('BDAY')[0];
+  if (bday) attributes.addNumbered(labels.birthday, 1, birthday(unescapeText(bday.value)), 'DATE');
+  rest('URL').forEach((p) =>
+    attributes.addNumbered(labels.website, 1, unescapeText(p.value), 'URL'),
+  );
+  rest('NOTE').forEach((p) =>
+    attributes.addNumbered(labels.note, 1, lf(unescapeText(p.value)), 'NOTES'),
+  );
 
   const org = first('ORG');
   const company = org ? blankToNull(unescapeText(splitUnescaped(org.value, ';')[0] ?? '')) : null;
@@ -122,6 +170,7 @@ function candidate(card: Property[], version: string, language: CardLanguage): C
     firstName,
     lastName,
     address,
+    addressParts: parts,
     email,
     phone,
     company,
@@ -162,6 +211,36 @@ function addressText(p: Property): string | null {
   add(`${parts[5] ?? ''} ${parts[3] ?? ''}`.trim());
   add(parts[4] ?? '');
   return blankToNull(lines.join('\n'));
+}
+
+/** Deli `ADR` (016, FR-016-24; enako kot `VcardReader.parts`): `null`, kadar naslov ni po delih ali nima ulice ne kraja. */
+function addressParts(p: Property): Address | null {
+  const items = splitUnescaped(p.value, ';').map((part) => join(listItems(part)));
+  const street = lf(items[2] ?? '');
+  const extra = lf(join([items[0] ?? '', items[1] ?? '']));
+  const city = items[3] ?? '';
+  const region = items[4] ?? '';
+  const postal = items[5] ?? '';
+  const structured =
+    p.params.has('X-CM-PARTS') || [extra, city, region, postal].some((v) => v !== '');
+  if (!structured || (street === '' && city === '')) return null;
+  const code = (p.params.get('X-CM-PC')?.[0] ?? '').trim().toUpperCase();
+  const parts: Address = {};
+  const set = (key: keyof Address, value: string | null) => {
+    if (value != null) parts[key] = value;
+  };
+  set('street', blankToNull(street));
+  set('extra', blankToNull(extra));
+  set('postalCode', blankToNull(postal));
+  set('city', blankToNull(city));
+  set('region', blankToNull(region));
+  set('country', isCountryCode(code) ? code : null);
+  return parts;
+}
+
+/** Prelomi vrstic kot LF. */
+function lf(value: string): string {
+  return value.replace(/\r\n?/g, '\n');
 }
 
 function addressCountry(p: Property): string | null {

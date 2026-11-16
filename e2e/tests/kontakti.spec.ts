@@ -88,7 +88,7 @@ test('FR-004-01 FR-004-03 FR-004-08 FR-004-09 SC-001: urednik ustvari kontakt z 
   ).toBeVisible();
   await expect(
     page.getByRole('navigation', { name: 'Razdelki skupine' }).getByRole('link'),
-  ).toHaveText(['Kontakti', 'Dvojniki', 'Revizijska sled', 'Nastavitve']);
+  ).toHaveText(['Kontakti', 'Dvojniki', 'Revizijska sled', 'Atributi skupine', 'Nastavitve']);
   await expectNoAxeViolations(page);
 
   await page.getByRole('main').getByRole('link', { name: 'Nov kontakt' }).first().click();
@@ -97,7 +97,7 @@ test('FR-004-01 FR-004-03 FR-004-08 FR-004-09 SC-001: urednik ustvari kontakt z 
   await page.getByRole('textbox', { name: 'Priimek' }).fill('Novak');
   await page.getByRole('textbox', { name: 'E-naslov' }).fill('janez@primer.si');
   await page.getByRole('button', { name: 'Dodaj atribut' }).click();
-  await page.getByRole('combobox', { name: 'Ključ' }).fill('kompetenca');
+  await page.getByRole('combobox', { name: 'Ključ', exact: true }).fill('kompetenca');
   await page.getByRole('combobox', { name: 'Vrednost' }).fill('web dev');
   const tags = page.getByRole('combobox', { name: 'Dodaj značko' });
   await tags.fill('ne_obveščaj');
@@ -189,7 +189,7 @@ test('FR-004-10 FR-004-05: urednik uredi kontakt; neshranjene spremembe zahtevaj
 
   await expect(toast(page)).toContainText('Kontakt Janez Novak je shranjen.');
   await expectNoAxeViolations(page);
-  await expect(details(page).getByRole('link', { name: '040 111 222' })).toBeVisible();
+  await expect(details(page).getByRole('link', { name: '+386 40 111 222' })).toBeVisible();
   await expect(details(page).getByRole('listitem').filter({ hasText: 'stara' })).toHaveCount(0);
 });
 
@@ -225,12 +225,12 @@ test('FR-004-11: konflikt – drugi urednik je medtem spremenil kontakt; razlike
   await alert.getByRole('button', { name: 'Prikaži razlike' }).click();
   const diff = page.getByRole('table', { name: 'Razlike med tvojimi in trenutnimi vrednostmi' });
   await expect(diff).toContainText('01 234 5678');
-  await expect(diff).toContainText('031 999 888');
+  await expect(diff).toContainText('+38631999888');
   await expectNoAxeViolations(page);
   await alert.getByRole('button', { name: 'Shrani moje spremembe' }).click();
 
   await expect(toast(page)).toContainText('Kontakt Janez Novak je shranjen.');
-  await expect(details(page).getByRole('link', { name: '01 234 5678' })).toBeVisible();
+  await expect(details(page).getByRole('link', { name: '+386 1 234 56 78' })).toBeVisible();
   await expectNoAxeViolations(page);
   await bojan.context.close();
 });
@@ -559,9 +559,10 @@ test('FR-004-01 FR-004-04 SC-001 SC-006: angleški vmesnik – kontakt z dvema a
   ] as const) {
     await tabTo(page, page.getByRole('button', { name: 'Add attribute' }));
     await page.keyboard.press('Enter');
-    await expect(page.getByRole('combobox', { name: 'Key' }).last()).toBeFocused();
+    await expect(page.getByRole('combobox', { name: 'Key', exact: true }).last()).toBeFocused();
     await page.keyboard.type(key);
-    await page.keyboard.press('Tab');
+    // Za ključem je izbira tipa novega ključa (016); privzeti tip Drugo ostane, Tab ga preskoči.
+    await tabTo(page, page.getByRole('combobox', { name: 'Value', exact: true }).last());
     await page.keyboard.type(value);
   }
   await tabTo(page, page.getByRole('combobox', { name: 'Add tag' }));

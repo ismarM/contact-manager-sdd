@@ -1,3 +1,4 @@
+import type { Address, AttributeType } from '../attributes/types';
 import type { ChangeField } from '../audit/types';
 import type { UserRef } from '../groups/types';
 
@@ -55,11 +56,14 @@ export interface ContactStateView {
   firstName: string | null;
   lastName: string | null;
   address: string | null;
+  /** 016: razčlenjen naslov (prikaz po shemi); stari posnetki ga nimajo. */
+  addressParts?: Address | null;
   email: string | null;
   phone: string | null;
   company: string | null;
   country: string | null;
-  attributes: { key: string; value: string }[];
+  /** 016: tip ključa ob posnetku; besedilo ali deli naslova. */
+  attributes: { key: string; type?: AttributeType; value?: string; parts?: Address }[];
   tags: string[];
   version: number;
 }

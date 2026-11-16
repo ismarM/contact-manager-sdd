@@ -18,6 +18,15 @@ final class VcardMapping {
 
     static final String VALUE = "X-CM-VALUE";
 
+    /** Oznaka ključa dodatnega atributa s tipom (016): {@code attrN.X-CM-KEY} ob lastnosti {@code TEL}, {@code EMAIL}, … */
+    static final String LABEL = "X-ABLabel";
+
+    /** Parameter {@code ADR}: naslov je po delih (tudi kadar je izpolnjena samo ulica), 016. */
+    static final String PARTS = "X-CM-PARTS";
+
+    /** Parameter {@code ADR}: koda države ISO v delih naslova (016); {@code X-CM-CC} je država kontakta. */
+    static final String PARTS_COUNTRY = "X-CM-PC";
+
     /** Parameter {@code ADR} s kodo države ISO za točen krožni prenos. */
     static final String COUNTRY_CODE = "X-CM-CC";
 
@@ -95,14 +104,20 @@ final class VcardMapping {
         private final Set<String> keys = new HashSet<>();
 
         void add(String key, String value) {
-            if (key == null || value == null || value.isBlank() || !keys.add(norm(key))) {
+            add(key, AttributeType.OTHER, value, null);
+        }
+
+        /** Atribut s tipom: besedilna vrednost ali (samo naslov) deli. */
+        void add(String key, AttributeType type, String value, Address parts) {
+            boolean empty = parts == null && (value == null || value.isBlank());
+            if (key == null || empty || !keys.add(norm(key))) {
                 return;
             }
-            attributes.add(new Attribute(key, value));
+            attributes.add(new Attribute(key, type, parts == null ? value : null, parts));
         }
 
         /** Prvi prost ključ od {@code base n} naprej ({@code n = 1} pomeni golo osnovo). */
-        void addNumbered(String base, int from, String value) {
+        void addNumbered(String base, int from, AttributeType type, String value) {
             if (value == null || value.isBlank()) {
                 return;
             }
@@ -110,7 +125,7 @@ final class VcardMapping {
             while (keys.contains(norm(numbered(base, n)))) {
                 n++;
             }
-            add(numbered(base, n), value);
+            add(numbered(base, n), type, value, null);
         }
 
         List<Attribute> list() {

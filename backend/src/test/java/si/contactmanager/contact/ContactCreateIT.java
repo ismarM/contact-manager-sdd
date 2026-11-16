@@ -55,14 +55,14 @@ class ContactCreateIT extends ContactApiTest {
                 .containsEntry("displayName", "Janez Novak")
                 .containsEntry("address", "Ulica 1\n1000 Ljubljana")
                 .containsEntry("email", "janez@primer.si")
-                .containsEntry("phone", "+386 1 234 56 78")
+                .containsEntry("phone", "+38612345678")
                 .containsEntry("version", 0)
                 .containsEntry("tags", List.of("ne_obveščaj", "konferenca2025"))
                 .containsEntry(
                         "attributes",
                         List.of(
-                                Map.of("key", "kompetenca", "value", "web dev"),
-                                Map.of("key", "Oddelek", "value", "IT")));
+                                Map.of("key", "kompetenca", "type", "OTHER", "value", "web dev"),
+                                Map.of("key", "Oddelek", "type", "OTHER", "value", "IT")));
         assertThat(created.get("updatedBy"))
                 .isEqualTo(Map.of(
                         "name",
@@ -94,7 +94,7 @@ class ContactCreateIT extends ContactApiTest {
     @Tag("FR-004-02")
     void firstNameAloneAndLastNameAloneAreEnoughAndValuesAreTrimmed() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> onlyFirst = Map.of("firstName", "  Janez  ", "email", "  ", "phone", " 01 234 ");
+        Map<String, Object> onlyFirst = Map.of("firstName", "  Janez  ", "email", "  ", "phone", " +38612345678 ");
 
         HttpResponse<String> first = post(contactsPath(s.group()), s.token(Who.EDITOR), body(onlyFirst));
         HttpResponse<String> last =
@@ -106,7 +106,7 @@ class ContactCreateIT extends ContactApiTest {
                 .containsEntry("lastName", null)
                 .containsEntry("displayName", "Janez")
                 .containsEntry("email", null)
-                .containsEntry("phone", "01 234")
+                .containsEntry("phone", "+38612345678")
                 .containsEntry("attributes", List.of())
                 .containsEntry("tags", List.of());
         assertThat(last.statusCode()).isEqualTo(201);

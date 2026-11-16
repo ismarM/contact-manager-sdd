@@ -13,10 +13,15 @@ import {
   secondaryButton,
   textInput,
 } from '../../../shared/ui/styles';
+import { typeNameKey } from '../../attributes/typeNames';
+import type { AttributeType } from '../../attributes/types';
 import { useGroup } from '../../groups/groupContext';
+import { useKeyLookup } from '../api';
 import { CountryField } from '../CountryField';
 import { SuggestInput } from '../SuggestInput';
 import { TagInput } from '../TagInput';
+import { TypeSelect } from '../typed/TypeSelect';
+import { TypedValueInput } from '../typed/TypedValueInput';
 import type {
   AttributeSet,
   BulkContactErrors,
@@ -41,11 +46,14 @@ interface Row {
   field: BulkField;
   key: string;
   value: string;
+  /** 016: tip ključa (`custom`); zaklenjen, kadar ključ skupina že ima. */
+  type: AttributeType;
+  typeLocked: boolean;
 }
 
 /** Napake `400 VALIDATION_FAILED`: po vrsticah atributov, po kontaktih in ostale (brez vrstice). */
 interface Problems {
-  rows: Record<number, { key?: string; value?: string; field?: string }>;
+  rows: Record<number, { key?: string; value?: string; field?: string; type?: string }>;
   contacts: BulkContactErrors[];
   other: string[];
 }
@@ -57,13 +65,23 @@ function parseProblems(error: unknown, rows: Row[]): Problems | null {
   const body = (error.body ?? {}) as { errors?: BulkFieldError[]; contacts?: BulkContactErrors[] };
   const problems: Problems = { rows: {}, contacts: body.contacts ?? [], other: [] };
   for (const item of body.errors ?? []) {
-    const match = /^attributes\[(\d+)\]\.(field|key|value)$/.exec(item.field);
+    const match = /^attributes\[(\d+)\]\.(field|key|value|type)$/.exec(item.field);
     const row = match ? rows[Number(match[1])] : undefined;
     if (match?.[2] && row) {
-      const part = match[2] as 'field' | 'key' | 'value';
+      const part = match[2] as 'field' | 'key' | 'value' | 'type';
       problems.rows[row.id] = { ...problems.rows[row.id], [part]: item.code };
     } else {
       problems.other.push(item.code);
+    }
+  }
+  // 016: vrednost, neveljavna za tip ključa, je napaka končnega stanja kontakta (`attributes[i].value`).
+  for (const contact of problems.contacts) {
+    for (const item of contact.errors) {
+      const match = /^attributes\[(\d+)\]\.value$/.exec(item.field);
+      const row = match ? rows[Number(match[1])] : undefined;
+      if (row && !problems.rows[row.id]?.value) {
+        problems.rows[row.id] = { ...problems.rows[row.id], value: item.code };
+      }
     }
   }
   return problems;
@@ -87,9 +105,26 @@ function contactsMessage(contacts: BulkContactErrors[], t: TFunction): string {
         : names.join(', ');
     return t(key, { count: affected.length, names: list });
   };
+  const invalid = contacts.filter((contact) =>
+    contact.errors.some((error) => /^attributes\[\d+\]\.value$/.test(error.field)),
+  );
+  const invalidLine =
+    invalid.length === 0
+      ? null
+      : t('contacts.bulk.invalidValueFor', {
+          count: invalid.length,
+          names: (() => {
+            const names = invalid.slice(0, MAX_NAMES).map((contact) => contact.displayName);
+            const rest = invalid.length - names.length;
+            return rest > 0
+              ? `${names.join(', ')}, ${t('contacts.bulk.andMore', { count: rest })}`
+              : names.join(', ');
+          })(),
+        });
   return [
     line('tags', 'contacts.bulk.tooManyTagsFor'),
     line('attributes', 'contacts.bulk.tooManyAttributesFor'),
+    invalidLine,
   ]
     .filter((part): part is string => part !== null)
     .join(' ');
@@ -148,7 +183,13 @@ export function BulkEditDialog({
   const apply = () => {
     const attributes: AttributeSet[] = rows.map((row) =>
       row.field === 'custom'
-        ? { field: 'custom', key: row.key, value: row.value }
+        ? {
+            field: 'custom',
+            key: row.key,
+            // 016: tip se pošlje samo za nov ključ z izbranim tipom.
+            ...(!row.typeLocked && row.type !== 'OTHER' ? { type: row.type } : {}),
+            value: row.value,
+          }
         : { field: row.field, value: row.value },
     );
     request.current = {
@@ -236,7 +277,14 @@ export function BulkEditDialog({
               onClick={() => {
                 setRows((current) => [
                   ...current,
-                  { id: nextId.current++, field: 'address', key: '', value: '' },
+                  {
+                    id: nextId.current++,
+                    field: 'address',
+                    key: '',
+                    value: '',
+                    type: 'OTHER',
+                    typeLocked: false,
+                  },
                 ]);
               }}
             >
@@ -271,11 +319,12 @@ function AttributeRow({
 }: {
   n: number;
   row: Row;
-  problems: { key?: string; value?: string; field?: string } | undefined;
+  problems: { key?: string; value?: string; field?: string; type?: string } | undefined;
   onChange: (change: Partial<Row>) => void;
   onRemove: () => void;
 }) {
   const { t } = useTranslation();
+  const keyLookup = useKeyLookup();
   const base = useId();
   const hintId = `${base}-hint`;
   const message = (code: string | undefined) =>
@@ -283,7 +332,21 @@ function AttributeRow({
   // RESERVED_KEY napoti na polje *Podjetje* oziroma *Država* (FR-013-08).
   const keyError =
     problems?.key === 'RESERVED_KEY' ? t(reservedKeyError(row.key)) : message(problems?.key);
-  const valueError = message(problems?.value);
+  // 016: napaka vrednosti po tipu ključa (npr. »Vpiši veljaven e-naslov.«).
+  const valueError =
+    row.field === 'custom' && problems?.value === 'INVALID_VALUE'
+      ? t(`typedValue.errors.INVALID_VALUE.${row.type}`)
+      : row.field === 'custom' && problems?.value === 'TOO_LONG'
+        ? t('typedValue.errors.TOO_LONG')
+        : message(problems?.value);
+  const typeError = problems?.type ? t('attributes.type.mismatch') : null;
+  /** Ključ skupine ima svoj tip: vrstica ga prevzame in izbira tipa se zaklene; nov ključ ostane prost. */
+  const lookup = (text: string) => {
+    void keyLookup(text).then((found) => {
+      if (found?.attributeType) onChange({ type: found.attributeType, typeLocked: true });
+      else onChange({ typeLocked: false });
+    });
+  };
   const valueProps = {
     id: `${base}-value`,
     value: row.value,
@@ -297,17 +360,20 @@ function AttributeRow({
         onChange={(value) => onChange({ value })}
         listLabel={t('contacts.form.countryList')}
       />
-    ) : row.field === 'company' || row.field === 'custom' ? (
+    ) : row.field === 'custom' ? (
+      <TypedValueInput
+        {...valueProps}
+        type={row.type}
+        keyParam={row.key}
+        onChange={(value) => onChange({ value })}
+        listLabel={t('contacts.form.valueSuggestions')}
+      />
+    ) : row.field === 'company' ? (
       <SuggestInput
         {...valueProps}
-        type={row.field === 'company' ? 'company' : 'value'}
-        keyParam={row.field === 'custom' ? row.key : undefined}
+        type="company"
         onChange={(value) => onChange({ value })}
-        listLabel={t(
-          row.field === 'company'
-            ? 'contacts.form.companySuggestions'
-            : 'contacts.form.valueSuggestions',
-        )}
+        listLabel={t('contacts.form.companySuggestions')}
       />
     ) : (
       <input
@@ -332,6 +398,7 @@ function AttributeRow({
             onChange({
               field,
               ...((field === 'country') !== (row.field === 'country') ? { value: '' } : {}),
+              ...(field === 'custom' ? {} : { type: 'OTHER', typeLocked: false }),
             });
           }}
           className={textInput}
@@ -354,7 +421,15 @@ function AttributeRow({
             value={row.key}
             aria-invalid={keyError !== null}
             aria-describedby={keyError ? `${base}-key-error` : undefined}
-            onChange={(key) => onChange({ key })}
+            onChange={(key) =>
+              onChange({
+                key,
+                // Drug ključ nima tipa prejšnjega: izbira spet prosta, dokler iskanje ne najde ključa.
+                ...(row.typeLocked ? { typeLocked: false, type: 'OTHER' } : {}),
+              })
+            }
+            onBlur={() => lookup(row.key)}
+            onSelect={lookup}
             exclude={isReservedName}
             canonical="key"
             showCount
@@ -367,6 +442,30 @@ function AttributeRow({
           )}
         </div>
       )}
+      {row.field === 'custom' &&
+        (row.typeLocked ? (
+          row.type !== 'OTHER' && (
+            <p className="flex flex-col gap-1">
+              <span className="font-bold">{t('attributes.type.label')}</span>
+              <span>{t('attributes.type.fixed', { type: t(typeNameKey(row.type)) })}</span>
+            </p>
+          )
+        ) : (
+          <div className="flex flex-col gap-1">
+            <TypeSelect
+              id={`${base}-type`}
+              value={row.type}
+              onChange={(type) => onChange({ type })}
+              aria-describedby={typeError ? `${base}-type-error` : undefined}
+              aria-invalid={typeError ? true : undefined}
+            />
+            {typeError && (
+              <p id={`${base}-type-error`} className={fieldError}>
+                {typeError}
+              </p>
+            )}
+          </div>
+        ))}
       <div className="flex flex-col gap-1">
         <label htmlFor={`${base}-value`} className="font-bold">
           {t('contacts.bulk.value', { n })}

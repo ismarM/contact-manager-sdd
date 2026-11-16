@@ -117,6 +117,30 @@
         "step3": "Vpiši naslov strežnika {{server}}, uporabniško ime {{username}} in geslo za aplikacijo.",
         "https": "Povezava deluje samo prek varne povezave HTTPS."
       }
+    },
+    "formats": {
+      "heading": "Oblika zapisa",
+      "description": "Določa samo prikaz; shranjeni podatki se ne spremenijo.",
+      "default": "Privzeto",
+      "phone": {
+        "label": "Telefonske številke",
+        "INTERNATIONAL": "Mednarodna (+386 41 123 456)",
+        "NATIONAL": "Nacionalna (041 123 456)",
+        "E164": "Brez presledkov (+38641123456)"
+      },
+      "date": {
+        "label": "Datumi",
+        "LOCALE": "Po jeziku vmesnika",
+        "ISO": "ISO (2026-11-16)",
+        "LONG": "Dolga oblika (16. november 2026)"
+      },
+      "address": {
+        "label": "Naslovi",
+        "COUNTRY": "Po pravilih države",
+        "SINGLE_LINE": "V eni vrstici"
+      },
+      "saved": "Oblika zapisa je shranjena.",
+      "failed": "Oblike zapisa ni bilo mogoče shraniti. Poskusi znova."
     }
   },
   "roles": {
@@ -329,7 +353,7 @@
     "errors": {
       "nameRequired": "Vpiši vsaj ime ali priimek.",
       "emailInvalid": "Vpiši veljaven e-naslov.",
-      "phoneInvalid": "Telefon sme vsebovati samo števke, presledke in znake + - ( ) /.",
+      "phoneInvalid": "Vpiši veljaven telefon, npr. 041 123 456 ali +386 41 123 456.",
       "firstNameTooLong": "Ime je predolgo (največ 100 znakov).",
       "lastNameTooLong": "Priimek je predolg (največ 100 znakov).",
       "addressTooLong": "Naslov je predolg (največ 300 znakov).",
@@ -553,6 +577,10 @@
       "tooManyAttributesFor_two": "Pri {{count}} kontaktih bi bilo preveč dodatnih atributov: {{names}}.",
       "tooManyAttributesFor_few": "Pri {{count}} kontaktih bi bilo preveč dodatnih atributov: {{names}}.",
       "tooManyAttributesFor_other": "Pri {{count}} kontaktih bi bilo preveč dodatnih atributov: {{names}}.",
+      "invalidValueFor_one": "Pri {{count}} kontaktu vrednost ni veljavna za tip ključa: {{names}}.",
+      "invalidValueFor_two": "Pri {{count}} kontaktih vrednost ni veljavna za tip ključa: {{names}}.",
+      "invalidValueFor_few": "Pri {{count}} kontaktih vrednost ni veljavna za tip ključa: {{names}}.",
+      "invalidValueFor_other": "Pri {{count}} kontaktih vrednost ni veljavna za tip ključa: {{names}}.",
       "andMore": "… in še {{count}}",
       "errors": {
         "REQUIRED": "Vpiši vrednost.",
@@ -689,7 +717,12 @@
       "default_count_two": "spremenil(a) {{count}} kontakta",
       "default_count_few": "spremenil(a) {{count}} kontakte",
       "default_count_other": "spremenil(a) {{count}} kontaktov",
-      "IMPORT_single": "uvozil(a) kontakt"
+      "IMPORT_single": "uvozil(a) kontakt",
+      "ATTRIBUTE_TYPE_one": "spremenil(a) tip ključa »{{key}}« iz {{before}} v {{after}} ({{count}} kontakt)",
+      "ATTRIBUTE_TYPE_two": "spremenil(a) tip ključa »{{key}}« iz {{before}} v {{after}} ({{count}} kontakta)",
+      "ATTRIBUTE_TYPE_few": "spremenil(a) tip ključa »{{key}}« iz {{before}} v {{after}} ({{count}} kontakti)",
+      "ATTRIBUTE_TYPE_other": "spremenil(a) tip ključa »{{key}}« iz {{before}} v {{after}} ({{count}} kontaktov)",
+      "ATTRIBUTE_TYPE_generic": "spremenil(a) tip ključa atributa"
     },
     "filters": {
       "toggle": "Filtri",
@@ -704,7 +737,8 @@
         "MERGE": "združevanje",
         "ROLLBACK": "rollback",
         "IMPORT": "uvoz",
-        "RESTORE": "obnova"
+        "RESTORE": "obnova",
+        "ATTRIBUTE_TYPE": "sprememba tipa atributa"
       },
       "removeAction": "Odstrani filter Vrsta: {{action}}",
       "removeContact": "Odstrani filter Kontakt: {{name}}",
@@ -731,6 +765,7 @@
       "before": "Prej",
       "after": "Potem",
       "empty": "prazno",
+      "typeChange": "tip: {{before}} → {{after}}",
       "loading": "Nalagam…",
       "loadFailed": "Podrobnosti ni bilo mogoče naložiti. Poskusi znova.",
       "retry": "Poskusi znova",
@@ -1081,6 +1116,9 @@
       "target": "Uvozi v",
       "targetFor": "Uvozi stolpec {{column}} v",
       "keyFor": "Ključ atributa za stolpec {{column}}",
+      "typeFor": "Tip ključa za stolpec {{column}}",
+      "typeAuto": "Samodejno (tip ključa v skupini, nov ključ: Drugo)",
+      "addressConflict": "Naslov v enem stolpcu ni združljiv z deli naslova.",
       "duplicateTarget": "To polje je že izbrano za drug stolpec.",
       "duplicateKey": "Ta ključ je že izbran za drug stolpec.",
       "emptyKey": "Vpiši ključ atributa.",
@@ -1088,6 +1126,11 @@
         "FIRST_NAME": "Ime",
         "LAST_NAME": "Priimek",
         "ADDRESS": "Naslov",
+        "ADDRESS_STREET": "Naslov: ulica in hišna številka",
+        "ADDRESS_EXTRA": "Naslov: dodatna vrstica",
+        "ADDRESS_POSTAL_CODE": "Naslov: poštna številka",
+        "ADDRESS_CITY": "Naslov: kraj",
+        "ADDRESS_REGION": "Naslov: regija",
         "EMAIL": "E-naslov",
         "PHONE": "Telefon",
         "COUNTRY": "Država",
@@ -1131,6 +1174,7 @@
         "firstName": "Ime",
         "lastName": "Priimek",
         "address": "Naslov",
+        "addressParts": "Deli naslova",
         "email": "E-naslov",
         "phone": "Telefon",
         "company": "Podjetje",
@@ -1325,5 +1369,129 @@
       "loadFailed": "Izbrisanih kontaktov ni bilo mogoče naložiti. Poskusi znova.",
       "retry": "Poskusi znova"
     }
+  },
+  "attributes": {
+    "heading": "Atributi skupine",
+    "description": "Ključi dodatnih atributov v tej skupini in njihov tip. Tip velja za vse kontakte s tem ključem.",
+    "types": {
+      "OTHER": "Drugo",
+      "NOTES": "Opombe",
+      "EMAIL": "E-naslov",
+      "PHONE": "Telefon",
+      "ADDRESS": "Naslov",
+      "URL": "Spletni naslov",
+      "DATE": "Datum"
+    },
+    "type": {
+      "label": "Tip",
+      "fixed": "Tip ključa v tej skupini je {{type}}. Spremeni ga lahko urejevalec v razdelku Atributi skupine.",
+      "new": "Tip novega ključa",
+      "hint": "Tip velja za vse kontakte s tem ključem v skupini.",
+      "mismatch": "Ključ že obstaja z drugim tipom. Izberi predlagani ključ ali drugo ime ključa."
+    },
+    "list": {
+      "key": "Ključ",
+      "type": "Tip",
+      "count": "Kontakti",
+      "search": "Iskanje ključev",
+      "empty": "V skupini še ni dodatnih atributov.",
+      "noResults": "Noben ključ ne ustreza iskanju.",
+      "loading": "Nalaganje ključev …",
+      "loadFailed": "Ključev ni bilo mogoče naložiti.",
+      "retry": "Poskusi znova",
+      "changeType": "Spremeni tip",
+      "changeTypeFor": "Spremeni tip ključa {{key}}",
+      "total": "Število ključev: {{total}}"
+    },
+    "change": {
+      "title": "Sprememba tipa ključa",
+      "body": "Ključ »{{key}}« bo imel tip {{type}} pri vseh kontaktih ({{count}}). Vrednosti se preverijo in zapišejo v kanonični obliki; sprememba je ena in jo je mogoče razveljaviti z vrnitvijo v revizijski sledi.",
+      "current": "Trenutni tip: {{type}}",
+      "newType": "Novi tip",
+      "confirm": "Spremeni tip",
+      "cancel": "Prekliči",
+      "success": "Tip ključa »{{key}}« je spremenjen.",
+      "unchanged": "Ključ »{{key}}« že ima ta tip.",
+      "failed": "Tipa ni bilo mogoče spremeniti. Poskusi znova.",
+      "versionConflict": "Tip ključa je medtem spremenil drug uporabnik. Pokazan je trenutni tip.",
+      "gone": "Ključa ni več v uporabi.",
+      "forbidden": "Tipa ključa ne smeš spreminjati.",
+      "archived": "Skupina je arhivirana, tipa ni mogoče spremeniti."
+    },
+    "conflict": {
+      "title": "Nekatere vrednosti niso veljavne za tip {{type}}",
+      "intro": "Pri {{total}} kontaktih vrednost ne ustreza tipu {{type}}. Popravi jih in poskusi znova; nič ni spremenjeno.",
+      "open": "Odpri kontakt {{name}}",
+      "value": "Vrednost: {{value}}",
+      "more": "in še {{count}}",
+      "retry": "Poskusi znova"
+    }
+  },
+  "address": {
+    "legend": "Naslov",
+    "parts": {
+      "street": "Ulica in hišna številka",
+      "extra": "Dodatna vrstica",
+      "postalCode": "Poštna številka",
+      "city": "Kraj",
+      "region": "Regija",
+      "country": "Država naslova"
+    },
+    "unstructured": "Naslov (besedilo)",
+    "split": "Razčleni naslov",
+    "splitHint": "Naslov je shranjen kot besedilo. Razčleni ga na dele in shrani.",
+    "suggestions": {
+      "label": "Predlogi naslova",
+      "count": "Predlogov naslova: {{total}}",
+      "none": "Ni predlogov naslova."
+    },
+    "errors": {
+      "REQUIRED": "Vpiši ulico ali kraj.",
+      "TOO_LONG": "Vrednost je predolga.",
+      "INVALID_VALUE": "Vrednost ni veljavna."
+    }
+  },
+  "typedValue": {
+    "normalized": "Shranjeno kot: {{value}}",
+    "errors": {
+      "REQUIRED": "Vpiši vrednost.",
+      "TOO_LONG": "Vrednost je predolga.",
+      "INVALID_VALUE": {
+        "EMAIL": "Vpiši veljaven e-naslov.",
+        "PHONE": "Vpiši veljavno telefonsko številko.",
+        "URL": "Vpiši veljaven spletni naslov (http ali https).",
+        "DATE": "Vpiši veljaven datum (LLLL-MM-DD).",
+        "OTHER": "Vrednost ni veljavna.",
+        "NOTES": "Vrednost ni veljavna.",
+        "ADDRESS": "Vrednost ni veljavna."
+      }
+    },
+    "openLink": "Odpri {{value}}",
+    "call": "Pokliči {{value}}",
+    "mail": "Pošlji e-pošto na {{value}}"
+  },
+  "map": {
+    "showShort": "Pokaži na zemljevidu",
+    "show": "Pokaži na zemljevidu: {{name}}",
+    "title": "Zemljevid: {{name}}",
+    "loading": "Iskanje naslova …",
+    "notFound": "Naslova ni bilo mogoče najti na zemljevidu.",
+    "approximate": "Lokacija je približna: najden je bil kraj ali ulica, ne hišna številka.",
+    "unavailable": "Zemljevid trenutno ni na voljo. Podatki kontakta so še vedno dostopni.",
+    "retry": "Poskusi znova",
+    "region": "Zemljevid: {{name}}. Puščice premikajo zemljevid, + in − ga povečata in pomanjšata.",
+    "descriptionExact": "Oznaka je na lokaciji naslova (geografska širina {{lat}}, dolžina {{lon}}).",
+    "descriptionApproximate": "Oznaka je na približni lokaciji naslova (geografska širina {{lat}}, dolžina {{lon}}).",
+    "attribution": "© prispevalci OpenStreetMap",
+    "openExternal": "Odpri lokacijo v OpenStreetMap",
+    "searchExternal": "Poišči naslov v OpenStreetMap",
+    "newTab": "(odpre se v novem zavihku)",
+    "zoomIn": "Povečaj",
+    "zoomOut": "Pomanjšaj",
+    "close": "Zapri zemljevid"
+  },
+  "errorsTyped": {
+    "ATTRIBUTE_TYPE_CONFLICT": "Nekatere vrednosti niso veljavne za izbrani tip.",
+    "MAP_SERVICE_UNAVAILABLE": "Zemljevid trenutno ni na voljo."
   }
 }

@@ -2,14 +2,15 @@
   "firstName": "Ana Marija",
   "lastName": "Kos Šuštar",
   "address": "Celovška cesta 12\n1000 Ljubljana",
+  "addressParts": null,
   "email": "ana.kos@primer.si",
   "phone": "+386 41 123 456",
   "company": "Žaga, d.o.o.; Kranj",
   "countryText": "AT",
   "attributes": [
-    { "key": "Vloga", "value": "mentor" },
-    { "key": "Formula", "value": "=SUM(A1;B2), +1" },
-    { "key": "Pot", "value": "C:\\mapa\\datoteka" }
+    { "key": "Vloga", "type": "OTHER", "value": "mentor" },
+    { "key": "Formula", "type": "OTHER", "value": "=SUM(A1;B2), +1" },
+    { "key": "Pot", "type": "OTHER", "value": "C:\\mapa\\datoteka" }
   ],
   "tags": ["alumni", "konferenca2025", "čšž"]
 }

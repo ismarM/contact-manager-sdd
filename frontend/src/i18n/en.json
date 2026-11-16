@@ -117,6 +117,30 @@
         "step3": "Enter the server address {{server}}, the username {{username}} and the app password.",
         "https": "The connection works only over a secure HTTPS connection."
       }
+    },
+    "formats": {
+      "heading": "Format",
+      "description": "Only affects how data is shown; stored data does not change.",
+      "default": "Default",
+      "phone": {
+        "label": "Phone numbers",
+        "INTERNATIONAL": "International (+386 41 123 456)",
+        "NATIONAL": "National (041 123 456)",
+        "E164": "No spaces (+38641123456)"
+      },
+      "date": {
+        "label": "Dates",
+        "LOCALE": "By interface language",
+        "ISO": "ISO (2026-11-16)",
+        "LONG": "Long form (16 November 2026)"
+      },
+      "address": {
+        "label": "Addresses",
+        "COUNTRY": "By country rules",
+        "SINGLE_LINE": "On one line"
+      },
+      "saved": "The format is saved.",
+      "failed": "The format could not be saved. Try again."
     }
   },
   "roles": {
@@ -329,7 +353,7 @@
     "errors": {
       "nameRequired": "Enter at least a first or last name.",
       "emailInvalid": "Enter a valid email address.",
-      "phoneInvalid": "Phone may contain only digits, spaces and + - ( ) / characters.",
+      "phoneInvalid": "Enter a valid phone number, e.g. 041 123 456 or +386 41 123 456.",
       "firstNameTooLong": "The first name is too long (at most 100 characters).",
       "lastNameTooLong": "The last name is too long (at most 100 characters).",
       "addressTooLong": "The address is too long (at most 300 characters).",
@@ -531,6 +555,10 @@
       "tooManyTagsFor_other": "{{count}} contacts would have too many tags: {{names}}.",
       "tooManyAttributesFor_one": "{{count}} contact would have too many custom attributes: {{names}}.",
       "tooManyAttributesFor_other": "{{count}} contacts would have too many custom attributes: {{names}}.",
+      "invalidValueFor_one": "{{count}} contact has a value that is not valid for the key type: {{names}}.",
+      "invalidValueFor_two": "{{count}} contacts have a value that is not valid for the key type: {{names}}.",
+      "invalidValueFor_few": "{{count}} contacts have a value that is not valid for the key type: {{names}}.",
+      "invalidValueFor_other": "{{count}} contacts have a value that is not valid for the key type: {{names}}.",
       "andMore": "… and {{count}} more",
       "errors": {
         "REQUIRED": "Enter a value.",
@@ -689,7 +717,12 @@
       "default_count_two": "changed {{count}} contacts",
       "default_count_few": "changed {{count}} contacts",
       "default_count_other": "changed {{count}} contacts",
-      "IMPORT_single": "imported the contact"
+      "IMPORT_single": "imported the contact",
+      "ATTRIBUTE_TYPE_one": "changed the type of the key “{{key}}” from {{before}} to {{after}} ({{count}} contact)",
+      "ATTRIBUTE_TYPE_two": "changed the type of the key “{{key}}” from {{before}} to {{after}} ({{count}} contacts)",
+      "ATTRIBUTE_TYPE_few": "changed the type of the key “{{key}}” from {{before}} to {{after}} ({{count}} contacts)",
+      "ATTRIBUTE_TYPE_other": "changed the type of the key “{{key}}” from {{before}} to {{after}} ({{count}} contacts)",
+      "ATTRIBUTE_TYPE_generic": "changed the type of an attribute key"
     },
     "filters": {
       "toggle": "Filters",
@@ -704,7 +737,8 @@
         "MERGE": "merged",
         "ROLLBACK": "rollback",
         "IMPORT": "import",
-        "RESTORE": "restore"
+        "RESTORE": "restore",
+        "ATTRIBUTE_TYPE": "attribute type change"
       },
       "removeAction": "Remove filter Action: {{action}}",
       "removeContact": "Remove filter Contact: {{name}}",
@@ -731,6 +765,7 @@
       "before": "Before",
       "after": "After",
       "empty": "empty",
+      "typeChange": "type: {{before}} → {{after}}",
       "loading": "Loading…",
       "loadFailed": "The details could not be loaded. Please try again.",
       "retry": "Try again",
@@ -1081,6 +1116,9 @@
       "target": "Import into",
       "targetFor": "Import column {{column}} into",
       "keyFor": "Attribute key for column {{column}}",
+      "typeFor": "Key type for column {{column}}",
+      "typeAuto": "Automatic (the key’s type in the group, new key: Other)",
+      "addressConflict": "An address in a single column cannot be combined with address parts.",
       "duplicateTarget": "This field is already chosen for another column.",
       "duplicateKey": "This key is already chosen for another column.",
       "emptyKey": "Enter an attribute key.",
@@ -1088,6 +1126,11 @@
         "FIRST_NAME": "First name",
         "LAST_NAME": "Last name",
         "ADDRESS": "Address",
+        "ADDRESS_STREET": "Address: street and number",
+        "ADDRESS_EXTRA": "Address: extra line",
+        "ADDRESS_POSTAL_CODE": "Address: postal code",
+        "ADDRESS_CITY": "Address: city",
+        "ADDRESS_REGION": "Address: region",
         "EMAIL": "Email",
         "PHONE": "Phone",
         "COUNTRY": "Country",
@@ -1125,6 +1168,7 @@
         "firstName": "First name",
         "lastName": "Last name",
         "address": "Address",
+        "addressParts": "Address parts",
         "email": "Email",
         "phone": "Phone",
         "company": "Company",
@@ -1325,5 +1369,129 @@
       "loadFailed": "Could not load the deleted contacts. Try again.",
       "retry": "Try again"
     }
+  },
+  "attributes": {
+    "heading": "Group attributes",
+    "description": "The keys of additional attributes in this group and their type. The type applies to every contact with that key.",
+    "types": {
+      "OTHER": "Other",
+      "NOTES": "Notes",
+      "EMAIL": "Email",
+      "PHONE": "Phone",
+      "ADDRESS": "Address",
+      "URL": "Web address",
+      "DATE": "Date"
+    },
+    "type": {
+      "label": "Type",
+      "fixed": "The type of this key in the group is {{type}}. An editor can change it under Group attributes.",
+      "new": "Type of the new key",
+      "hint": "The type applies to every contact with this key in the group.",
+      "mismatch": "This key already exists with a different type. Pick the suggested key or use another key name."
+    },
+    "list": {
+      "key": "Key",
+      "type": "Type",
+      "count": "Contacts",
+      "search": "Search keys",
+      "empty": "The group has no additional attributes yet.",
+      "noResults": "No key matches the search.",
+      "loading": "Loading keys…",
+      "loadFailed": "The keys could not be loaded.",
+      "retry": "Try again",
+      "changeType": "Change type",
+      "changeTypeFor": "Change the type of key {{key}}",
+      "total": "Number of keys: {{total}}"
+    },
+    "change": {
+      "title": "Change the key type",
+      "body": "The key “{{key}}” will have the type {{type}} for all contacts ({{count}}). Values are checked and stored in canonical form; it is one change and it can be undone by rolling back in the audit trail.",
+      "current": "Current type: {{type}}",
+      "newType": "New type",
+      "confirm": "Change type",
+      "cancel": "Cancel",
+      "success": "The type of key “{{key}}” was changed.",
+      "unchanged": "The key “{{key}}” already has this type.",
+      "failed": "The type could not be changed. Try again.",
+      "versionConflict": "Someone else has changed the key type in the meantime. The current type is shown.",
+      "gone": "The key is no longer in use.",
+      "forbidden": "You are not allowed to change the key type.",
+      "archived": "The group is archived, the type cannot be changed."
+    },
+    "conflict": {
+      "title": "Some values are not valid for the type {{type}}",
+      "intro": "For {{total}} contacts the value does not fit the type {{type}}. Fix them and try again; nothing was changed.",
+      "open": "Open contact {{name}}",
+      "value": "Value: {{value}}",
+      "more": "and {{count}} more",
+      "retry": "Try again"
+    }
+  },
+  "address": {
+    "legend": "Address",
+    "parts": {
+      "street": "Street and house number",
+      "extra": "Additional line",
+      "postalCode": "Postal code",
+      "city": "City",
+      "region": "Region",
+      "country": "Address country"
+    },
+    "unstructured": "Address (text)",
+    "split": "Split address",
+    "splitHint": "The address is stored as text. Split it into parts and save.",
+    "suggestions": {
+      "label": "Address suggestions",
+      "count": "Address suggestions: {{total}}",
+      "none": "No address suggestions."
+    },
+    "errors": {
+      "REQUIRED": "Enter a street or a city.",
+      "TOO_LONG": "The value is too long.",
+      "INVALID_VALUE": "The value is not valid."
+    }
+  },
+  "typedValue": {
+    "normalized": "Stored as: {{value}}",
+    "errors": {
+      "REQUIRED": "Enter a value.",
+      "TOO_LONG": "The value is too long.",
+      "INVALID_VALUE": {
+        "EMAIL": "Enter a valid email address.",
+        "PHONE": "Enter a valid phone number.",
+        "URL": "Enter a valid web address (http or https).",
+        "DATE": "Enter a valid date (YYYY-MM-DD).",
+        "OTHER": "The value is not valid.",
+        "NOTES": "The value is not valid.",
+        "ADDRESS": "The value is not valid."
+      }
+    },
+    "openLink": "Open {{value}}",
+    "call": "Call {{value}}",
+    "mail": "Send an email to {{value}}"
+  },
+  "map": {
+    "showShort": "Show on map",
+    "show": "Show on map: {{name}}",
+    "title": "Map: {{name}}",
+    "loading": "Looking up the address…",
+    "notFound": "The address could not be found on the map.",
+    "approximate": "The location is approximate: a city or street was found, not the house number.",
+    "unavailable": "The map is not available right now. The contact's details are still available.",
+    "retry": "Try again",
+    "region": "Map: {{name}}. Arrow keys move the map, + and − zoom in and out.",
+    "descriptionExact": "The marker is at the address location (latitude {{lat}}, longitude {{lon}}).",
+    "descriptionApproximate": "The marker is at the approximate address location (latitude {{lat}}, longitude {{lon}}).",
+    "attribution": "© OpenStreetMap contributors",
+    "openExternal": "Open the location in OpenStreetMap",
+    "searchExternal": "Search for the address in OpenStreetMap",
+    "newTab": "(opens in a new tab)",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "close": "Close map"
+  },
+  "errorsTyped": {
+    "ATTRIBUTE_TYPE_CONFLICT": "Some values are not valid for the selected type.",
+    "MAP_SERVICE_UNAVAILABLE": "The map is not available right now."
   }
 }

@@ -116,8 +116,8 @@ class AuditHistoryIsolationMatrixSecurityIT extends HistoryApiTest {
 
     /** Skupina z dvema vnosoma (dodajanje, urejanje) kontakta Ana; vrne njen id in verzijo. */
     private Map<String, Object> twoEntries(Scenario s) throws Exception {
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
-        return update(s, Who.EDITOR, idOf(a), withPhone(a, "02 222 222"), versionOf(a));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
+        return update(s, Who.EDITOR, idOf(a), withPhone(a, "+38690222221"), versionOf(a));
     }
 
     @ParameterizedTest(name = "{0} {2} skupina, {1}")
@@ -163,9 +163,9 @@ class AuditHistoryIsolationMatrixSecurityIT extends HistoryApiTest {
             groups.addMember(other, s.id(who), who.name());
         }
         Map<String, Object> foreign = asObject(
-                json(post(contactsPath(other), s.token(Who.OWNER), body(contactInput("Tuj", "Kontakt", "01 999 999")))
+                json(post(contactsPath(other), s.token(Who.OWNER), body(contactInput("Tuj", "Kontakt", "+38690999999")))
                         .body()));
-        Map<String, Object> mine = create(s, Who.EDITOR, contactInput("Moj", "Kontakt", "01 111 111"));
+        Map<String, Object> mine = create(s, Who.EDITOR, contactInput("Moj", "Kontakt", "+38690111111"));
         UUID foreignEntry = (UUID) audit.entries(other).get(0).get("id");
         UUID myEntry = (UUID) audit.entries(s.group()).get(0).get("id");
         Map<String, String> headers = Http.bearer(s.token(who));

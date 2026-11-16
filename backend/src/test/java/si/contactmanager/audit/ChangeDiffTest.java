@@ -13,7 +13,9 @@ import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import si.contactmanager.contact.Address;
 import si.contactmanager.contact.Attribute;
+import si.contactmanager.contact.AttributeType;
 import si.contactmanager.contact.ContactState;
 
 /** Izpeljava spremenjenih polj iz stanj prej/potem (FR-005-02, FR-005-08; research R-03). */
@@ -23,6 +25,10 @@ class ChangeDiffTest {
 
     private static final Instant T1 = Instant.parse("2026-10-12T12:30:00Z");
     private static final Instant T2 = Instant.parse("2026-10-12T12:32:00Z");
+
+    private static AttributeValue other(String value) {
+        return new AttributeValue(AttributeType.OTHER, value, null);
+    }
 
     private static ContactState janez() {
         return new ContactState(
@@ -66,7 +72,7 @@ class ChangeDiffTest {
                         org.assertj.core.groups.Tuple.tuple(LAST_NAME, null, null, "Novak"),
                         org.assertj.core.groups.Tuple.tuple(EMAIL, null, null, "janez@primer.si"),
                         org.assertj.core.groups.Tuple.tuple(PHONE, null, null, "01 234 567"),
-                        org.assertj.core.groups.Tuple.tuple(ATTRIBUTE, "kompetenca", null, "web dev"),
+                        org.assertj.core.groups.Tuple.tuple(ATTRIBUTE, "kompetenca", null, other("web dev")),
                         org.assertj.core.groups.Tuple.tuple(TAGS, null, null, List.of("vip", "konferenca2025")));
         assertThat(fields).extracting(ChangeField::field).doesNotContain(ADDRESS);
     }
@@ -82,7 +88,7 @@ class ChangeDiffTest {
                         org.assertj.core.groups.Tuple.tuple(LAST_NAME, null, "Novak", null),
                         org.assertj.core.groups.Tuple.tuple(EMAIL, null, "janez@primer.si", null),
                         org.assertj.core.groups.Tuple.tuple(PHONE, null, "01 234 567", null),
-                        org.assertj.core.groups.Tuple.tuple(ATTRIBUTE, "kompetenca", "web dev", null),
+                        org.assertj.core.groups.Tuple.tuple(ATTRIBUTE, "kompetenca", other("web dev"), null),
                         org.assertj.core.groups.Tuple.tuple(TAGS, null, List.of("vip", "konferenca2025"), null));
     }
 
@@ -104,7 +110,7 @@ class ChangeDiffTest {
                 4);
 
         assertThat(ChangeDiff.fields(janez(), after))
-                .containsExactly(new ChangeField(ATTRIBUTE, "Oddelek", null, "IT"));
+                .containsExactly(new ChangeField(ATTRIBUTE, "Oddelek", null, other("IT")));
     }
 
     @Test
@@ -113,7 +119,7 @@ class ChangeDiffTest {
                 with(janez(), janez().phone(), List.of(new Attribute("kompetenca", "java")), janez().tags(), 4);
 
         assertThat(ChangeDiff.fields(janez(), after))
-                .containsExactly(new ChangeField(ATTRIBUTE, "kompetenca", "web dev", "java"));
+                .containsExactly(new ChangeField(ATTRIBUTE, "kompetenca", other("web dev"), other("java")));
     }
 
     @Test
@@ -151,8 +157,8 @@ class ChangeDiffTest {
 
         assertThat(ChangeDiff.fields(before, after))
                 .containsExactly(
-                        new ChangeField(ATTRIBUTE, "Kompetenca", "web dev", null),
-                        new ChangeField(ATTRIBUTE, "kompetenca", null, "web dev"));
+                        new ChangeField(ATTRIBUTE, "Kompetenca", other("web dev"), null),
+                        new ChangeField(ATTRIBUTE, "kompetenca", null, other("web dev")));
     }
 
     @Test
@@ -217,5 +223,77 @@ class ChangeDiffTest {
     @Test
     void equalStatesHaveNoFields() {
         assertThat(ChangeDiff.fields(janez(), janez())).isEmpty();
+    }
+
+    @Test
+    void typeOnlyChangeIsAnAttributeChangeWithBothTypes() {
+        ContactState before = with(
+                janez(),
+                janez().phone(),
+                List.of(new Attribute("Mobilni", AttributeType.OTHER, "+38641123456", null)),
+                List.of(),
+                3);
+        ContactState after = with(
+                janez(),
+                janez().phone(),
+                List.of(new Attribute("Mobilni", AttributeType.PHONE, "+38641123456", null)),
+                List.of(),
+                4);
+
+        assertThat(ChangeDiff.fields(before, after))
+                .containsExactly(new ChangeField(
+                        ATTRIBUTE,
+                        "Mobilni",
+                        new AttributeValue(AttributeType.OTHER, "+38641123456", null),
+                        new AttributeValue(AttributeType.PHONE, "+38641123456", null)));
+    }
+
+    @Test
+    void addressPartsOfAnAttributeAreCompared() {
+        Address ljubljana = new Address("Trg 1", null, "1000", "Ljubljana", null, "SI");
+        Address maribor = new Address("Trg 1", null, "2000", "Maribor", null, "SI");
+        ContactState before = with(
+                janez(),
+                janez().phone(),
+                List.of(new Attribute("Domov", AttributeType.ADDRESS, null, ljubljana)),
+                List.of(),
+                3);
+        ContactState after = with(
+                janez(),
+                janez().phone(),
+                List.of(new Attribute("Domov", AttributeType.ADDRESS, null, maribor)),
+                List.of(),
+                4);
+
+        assertThat(ChangeDiff.fields(before, after))
+                .containsExactly(new ChangeField(
+                        ATTRIBUTE,
+                        "Domov",
+                        new AttributeValue(AttributeType.ADDRESS, null, ljubljana),
+                        new AttributeValue(AttributeType.ADDRESS, null, maribor)));
+    }
+
+    @Test
+    void structuredPredefinedAddressIsReportedAsPartsAndTextAsText() {
+        Address parts = new Address("Trg 1", null, "1000", "Ljubljana", null, "SI");
+        ContactState text = janez();
+        ContactState structured = new ContactState(
+                text.firstName(),
+                text.lastName(),
+                "Trg 1, 1000 Ljubljana",
+                parts,
+                text.email(),
+                text.phone(),
+                null,
+                null,
+                text.attributes(),
+                text.tags(),
+                4,
+                T1,
+                T2,
+                99L);
+
+        assertThat(ChangeDiff.fields(text, structured)).containsExactly(new ChangeField(ADDRESS, null, null, parts));
+        assertThat(ChangeDiff.fields(structured, structured)).isEmpty();
     }
 }

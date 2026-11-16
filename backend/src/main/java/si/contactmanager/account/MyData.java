@@ -14,7 +14,16 @@ public record MyData(
         List<OwnedGroup> ownedGroups,
         List<AppPassword> appPasswords) {
 
-    public record Profile(String name, String email, Instant registeredAt, String language, String theme) {}
+    /** Nastavitve vmesnika (001) in oblike zapisa (016, FR-016-17); {@code null} = privzeto. */
+    public record Profile(
+            String name,
+            String email,
+            Instant registeredAt,
+            String language,
+            String theme,
+            String phoneFormat,
+            String dateFormat,
+            String addressFormat) {}
 
     public record Membership(String groupTitle, String role, Instant joinedAt, String state) {}
 

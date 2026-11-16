@@ -43,7 +43,7 @@ class CanonicalForms {
             String key = exact.contains(attribute.key())
                     ? attribute.key()
                     : canonical.getOrDefault(ContactInputParser.normalize(attribute.key()), attribute.key());
-            result.add(new Attribute(key, attribute.value()));
+            result.add(new Attribute(key, attribute.type(), attribute.value(), attribute.parts()));
         }
         return List.copyOf(result);
     }
@@ -98,13 +98,17 @@ class CanonicalForms {
                     input.firstName(),
                     input.lastName(),
                     input.address(),
+                    input.addressParts(),
                     input.email(),
                     input.phone(),
                     input.company(),
                     input.country(),
                     input.attributes().stream()
                             .map(a -> new Attribute(
-                                    keys.getOrDefault(ContactInputParser.normalize(a.key()), a.key()), a.value()))
+                                    keys.getOrDefault(ContactInputParser.normalize(a.key()), a.key()),
+                                    a.type(),
+                                    a.value(),
+                                    a.parts()))
                             .toList(),
                     input.tags().stream()
                             .map(t -> tags.getOrDefault(ContactInputParser.normalize(t), t))
@@ -122,6 +126,7 @@ class CanonicalForms {
                 input.firstName(),
                 input.lastName(),
                 input.address(),
+                input.addressParts(),
                 input.email(),
                 input.phone(),
                 input.company(),
@@ -143,7 +148,8 @@ class CanonicalForms {
         int index = 0;
         for (AttributeSet set : edit.attributes()) {
             if (set.field() == BulkEditInput.Field.CUSTOM) {
-                sets.add(new AttributeSet(set.field(), canonical.get(index++).key(), set.value()));
+                sets.add(new AttributeSet(
+                        set.field(), canonical.get(index++).key(), set.value(), set.type(), set.parts()));
             } else {
                 sets.add(set);
             }

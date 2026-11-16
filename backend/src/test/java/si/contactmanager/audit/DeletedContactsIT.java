@@ -26,12 +26,12 @@ class DeletedContactsIT extends HistoryApiTest {
     @Tag("FR-015-24")
     void theListHasDeletedRolledBackAndMergedContactsAndNoLiveOnes() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> live = create(s, Who.EDITOR, contactInput("Živa", "Živa", "01 000 000"));
-        Map<String, Object> deleted = create(s, Who.EDITOR, contactInput("Dana", "Izbrisana", "01 111 111"));
-        Map<String, Object> keeper = create(s, Who.EDITOR, contactInput("Marko", "Ohranjen", "01 222 222"));
-        Map<String, Object> merged = create(s, Who.EDITOR, contactInput("Marko", "Združen", "01 222 222"));
+        Map<String, Object> live = create(s, Who.EDITOR, contactInput("Živa", "Živa", "+38690000000"));
+        Map<String, Object> deleted = create(s, Who.EDITOR, contactInput("Dana", "Izbrisana", "+38690111111"));
+        Map<String, Object> keeper = create(s, Who.EDITOR, contactInput("Marko", "Ohranjen", "+38690222222"));
+        Map<String, Object> merged = create(s, Who.EDITOR, contactInput("Marko", "Združen", "+38690222222"));
         UUID beforeRolledBack = audit.latestEntryId(s.group());
-        Map<String, Object> rolledBack = create(s, Who.EDITOR, contactInput("Rok", "Povrnjen", "01 333 333"));
+        Map<String, Object> rolledBack = create(s, Who.EDITOR, contactInput("Rok", "Povrnjen", "+38690333333"));
         rollback(s, Who.ADMIN, beforeRolledBack, audit.latestEntryId(s.group()));
         remove(s, Who.ADMIN, idOf(deleted), versionOf(deleted));
         mergeInto(s, idOf(keeper), idOf(merged), s.id(Who.EDITOR));
@@ -66,7 +66,7 @@ class DeletedContactsIT extends HistoryApiTest {
     @Tag("FR-015-22")
     void aRestoredContactLeavesTheListAndADeletedAgainOneAppearsOnceWithTheLastState() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         remove(s, Who.EDITOR, idOf(a), versionOf(a));
         Map<String, Object> history = history(s, Who.VIEWER, idOf(a), "");
         String last = (String) asObject(history.get("contact")).get("lastEntryId");
@@ -90,13 +90,13 @@ class DeletedContactsIT extends HistoryApiTest {
     @Tag("FR-015-23")
     void searchIgnoresCaseAndDiacriticsAndFilterSplitsRestorableFromMerged() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> inputCeh = contactInput("Jože", "Čeh", "01 111 111");
+        Map<String, Object> inputCeh = contactInput("Jože", "Čeh", "+38690111111");
         inputCeh.put("email", "joze.ceh@primer.si");
         inputCeh.put("company", "Acme d.o.o.");
         Map<String, Object> ceh = create(s, Who.EDITOR, inputCeh);
-        Map<String, Object> other = create(s, Who.EDITOR, contactInput("Nina", "Novak", "01 222 222"));
-        Map<String, Object> keeper = create(s, Who.EDITOR, contactInput("Tina", "Ohranjena", "01 333 333"));
-        Map<String, Object> merged = create(s, Who.EDITOR, contactInput("Tina", "Združena", "01 333 333"));
+        Map<String, Object> other = create(s, Who.EDITOR, contactInput("Nina", "Novak", "+38690222222"));
+        Map<String, Object> keeper = create(s, Who.EDITOR, contactInput("Tina", "Ohranjena", "+38690333333"));
+        Map<String, Object> merged = create(s, Who.EDITOR, contactInput("Tina", "Združena", "+38690333333"));
         remove(s, Who.EDITOR, idOf(ceh), versionOf(ceh));
         remove(s, Who.EDITOR, idOf(other), versionOf(other));
         mergeInto(s, idOf(keeper), idOf(merged), s.id(Who.EDITOR));
@@ -126,7 +126,7 @@ class DeletedContactsIT extends HistoryApiTest {
     void paginationAndParameterValidation() throws Exception {
         Scenario s = scenario();
         for (int i = 0; i < 27; i++) {
-            Map<String, Object> c = create(s, Who.EDITOR, contactInput("Kontakt", "Št" + i, "01 000 000"));
+            Map<String, Object> c = create(s, Who.EDITOR, contactInput("Kontakt", "Št" + i, "+38690000000"));
             remove(s, Who.EDITOR, idOf(c), versionOf(c));
         }
 
@@ -150,8 +150,8 @@ class DeletedContactsIT extends HistoryApiTest {
     void deletedContactsOfAnotherGroupNeverLeakAndArchivedGroupsCanBeRead() throws Exception {
         Scenario s = scenario();
         Scenario other = scenario();
-        Map<String, Object> mine = create(s, Who.EDITOR, contactInput("Moj", "Izbrisan", "01 111 111"));
-        Map<String, Object> theirs = create(other, Who.EDITOR, contactInput("Tuj", "Izbrisan", "01 222 222"));
+        Map<String, Object> mine = create(s, Who.EDITOR, contactInput("Moj", "Izbrisan", "+38690111111"));
+        Map<String, Object> theirs = create(other, Who.EDITOR, contactInput("Tuj", "Izbrisan", "+38690222222"));
         remove(s, Who.EDITOR, idOf(mine), versionOf(mine));
         remove(other, Who.EDITOR, idOf(theirs), versionOf(theirs));
         groups.archive(s.group());

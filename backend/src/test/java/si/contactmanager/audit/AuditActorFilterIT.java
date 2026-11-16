@@ -18,10 +18,10 @@ class AuditActorFilterIT extends HistoryApiTest {
 
     private Trail trail() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> byEditor = create(s, Who.EDITOR, contactInput("Eva", "Urednikova", "01 111 111"));
-        Map<String, Object> byAdmin = create(s, Who.ADMIN, contactInput("Aleš", "Adminov", "01 222 222"));
-        Map<String, Object> byOwner = create(s, Who.OWNER, contactInput("Lea", "Lastnikova", "01 333 333"));
-        update(s, Who.EDITOR, idOf(byAdmin), withPhone(byAdmin, "031 000 111"), versionOf(byAdmin));
+        Map<String, Object> byEditor = create(s, Who.EDITOR, contactInput("Eva", "Urednikova", "+38690111111"));
+        Map<String, Object> byAdmin = create(s, Who.ADMIN, contactInput("Aleš", "Adminov", "+38690222222"));
+        Map<String, Object> byOwner = create(s, Who.OWNER, contactInput("Lea", "Lastnikova", "+38690333333"));
+        update(s, Who.EDITOR, idOf(byAdmin), withPhone(byAdmin, "+38631000111"), versionOf(byAdmin));
         return new Trail(s, byEditor, byAdmin, byOwner);
     }
 

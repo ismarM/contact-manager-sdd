@@ -5,14 +5,21 @@
     {
       "firstName": "Dr. Ana Marija",
       "lastName": "Kos",
-      "address": "Nadstropje 2\nUlica 5\n3000 Celje\nŠtajerska",
+      "address": null,
+      "addressParts": {
+        "street": "Ulica 5",
+        "extra": "Nadstropje 2",
+        "postalCode": "3000",
+        "city": "Celje",
+        "region": "Štajerska"
+      },
       "email": "ana.kos@primer.si",
       "phone": "+386-41-000-111",
       "company": null,
       "countryText": "Slovenija",
       "attributes": [
-        { "key": "E-naslov 2", "value": "ana@primer.si" },
-        { "key": "Naslov 2", "value": "Glavni trg 1, 4000 Kranj, Avstrija" }
+        { "key": "E-naslov 2", "type": "EMAIL", "value": "ana@primer.si" },
+        { "key": "Naslov 2", "type": "ADDRESS", "value": "Glavni trg 1, 4000 Kranj, Avstrija" }
       ],
       "tags": []
     }

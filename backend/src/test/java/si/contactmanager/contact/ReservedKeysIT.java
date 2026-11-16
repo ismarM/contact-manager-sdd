@@ -82,7 +82,7 @@ class ReservedKeysIT extends MergeApiTest {
         Scenario s = scenario();
         UUID id = legacy(s, "Država", "Slovenija");
         Map<String, Object> change = new java.util.LinkedHashMap<>(input("Stari", "Kontakt"));
-        change.put("phone", "01 234 567");
+        change.put("phone", "+38690234567");
         change.put("attributes", attrs("Država", "Slovenija"));
         change.put("version", 0);
 

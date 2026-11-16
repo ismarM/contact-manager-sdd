@@ -80,7 +80,8 @@ class ContactController {
         if (!parsed.valid()) {
             throw new ValidationException(parsed.errors());
         }
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.create(membership, parsed.input()));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(service.create(membership, parsed.input(), parsed.extras()));
     }
 
     /** Urejanje kontakta (FR-004-10, FR-004-11). */

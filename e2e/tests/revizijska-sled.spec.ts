@@ -81,7 +81,7 @@ async function editContact(page: Page, groupId: string, contactId: string) {
   await page.goto(`/groups/${groupId}/contacts/${contactId}/edit`);
   await page.getByRole('textbox', { name: 'Telefon' }).fill('040 111 222');
   await page.getByRole('button', { name: 'Dodaj atribut' }).click();
-  await page.getByRole('combobox', { name: 'Ključ' }).fill('kompetenca');
+  await page.getByRole('combobox', { name: 'Ključ', exact: true }).fill('kompetenca');
   await page.getByRole('combobox', { name: 'Vrednost' }).fill('web dev');
   await page.getByRole('button', { name: 'Odstrani značko vip' }).click();
   await page.getByRole('button', { name: 'Shrani kontakt' }).click();
@@ -282,7 +282,7 @@ test('FR-005-13: urednik z odprtim obrazcem kontakta, ki ga rollback spremeni, o
   const janez = await createContactViaApi(page, groupId, {
     firstName: 'Janez',
     lastName: 'Novak',
-    phone: '01 111 111',
+    phone: '01 234 5678',
   });
   const editor = await otherUser(browser, page, 'Eva Urednik');
   setRole(groupId, editor.user.email, 'EDITOR');

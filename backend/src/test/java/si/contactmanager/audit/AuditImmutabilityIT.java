@@ -23,7 +23,7 @@ class AuditImmutabilityIT extends AuditApiTest {
     @EnumSource(Who.class)
     void changingOrDeletingAnEntryIsMethodNotAllowedForEveryRoleAndNonMembers(Who who) throws Exception {
         Scenario s = scenario();
-        create(s, Who.EDITOR, contactInput("Janez", "Novak", "01 234 567"));
+        create(s, Who.EDITOR, contactInput("Janez", "Novak", "+38690234567"));
         UUID entry = (UUID) audit.entries(s.group()).get(0).get("id");
         List<Map<String, Object>> changesBefore = audit.changes(entry);
 
@@ -45,7 +45,7 @@ class AuditImmutabilityIT extends AuditApiTest {
     @ValueSource(strings = {"PUT", "PATCH", "DELETE"})
     void changingAnEntryWithoutATokenIsUnauthenticated(String method) throws Exception {
         Scenario s = scenario();
-        create(s, Who.EDITOR, contactInput("Janez", "Novak", "01 234 567"));
+        create(s, Who.EDITOR, contactInput("Janez", "Novak", "+38690234567"));
         UUID entry = (UUID) audit.entries(s.group()).get(0).get("id");
 
         HttpResponse<String> response = send(method, entryPath(s.group(), entry), null);
@@ -58,7 +58,7 @@ class AuditImmutabilityIT extends AuditApiTest {
     @Test
     void theDatabaseRejectsUpdatesOfEntriesAndChanges() throws Exception {
         Scenario s = scenario();
-        create(s, Who.EDITOR, contactInput("Janez", "Novak", "01 234 567"));
+        create(s, Who.EDITOR, contactInput("Janez", "Novak", "+38690234567"));
         UUID entry = (UUID) audit.entries(s.group()).get(0).get("id");
         List<Map<String, Object>> changesBefore = audit.changes(entry);
         Map<String, Object> entryBefore = audit.entries(s.group()).get(0);
@@ -81,9 +81,9 @@ class AuditImmutabilityIT extends AuditApiTest {
     void deletingTheGroupDeletesItsTrailAndLeavesOtherGroupsAlone() throws Exception {
         Scenario s = scenario();
         UUID doomed = groups.createGroup(s.id(Who.OWNER), "Skupina za izbris");
-        create(s, Who.EDITOR, contactInput("Drug", "Kontakt", "01 000 000"));
-        post(contactsPath(doomed), s.token(Who.OWNER), body(contactInput("Janez", "Novak", "01 234 567")));
-        post(contactsPath(doomed), s.token(Who.OWNER), body(contactInput("Ana", "Prva", "01 111 111")));
+        create(s, Who.EDITOR, contactInput("Drug", "Kontakt", "+38690000000"));
+        post(contactsPath(doomed), s.token(Who.OWNER), body(contactInput("Janez", "Novak", "+38690234567")));
+        post(contactsPath(doomed), s.token(Who.OWNER), body(contactInput("Ana", "Prva", "+38690111111")));
         UUID doomedEntry = (UUID) audit.entries(doomed).get(0).get("id");
         assertThat(audit.count(doomed)).isEqualTo(2);
         assertThat(audit.latestEntryId(doomed)).isNotNull();

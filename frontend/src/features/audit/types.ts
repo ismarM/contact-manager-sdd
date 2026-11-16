@@ -1,3 +1,4 @@
+import type { Address, AttributeType } from '../attributes/types';
 import type { UserRef } from '../groups/types';
 
 // Oblike odgovorov API revizijske sledi (specs/005-revizijska-sled/contracts/openapi.yaml).
@@ -11,6 +12,7 @@ export const AUDIT_ACTIONS = [
   'ROLLBACK',
   'RESTORE',
   'IMPORT',
+  'ATTRIBUTE_TYPE',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
@@ -44,6 +46,10 @@ export interface AuditEntry {
   target: { entryId: string; createdAt: string } | null;
   /** `ROLLBACK` na *Začetno stanje*, `RESTORE` na izhodiščno različico. */
   targetInitial: boolean;
+  /** `ATTRIBUTE_TYPE` (016): ključ in tipa pred/po; pri drugih vrstah odsotni. */
+  attributeKey?: string;
+  typeBefore?: AttributeType;
+  typeAfter?: AttributeType;
 }
 
 export interface AuditPage {
@@ -70,7 +76,15 @@ export type ChangeFieldName =
   | 'ATTRIBUTE'
   | 'TAGS';
 
-export type ChangeValue = string | string[] | null;
+/** Vrednost atributa v spremembi (016, FR-016-26): tip ključa ob posnetku in besedilo ali deli naslova. */
+export interface AttributeChangeValue {
+  type: AttributeType;
+  value?: string;
+  parts?: Address;
+}
+
+/** Besedilo, seznam značk, deli naslova (`ADDRESS` razčlenjen), vrednost atributa ali prazno. */
+export type ChangeValue = string | string[] | Address | AttributeChangeValue | null;
 
 export interface ChangeField {
   field: ChangeFieldName;
