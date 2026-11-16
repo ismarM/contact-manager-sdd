@@ -305,7 +305,7 @@ public final class ContactInputParser {
      * {@code region}, {@code country}; manjkajoč ali {@code null} = {@code null}. Neznano polje je
      * {@code UNKNOWN_FIELD}, ne-niz {@code INVALID_VALUE}. Meje in normalizacijo preveri {@link TypedValues}.
      */
-    private static Address parts(JsonNode node, String field, List<FieldError> errors) {
+    static Address parts(JsonNode node, String field, List<FieldError> errors) {
         if (node == null || node.isNull()) {
             return null;
         }

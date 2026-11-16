@@ -35,7 +35,7 @@ public final class BulkInputParser {
     private static final Set<String> DELETE_FIELDS = Set.of("contactIds");
     private static final Set<String> CHECK_FIELDS = Set.of("contactIds", "queries");
     private static final Set<String> QUERY_FIELDS = Set.of("q", "f", "tag", "contactIds", "excludedIds");
-    private static final Set<String> ATTRIBUTE_FIELDS = Set.of("field", "key", "value", "type");
+    private static final Set<String> ATTRIBUTE_FIELDS = Set.of("field", "key", "value", "type", "parts");
 
     /** Rezultat: {@code value} je {@code null} ob kateri koli napaki. */
     public record Parsed<T>(T value, List<FieldError> errors) {
@@ -305,18 +305,36 @@ public final class BulkInputParser {
             if (field != null && field != Field.CUSTOM && !used.add(field.name())) {
                 errors.add(new FieldError(prefix + ".field", "DUPLICATE"));
             }
-            String value = value(row.get("value"), field, prefix, errors);
+            Address parts = null;
+            String value;
+            boolean hasParts = row.get("parts") != null && !row.get("parts").isNull();
+            if (hasParts) {
+                // Deli naslova (016, FR-016-06): samo pri naslovu; vrednost ni dovoljena hkrati z deli.
+                if (field != Field.ADDRESS && field != Field.CUSTOM) {
+                    errors.add(new FieldError(prefix + ".parts", "INVALID_VALUE"));
+                }
+                if (row.get("value") != null && !row.get("value").isNull()) {
+                    errors.add(new FieldError(prefix + ".value", "INVALID_VALUE"));
+                }
+                parts = ContactInputParser.parts(row.get("parts"), prefix + ".parts", errors);
+                value = "";
+            } else {
+                value = value(row.get("value"), field, prefix, errors);
+            }
             AttributeType type = type(row.get("type"), field, prefix, errors);
+            if (hasParts && type != null && type != AttributeType.ADDRESS) {
+                errors.add(new FieldError(prefix + ".type", "INVALID_VALUE"));
+            }
             // Nova rezervirana imena (FR-013-08): nastavitev je zavrnjena, odstranitev (prazna vrednost) ostane mogoča.
             if (field == Field.CUSTOM
                     && key != null
                     && value != null
-                    && !value.isEmpty()
+                    && (!value.isEmpty() || hasParts)
                     && AttributeKeys.NEW_RESERVED.contains(AttributeKeys.reservedForm(key))) {
                 errors.add(new FieldError(prefix + ".key", "RESERVED_KEY"));
             }
-            if (field != null && value != null) {
-                result.add(new AttributeSet(field, field == Field.CUSTOM ? key : null, value, type));
+            if (field != null && value != null && (!hasParts || parts != null)) {
+                result.add(new AttributeSet(field, field == Field.CUSTOM ? key : null, value, type, parts));
             }
         }
         return List.copyOf(result);

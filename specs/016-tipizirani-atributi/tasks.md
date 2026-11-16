@@ -124,6 +124,10 @@ description: "Tasks for 016-tipizirani-atributi (po zgodbah, testi znotraj vsake
 - [x] T062 — regresija: obstoječi testi 004, 005, 009–015 (vključno `ContactHistoryIT`, uvoz/izvoz, CardDAV) zeleni brez oslabitve; spremenjene obstoječe teste (npr. telefon po standardu, oblika `Attribute`) z razlogom zabeleži za opis PR
 - [x] T063 — `quickstart.md` preveri po izvedbi; `./verify.sh quick`, `backend` in E2E datoteke funkcionalnosti (`tipizirani-atributi.spec.ts`, `--project=w360 --project=w1280`) zeleni; `git fetch`: `V13` in `audit_entry_action_check` nista v konfliktu z `main`
 
+## Phase 10: Convergence
+
+- [x] T064 [US1] FR-016-06 — `BulkInputParser`/`BulkEditInput.AttributeSet`/`BulkService`: pri `field=address` in `custom` s tipom *Naslov* sprejmi `parts` (po delih, enaka validacija in normalizacija kot `ContactInputParser`; `value` in `parts` hkrati sta neveljavna); FE `BulkEditDialog` brez spremembe uporabniškega vedenja, če UI `parts` ne ponuja (potem le API); IT `BulkTypedAttributeIT` dopolni (naslov po delih, neveljavni del → celotna operacija 400) per FR-016-06 (partial)
+
 ## Dependencies & Execution Order
 
 - Setup → Foundational (T004 → T005 → T006 → T007; T008, T009 vzporedno po T005) → zgodbe.

@@ -148,7 +148,8 @@ class CanonicalForms {
         int index = 0;
         for (AttributeSet set : edit.attributes()) {
             if (set.field() == BulkEditInput.Field.CUSTOM) {
-                sets.add(new AttributeSet(set.field(), canonical.get(index++).key(), set.value(), set.type()));
+                sets.add(new AttributeSet(
+                        set.field(), canonical.get(index++).key(), set.value(), set.type(), set.parts()));
             } else {
                 sets.add(set);
             }

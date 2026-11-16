@@ -129,4 +129,128 @@ class BulkTypedAttributeIT extends BulkApiTest {
                 .containsExactly(Map.of("field", "attributes[0].type", "code", "INVALID_VALUE"));
         assertThat(keyRows(s.group())).isZero();
     }
+
+    private static Map<String, Object> partsSet(String field, String key, Map<String, Object> parts) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("field", field);
+        if (key != null) {
+            row.put("key", key);
+        }
+        row.put("parts", parts);
+        return row;
+    }
+
+    private String addressPartsOf(UUID id) {
+        return jdbc.queryForObject("select address_parts::text from contact where id = ?", String.class, id);
+    }
+
+    @Test
+    void theAddressIsSetByPartsAndNormalized() throws Exception {
+        Scenario s = scenario();
+        List<UUID> ids = contacts.insertMany(s.group(), s.id(Who.OWNER), 2);
+
+        HttpResponse<String> response = bulkUpdate(
+                s.token(Who.EDITOR),
+                s.group(),
+                request(
+                        ids,
+                        "attributes",
+                        List.of(partsSet(
+                                "address",
+                                null,
+                                Map.of(
+                                        "street",
+                                        "  Trg  1 ",
+                                        "postalCode",
+                                        "1000",
+                                        "city",
+                                        "Ljubljana",
+                                        "country",
+                                        "si")))));
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        for (UUID id : ids) {
+            assertThat(addressPartsOf(id)).contains("\"street\": \"Trg 1\"").contains("\"country\": \"SI\"");
+            assertThat(jdbc.queryForObject("select address from contact where id = ?", String.class, id))
+                    .isNull();
+        }
+    }
+
+    @Test
+    void anAddressAttributeIsSetByParts() throws Exception {
+        Scenario s = scenario();
+        List<UUID> ids = contacts.insertMany(s.group(), s.id(Who.OWNER), 2);
+
+        HttpResponse<String> response = bulkUpdate(
+                s.token(Who.EDITOR),
+                s.group(),
+                request(
+                        ids,
+                        "attributes",
+                        List.of(partsSet("custom", "Delo", Map.of("street", "Cesta 2", "city", "Maribor")))));
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        for (UUID id : ids) {
+            assertThat(jdbc.queryForObject(
+                            "select count(*) from contact_attribute where contact_id = ? and parts is not null",
+                            Integer.class,
+                            id))
+                    .isEqualTo(1);
+        }
+        assertThat(jdbc.queryForObject(
+                        "select type from attribute_key where group_id = ? and key_norm = 'delo'",
+                        String.class,
+                        s.group()))
+                .isEqualTo("ADDRESS");
+    }
+
+    @Test
+    void anInvalidPartRejectsTheWholeOperation() throws Exception {
+        Scenario s = scenario();
+        List<UUID> ids = contacts.insertMany(s.group(), s.id(Who.OWNER), 2);
+
+        HttpResponse<String> response = bulkUpdate(
+                s.token(Who.EDITOR),
+                s.group(),
+                request(ids, "attributes", List.of(partsSet("address", null, Map.of("postalCode", "1000")))));
+
+        assertThat(response.statusCode()).isEqualTo(400);
+        assertThat(asObjects(
+                        asObjects(json(response.body()).get("contacts")).get(0).get("errors")))
+                .containsExactly(Map.of("field", "attributes[0].parts.street", "code", "REQUIRED"));
+        for (UUID id : ids) {
+            assertThat(addressPartsOf(id)).isNull();
+        }
+        assertThat(audit.count(s.group())).isZero();
+    }
+
+    @Test
+    void valueAndPartsTogetherAreRefused() throws Exception {
+        Scenario s = scenario();
+        List<UUID> ids = contacts.insertMany(s.group(), s.id(Who.OWNER), 1);
+        Map<String, Object> row = new LinkedHashMap<>(partsSet("address", null, Map.of("street", "Trg 1")));
+        row.put("value", "Trg 1");
+
+        HttpResponse<String> response =
+                bulkUpdate(s.token(Who.EDITOR), s.group(), request(ids, "attributes", List.of(row)));
+
+        assertThat(response.statusCode()).isEqualTo(400);
+        assertThat(asObjects(json(response.body()).get("errors")))
+                .containsExactly(Map.of("field", "attributes[0].value", "code", "INVALID_VALUE"));
+    }
+
+    @Test
+    void editingOtherFieldsKeepsTheStructuredAddress() throws Exception {
+        Scenario s = scenario();
+        List<UUID> ids = contacts.insertMany(s.group(), s.id(Who.OWNER), 1);
+        jdbc.update(
+                "update contact set address = null, address_parts = '{\"street\":\"Trg 1\",\"city\":\"Celje\"}'::jsonb where id = ?",
+                ids.get(0));
+
+        HttpResponse<String> response =
+                bulkUpdate(s.token(Who.EDITOR), s.group(), request(ids, "addTags", List.of("novo")));
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(addressPartsOf(ids.get(0))).contains("Trg 1").contains("Celje");
+    }
 }

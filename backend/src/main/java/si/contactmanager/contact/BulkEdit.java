@@ -43,6 +43,7 @@ public final class BulkEdit {
         }
 
         String address = before.address();
+        Address addressParts = before.addressParts();
         String email = before.email();
         String phone = before.phone();
         String company = before.company();
@@ -51,7 +52,11 @@ public final class BulkEdit {
         List<Attribute> attributes = new ArrayList<>(before.attributes());
         for (AttributeSet set : edit.attributes()) {
             switch (set.field()) {
-                case ADDRESS -> address = emptyToNull(set.value());
+                case ADDRESS -> {
+                    // Natanko ena oblika naslova (016): besedilo ali deli.
+                    address = emptyToNull(set.value());
+                    addressParts = set.parts() != null ? normalizedParts(set.parts()) : null;
+                }
                 case EMAIL -> email = emptyToNull(set.value());
                 case PHONE -> phone = emptyToNull(set.value());
                 case COMPANY -> company = emptyToNull(set.value());
@@ -63,6 +68,7 @@ public final class BulkEdit {
                 before.firstName(),
                 before.lastName(),
                 address,
+                addressParts,
                 email,
                 phone,
                 company,
@@ -80,6 +86,7 @@ public final class BulkEdit {
         return !(Objects.equals(before.firstName(), after.firstName())
                 && Objects.equals(before.lastName(), after.lastName())
                 && Objects.equals(before.address(), after.address())
+                && Objects.equals(before.addressParts(), after.addressParts())
                 && Objects.equals(before.email(), after.email())
                 && Objects.equals(before.phone(), after.phone())
                 && Objects.equals(before.company(), after.company())
@@ -121,6 +128,13 @@ public final class BulkEdit {
         String country = finalCountry(before, edit);
         for (int i = 0; i < edit.attributes().size(); i++) {
             AttributeSet set = edit.attributes().get(i);
+            if (set.parts() != null) {
+                for (FieldError error :
+                        TypedValues.normalizeAddress(set.parts()).errors()) {
+                    errors.add(new FieldError("attributes[" + i + "].parts." + error.field(), error.code()));
+                }
+                continue;
+            }
             if (set.field() != BulkEditInput.Field.CUSTOM || set.value().isEmpty()) {
                 continue;
             }
@@ -133,6 +147,12 @@ public final class BulkEdit {
         return errors;
     }
 
+    /** Normalizirani deli naslova; neveljavni ostanejo dobesedni (napako vrne {@link #typedErrors}). */
+    private static Address normalizedParts(Address parts) {
+        TypedValues.AddressResult result = TypedValues.normalizeAddress(parts);
+        return result.valid() ? result.address() : parts;
+    }
+
     private static String emptyToNull(String value) {
         return value == null || value.isEmpty() ? null : value;
     }
@@ -141,6 +161,19 @@ public final class BulkEdit {
     private static void setCustom(
             List<Attribute> attributes, AttributeSet set, java.util.Map<String, AttributeType> types, String country) {
         String normalized = ContactInputParser.normalize(set.key());
+        if (set.parts() != null) {
+            Attribute written = new Attribute(set.key(), AttributeType.ADDRESS, null, normalizedParts(set.parts()));
+            for (int i = 0; i < attributes.size(); i++) {
+                if (ContactInputParser.normalize(attributes.get(i).key()).equals(normalized)) {
+                    if (!written.parts().equals(attributes.get(i).parts())) {
+                        attributes.set(i, written);
+                    }
+                    return;
+                }
+            }
+            attributes.add(written);
+            return;
+        }
         for (int i = 0; i < attributes.size(); i++) {
             if (ContactInputParser.normalize(attributes.get(i).key()).equals(normalized)) {
                 if (set.value().isEmpty()) {

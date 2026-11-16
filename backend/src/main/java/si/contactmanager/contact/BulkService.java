@@ -204,13 +204,14 @@ class BulkService {
         List<FieldError> errors = new ArrayList<>();
         for (int i = 0; i < edit.attributes().size(); i++) {
             BulkEditInput.AttributeSet set = edit.attributes().get(i);
-            if (set.field() != BulkEditInput.Field.CUSTOM || set.value().isEmpty()) {
+            if (set.field() != BulkEditInput.Field.CUSTOM || set.removal()) {
                 continue;
             }
             String norm = ContactInputParser.normalize(set.key());
+            AttributeType requested = set.parts() != null ? AttributeType.ADDRESS : set.type();
             AttributeType effective =
-                    types.computeIfAbsent(norm, n -> typedAttributes.effective(group, n, set.type(), true));
-            if (set.type() != null && set.type() != effective) {
+                    types.computeIfAbsent(norm, n -> typedAttributes.effective(group, n, requested, true));
+            if (requested != null && requested != effective) {
                 errors.add(new FieldError("attributes[" + i + "].type", "INVALID_VALUE"));
             }
         }
