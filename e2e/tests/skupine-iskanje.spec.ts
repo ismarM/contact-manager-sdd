@@ -53,10 +53,12 @@ test('FR-017-14 FR-017-15 FR-017-16 FR-017-17: iskanje, filter vlog, arhivirane,
   await expect(main.getByRole('link', { name: 'Skupina 058' })).toBeVisible();
 
   // Filter vlog brez zadetkov: prazno stanje, Počisti iskanje vrne vse.
-  await main
+  // Stanje je v URL (react-router ga posodobi asinhrono), zato click + expect namesto check().
+  const viewer = main
     .getByRole('group', { name: 'Vloga' })
-    .getByRole('checkbox', { name: 'Bralec' })
-    .check();
+    .getByRole('checkbox', { name: 'Bralec' });
+  await viewer.click();
+  await expect(viewer).toBeChecked();
   await expect(main.getByRole('heading', { level: 2, name: 'Ni zadetkov.' })).toBeVisible();
   await expectNoAxeViolations(page);
   await main.getByRole('link', { name: 'Počisti iskanje' }).click();
@@ -64,7 +66,9 @@ test('FR-017-14 FR-017-15 FR-017-16 FR-017-17: iskanje, filter vlog, arhivirane,
   await expect(main.getByRole('searchbox', { name: 'Išči skupine' })).toHaveValue('');
 
   // Stanje Arhivirane: ista iskalna polja (brez razlike šumnikov), povezava na stran Arhivirane skupine ostane.
-  await main.getByRole('radio', { name: 'Arhivirane' }).check();
+  const archivedState = main.getByRole('radio', { name: 'Arhivirane' });
+  await archivedState.click();
+  await expect(archivedState).toBeChecked();
   await expect(main.getByRole('link', { name: 'Šolski krožek' })).toBeVisible();
   await main.getByRole('searchbox', { name: 'Išči skupine' }).fill('SOLSKI');
   await expect(main.getByRole('link', { name: 'Šolski krožek' })).toBeVisible();
