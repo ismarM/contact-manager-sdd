@@ -135,6 +135,21 @@ class GroupService {
                 groups.countArchived(user), page, size, groups.pageArchived(user, collation, size, page));
     }
 
+    /**
+     * Skupine uporabnika v obsegu API ključa (019, FR-019-06): {@code scope == null} pomeni vse skupine, ki so
+     * uporabniku dostopne ob zahtevi (tudi pozneje ustvarjene); odstranjen član skupine ne vidi.
+     */
+    ApiGroupPage listForApi(long user, java.util.Collection<UUID> scope, int page, int size) {
+        return new ApiGroupPage(
+                groups.countForApi(user, scope),
+                page,
+                size,
+                groups.pageForApi(user, scope, Collation.EN, size, page).stream()
+                        .map(row -> new ApiGroup(
+                                row.id(), row.title(), row.description(), row.color(), row.archived(), row.role()))
+                        .toList());
+    }
+
     /** Razdelki po vlogi (FR-002-04, FR-002-06): brez {@code role} prva stran vsakega nepraznega razdelka. */
     GroupSections list(long user, Role role, int page, int size, Collation collation) {
         Map<Role, Long> counts = groups.countByRole(user);
