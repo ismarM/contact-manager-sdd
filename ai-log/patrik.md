@@ -364,19 +364,36 @@ now that you are up to date with the new rules continue with the next steps and 
 
 ## Seja 10 — 014-uvoz-izvoz
 
-- **Datum:** 2026-11-15
+- **Datum:** 2026-11-15 – 2026-11-16
 - **Razvijalec:** Patrik
 - **Agent / model:** Claude Code, `/rollout`: nadzornik in delavec `izvajalec` (`claude-opus-5-5`); podagent `pregled-testov` (enkrat, zagnal ga je nadzornik).
-- **Veja / commiti:** `uvoz-izvoz` (iz `main` `83358f1`): `17da3b2` (spec), `0a1ece9` (plan in naloge), `c91e95d` (popravki plana), implementacija `2856eda` … `ce602f0`, popravki pregleda `5dae36d`; en PR za celotno 014.
-- **Poraba žetonov:** doda nadzornik.
+- **Veja / commiti:** `uvoz-izvoz` (iz `main` `83358f1`): `17da3b2` (spec), `0a1ece9` (plan in naloge), `c91e95d` (popravki plana), implementacija `2856eda` … `ce602f0`, popravki pregleda `5dae36d`, CardDAV 404 `4dcac5d`, uskladitev z 015 `2173127` in `199d651`, popravek testa 015 `a46e7d8`; en PR za celotno 014 (#21, združen kot `cd15382`).
+- **Poraba žetonov:** 238 563 935 (`token-report-patrik.md`, seja 10; skupaj 1.–10. seja 933 536 708)
 
 | # | Vrsta | Povzetek navodila / odgovora | Faza | Rezultat / spremenjene datoteke | Preverjanje | Težava (kategorija) | Status |
 |---|---|---|---|---|---|---|---|
-| 1 | nadzornik | NAČRT: plan → tasks → analyze z odgovori clarify Q1–Q3 in izbranimi knjižnicami | plan, tasks, analyze | `plan.md`, `research.md` (R-01 … R-10), `data-model.md` (V11), `contracts/openapi.yaml`, `contracts/carddav.md`, `quickstart.md`, `tasks.md` (27 nalog); analyze 0 CRITICAL, 3 HIGH odpravljene | pregled artefaktov | – (none) | accepted |
+| 1 | nadzornik | NAČRT: plan → tasks → analyze z odgovori clarify Q1–Q3 in izbranimi knjižnicami | plan, tasks, analyze | `plan.md`, `research.md` (R-01 … R-10), `data-model.md` (V11, ob uskladitvi z 015 preimenovana v V12), `contracts/openapi.yaml`, `contracts/carddav.md`, `quickstart.md`, `tasks.md` (27 nalog); analyze 0 CRITICAL, 3 HIGH odpravljene | pregled artefaktov | – (none) | accepted |
 | 2 | nadzornik | plan odobren s popravki 1–4 (potrditev uvoza vse preveri znova, skupne vizitke za Java in TS, jezik in verzija skupine v žetonih CardDAV, design.md 8.10); dovoljene datoteke zunaj obsega; vrsta vnosa `IMPORT`; HTTPS samo v dokumentaciji | implement | zaledje (uvoz, vCard, gesla za aplikacijo, CardDAV, V11), frontend (stran uvoza, izvoz vCard, koda QR, gesla), E2E, zapisa odločitev, `feature-map.md` | `quick` 237 s, `backend` 513 s zelena | `ZipInputStream` ne bere xlsx iz fastexcel (zamenjan z `ZipFile`); Spring brez izrecne metode ne preslika OPTIONS; obstoječi test je padal na glavi `Connection` (agent-error, tool-or-environment) | accepted |
 | 3 | agent | `/speckit-converge` (2 kroga) | converge | krog 1: T028 (`getByText` v novih testih → vloge), T029 (predogled pokaže vrednosti vrstice); krog 2: Converged | `quick` zelen | kršitev §3.3 v novih testih (agent-error) | accepted |
 | 4 | podagent | `pregled-testov` (svetovalno): 4 resne, 5 manjših ugotovitev | popravki | sočasnost in atomarnost uvoza, matrika CardDAV (REPORT, HEAD, trajno arhivirana skupina, 404), XXE v REPORT in xlsx (produkcijski popravek: `XlsxGuard` zavrne `<!DOCTYPE`), matrika izvoza vCard, VCF v matriki uvoza, vzorec vCard samo ročno | `backend`, `quick` | vrzeli v testih (agent-error) | accepted |
+| 5 | delavec | `./verify.sh backend` po zagonu Dockerja, PR #21 | PR | `4dcac5d`: PROPPATCH in DELETE na tujem imeniku vrneta 404 (prej 403 – razkritje obstoja); PR #21 z opisom (spremenjeni obstoječi testi, odprte ugotovitve) | `backend`, `quick` | napaka izolacije CardDAV (agent-error) | accepted |
+| 6 | nadzornik | CI krog 1: e2e ✗, PR v konfliktu (v `main` združena 015, PR #20) → uskladitev | uskladitev, CI | merge `origin/main`; migracija 014 → `V12__uvoz_izvoz.sql`, CHECK dejanj kot unija (RESTORE, IMPORT); `feature-map.md`, prevodi, `ContactList`; stavek sledi IMPORT v 015; `CardDavImportRestoreIT`; e2e: drsni ovoj tabele predogleda brez fokusa (axe `scrollable-region-focusable`) → `role="region"`, `tabIndex=0` | `quick` lokalno, CI | sočasna funkcionalnost sodelavca, ista številka migracije (tool-or-environment); kršitev dostopnosti (agent-error) | accepted |
+| 7 | nadzornik | CI krog 2: `backend` ✗ (ContactHistoryIT, RestoreMigrationIT ×2); razvijalec zagnal Docker in dovolil branje PR #20 | CI | vzrok v testu 015: »neznana« vrsta je bila `IMPORT`, `finally` je CHECK ustvaril brez IMPORT in pustil bazo brez CHECK in sprožilca → `EXPORT` in CHECK po V12 (`a46e7d8`); V12 primerjana s PR #20 – omejitve 015 ostanejo | `backend` 541 s, `quick` 247 s lokalno | navzkrižje testov dveh funkcionalnosti v skupni bazi (agent-error) | accepted |
+| 8 | nadzornik | CI krog 3 zelen (`quick`, `backend`, `e2e`) → združitev PR #21 | združitev | `cd15382` v `main`, veja izbrisana | CI | – (none) | accepted |
+| 9 | razvijalec | dnevnik ai-log se commita neposredno v `main`, ne prek PR; izpolni `patrik.md` | zaključek | PR #22 zaprt; ta vnos in vrstice seje 10 v `token-report-patrik.md` | – | nadzornik je odprl ločen PR po navodilu ukaza /rollout (process) | accepted |
 
-**Težave seje:** tri prekinitve zaradi omejitve porabe (delo se je nadaljevalo po stanju veje); Docker Desktop se je med popravki ustavil (`backend` je bil ponovljen po ponovnem zagonu); `quick` je pod obremenitvijo občasno padel na časovnih omejitvah nespremenjenih testov FE (posamič so zeleni).
+**Povzetek seje 10**
+
+| Metrika | Rezultat |
+|---|---|
+| Sporočila razvijalca | `/speckit-specify …`, odgovori Q1 B, Q2 A, Q3 A, `/rollout 014`, posvet (en PR, knjižnice izbere nadzornik, pregled plana prepuščen nadzorniku, IMPORT, HTTPS v dokumentaciji), `continue` po omejitvah porabe, zagon Dockerja (2×), dovoljenje za branje PR #20, opozorilo na porabo konteksta, to navodilo |
+| Dodatni pozivi ali popravki navodil | 1 (ai-log neposredno v `main`) |
+| Potrjene napake agenta | CardDAV 403 namesto 404 za tuj imenik; XXE v xlsx (`XlsxGuard` brez zavrnitve `<!DOCTYPE`); `getByText` v novih testih; tabela predogleda brez fokusa (axe); test 015 v skupni bazi po uskladitvi |
+| Nejasne ali spremenjene zahteve | clarify Q1–Q3; posvet: en PR, knjižnice, IMPORT, HTTPS samo v dokumentaciji; popravki plana 1–4 |
+| Napake, odkrite z drugim agentom | analyze: 3 HIGH, 5 MEDIUM; converge: 2 nalogi; `pregled-testov`: 4 resne, 5 manjših (2 neodpravljeni: lažna glava zip, komentar `Connection`) |
+| Preverjanje s testi | lokalno `quick` in `backend`; CI: krog 1 e2e ✗, krog 2 backend ✗, krog 3 vse zeleno |
+| Odprto za razvijalca | ročni preizkus dostopnosti (design.md §10); preizkus CardDAV z iOS, DAVx5 in Thunderbird prek HTTPS; branje kode QR na pravih telefonih |
+
+**Težave seje:** tri prekinitve zaradi omejitve porabe (delo se je nadaljevalo po stanju veje); Docker Desktop se je dvakrat ustavil (`backend` ponovljen po ponovnem zagonu); konflikt z 015 (ista številka migracije V11); `quick` je pod obremenitvijo občasno padel na časovnih omejitvah nespremenjenih testov FE (posamič so zeleni).
 
 **Predpostavke:** uvoz brez stanja na strežniku (razčleni → predogled → potrdi); razčlenitev in predogled v arhivirani skupini vrneta 409; preklic gesla izbriše vrstico; koda QR ima popravljanje napak M in največ različico 25; `format` in `language` uvoza gresta v poizvedbo.
