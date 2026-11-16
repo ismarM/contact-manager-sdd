@@ -131,7 +131,10 @@
       "cancel": "Prekliči",
       "confirm": "Izbriši račun",
       "failed": "Računa ni bilo mogoče izbrisati. Poskusi znova.",
-      "ownsActiveGroups": "Račun ne more biti izbrisan, ker si medtem postal lastnik nearhivirane skupine. Prenesi lastništvo ali arhiviraj te skupine."
+      "ownsActiveGroups": "Račun ne more biti izbrisan, ker si medtem postal lastnik nearhivirane skupine. Prenesi lastništvo ali arhiviraj te skupine.",
+      "passwordLabel": "Za potrditev vpiši svoje geslo",
+      "reauthGoogle": "Pred izbrisom se boš znova prijavil z Googlom.",
+      "reauthRequired": "Za izbris se moraš znova prijaviti. Poskusi znova."
     },
     "appPasswords": {
       "heading": "Gesla za aplikacijo (CardDAV)",

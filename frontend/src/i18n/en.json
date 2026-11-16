@@ -131,7 +131,10 @@
       "cancel": "Cancel",
       "confirm": "Delete account",
       "failed": "Your account could not be deleted. Please try again.",
-      "ownsActiveGroups": "Your account cannot be deleted because you have become the owner of an active group. Transfer ownership or archive these groups."
+      "ownsActiveGroups": "Your account cannot be deleted because you have become the owner of an active group. Transfer ownership or archive these groups.",
+      "passwordLabel": "Enter your password to confirm",
+      "reauthGoogle": "Before deleting, you will sign in again with Google.",
+      "reauthRequired": "You need to sign in again to delete the account. Try again."
     },
     "appPasswords": {
       "heading": "App passwords (CardDAV)",

@@ -17,6 +17,7 @@ import {
   secondaryButton,
   textInput,
 } from '../../shared/ui/styles';
+import { authErrorKey } from '../auth/authErrorKey';
 import { useAuth } from '../auth/authContext';
 import { useMyDataApi } from './api';
 import { deletionError } from './accountMessages';
@@ -37,7 +38,12 @@ export interface DeleteAccountDialogProps {
 export function DeleteAccountDialog({ onDeleted, onBlocked }: DeleteAccountDialogProps) {
   const { t } = useTranslation();
   const api = useMyDataApi();
-  const { profile } = useAuth();
+  const { profile, user, reauthenticate } = useAuth();
+  const usesPassword = user?.providers.includes('password') ?? false;
+  const passwordId = useId();
+  const passwordErrorId = useId();
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const inputId = useId();
   const errorId = useId();
   const [open, setOpen] = useState(false);
@@ -53,6 +59,8 @@ export function DeleteAccountDialog({ onDeleted, onBlocked }: DeleteAccountDialo
     if (next) {
       finished.current = false;
       setTyped('');
+      setPassword('');
+      setPasswordError(null);
       setMismatch(false);
       setFailure(null);
     }
@@ -68,14 +76,32 @@ export function DeleteAccountDialog({ onDeleted, onBlocked }: DeleteAccountDialo
       return;
     }
     setMismatch(false);
+    setPasswordError(null);
+    if (usesPassword && !password) {
+      setPasswordError(t('auth.form.errors.passwordRequired'));
+      return;
+    }
     setBusy(true);
     try {
+      // Ponovna avtentikacija (FR-017-12) pred izbrisom; pojavno okno Googla se odpre iz tega klika.
+      try {
+        await reauthenticate(usesPassword ? password : undefined);
+      } catch (error) {
+        const key = authErrorKey(error);
+        if (key === 'auth.error.invalidCredentials') setPasswordError(t(key));
+        else setFailure(t(key));
+        return;
+      }
       const outcome = await api.deleteAccount(email);
       finished.current = true;
       setOpen(false);
       onDeleted(outcome);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) return;
+      if (error instanceof ApiError && error.code === 'REAUTHENTICATION_REQUIRED') {
+        setFailure(t('account.delete.reauthRequired'));
+        return;
+      }
       const known = deletionError(error);
       if (known.kind === 'mismatch') {
         setMismatch(true);
@@ -135,6 +161,31 @@ export function DeleteAccountDialog({ onDeleted, onBlocked }: DeleteAccountDialo
               </p>
             )}
           </div>
+          {usesPassword ? (
+            <div className="flex flex-col gap-1">
+              <label htmlFor={passwordId} className="font-bold">
+                {t('account.delete.passwordLabel')}
+              </label>
+              <input
+                id={passwordId}
+                type="password"
+                value={password}
+                autoComplete="current-password"
+                aria-required="true"
+                aria-invalid={passwordError !== null}
+                aria-describedby={passwordError ? passwordErrorId : undefined}
+                onChange={(event) => setPassword(event.target.value)}
+                className={textInput}
+              />
+              {passwordError && (
+                <p id={passwordErrorId} className={fieldError}>
+                  {passwordError}
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-muted-foreground">{t('account.delete.reauthGoogle')}</p>
+          )}
           <div className="flex flex-wrap justify-end gap-3">
             <DialogClose ref={cancel} className={secondaryButton}>
               {t('account.delete.cancel')}
