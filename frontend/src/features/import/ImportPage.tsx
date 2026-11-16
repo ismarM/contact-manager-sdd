@@ -176,6 +176,7 @@ export function ImportPage() {
         firstName: candidate.firstName,
         lastName: candidate.lastName,
         address: candidate.address,
+        ...(candidate.addressParts ? { addressParts: candidate.addressParts } : {}),
         email: candidate.email,
         phone: candidate.phone,
         company: candidate.company,

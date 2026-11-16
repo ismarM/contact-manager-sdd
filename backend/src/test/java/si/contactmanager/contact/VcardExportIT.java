@@ -65,7 +65,8 @@ class VcardExportIT extends ImportApiTest {
     @Tag("SC-003")
     void anExportedFileImportsBackIntoIdenticalContacts() throws Exception {
         Scenario s = scenario();
-        UUID a = contacts.insert(s.group(), s.id(Who.OWNER), "Čeh", "Šuštar", "c@primer.si", "+386 1", "A\nB; c, d");
+        UUID a = contacts.insert(
+                s.group(), s.id(Who.OWNER), "Čeh", "Šuštar", "c@primer.si", "+38612345678", "A\nB; c, d");
         contacts.setCompanyAndCountry(a, "-Podjetje", "SI");
         for (int i = 0; i < 50; i++) {
             contacts.addAttribute(a, i, "Ključ " + i, i % 2 == 0 ? "=A" + i + ";\\x," : "+1 " + i);

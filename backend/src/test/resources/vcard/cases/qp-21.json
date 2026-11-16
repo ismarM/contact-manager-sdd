@@ -5,12 +5,13 @@
     {
       "firstName": "Črt",
       "lastName": "Šef",
-      "address": "Tržaška 5\n1000 Ljubljana",
+      "address": null,
+      "addressParts": { "street": "Tržaška 5", "postalCode": "1000", "city": "Ljubljana" },
       "email": "crt@primer.si",
       "phone": "041 222 333",
       "company": null,
       "countryText": "Slovenija",
-      "attributes": [{ "key": "Telefon 2", "value": "01 555 666" }],
+      "attributes": [{ "key": "Telefon 2", "type": "PHONE", "value": "01 555 666" }],
       "tags": []
     }
   ]

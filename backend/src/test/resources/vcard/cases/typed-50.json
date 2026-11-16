@@ -1,0 +1,34 @@
+{
+  "language": "sl",
+  "omitted": [],
+  "candidates": [
+    {
+      "firstName": "Ana",
+      "lastName": "Kos",
+      "address": null,
+      "addressParts": {
+        "street": "Trg 1",
+        "extra": "Vhod B",
+        "postalCode": "1000",
+        "city": "Ljubljana",
+        "region": "Osrednjeslovenska",
+        "country": "SI"
+      },
+      "email": null,
+      "phone": "+38641123456",
+      "company": null,
+      "countryText": "SI",
+      "attributes": [
+        { "key": "Služba", "type": "PHONE", "value": "+38612345678" },
+        { "key": "Pisarna", "type": "EMAIL", "value": "ana@delo.si" },
+        { "key": "Vikend", "type": "ADDRESS", "parts": { "street": "Gozdna 5", "city": "Bled" } },
+        { "key": "Dom", "type": "ADDRESS", "value": "Stara cesta 3, Kranj" },
+        { "key": "Splet", "type": "URL", "value": "https://primer.si" },
+        { "key": "Rojstvo", "type": "DATE", "value": "1990-05-17" },
+        { "key": "Opomba", "type": "NOTES", "value": "Prva\nDruga; tretja" },
+        { "key": "Vloga", "type": "OTHER", "value": "mentor" }
+      ],
+      "tags": []
+    }
+  ]
+}

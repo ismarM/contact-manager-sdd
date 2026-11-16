@@ -1,3 +1,4 @@
+import type { Address } from '../attributes/types';
 import type { Attribute } from '../contacts/types';
 import type { CardCandidate } from '../contacts/qr/vcardTypes';
 
@@ -65,6 +66,8 @@ export interface ImportContact {
   firstName: string | null;
   lastName: string | null;
   address: string | null;
+  /** 016: deli naslova iz vizitke (`ADR` po delih); `address` je tedaj `null`. */
+  addressParts?: Address | null;
   email: string | null;
   phone: string | null;
   company: string | null;

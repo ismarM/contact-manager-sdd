@@ -27,22 +27,6 @@ public record VcardContact(
         tags = List.copyOf(tags);
     }
 
-    /** Stanje brez razčlenjenega naslova (pred 016): {@code addressParts} je {@code null}. */
-    public VcardContact(
-            UUID id,
-            Instant updatedAt,
-            String firstName,
-            String lastName,
-            String address,
-            String email,
-            String phone,
-            String company,
-            String country,
-            List<Attribute> attributes,
-            List<String> tags) {
-        this(id, updatedAt, firstName, lastName, address, null, email, phone, company, country, attributes, tags);
-    }
-
     static VcardContact of(ContactDetail detail) {
         return new VcardContact(
                 detail.id(),

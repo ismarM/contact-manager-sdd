@@ -14,7 +14,7 @@ import tools.jackson.databind.json.JsonMapper;
  * Telesi {@code POST …/imports/preview} in {@code POST …/imports} (contracts/openapi.yaml). Potrditev ne zaupa
  * predogledu (research R-04): vsak kontakt gre skozi {@link ContactInputParser} (pravila 004/013; država samo kot
  * veljavna koda ISO, besedilo države je {@code UNKNOWN_FIELD}) in rezervirana imena; napake imajo predpono
- * {@code contacts[i].}.
+ * {@code contacts[i].}. Tipe ključev in vrednosti po tipu preveri {@link ImportService} (016, FR-016-24).
  */
 final class ImportInputParser {
 
@@ -25,7 +25,7 @@ final class ImportInputParser {
         VCF
     }
 
-    record Commit(Source source, List<ContactInput> contacts) {}
+    record Commit(Source source, List<ContactInput> contacts, List<List<ContactInputParser.AttributeExtra>> extras) {}
 
     private final JsonMapper json;
     private final ContactInputParser contacts;
@@ -66,6 +66,7 @@ final class ImportInputParser {
             throw new ValidationException(errors);
         }
         List<ContactInput> inputs = new ArrayList<>(nodes.size());
+        List<List<ContactInputParser.AttributeExtra>> extras = new ArrayList<>(nodes.size());
         for (int i = 0; i < nodes.size(); i++) {
             String prefix = "contacts[" + i + "].";
             ContactInputParser.Parsed parsed = contacts.parseNode(nodes.get(i), false);
@@ -77,16 +78,14 @@ final class ImportInputParser {
                         AttributeKeys.reservedErrors(parsed.input().attributes(), Set.of())) {
                     errors.add(new FieldError(prefix + error.field(), error.code()));
                 }
-                for (FieldError error : ContactInputParser.partsNotImported(parsed.input())) {
-                    errors.add(new FieldError(prefix + error.field(), error.code()));
-                }
                 inputs.add(parsed.input());
+                extras.add(parsed.extras());
             }
         }
         if (!errors.isEmpty()) {
             throw new ValidationException(errors);
         }
-        return new Commit(source, List.copyOf(inputs));
+        return new Commit(source, List.copyOf(inputs), List.copyOf(extras));
     }
 
     private JsonNode tree(String body) {

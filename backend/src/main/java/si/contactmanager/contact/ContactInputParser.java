@@ -280,23 +280,6 @@ public final class ContactInputParser {
         return List.copyOf(kept);
     }
 
-    /**
-     * Uvoz 014 še ne sprejme naslova po delih (tipi v uvozu so 016 US6, FR-016-24): {@code addressParts} in
-     * {@code attributes[i].parts} sta {@code UNKNOWN_FIELD} kot pred 016.
-     */
-    static List<FieldError> partsNotImported(ContactInput input) {
-        List<FieldError> errors = new ArrayList<>();
-        if (input.addressParts() != null) {
-            errors.add(new FieldError("addressParts", "UNKNOWN_FIELD"));
-        }
-        for (int i = 0; i < input.attributes().size(); i++) {
-            if (input.attributes().get(i).parts() != null) {
-                errors.add(new FieldError("attributes[" + i + "].parts", "UNKNOWN_FIELD"));
-            }
-        }
-        return errors;
-    }
-
     /** Ključ vrstice: obvezen, do 50 znakov, ne ime predefiniranega polja, edinstven ne glede na velikost črk. */
     private static void checkKey(String key, String prefix, Set<String> keys, List<FieldError> errors) {
         if (key == null) {

@@ -41,9 +41,53 @@ class TypedAttributes {
             List<Attribute> stored,
             String country,
             boolean write) {
+        return resolve(group, input, extras, stored, country, write, new HashMap<>());
+    }
+
+    /**
+     * Uvoz (FR-016-24): isti postopek za nove kontakte iz datoteke; tip ključa se razreši enkrat za vso datoteko (ključi
+     * v urejenem vrstnem redu {@code key_norm}, da sočasna uvoza ne zaideta v smrtni objem), prvi zahtevani tip
+     * novega ključa velja za vse vrstice, drugačen zahtevani tip je {@code INVALID_VALUE} na {@code attributes[i].type}.
+     * Rezultati so poravnani z {@code inputs}.
+     */
+    List<Resolution> resolveAll(
+            UUID group, List<ContactInput> inputs, List<List<AttributeExtra>> extras, boolean write) {
+        Map<String, AttributeType> wanted = new java.util.TreeMap<>();
+        for (int c = 0; c < inputs.size(); c++) {
+            List<Attribute> attributes = inputs.get(c).attributes();
+            for (int i = 0; i < attributes.size(); i++) {
+                AttributeExtra extra = i < extras.get(c).size() ? extras.get(c).get(i) : null;
+                AttributeType requested = extra != null ? extra.type() : null;
+                if (requested == null && attributes.get(i).parts() != null) {
+                    requested = AttributeType.ADDRESS;
+                }
+                String norm = ContactInputParser.normalize(attributes.get(i).key());
+                wanted.putIfAbsent(norm, null);
+                if (requested != null && wanted.get(norm) == null) {
+                    wanted.put(norm, requested);
+                }
+            }
+        }
+        Map<String, AttributeType> cache = new HashMap<>();
+        wanted.forEach((norm, type) -> cache.put(norm, effective(group, norm, type, write)));
+        List<Resolution> result = new ArrayList<>(inputs.size());
+        for (int c = 0; c < inputs.size(); c++) {
+            ContactInput input = inputs.get(c);
+            result.add(resolve(group, input.attributes(), extras.get(c), List.of(), input.country(), write, cache));
+        }
+        return List.copyOf(result);
+    }
+
+    private Resolution resolve(
+            UUID group,
+            List<Attribute> input,
+            List<AttributeExtra> extras,
+            List<Attribute> stored,
+            String country,
+            boolean write,
+            Map<String, AttributeType> cache) {
         List<Attribute> result = new ArrayList<>(input.size());
         List<FieldError> errors = new ArrayList<>();
-        Map<String, AttributeType> cache = new HashMap<>();
         for (int i = 0; i < input.size(); i++) {
             Attribute attribute = input.get(i);
             AttributeExtra extra = i < extras.size() ? extras.get(i) : null;

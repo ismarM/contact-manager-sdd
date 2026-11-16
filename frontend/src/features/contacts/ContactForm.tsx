@@ -146,9 +146,11 @@ function fromCandidate(candidate: CardCandidate): {
       company: candidate.company ?? '',
       // 016: naslov iz kode QR se razčleni v dele (nov nerazčlenjen naslov prek obrazca ni mogoč).
       address: '',
-      addressParts: candidate.address?.trim()
-        ? splitAddress(candidate.address, code)
-        : { ...EMPTY_ADDRESS },
+      addressParts: candidate.addressParts
+        ? draftOf(candidate.addressParts)
+        : candidate.address?.trim()
+          ? splitAddress(candidate.address, code)
+          : { ...EMPTY_ADDRESS },
       country: code,
       email: candidate.email ?? '',
       phone: candidate.phone ?? '',

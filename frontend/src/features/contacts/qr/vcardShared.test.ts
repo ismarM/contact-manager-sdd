@@ -20,14 +20,19 @@ const lf = (text: string) => text.replace(/\r\n/g, '\n');
 const contactFull = JSON.parse(shared('contact-full.json')) as CardCandidate;
 
 describe('skupne vizitke (FR-014-11, -12, -13)', () => {
-  it.each(['qp-21', 'phone-30', 'fn-only-40'])('%s se prebere kot v zaledju', (name) => {
-    const expected = JSON.parse(shared(`cases/${name}.json`)) as {
-      language: CardLanguage;
-      candidates: CardCandidate[];
-    };
+  it.each(['qp-21', 'phone-30', 'fn-only-40', 'typed-50'])(
+    '%s se prebere kot v zaledju',
+    (name) => {
+      const expected = JSON.parse(shared(`cases/${name}.json`)) as {
+        language: CardLanguage;
+        candidates: CardCandidate[];
+      };
 
-    expect(readVcards(shared(`cases/${name}.vcf`), expected.language)).toEqual(expected.candidates);
-  });
+      expect(readVcards(shared(`cases/${name}.vcf`), expected.language)).toEqual(
+        expected.candidates,
+      );
+    },
+  );
 
   it('pisalnik frontenda da svoj skupni vzorec', () => {
     const written = writeVcard({ ...contactFull, country: contactFull.countryText }, 'sl');

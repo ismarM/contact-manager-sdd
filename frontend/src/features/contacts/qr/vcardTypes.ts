@@ -1,3 +1,4 @@
+import type { Address, AttributeType } from '../../attributes/types';
 import type { Attribute } from '../types';
 
 // Kandidat iz vizitke (specs/014-uvoz-izvoz/data-model.md – ImportCandidate); enaka oblika kot v zaledju.
@@ -5,6 +6,8 @@ export interface CardCandidate {
   firstName: string | null;
   lastName: string | null;
   address: string | null;
+  /** 016: deli naslova (`ADR` po delih); `address` je tedaj `null`. */
+  addressParts?: Address | null;
   email: string | null;
   phone: string | null;
   company: string | null;
@@ -54,18 +57,28 @@ export class AttributeList {
   private readonly items: Attribute[] = [];
   private readonly keys = new Set<string>();
 
-  add(key: string | null, value: string | null): void {
-    if (key == null || value == null || value.trim() === '' || this.keys.has(key.toLowerCase()))
-      return;
+  /** Atribut z neobveznim tipom (016); `parts` (samo naslov) nadomesti besedilno vrednost. */
+  add(
+    key: string | null,
+    value: string | null,
+    type?: AttributeType,
+    parts?: Address | null,
+  ): void {
+    const empty = parts == null && (value == null || value.trim() === '');
+    if (key == null || empty || this.keys.has(key.toLowerCase())) return;
     this.keys.add(key.toLowerCase());
-    this.items.push({ key, value });
+    this.items.push({
+      key,
+      ...(type ? { type } : {}),
+      ...(parts ? { parts } : { value }),
+    } as Attribute);
   }
 
-  addNumbered(base: string, from: number, value: string | null): void {
+  addNumbered(base: string, from: number, value: string | null, type?: AttributeType): void {
     if (value == null || value.trim() === '') return;
     let n = from;
     while (this.keys.has(numbered(base, n).toLowerCase())) n++;
-    this.add(numbered(base, n), value);
+    this.add(numbered(base, n), value, type);
   }
 
   list(): Attribute[] {

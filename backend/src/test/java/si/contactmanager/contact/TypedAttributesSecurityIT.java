@@ -14,13 +14,14 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
-import si.contactmanager.contact.support.ContactApiTest;
+import si.contactmanager.contact.support.ImportApiTest;
 import si.contactmanager.support.FirebaseEmulatorContainer.SignedIn;
 import si.contactmanager.support.Http;
 import si.contactmanager.support.Tokens;
 
 /**
- * Matrika izolacije endpointov tipiziranih atributov (016; konstitucija III in §3.1; FR-016-01, -02, -05, -06):
+ * Matrika izolacije endpointov tipiziranih atributov (016; konstitucija III in §3.1; FR-016-01, -02, -05, -06, -24,
+ * -25; uvoz, izvoz in vizitka kontakta):
  * seznam ključev, sprememba tipa, ustvarjanje in urejanje kontakta s tipom, predlogi ključev s tipom in množično
  * nastavljanje atributa × akter × stanje skupine, nato vir druge skupine. Neprijavljen 401, nečlan 404 brez telesa,
  * bralec pri pisanju in predlogih 403, urednik in višje uspeh ali 409 {@code GROUP_ARCHIVED} (§2.2).
@@ -29,7 +30,9 @@ import si.contactmanager.support.Tokens;
 @Tag("FR-016-02")
 @Tag("FR-016-05")
 @Tag("FR-016-06")
-class TypedAttributesSecurityIT extends ContactApiTest {
+@Tag("FR-016-24")
+@Tag("FR-016-25")
+class TypedAttributesSecurityIT extends ImportApiTest {
 
     enum Actor {
         NO_TOKEN,
@@ -53,26 +56,46 @@ class TypedAttributesSecurityIT extends ContactApiTest {
         READ,
         DUPLICATES,
         COMPARE,
-        MERGE
+        MERGE,
+        IMPORT_PARSE,
+        IMPORT_PREVIEW,
+        IMPORT_COMMIT,
+        EXPORT_XLSX,
+        EXPORT_VCARD,
+        CONTACT_VCARD
     }
 
     record Expected(int status, Map<String, Object> body) {}
 
     /** Bere že VIEWER, tudi v arhivirani skupini. */
     static boolean viewerReads(Endpoint endpoint) {
-        return endpoint == Endpoint.KEYS || endpoint == Endpoint.SEARCH || endpoint == Endpoint.READ;
+        return endpoint == Endpoint.KEYS
+                || endpoint == Endpoint.SEARCH
+                || endpoint == Endpoint.READ
+                || endpoint == Endpoint.EXPORT_XLSX
+                || endpoint == Endpoint.EXPORT_VCARD
+                || endpoint == Endpoint.CONTACT_VCARD;
+    }
+
+    /** Samo urednik in višje, a brez zapisa: razčlenitev datoteke in predogled uvoza (014). */
+    static boolean editorReadOnly(Endpoint endpoint) {
+        return endpoint == Endpoint.IMPORT_PARSE || endpoint == Endpoint.IMPORT_PREVIEW;
     }
 
     static boolean writes(Endpoint endpoint) {
         return !viewerReads(endpoint)
                 && endpoint != Endpoint.SUGGEST_KEYS
                 && endpoint != Endpoint.DUPLICATES
-                && endpoint != Endpoint.COMPARE;
+                && endpoint != Endpoint.COMPARE
+                && !editorReadOnly(endpoint);
     }
 
     /** Arhivirana skupina zavrne pisanje ter iskanje dvojnikov in primerjavo (011, §2.2). */
     static boolean archivedRefused(Endpoint endpoint) {
-        return writes(endpoint) || endpoint == Endpoint.DUPLICATES || endpoint == Endpoint.COMPARE;
+        return writes(endpoint)
+                || editorReadOnly(endpoint)
+                || endpoint == Endpoint.DUPLICATES
+                || endpoint == Endpoint.COMPARE;
     }
 
     static Expected expected(Endpoint endpoint, Actor actor, boolean archived) {
@@ -85,7 +108,7 @@ class TypedAttributesSecurityIT extends ContactApiTest {
                 if (archivedRefused(endpoint) && archived) {
                     yield new Expected(409, Map.of("code", "GROUP_ARCHIVED"));
                 }
-                yield new Expected(endpoint == Endpoint.CREATE ? 201 : 200, null);
+                yield new Expected(endpoint == Endpoint.CREATE || endpoint == Endpoint.IMPORT_COMMIT ? 201 : 200, null);
             }
         };
     }
@@ -122,10 +145,54 @@ class TypedAttributesSecurityIT extends ContactApiTest {
         return input;
     }
 
+    /** Kandidat ali kontakt uvoza s tipiziranim atributom (FR-016-24). */
+    private static Map<String, Object> importRow() {
+        Map<String, Object> row = input("Uvožen", "Kontakt");
+        row.put("attributes", List.of(Map.of("key", "mobilni", "type", "PHONE", "value", "041 555 666")));
+        return row;
+    }
+
+    private static String bearerToken(Map<String, String> headers) {
+        String authorization = headers.get("Authorization");
+        return authorization == null ? null : authorization.substring("Bearer ".length());
+    }
+
     private HttpResponse<String> send(Endpoint endpoint, UUID group, UUID contact, Map<String, String> headers)
             throws Exception {
         String base = "/api/groups/" + group;
         return switch (endpoint) {
+            case IMPORT_PARSE ->
+                parse(
+                        bearerToken(headers),
+                        group,
+                        xlsx(List.of(List.of("Ime", "Priimek"), List.of("Ana", "Kos"))),
+                        "XLSX",
+                        "sl");
+            case IMPORT_PREVIEW ->
+                Http.send(
+                        "POST",
+                        url(base + "/imports/preview"),
+                        headers,
+                        body(Map.of("candidates", List.of(importRow()))));
+            case IMPORT_COMMIT ->
+                Http.send(
+                        "POST",
+                        url(base + "/imports"),
+                        headers,
+                        body(Map.of("source", "XLSX", "contacts", List.of(importRow()))));
+            case EXPORT_XLSX ->
+                Http.send(
+                        "POST",
+                        url(base + "/contacts/export"),
+                        headers,
+                        body(Map.of("contactIds", List.of(contact), "language", "sl")));
+            case EXPORT_VCARD ->
+                Http.send(
+                        "POST",
+                        url(base + "/contacts/export/vcard"),
+                        headers,
+                        body(Map.of("contactIds", List.of(contact), "language", "sl")));
+            case CONTACT_VCARD -> Http.send("GET", url(base + "/contacts/" + contact + "/vcard"), headers);
             case KEYS -> Http.send("GET", url(base + "/attribute-keys"), headers);
             case CHANGE_TYPE ->
                 Http.send(
@@ -205,7 +272,7 @@ class TypedAttributesSecurityIT extends ContactApiTest {
     }
 
     /** Stanje, ki ga zavrnjen zahtevek ne sme spremeniti: ključi s tipi, atributi, verzije in vnosi sledi. */
-    private Map<String, Object> snapshot(UUID group) {
+    private Map<String, Object> groupState(UUID group) {
         return Map.of(
                 "keys",
                 jdbc.queryForList(
@@ -239,7 +306,7 @@ class TypedAttributesSecurityIT extends ContactApiTest {
         if (archived) {
             groups.archive(s.group());
         }
-        Map<String, Object> before = snapshot(s.group());
+        Map<String, Object> before = groupState(s.group());
 
         HttpResponse<String> response = send(endpoint, s.group(), contact, headers(actor, s.users()));
 
@@ -252,7 +319,7 @@ class TypedAttributesSecurityIT extends ContactApiTest {
         }
         boolean mutated = expected.status() >= 200 && expected.status() < 300 && writes(endpoint);
         if (!mutated) {
-            assertThat(snapshot(s.group())).isEqualTo(before);
+            assertThat(groupState(s.group())).isEqualTo(before);
         }
     }
 
@@ -311,6 +378,22 @@ class TypedAttributesSecurityIT extends ContactApiTest {
                     .isEqualTo("OTHER");
         }
         assertThat(contacts.attributesOf(foreign)).containsExactly(Map.of("key", "pošta", "value", "tuj@primer.si"));
+        // Izvoz in vizitka kontakta druge skupine: 404 brez telesa (FR-016-25).
+        for (Endpoint endpoint : List.of(Endpoint.EXPORT_XLSX, Endpoint.EXPORT_VCARD, Endpoint.CONTACT_VCARD)) {
+            HttpResponse<String> exported = send(endpoint, s.group(), foreign, headers);
+            assertThat(exported.statusCode()).as(endpoint.name()).isEqualTo(404);
+            assertThat(exported.body()).isEmpty();
+        }
+        // Tipiziran uvoz v skupino A ne zapiše ključa v skupino B (FR-016-24).
+        if (who != Who.VIEWER) {
+            assertThat(send(Endpoint.IMPORT_COMMIT, s.group(), own, headers).statusCode())
+                    .isEqualTo(201);
+            assertThat(jdbc.queryForObject(
+                            "select count(*) from attribute_key where group_id = ? and key_norm = 'mobilni'",
+                            Long.class,
+                            other))
+                    .isZero();
+        }
     }
 
     @Test
@@ -339,7 +422,7 @@ class TypedAttributesSecurityIT extends ContactApiTest {
         UUID contact = fixture(s);
         contacts.addAttribute(contacts.insert(s.group(), s.id(Who.OWNER), "Ana", "Horvat"), 0, "pošta", "ni-naslov");
         String token = s.token(Who.EDITOR);
-        Map<String, Object> before = snapshot(s.group());
+        Map<String, Object> before = groupState(s.group());
         String keysBase = "/api/groups/" + s.group() + "/attribute-keys/change-type";
 
         HttpResponse<String> typeConflict =
@@ -365,6 +448,22 @@ class TypedAttributesSecurityIT extends ContactApiTest {
                         "attributes",
                         List.of(Map.of("field", "custom", "key", "datum", "type", "DATE", "value", "x")))));
 
+        // Uvoz: vrednost, neveljavna za tip, je napaka vrstice v predogledu in zavrne potrditev (FR-016-24).
+        Map<String, Object> badRow = input("Uvožen", "Kontakt");
+        badRow.put("attributes", List.of(Map.of("key", "mobilni", "type", "PHONE", "value", "ni-telefon")));
+        HttpResponse<String> badPreview = post(
+                "/api/groups/" + s.group() + "/imports/preview", token, body(Map.of("candidates", List.of(badRow))));
+        HttpResponse<String> badImport = post(
+                "/api/groups/" + s.group() + "/imports",
+                token,
+                body(Map.of("source", "XLSX", "contacts", List.of(badRow))));
+
+        assertThat(badPreview.statusCode()).isEqualTo(200);
+        assertThat(asObjects(
+                        asObjects(json(badPreview.body()).get("rows")).get(0).get("errors")))
+                .containsExactly(Map.of("field", "attributes[0].value", "code", "INVALID_VALUE"));
+        assertThat(badImport.statusCode()).isEqualTo(400);
+        assertThat(fieldErrors(badImport.body())).containsEntry("contacts[0].attributes[0].value", "INVALID_VALUE");
         assertThat(typeConflict.statusCode()).isEqualTo(409);
         assertThat(json(typeConflict.body())).containsEntry("code", "ATTRIBUTE_TYPE_CONFLICT");
         assertThat(versionConflict.statusCode()).isEqualTo(409);
@@ -373,6 +472,6 @@ class TypedAttributesSecurityIT extends ContactApiTest {
         assertThat(fieldErrors(badCreate.body())).containsEntry("attributes[0].value", "INVALID_VALUE");
         assertThat(stale.statusCode()).isEqualTo(409);
         assertThat(badBulk.statusCode()).isEqualTo(400);
-        assertThat(snapshot(s.group())).isEqualTo(before);
+        assertThat(groupState(s.group())).isEqualTo(before);
     }
 }

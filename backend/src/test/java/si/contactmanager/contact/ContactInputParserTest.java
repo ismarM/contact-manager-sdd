@@ -369,17 +369,4 @@ class ContactInputParserTest {
                 "firstName":"A","attributes":[{"key":"Dom","parts":{"town":"K"}}]"""))))
                 .containsExactly(Map.entry("attributes[0].parts.town", "UNKNOWN_FIELD"));
     }
-
-    @Test
-    @Tag("FR-016-12")
-    void importDoesNotYetAcceptAddressParts() {
-        Parsed parsed = parser.parseCreate(json("""
-                "firstName":"A","addressParts":{"city":"Kraj"},
-                "attributes":[{"key":"Opomba","value":"x"},{"key":"Dom","parts":{"city":"Maribor"}}]"""));
-
-        assertThat(ContactInputParser.partsNotImported(parsed.input()))
-                .containsExactly(
-                        new FieldError("addressParts", "UNKNOWN_FIELD"),
-                        new FieldError("attributes[1].parts", "UNKNOWN_FIELD"));
-    }
 }
