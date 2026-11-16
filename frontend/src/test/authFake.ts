@@ -36,6 +36,8 @@ export interface AuthFake extends AuthGateway {
   readonly passwordResets: readonly string[];
   /** Klici ponovne avtentikacije (`password` ali `google`). */
   readonly reauthentications: readonly ('password' | 'google')[];
+  /** Klici povezovanja (`password` ali `google`). */
+  readonly links: readonly ('password' | 'google')[];
   /** Naslednja prijava ali dejanje z računom ne uspe z dano kodo. */
   failNextSignIn(code: SignInErrorCode): void;
   /** Uporabnik, ki ga prijavi naslednja uspešna prijava (privzeto {@link ANA}). */
@@ -67,6 +69,7 @@ export function createAuthFake(
   let verificationEmails = 0;
   const passwordResets: string[] = [];
   const reauthentications: ('password' | 'google')[] = [];
+  const links: ('password' | 'google')[] = [];
   const accounts = new Map<string, PasswordAccount>();
   const listeners = new Set<(user: AuthUser | null) => void>();
 
@@ -116,6 +119,9 @@ export function createAuthFake(
     },
     get reauthentications() {
       return reauthentications;
+    },
+    get links() {
+      return links;
     },
     onChange(listener) {
       listeners.add(listener);
@@ -188,6 +194,30 @@ export function createAuthFake(
         }
       }
       return Promise.resolve(`token-${user.uid}-fresh`);
+    },
+    linkPassword(password) {
+      links.push('password');
+      const error = takeError();
+      if (error) return Promise.reject(error);
+      if (!user?.email) return Promise.reject(new SignInError('failed'));
+      if (password.length < 8) return Promise.reject(new SignInError('weak-password'));
+      accounts.set(user.email.toLowerCase(), {
+        password,
+        verified: user.emailVerified,
+        user: { ...user, providers: [...new Set([...user.providers, 'password' as const])] },
+      });
+      user = accounts.get(user.email.toLowerCase())!.user;
+      notify();
+      return Promise.resolve();
+    },
+    linkGoogle() {
+      links.push('google');
+      const error = takeError();
+      if (error) return Promise.reject(error);
+      if (!user) return Promise.reject(new SignInError('failed'));
+      user = { ...user, providers: [...new Set([...user.providers, 'google.com' as const])] };
+      notify();
+      return Promise.resolve();
     },
     signOut() {
       signOutCalls += 1;

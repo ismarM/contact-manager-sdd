@@ -12,6 +12,7 @@ export const AUTH_ERROR_KEYS = {
   'weak-password': 'auth.error.weakPassword',
   'too-many-requests': 'auth.error.tooManyRequests',
   'requires-recent-login': 'auth.error.requiresRecentLogin',
+  'credential-in-use': 'auth.error.credentialInUse',
 } as const satisfies Record<SignInErrorCode, string>;
 
 export function authErrorKey(error: unknown): (typeof AUTH_ERROR_KEYS)[SignInErrorCode] {

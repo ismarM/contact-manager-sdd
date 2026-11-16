@@ -42,7 +42,8 @@
       "invalidEmail": "Vpiši veljaven e-naslov, npr. ime@primer.si.",
       "weakPassword": "Geslo ne ustreza pravilom. Uporabi najmanj 8 znakov.",
       "tooManyRequests": "Preveč poskusov. Počakaj nekaj minut in poskusi znova.",
-      "requiresRecentLogin": "Za to dejanje se moraš znova prijaviti."
+      "requiresRecentLogin": "Za to dejanje se moraš znova prijaviti.",
+      "credentialInUse": "Ta Google račun je že povezan z drugim računom. Povezovanje ni mogoče."
     },
     "form": {
       "email": "E-naslov",
@@ -175,6 +176,23 @@
         "step3": "Vpiši naslov strežnika {{server}}, uporabniško ime {{username}} in geslo za aplikacijo.",
         "https": "Povezava deluje samo prek varne povezave HTTPS."
       }
+    },
+    "methods": {
+      "heading": "Prijavne metode",
+      "google": "Google",
+      "password": "E-naslov in geslo",
+      "linked": "povezano",
+      "notLinked": "ni povezano",
+      "addPassword": "Dodaj geslo",
+      "addGoogle": "Dodaj Google",
+      "addPasswordSubmit": "Dodaj geslo",
+      "addGoogleSubmit": "Poveži Google",
+      "cancel": "Prekliči",
+      "reauthGoogle": "Za dodajanje gesla se boš najprej znova prijavil z Googlom. Geslo je vezano na ta e-naslov in isti račun.",
+      "reauthPassword": "Za povezovanje Googla vpiši svoje trenutno geslo.",
+      "currentPassword": "Trenutno geslo",
+      "passwordAdded": "Geslo je dodano. Odslej se lahko prijaviš z Googlom ali z geslom.",
+      "googleAdded": "Google je povezan. Odslej se lahko prijaviš z Googlom ali z geslom."
     }
   },
   "roles": {

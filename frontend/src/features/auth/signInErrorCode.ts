@@ -35,6 +35,9 @@ export function signInErrorCode(
       return 'weak-password';
     case 'auth/too-many-requests':
       return 'too-many-requests';
+    case 'auth/credential-already-in-use':
+    case 'auth/provider-already-linked':
+      return 'credential-in-use';
     case 'auth/requires-recent-login':
       return 'requires-recent-login';
     default:

@@ -28,7 +28,8 @@ export type SignInErrorCode =
   | 'invalid-email'
   | 'weak-password'
   | 'too-many-requests'
-  | 'requires-recent-login';
+  | 'requires-recent-login'
+  | 'credential-in-use';
 
 export class SignInError extends Error {
   constructor(readonly code: SignInErrorCode) {
@@ -70,6 +71,14 @@ export interface AuthGateway {
    * oknu. Vrne svež ID žeton z novim `auth_time`; ob neuspehu vrže {@link SignInError} in ne spremeni ničesar.
    */
   reauthenticate(password?: string): Promise<string>;
+  /**
+   * Doda geslo računu, prijavljenemu z Googlom (FR-017-09 … 11): klic mora slediti ponovni avtentikaciji. Isti
+   * Firebase UID, brez novega profila; po povezovanju gateway uporabnika znova prijavi z geslom in obvesti poslušalce
+   * (`providers` vsebuje `password`). Ob neujemanju UID odjavi in vrže `failed`.
+   */
+  linkPassword(password: string): Promise<void>;
+  /** Doda Google računu z geslom (pojavno okno); Google račun drugega uporabnika → `credential-in-use`. */
+  linkGoogle(): Promise<void>;
   signOut(): Promise<void>;
   /** ID žeton trenutnega uporabnika ali `null`, če ni prijavljen; vrže, če žetona ni mogoče podaljšati. */
   getIdToken(): Promise<string | null>;

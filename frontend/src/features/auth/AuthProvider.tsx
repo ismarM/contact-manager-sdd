@@ -57,6 +57,8 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
     updateStatus('signedOut');
   }, [updateStatus]);
 
+  const userRef = useRef<AuthUser | null>(null);
+
   const sessionLost = useCallback(
     (signOutInGateway: boolean) => {
       if (statusRef.current === 'signedOut') return;
@@ -150,7 +152,14 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
 
   const onAuthChange = useCallback(
     (next: AuthUser | null) => {
+      const previous = userRef.current;
+      userRef.current = next;
       setUser(next);
+      if (next?.emailVerified && statusRef.current === 'signedIn' && previous?.uid === next.uid) {
+        // Isti uporabnik, samo spremenjeni ponudniki (povezovanje, FR-017-09): brez ponovne sinhronizacije, da stran
+        // ostane (sporočilo o uspehu, fokus).
+        return;
+      }
       if (next && !next.emailVerified) {
         // Brez PUT /api/me: profil nastane šele po potrditvi (FR-017-02, FR-017-04).
         generation.current += 1;
@@ -224,6 +233,9 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
     [gateway],
   );
 
+  const linkPassword = useCallback((password: string) => gateway.linkPassword(password), [gateway]);
+  const linkGoogle = useCallback(() => gateway.linkGoogle(), [gateway]);
+
   const signOut = useCallback(async () => {
     expectingSignOut.current = true;
     setExitTo('/login');
@@ -295,6 +307,8 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
       confirmVerification,
       sendPasswordReset,
       reauthenticate,
+      linkPassword,
+      linkGoogle,
       signOut,
       accountDeleted,
       authFetch,
@@ -318,6 +332,8 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
       confirmVerification,
       sendPasswordReset,
       reauthenticate,
+      linkPassword,
+      linkGoogle,
       signOut,
       accountDeleted,
       authFetch,

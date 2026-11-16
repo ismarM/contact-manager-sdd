@@ -42,7 +42,8 @@
       "invalidEmail": "Enter a valid email address, e.g. name@example.com.",
       "weakPassword": "The password doesn't meet the rules. Use at least 8 characters.",
       "tooManyRequests": "Too many attempts. Wait a few minutes and try again.",
-      "requiresRecentLogin": "Sign in again to do this."
+      "requiresRecentLogin": "Sign in again to do this.",
+      "credentialInUse": "This Google account is already linked to another account. It cannot be linked."
     },
     "form": {
       "email": "Email",
@@ -175,6 +176,23 @@
         "step3": "Enter the server address {{server}}, the username {{username}} and the app password.",
         "https": "The connection works only over a secure HTTPS connection."
       }
+    },
+    "methods": {
+      "heading": "Sign-in methods",
+      "google": "Google",
+      "password": "Email and password",
+      "linked": "linked",
+      "notLinked": "not linked",
+      "addPassword": "Add password",
+      "addGoogle": "Add Google",
+      "addPasswordSubmit": "Add password",
+      "addGoogleSubmit": "Link Google",
+      "cancel": "Cancel",
+      "reauthGoogle": "To add a password you will first sign in again with Google. The password is tied to this email address and the same account.",
+      "reauthPassword": "Enter your current password to link Google.",
+      "currentPassword": "Current password",
+      "passwordAdded": "Password added. You can now sign in with Google or with the password.",
+      "googleAdded": "Google linked. You can now sign in with Google or with the password."
     }
   },
   "roles": {

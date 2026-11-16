@@ -6,6 +6,7 @@ import { useAuth } from '../auth/authContext';
 import { AppPasswordsSection } from './AppPasswordsSection';
 import { DeleteAccountSection } from './DeleteAccountSection';
 import { MyDataSection } from './MyDataSection';
+import { SignInMethodsSection } from './SignInMethodsSection';
 import type { Theme } from './preferences';
 
 const radio =
@@ -81,6 +82,8 @@ export function AccountPage() {
           ))}
         </fieldset>
       </section>
+
+      <SignInMethodsSection />
 
       <MyDataSection />
 

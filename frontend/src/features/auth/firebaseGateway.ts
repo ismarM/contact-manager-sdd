@@ -6,6 +6,7 @@ import {
   EmailAuthProvider,
   getAuth,
   GoogleAuthProvider,
+  linkWithPopup,
   onAuthStateChanged,
   reauthenticateWithCredential,
   reauthenticateWithPopup,
@@ -47,6 +48,27 @@ export function toAuthUser(user: User): AuthUser {
     emailVerified: user.emailVerified,
     providers: user.providerData.map((info) => info.providerId).filter(isProvider),
   };
+}
+
+/** Koda napake REST klica `accounts:signUp` z idToken (npr. `WEAK_PASSWORD : …`) → vzrok za vmesnik. */
+function restErrorCode(message: string | undefined): SignInError {
+  const code = (message ?? '').split(/[\s:]/)[0];
+  switch (code) {
+    case 'WEAK_PASSWORD':
+    case 'PASSWORD_DOES_NOT_MEET_REQUIREMENTS':
+      return new SignInError('weak-password');
+    case 'CREDENTIAL_TOO_OLD_LOGIN_AGAIN':
+    case 'TOKEN_EXPIRED':
+    case 'INVALID_ID_TOKEN':
+      return new SignInError('requires-recent-login');
+    case 'EMAIL_EXISTS':
+    case 'CREDENTIAL_ALREADY_IN_USE':
+      return new SignInError('credential-in-use');
+    case 'TOO_MANY_ATTEMPTS_TRY_LATER':
+      return new SignInError('too-many-requests');
+    default:
+      return new SignInError('failed');
+  }
 }
 
 /** Firebase Auth za aplikacijo: privzeto demo projekt in emulator na istem izvoru (nginx ali Vite ga posredujeta). */
@@ -166,6 +188,71 @@ export function createFirebaseGateway(auth: Auth = createAuth()): AuthGateway {
       } catch (error) {
         throw error instanceof SignInError ? error : toSignInError(error);
       }
+    },
+    async linkPassword(password) {
+      const user = current();
+      const { uid, email } = user;
+      if (!email) throw new SignInError('failed');
+      // EEP: `accounts:signUp` z idToken (research R-03), ne `accounts:update` in ne `linkWithCredential`.
+      const base =
+        env.VITE_FIREBASE_EMULATOR !== 'false'
+          ? window.location.origin
+          : 'https://identitytoolkit.googleapis.com';
+      const prefix =
+        env.VITE_FIREBASE_EMULATOR !== 'false' ? '/identitytoolkit.googleapis.com' : '';
+      let response: Response;
+      try {
+        const idToken = await user.getIdToken(true);
+        response = await fetch(
+          `${base}${prefix}/v1/accounts:signUp?key=${encodeURIComponent(auth.app.options.apiKey ?? '')}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken, email, password, returnSecureToken: true }),
+          },
+        );
+      } catch (error) {
+        throw error instanceof SignInError ? error : toSignInError(error);
+      }
+      const body = (await response.json().catch(() => ({}))) as {
+        localId?: string;
+        error?: { message?: string };
+      };
+      if (!response.ok) throw restErrorCode(body.error?.message);
+      if (body.localId !== uid) {
+        await signOut(auth);
+        throw new SignInError('failed');
+      }
+      // SDK ne more uvoziti žetonov iz REST odgovora: isti UID se znova prijavi z geslom (R-04).
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (error) {
+        throw toSignInError(error);
+      }
+      const linked = auth.currentUser;
+      if (!linked || linked.uid !== uid) {
+        await signOut(auth);
+        throw new SignInError('failed');
+      }
+      try {
+        await reload(linked);
+        await linked.getIdToken(true);
+      } catch (error) {
+        throw toSignInError(error);
+      }
+      const result = toAuthUser(linked);
+      for (const listener of [...listeners]) listener(result);
+    },
+    async linkGoogle() {
+      const user = current();
+      try {
+        await linkWithPopup(user, new GoogleAuthProvider());
+        await reload(user);
+      } catch (error) {
+        throw toSignInError(error);
+      }
+      const result = toAuthUser(user);
+      for (const listener of [...listeners]) listener(result);
     },
     signOut() {
       return signOut(auth);
