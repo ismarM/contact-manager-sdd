@@ -15,6 +15,7 @@ Pravila beleženja: `docs/ai-development-log.md` (v zgodovini Gita, commit `b71c
 | 7 | `470f746c` (namizna aplikacija) | 2026-11-08, 17:40–22:46 | `006-povabila` | kontekst enkrat zgoščen (`/compact` in nadaljevanje); 5 podagentov za pregled testov (4 krogi, en prekinjen zaradi omejitve porabe); PR #8 združen, CI na `main` zelen |
 | 8 | `6af02687` (CLI) | 2026-11-12, 09:50–16:19 | `009-mnozicno-urejanje` | kontekst enkrat zgoščen, računalnik se je med delom izklopil; 4 podagenti za pregled testov (3× ZAVRNJENO, 4. krog SPREJETO) in 14 drugih; PR #11 odprt, ni združen |
 | 9 | `a5944732` (CLI) | 2026-11-12, 16:57–19:17 | `010-izvoz-excel` | kontekst enkrat zgoščen; 2 podagenta za pregled testov (krog 1 ZAVRNJENO, krog 2 SPREJETO) in 6 forkov; PR #13 odprt, ni združen |
+| 11 | `ebfb8c06` (CLI) | 2026-11-16 | `016-tipizirani-atributi` (`/rollout`) | 17 kratkoživih delavcev in 1 pregled testov; dve omejitvi porabe; PR #23 združen |
 
 **Stolpci tabel interakcij**
 
@@ -397,3 +398,45 @@ now that you are up to date with the new rules continue with the next steps and 
 **Težave seje:** tri prekinitve zaradi omejitve porabe (delo se je nadaljevalo po stanju veje); Docker Desktop se je dvakrat ustavil (`backend` ponovljen po ponovnem zagonu); konflikt z 015 (ista številka migracije V11); `quick` je pod obremenitvijo občasno padel na časovnih omejitvah nespremenjenih testov FE (posamič so zeleni).
 
 **Predpostavke:** uvoz brez stanja na strežniku (razčleni → predogled → potrdi); razčlenitev in predogled v arhivirani skupini vrneta 409; preklic gesla izbriše vrstico; koda QR ima popravljanje napak M in največ različico 25; `format` in `language` uvoza gresta v poizvedbo.
+
+## Seja 11 — 016-tipizirani-atributi
+
+- **Datum:** 2026-11-16
+- **Razvijalec:** Patrik
+- **Agent / model:** Claude Code, `/rollout 016`: nadzornik (`claude-opus-5-5`), kratkoživi delavci `izvajalec` po fazah in zgodbah (`claude-sonnet-5-5`; `claude-opus-5-5` za plan in zgodbi z OSM, US3 in US5), podagent `pregled-testov` (enkrat, `claude-sonnet-5-5`).
+- **Veja / commiti:** `tipizirani-atributi` (iz `main` `8083dd8`, spec že na `main`): `bec5a3b` (plan), `45d2b16` (naloge), `7944b94` (Setup + Foundational), `0bbcaa8` (US1), `ebc00c5` (US2), `0a8dc33` (US3), `b464361` (US4), `957abb4` (US5), `4d3a21b` in `27a0f05` (US6), `1a39e69` (Polish), `04daddf` (konvergenca), `12d2ea8` (popravki pregleda), `f801db5` (E2E pred PR), `cc66952` (CI krog 1); PR #23, združil razvijalec kot `7fb5c20`.
+- **Poraba žetonov:** 258 144 168 (`token-report-patrik.md`, seja 11; skupaj 1.–11. seja 1 191 680 876)
+
+| # | Vrsta | Povzetek navodila / odgovora | Faza | Rezultat / spremenjene datoteke | Preverjanje | Težava (kategorija) | Status |
+|---|---|---|---|---|---|---|---|
+| 1 | nadzornik | sprejem: spec in razjasnitev že na `main` (0 NEEDS CLARIFICATION) → SPEC in analiza združljivosti preskočeni; tvegana funkcionalnost (zunanja storitev OSM), migracija V13 | sprejem | worktree `.claude/worktrees/tipizirani-atributi`, `.rollout/state.md` | Docker, `gh auth` | – (none) | accepted |
+| 2 | delavec | NAČRT 1. del: `/speckit-plan` | plan | `plan.md` (Public Interfaces, 20 vrstic), `research.md`, `data-model.md` (V13: `attribute_key`, `address_parts` jsonb, stolpci oblik v `app_user`), `contracts/openapi.yaml`, 2 osnutka v `docs/decisions/`; delavca je po commitu ustavila omejitev porabe | grep kontrolnega seznama | omejitev porabe (tool-or-environment) | accepted |
+| 3 | dialog | razvijalec: Photon (komoot) za samodokončanje, Nominatim za lokacijo; ploščice `tile.openstreetmap.org` prek zaledja; URL-ji nastavljivi | plan | odprti vprašanji plana razrešeni | – | pogoji Nominatim prepovedujejo samodokončanje (human-decision) | accepted |
+| 4 | delavec | NAČRT 2. del: `/speckit-tasks`, `/speckit-analyze` | tasks, analyze | `tasks.md` (63 nalog, 20 nalog matrike izolacije); analyze 1 HIGH (vrstni red ATTRIBUTE_TYPE) odpravljen; analizo je delavec izvedel ročno po pravilih veščine | grep vrat | – (none) | accepted |
+| 5 | delavec | IZVEDBA Setup + Foundational, US1, US2 (Sonnet) | implement | V13, normalizatorji (libphonenumber 9.0.42), `AttributeKeyRepository`, zaslon *Atributi skupine*, sprememba tipa (409 `ATTRIBUTE_TYPE_CONFLICT`), kanoničen telefon in e-naslov, iskanje po števkah, dvojniki po E.164 | `quick`, `backend` po vsaki zgodbi | ~35 obstoječih IT z neveljavnimi telefoni (npr. `01 111 111`) in brez `type` posodobljenih brez oslabitve asercij (none) | accepted |
+| 6 | delavec | IZVEDBA US3 (Opus): strukturiran naslov, samodokončanje prek posrednika Photon | implement | `maps` (`PhotonClient`, `BoundedCache`, `RateLimiter`), `AddressFields` z *Razčleni naslov*, `osm-stub` v `compose.verify.yaml`; zavrnitve 401/404/403 brez klica OSM | `quick`, `backend` | T013 (bulk `parts`) v US1 označen `[x]`, a ni izveden (agent-error) | accepted |
+| 7 | delavec | IZVEDBA US4: prikazna shema v *Mojem računu* | implement | `DisplayFormatsProvider`, oblikovalniki telefona, datuma in naslova, profil in naprava, izvoz 012 | `quick`, `backend` | – (none) | accepted |
+| 8 | delavec | IZVEDBA US5 (Opus): zemljevid z Leaflet, Nominatim in ploščice prek zaledja | implement | `NominatimClient`, `TileClient`, `/api/map-tiles`, `MapDialog`; prvega delavca je sredi zgodbe ustavila omejitev porabe, nov delavec je nadaljeval z necommitanim delom v worktreeju | `quick`, `backend` | omejitev porabe (tool-or-environment) | accepted |
+| 9 | delavec | IZVEDBA US6 v dveh delih (uvoz/izvoz/CardDAV; sled/rollback/zgodovina/FE/E2E), Polish | implement | ADR po delih in tipizirani atributi v vCard, tip ključa v uvozu, rollback in obnova tipa ključa, `feature-map.md`, konstitucija VI; popravljena hrošča: rollback in obnova sta izgubljala dele naslova | `quick`, `backend` | hrošča iz prejšnjih zgodb (agent-error) | accepted |
+| 10 | delavec | `/speckit-converge` (2 kroga) | converge | krog 1: T064 (bulk `parts`) in popravek – množično urejanje je brisalo razčlenjen naslov; krog 2: Converged | `quick`, `backend` | nepopolna izvedba T013 (agent-error) | accepted |
+| 11 | podagent | `pregled-testov`: 3 manjše ugotovitve | popravki | `getByText`/`querySelector` ostanejo z utemeljitvijo v komentarju; matrika 401 za nastavitve že v `MyDataIsolationMatrixSecurityIT` | `quick` | odstopanje od pravila za izbirnike UI (agent-error) | partial |
+| 12 | delavec | PR: prvi lokalni E2E (vseh 7 scenarijev padlo zaradi napak v testu), PR #23 | PR | `f801db5`; opis PR s spremenjenimi obstoječimi testi | `quick`, `backend`, E2E 22/22 | E2E funkcionalnosti med izvedbo ni bil zagnan (process) | accepted |
+| 13 | nadzornik | CI krog 1: `e2e` ✗ (obstoječi E2E 004/005/013: dvoumna izbirnika »Ključ«/»Država«, neveljavni telefoni v fixturah), `quick` ✗ enkrat (leno nalaganje Leaflet po koncu testa) | CI | `cc66952`: `exact: true`, veljavni telefoni, kanoničen prikaz, `await import` v testu | lokalno celoten E2E 329/332, padli popravljeni | pred PR je bil lokalno pognan samo E2E funkcionalnosti (agent-error) | accepted |
+| 14 | nadzornik | CI krog 2: vse zeleno razen enega `e2e` – Maven 429 pri gradnji slike; ponovni zagon | CI | – | CI | okolje (tool-or-environment) | accepted |
+| 15 | razvijalec | PR #23 združil sam | združitev | `7fb5c20` v `main` | – | – (none) | accepted |
+
+**Povzetek seje 11**
+
+| Metrika | Rezultat |
+|---|---|
+| Sporočila razvijalca | `/rollout 016`, `continue` (po omejitvi porabe, dvakrat), odgovora o Photonu in ploščicah, vprašanje o napredku, sporočilo o združitvi PR |
+| Dodatni pozivi ali popravki navodil | 0 |
+| Potrjene napake agenta | T013 označen brez izvedbe; množično urejanje ter rollback in obnova so izgubljali razčlenjen naslov; pred PR je bil pognan samo E2E funkcionalnosti, zato so obstoječi E2E padli šele v CI |
+| Nejasne ali spremenjene zahteve | samodokončanje prek Photona (pogoji Nominatim); ploščice prek zaledja |
+| Napake, odkrite z drugim agentom | analyze: 1 HIGH; converge: 1 naloga in 1 hrošč; `pregled-testov`: 3 manjše (2 ostali z utemeljitvijo) |
+| Preverjanje s testi | lokalno `quick` in `backend` po vsaki zgodbi; E2E pred PR; CI: krog 1 `e2e` in `quick` ✗, krog 2 zeleno (en ponovni zagon zaradi okolja) |
+| Odprto za razvijalca | prikaz razlik ob konfliktu v obrazcu kaže kanoničen telefon (ne po shemi); FE množično urejanje ne ponuja vnosa naslova po delih (samo API); ročni preizkus zemljevida in samodokončanja s pravim OSM |
+
+**Težave seje:** dve prekinitvi zaradi 5-urne omejitve porabe (ponovna prijava); dva delavca sta po oddanem poročilu ostala aktivna v ozadju v skupnem worktreeju in ju je nadzornik ustavil; dolgi cikli `verify.sh` (~15 min na zgodbo), razvijalec je vprašal po napredku.
+
+**Predpostavke:** `VERSION_CONFLICT` ključa v obstoječi obliki `{current}`; časovni žigi sledi ne sledijo `dateFormat`; država pri uvozu ostane stolpec *Država*; E2E »nedosegljiv OSM« simuliran z naslovom, ki ga stub zavrne s 503; sledenje izvorom brskalnika v E2E začne po prijavi (Firebase naloži `apis.google.com`).

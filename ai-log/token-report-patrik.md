@@ -94,7 +94,27 @@ Token usage per AI session run by Patrik. One row per session (each row has a ma
 | 10c | └ subagent: library research (general-purpose) | Claude Code subagent | claude-sonnet-5-5 | 2 / 5 | – | 10 | 4 184 (–) | 44 429 | 161 565 | 210 188 |
 | | **Subagents subtotal (10a–10c)** | | | 28 / 463 | – | 948 | 446 789 (–) | 6 992 265 | 206 359 695 | 213 799 697 |
 | | **Session 10 total (main + subagents)** | | | 71 / 587 | – | 1 240 | 524 810 (–) | 7 871 934 | 230 165 951 | **238 563 935** |
-| | **Total – Patrik (sessions 1–10)** | | | – | – | – | – | – | – | **933 536 708** |
+| 11 | 016-tipizirani-atributi: `/rollout 016` (nadzornik: sprejem, posvet o Photonu in ploščicah, vrata faz, pregled, CI, ai-log) (`ebfb8c06`) – **main session** | Claude Code (CLI) | claude-opus-5-5 | 49 / 93 | – | 234 | 53 511 (–) | 287 885 | 11 667 668 | 12 009 298 |
+| 11a | └ subagent: `izvajalec` – NAČRT plan (ustavljen z omejitvijo po commitu) | Claude Code subagent | claude-opus-5-5 | 2 / 45 | – | 88 | 55 650 (–) | 180 125 | 5 400 848 | 5 636 711 |
+| 11b | └ subagent: `izvajalec` – NAČRT tasks + analyze | Claude Code subagent | claude-sonnet-5-5 | 2 / 11 | – | 22 | 33 804 (–) | 106 078 | 709 368 | 849 272 |
+| 11c | └ subagent: `izvajalec` – IZVEDBA Setup + Foundational | Claude Code subagent | claude-sonnet-5-5 | 2 / 131 | – | 264 | 127 189 (–) | 278 090 | 26 275 751 | 26 681 294 |
+| 11d | └ subagent: `izvajalec` – IZVEDBA US1 | Claude Code subagent | claude-sonnet-5-5 | 2 / 150 | – | 302 | 168 677 (–) | 387 904 | 39 576 563 | 40 133 446 |
+| 11e | └ subagent: `izvajalec` – IZVEDBA US2 | Claude Code subagent | claude-sonnet-5-5 | 2 / 127 | – | 256 | 75 595 (–) | 221 032 | 21 052 610 | 21 349 493 |
+| 11f | └ subagent: `izvajalec` – IZVEDBA US3 | Claude Code subagent | claude-opus-5-5 | 3 / 150 | – | 304 | 139 537 (–) | 715 405 | 33 583 262 | 34 438 508 |
+| 11g | └ subagent: `izvajalec` – IZVEDBA US4 | Claude Code subagent | claude-sonnet-5-5 | 4 / 99 | – | 204 | 80 947 (–) | 230 766 | 15 584 909 | 15 896 826 |
+| 11h | └ subagent: `izvajalec` – IZVEDBA US5 (ustavljen z omejitvijo) | Claude Code subagent | claude-opus-5-5 | 2 / 72 | – | 142 | 70 666 (–) | 190 254 | 8 885 307 | 9 146 369 |
+| 11i | └ subagent: `izvajalec` – IZVEDBA US5 (nadaljevanje) | Claude Code subagent | claude-opus-5-5 | 3 / 51 | – | 106 | 28 261 (–) | 265 221 | 4 872 418 | 5 166 006 |
+| 11j | └ subagent: `izvajalec` – IZVEDBA US6a uvoz/izvoz | Claude Code subagent | claude-sonnet-5-5 | 2 / 161 | – | 324 | 128 077 (–) | 335 421 | 37 147 663 | 37 611 485 |
+| 11k | └ subagent: `izvajalec` – IZVEDBA US6b sled/FE/E2E | Claude Code subagent | claude-sonnet-5-5 | 2 / 140 | – | 280 | 110 258 (–) | 319 976 | 31 509 310 | 31 939 824 |
+| 11l | └ subagent: `izvajalec` – IZVEDBA Polish | Claude Code subagent | claude-sonnet-5-5 | 11 / 44 | – | 108 | 13 440 (–) | 120 822 | 3 179 082 | 3 313 452 |
+| 11m | └ subagent: `izvajalec` – KONVERGENCA | Claude Code subagent | claude-sonnet-5-5 | 2 / 39 | – | 78 | 17 960 (–) | 87 702 | 3 311 885 | 3 417 625 |
+| 11n | └ subagent: test review (`pregled-testov`) | Claude Code subagent | claude-sonnet-5-5 | 2 / 8 | – | 16 | 6 834 (–) | 39 678 | 174 980 | 221 508 |
+| 11o | └ subagent: `izvajalec` – POPRAVKI pregleda | Claude Code subagent | claude-sonnet-5-5 | 2 / 9 | – | 18 | 4 315 (–) | 29 941 | 446 316 | 480 590 |
+| 11p | └ subagent: `izvajalec` – PR | Claude Code subagent | claude-sonnet-5-5 | 7 / 40 | – | 92 | 14 807 (–) | 122 902 | 2 561 770 | 2 699 571 |
+| 11q | └ subagent: `izvajalec` – POPRAVKI CI krog 1 | Claude Code subagent | claude-sonnet-5-5 | 4 / 81 | – | 166 | 23 107 (–) | 130 197 | 6 999 420 | 7 152 890 |
+| | **Subagents subtotal (11a–11q)** | | | 54 / 1358 | – | 2 770 | 1 099 124 (–) | 3 761 514 | 241 271 462 | 246 134 870 |
+| | **Session 11 total (main + subagents)** | | | 103 / 1451 | – | 3 004 | 1 152 635 (–) | 4 049 399 | 252 939 130 | **258 144 168** |
+| | **Total – Patrik (sessions 1–11)** | | | – | – | – | – | – | – | **1 191 680 876** |
 
 Session 2 notes: the user message count excludes the 2 answers given through question dialogs (C1–C3 choice, JDK installed) and the `/context` command, which the log does not store. The numbers were read from the log while this report was being written, so the last turn (writing this report) is only partly counted.
 
@@ -114,3 +134,6 @@ Session 8 notes: the counts come from the log of this session (`6af02687-…`, 2
 Session 9 notes: the counts come from the log of this session (`a5944732-…`, 2026-11-12, 16:57–19:17 local time, started with `scripts/feature.sh izvoz-excel`) and its 8 stored subagent logs, cut at the developer’s request to fill in this report (that request and everything after it are excluded). The 16 counted user messages are the shell input `scripts/feature.sh izvoz-excel`, `/model`, `/effort`, `/speckit-clarify`, the answer »A«, »enako kot se razvršča pri filtriranju kontaktov«, `/speckit-plan`, `/speckit-tasks`, `/speckit-analyze`, »odpravi vse, da bo pripravljeno na implement«, `/compact`, `/model`, `/effort`, `/speckit-implement`, `/speckit-converge` and »popravi vse in pushaj v PR«; the automatic task notifications, subagent hand-backs and the compaction summary are not counted. Thinking tokens are shown as – (not stored). The report requested as `usage-report-patrik.md` is this file (`token-report-patrik.md`). The numbers were read from the logs while this report was being written, so the last turns before the cut are included only as stored.
 
 Session 10 notes: the counts come from `node scripts/token-report.mjs` for session `882dcc0f-…` (2026-11-15 – 2026-11-16) and its 3 subagent logs, read after PR #21 was merged; the developer's request to fill in this report and everything after it are excluded only as far as they were not yet stored. Tool calls and thinking tokens are not reported by the script (–). The worker (`izvajalec`) was stopped three times by usage limits (5-hour and weekly) and resumed with SendMessage; its very large cache-read share comes from the long implementation and repeated `verify.sh` runs.
+
+
+Session 11 notes: the counts come from `node scripts/token-report.mjs` for session `ebfb8c06-…` (2026-11-16) and its 17 subagent logs, read after PR #23 was merged by the developer; this ai-log step is included only as far as it was stored. Tool calls and thinking tokens are not reported by the script (–). The supervisor ran on claude-opus-5-5; workers ran on claude-sonnet-5-5 except the plan and the two OSM stories (US3, US5), which ran on claude-opus-5-5. Two workers were stopped by the 5-hour usage limit (11a after committing the plan, 11h mid-story; 11i continued from the uncommitted work in the worktree). The large cache-read share comes from the implementation workers and their repeated `verify.sh quick` and `backend` runs.
