@@ -22,7 +22,7 @@ Ključne odločitve (podrobnosti v [research.md](research.md)):
 
 **Primary Dependencies**: obstoječe; **brez novih** (ImageIO iz JDK, `java.net.http.HttpClient`; obrezovanje z lastno komponento na `<canvas>`)
 
-**Storage**: PostgreSQL (`bytea`), migracija `V14__slike.sql` (začasna številka, glej Razmerje do 016 in 017)
+**Storage**: PostgreSQL (`bytea`), migracija `V15__slike.sql` (začasna številka, glej Razmerje do 016 in 017)
 
 **Testing**: JUnit 5 + Testcontainers (IT, matrika izolacije), enotni testi procesorja (slike v `src/test/resources`), Vitest + MSW + vitest-axe, Playwright + axe (360, 1280, `@w768` za obrezovanje)
 
@@ -115,7 +115,7 @@ backend/src/main/java/si/contactmanager/image/    # NOVO: ImageController(+Me/Gr
 │                                                  # GooglePhotoSource, UrlGuard, UploadRateLimiter
 backend/src/main/java/si/contactmanager/{account,group,contact,member}/   # samo polje photoRevision (+ 1 klic v DuplicateService.merge)
 backend/src/main/java/si/contactmanager/audit/    # photo_change v AuditEntry in vmesnik sledi
-backend/src/main/resources/db/migration/V14__slike.sql
+backend/src/main/resources/db/migration/V15__slike.sql
 backend/src/test/java/si/contactmanager/image/    # unit + IT + matrika izolacije
 frontend/src/shared/images/                       # Avatar, useProtectedImage, ImageUploadDialog, CropCanvas, imageApi
 frontend/src/features/{account,groups,members,contacts,audit}/

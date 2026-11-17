@@ -1,6 +1,6 @@
 # Data Model: Slike (018)
 
-Migracija: `V14__slike.sql` (začasna številka; ob združitvi naslednja prosta po `origin/main`, glej plan). Samo naprej.
+Migracija: `V15__slike.sql` (začasna številka; ob združitvi naslednja prosta po `origin/main`, glej plan). Samo naprej.
 
 ## `image`
 
