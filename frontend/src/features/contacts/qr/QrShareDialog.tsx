@@ -13,6 +13,7 @@ import {
 } from '../../../shared/ui/dialog';
 import {
   errorAlert,
+  ghostButton,
   primaryButton,
   secondaryButton,
   softButton,
@@ -139,7 +140,7 @@ export function QrShareDialog({
               {t('contacts.vcard.download')}
             </button>
           )}
-          <DialogClose className={secondaryButton}>{t('contacts.qrShare.close')}</DialogClose>
+          <DialogClose className={ghostButton}>{t('contacts.qrShare.close')}</DialogClose>
         </div>
       </DialogContent>
     </Dialog>

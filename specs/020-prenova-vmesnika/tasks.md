@@ -160,10 +160,10 @@ description: "Naloge: Prenova vmesnika (Kartoteka v2) – ena izvedba, testi zno
 
 ### Paket D – dialogi
 
-- [ ] T068 FR-020-23 — Nevarni dialogi (naslov je vprašanje, telo pove posledico, gumb ponovi dejanje, fokus na *Prekliči*): izbris kontakta, izbris/arhiviranje skupine, izbris računa, preklic API ključa, odstranitev člana, zavrnitev/umik povabila, *Lastnik ne more zapustiti*, rollback, obnova (`RestoreDialog`), sprememba tipa ključa (`ChangeTypeDialog`), obvestilo o konfliktu (frontend/src/features/**/*Dialog.tsx)
-- [ ] T069 FR-020-22, FR-020-23 — Dialogi obrazcev: nova skupina, množično urejanje, nov API ključ, ustvarjen ključ, geslo za aplikacijo, vklop prijave z geslom, združevanje (`MergeDialog`) (frontend/src/features/**)
-- [ ] T070 FR-020-22, FR-020-23 — Dialogi slike (izbira, obrezovanje: `ImageUploadDialog`, `CropCanvas`), zemljevid in približni zemljevid (`MapDialog`), koda QR (deljenje, branje) (frontend/src/shared/images/, features/map/, features/contacts/qr/)
-- [ ] T071 FR-020-23, FR-020-27 — FE testi dialogov: začetni fokus, spodnja ploskev pod 640 px, zaprtje z Esc, vitest-axe; E2E odprtje enega dialoga na vrsto pri 360 in 1280 px (frontend/src/**/*Dialog*.test.tsx, e2e/tests/)
+- [x] T068 FR-020-23 — Nevarni dialogi (naslov je vprašanje, telo pove posledico, gumb ponovi dejanje, fokus na *Prekliči*): izbris kontakta, izbris/arhiviranje skupine, izbris računa, preklic API ključa, odstranitev člana, zavrnitev/umik povabila, *Lastnik ne more zapustiti*, rollback, obnova (`RestoreDialog`), sprememba tipa ključa (`ChangeTypeDialog`), obvestilo o konfliktu (frontend/src/features/**/*Dialog.tsx)
+- [x] T069 FR-020-22, FR-020-23 — Dialogi obrazcev: nova skupina, množično urejanje, nov API ključ, ustvarjen ključ, geslo za aplikacijo, vklop prijave z geslom, združevanje (`MergeDialog`) (frontend/src/features/**)
+- [x] T070 FR-020-22, FR-020-23 — Dialogi slike (izbira, obrezovanje: `ImageUploadDialog`, `CropCanvas`), zemljevid in približni zemljevid (`MapDialog`), koda QR (deljenje, branje) (frontend/src/shared/images/, features/map/, features/contacts/qr/)
+- [x] T071 FR-020-23, FR-020-27 — FE testi dialogov: začetni fokus, spodnja ploskev pod 640 px, zaprtje z Esc, vitest-axe; E2E odprtje enega dialoga na vrsto pri 360 in 1280 px (frontend/src/**/*Dialog*.test.tsx, e2e/tests/)
 
 ---
 

@@ -2,7 +2,7 @@ import { useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Dialog, DialogContent, DialogTitle } from '../../shared/ui/dialog';
-import { focusRing, primaryButton, secondaryButton } from '../../shared/ui/styles';
+import { focusRing, ghostButton, primaryButton, secondaryButton } from '../../shared/ui/styles';
 import { CountryField } from './CountryField';
 import { countryName } from './countries';
 import { useUiLanguage } from './useUiLanguage';
@@ -91,7 +91,7 @@ export function AttributeTransferDialog({
               >
                 {t('contacts.transfer.replaceField')}
               </button>
-              <button type="button" className={secondaryButton} onClick={onCancel}>
+              <button type="button" className={ghostButton} onClick={onCancel}>
                 {t('contacts.transfer.cancel')}
               </button>
             </div>
@@ -168,7 +168,7 @@ function PickCountry({
         >
           {t('contacts.transfer.action.country')}
         </button>
-        <button type="button" className={secondaryButton} onClick={onCancel}>
+        <button type="button" className={ghostButton} onClick={onCancel}>
           {t('contacts.transfer.cancel')}
         </button>
       </div>

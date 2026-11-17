@@ -1,4 +1,4 @@
-import { IconAlertTriangle } from '@tabler/icons-react';
+import { IconAlertTriangle, IconArrowBackUp } from '@tabler/icons-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -9,6 +9,7 @@ import { Dialog, DialogClose, DialogContent, DialogTitle } from '../../shared/ui
 import {
   errorAlert,
   focusRing,
+  ghostButton,
   primaryButton,
   secondaryButton,
   warningAlert,
@@ -308,7 +309,7 @@ function RestoreBody({
       )}
 
       <div className="flex flex-wrap justify-end gap-3">
-        <DialogClose ref={cancel} className={secondaryButton}>
+        <DialogClose ref={cancel} className={ghostButton}>
           {preview && !preview.restorable
             ? t('history.restore.close')
             : t('history.restore.cancel')}
@@ -320,6 +321,7 @@ function RestoreBody({
             disabled={busy || (duplicated && !acknowledged)}
             onClick={() => void confirm()}
           >
+            <IconArrowBackUp aria-hidden="true" size={20} stroke={1.75} />
             {busy ? t('history.restore.busy') : t('history.restore.confirm')}
           </button>
         )}

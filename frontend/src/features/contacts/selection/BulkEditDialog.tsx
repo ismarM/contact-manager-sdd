@@ -9,6 +9,7 @@ import { Dialog, DialogClose, DialogContent, DialogTitle } from '../../../shared
 import {
   errorAlert,
   fieldError,
+  ghostButton,
   primaryButton,
   secondaryButton,
   textInput,
@@ -293,7 +294,7 @@ export function BulkEditDialog({
           </div>
         </fieldset>
         <div className="flex flex-wrap justify-end gap-3">
-          <DialogClose className={secondaryButton}>{t('contacts.bulk.cancel')}</DialogClose>
+          <DialogClose className={ghostButton}>{t('contacts.bulk.cancel')}</DialogClose>
           <button
             type="button"
             className={primaryButton}

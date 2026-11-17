@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
 import { Dialog, DialogClose, DialogContent, DialogTitle } from '../../../shared/ui/dialog';
-import { errorAlert, focusRing, secondaryButton } from '../../../shared/ui/styles';
+import { errorAlert, focusRing, ghostButton, secondaryButton } from '../../../shared/ui/styles';
 import { useGroup } from '../../groups/groupContext';
 import { useUiLanguage } from '../useUiLanguage';
 import { createDetector, type QrDetector, scanResult, stopStream } from './scanner';
@@ -194,7 +194,7 @@ export function QrScanDialog() {
               {t('contacts.qrScan.pickImage')}
             </label>
           </div>
-          <DialogClose className={secondaryButton}>{t('contacts.qrScan.close')}</DialogClose>
+          <DialogClose className={ghostButton}>{t('contacts.qrScan.close')}</DialogClose>
         </div>
       </DialogContent>
     </Dialog>
