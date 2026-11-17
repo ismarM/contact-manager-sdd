@@ -558,13 +558,6 @@
       "new": "Nov kontakt",
       "edit": "Uredi kontakt"
     },
-    "reverted": {
-      "badge": "Povrnjeno",
-      "toState": "Povrnjeno na stanje",
-      "toInitial": "Povrnjeno na začetno stanje",
-      "openEntry": "Odpri vnos povrnitve",
-      "by": "Povrnil(a): {{name}}"
-    },
     "search": {
       "region": "Iskanje in filtri",
       "label": "Iskanje po kontaktih",

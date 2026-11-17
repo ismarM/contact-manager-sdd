@@ -558,13 +558,6 @@
       "new": "New contact",
       "edit": "Edit contact"
     },
-    "reverted": {
-      "badge": "Restored",
-      "toState": "Restored to the state of",
-      "toInitial": "Restored to the initial state",
-      "openEntry": "Open the restore entry",
-      "by": "Restored by: {{name}}"
-    },
     "search": {
       "region": "Search and filters",
       "label": "Search contacts",

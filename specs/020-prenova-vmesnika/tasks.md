@@ -182,7 +182,7 @@ description: "Naloge: Prenova vmesnika (Kartoteka v2) – ena izvedba, testi zno
 
 - [x] T076 — `feature-map.md`: širša pravila (oblika `GET /api/groups`, značka vloge na kartici, števci navigacije, vloga in stanje skupine v glavi, `Povrnjeno` samo v sledi) (.specify/memory/feature-map.md)
 - [x] T077 FR-020-01, FR-020-27 — Prevodi: preveri sl/en paritet in dostopna imena vseh novih elementov (`frontend/src/i18n/{sl,en}.json`); pregled `grep` za barve, sence in zaobljenosti mimo žetonov (SC-003)
-- [ ] T078 — Celoten `./verify.sh e2e` in `quickstart.md` (SC-001, SC-002, SC-004); seznam spremenjenih obstoječih testov z razlogom za opis PR
+- [x] T078 — Celoten `./verify.sh e2e` in `quickstart.md` (SC-001, SC-002, SC-004); seznam spremenjenih obstoječih testov z razlogom za opis PR (opomba: celoten e2e in backend preveri CI na PR po odločitvi razvijalca; quickstart.md pregledan na suho, usklajen s kodo; seznam testov v opisu PR)
 - [x] T079 — Dodatek nadzornika: gumb X »Zapri dialog« / »Close dialog« v glavi vseh dialogov (`shared/ui/dialog.tsx`); oznaka »(neobvezno)« / »(optional)« ob neobveznih poljih (`shared/ui/FieldLabel.tsx`, zunaj dostopnega imena); E2E `getByRole('button', {name: 'Zapri'})` postane `exact: true`, da se ne podvaja z »Zapri dialog« (frontend/src/shared/ui/, e2e/tests/)
 
 ---
@@ -191,3 +191,8 @@ description: "Naloge: Prenova vmesnika (Kartoteka v2) – ena izvedba, testi zno
 
 - Phase 1 → Phase 2 (paket A pred B) → US1 → US2 → US3 … US7; US3–US7 so po US2 neodvisne (priporočen vrstni red P2 pred P3). T021 (ilustracije) je pogoj za T041 in T072. T012 je pogoj za T013 in vse E2E.
 - Paketi nadzornika: P0 = Setup + Foundational A; P1 = Foundational B + US1; P2 = US2 A; P3 = US2 B; P4 = US3; P5 = US4; P6 = US5; P7 = US6 A+B; P8 = US6 C+D; P9 = US7 + Polish.
+
+## Phase 11: Convergence
+
+- [x] T080 FR-020-20 — Odstranjeni neuporabljeni ključi `contacts.reverted.*` (sl, en); FR-005-19 v `specs/005-revizijska-sled/spec.md` že odraža odstranitev značke
+- [x] T081 FR-020-26 — Zaslon Compare: struktura (stolpci kontaktov, `fieldset` + `legend` na vrstico, razpirni del enakih vrednosti, značke, predogled) je skladna s platnom; postavitev vrstic kot kartic v isti mreži stolpcev namesto ene tabele s stolpcem polj je zavestno ohranjena (dostopnost, ožja prelomna točka 640 px); ni dodatnega dela
