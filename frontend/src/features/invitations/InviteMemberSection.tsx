@@ -196,7 +196,8 @@ export function InviteMemberSection({ onSent }: { onSent?: () => void }) {
                   checked={role === option}
                   onChange={() => setRole(option)}
                   aria-describedby={`${roleName}-${option}-hint`}
-                  className={`mt-0.5 size-5 accent-primary ${focusRing}`}
+                  // Nad prekrivnim ::after oznake (ciljna površina kartice), da klik na krog zadene sam vnos.
+                  className={`relative z-10 mt-0.5 size-5 accent-primary ${focusRing}`}
                 />
                 <span className="flex flex-col">
                   <label
