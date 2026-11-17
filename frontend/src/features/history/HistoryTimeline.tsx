@@ -2,7 +2,7 @@ import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
-import { secondaryButton, focusRing } from '../../shared/ui/styles';
+import { card, focusRing, ghostButton } from '../../shared/ui/styles';
 import { ApiKeySource } from '../audit/ApiKeySource';
 import { ChangeTable } from '../audit/ChangeTable';
 import { useAuditSentence } from '../audit/auditSentence';
@@ -104,7 +104,7 @@ function EventItem({
   const compareLabel = `${t('history.event.compareCurrent')}: ${when}`;
 
   return (
-    <li className="flex flex-col gap-2 py-3">
+    <li className={`${card} flex flex-col gap-2 px-4 py-4 sm:px-6 sm:py-5`}>
       <p className="flex flex-wrap items-baseline gap-x-2 break-words">
         <time dateTime={event.createdAt} className="font-mono text-sm text-muted-foreground">
           {when}
@@ -190,7 +190,7 @@ function EventItem({
         {canRestore && event.hasVersion && !isCurrent && !photoOnly && (
           <button
             type="button"
-            className={secondaryButton}
+            className={`${ghostButton} h-9 text-primary`}
             aria-label={`${t('history.restore.button')}: ${when}`}
             onClick={() => onRestore(event.entryId)}
           >
@@ -221,7 +221,7 @@ function InitialItem({
   const label = t('history.initial.heading');
   const picked = picks.some((pick) => pick.ref === INITIAL);
   return (
-    <li className="flex flex-col gap-2 py-3">
+    <li className="flex flex-col gap-2 rounded-md bg-muted px-4 py-4 sm:px-6 sm:py-5">
       <p className="font-bold">{label}</p>
       <p className="text-muted-foreground">{t('history.initial.description')}</p>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -242,7 +242,7 @@ function InitialItem({
         {canRestore && (
           <button
             type="button"
-            className={secondaryButton}
+            className={`${ghostButton} h-9 text-primary`}
             aria-label={`${t('history.restore.button')}: ${label}`}
             onClick={() => onRestore(INITIAL)}
           >
@@ -278,7 +278,7 @@ export function HistoryTimeline({
   const { contact } = history;
   const active = contact.status === 'ACTIVE';
   return (
-    <ol aria-label={t('history.page.events')} className="flex flex-col divide-y divide-border">
+    <ol aria-label={t('history.page.events')} className="flex flex-col gap-3">
       {history.items.map((event, index) => (
         <EventItem
           key={event.entryId}

@@ -439,6 +439,7 @@
     "form": {
       "newHeading": "New contact",
       "editHeading": "Edit contact",
+      "backToContact": "Back to contact",
       "basic": "Basic details",
       "attributesLegend": "Additional attributes",
       "tagsLegend": "Tags",
@@ -1225,6 +1226,8 @@
     "none": "No suggestions"
   },
   "import": {
+    "fileSection": "File",
+    "cancel": "Cancel",
     "heading": "Import contacts",
     "screenXlsx": "Import from Excel",
     "screenVcf": "Import from business cards",
@@ -1246,6 +1249,8 @@
       "failed": "The file could not be read. Try again."
     },
     "mapping": {
+      "keyHeader": "Attribute key",
+      "typeHeader": "Key type",
       "heading": "Column mapping",
       "column": "Column",
       "target": "Import into",

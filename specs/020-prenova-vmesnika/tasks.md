@@ -138,10 +138,10 @@ description: "Naloge: Prenova vmesnika (Kartoteka v2) – ena izvedba, testi zno
 
 ### Paket A – obrazec, uvoz, zgodovina
 
-- [ ] T055 FR-020-22 — `ContactFormPage`/`ContactForm` (+ `ContactPhotoSection`, `TagInput`, `SuggestInput`, atributi) po platnu (frontend/src/features/contacts/)
-- [ ] T056 [P] FR-020-22 — `ImportPage`/`ImportMenu` (koraki, preslikava, rezultat) (frontend/src/features/import/)
-- [ ] T057 [P] FR-020-22 — `ContactHistoryPage`, `VersionPage`, primerjava različic (`history/ComparePage`), `DeletedContactsPage`, `HistoryTimeline` (frontend/src/features/history/)
-- [ ] T058 FR-020-22 — FE testi in E2E (`kontakti`, `uvoz-izvoz`, `izvoz-excel`, zgodovina) za zaslone paketa; axe (frontend/src/features/{contacts,import,history}/, e2e/tests/)
+- [x] T055 FR-020-22 — `ContactFormPage`/`ContactForm` (+ `ContactPhotoSection`, `TagInput`, `SuggestInput`, atributi) po platnu (frontend/src/features/contacts/)
+- [x] T056 [P] FR-020-22 — `ImportPage`/`ImportMenu` (koraki, preslikava, rezultat) (frontend/src/features/import/)
+- [x] T057 [P] FR-020-22 — `ContactHistoryPage`, `VersionPage`, primerjava različic (`history/ComparePage`), `DeletedContactsPage`, `HistoryTimeline` (frontend/src/features/history/)
+- [x] T058 FR-020-22 — FE testi in E2E (`kontakti`, `uvoz-izvoz`, `izvoz-excel`, zgodovina) za zaslone paketa; axe (frontend/src/features/{contacts,import,history}/, e2e/tests/)
 
 ### Paket B – dvojniki, revizija, atributi
 

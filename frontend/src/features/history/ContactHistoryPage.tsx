@@ -1,11 +1,12 @@
-import { IconAlertTriangle, IconArrowLeft, IconTrash } from '@tabler/icons-react';
+import { IconAlertTriangle, IconArrowLeft, IconGitCompare, IconTrash } from '@tabler/icons-react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
 
+import { Avatar } from '../../shared/images/Avatar';
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
-import { errorAlert, focusRing, secondaryButton } from '../../shared/ui/styles';
+import { card, errorAlert, focusRing, secondaryButton, softButton } from '../../shared/ui/styles';
 import { useGroup } from '../groups/groupContext';
 import { SectionPagination } from '../groups/SectionPagination';
 import { useDelayed } from '../groups/useDelayed';
@@ -111,7 +112,7 @@ export function ContactHistoryPage({ contactId }: { contactId: string }) {
   return (
     <section
       aria-labelledby={headingId}
-      className="mx-auto flex w-full max-w-[70ch] flex-col gap-4 px-4 py-6"
+      className="mx-auto flex w-full max-w-[56rem] flex-col gap-5 px-4 py-6"
     >
       <Link
         to={
@@ -126,14 +127,25 @@ export function ContactHistoryPage({ contactId }: { contactId: string }) {
           ? t('history.page.back')
           : t('history.page.backDeleted')}
       </Link>
-      <h2
-        id={headingId}
-        ref={heading}
-        tabIndex={-1}
-        className="text-xl font-bold break-words outline-none"
-      >
-        {data ? t('history.page.heading', { name }) : t('history.page.list')}
-      </h2>
+      <div className="flex min-w-0 items-center gap-4">
+        {data && (
+          <Avatar
+            kind="contact"
+            name={data.contact.displayName}
+            colorSeed={contactId}
+            size={40}
+            alt=""
+          />
+        )}
+        <h2
+          id={headingId}
+          ref={heading}
+          tabIndex={-1}
+          className="text-xl font-bold break-words outline-none"
+        >
+          {data ? t('history.page.heading', { name }) : t('history.page.list')}
+        </h2>
+      </div>
 
       {status && status !== 'ACTIVE' && (
         <p
@@ -178,17 +190,23 @@ export function ContactHistoryPage({ contactId }: { contactId: string }) {
           <div
             role="group"
             aria-label={t('history.selection.summary')}
-            className="flex flex-wrap items-center gap-3"
+            className={`${card} flex flex-wrap items-center gap-3 py-2.5 pr-2.5 pl-4`}
           >
+            <IconGitCompare
+              aria-hidden="true"
+              size={20}
+              stroke={1.75}
+              className="text-muted-foreground"
+            />
             {compare.length === 2 && compare[0] && compare[1] ? (
               <Link
                 to={`${base}/contacts/${contactId}/compare?from=${compare[0].ref}&to=${compare[1].ref}`}
-                className={secondaryButton}
+                className={`${softButton} ml-auto h-9`}
               >
                 {t('history.selection.compare')}
               </Link>
             ) : (
-              <p aria-live="polite" className="text-muted-foreground">
+              <p aria-live="polite" className="flex-1 text-sm text-muted-foreground">
                 {picks.length === 1 ? t('history.selection.one') : t('history.selection.hint')}
               </p>
             )}

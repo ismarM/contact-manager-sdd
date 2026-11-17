@@ -439,6 +439,7 @@
     "form": {
       "newHeading": "Nov kontakt",
       "editHeading": "Uredi kontakt",
+      "backToContact": "Nazaj na kontakt",
       "basic": "Osnovni podatki",
       "attributesLegend": "Dodatni atributi",
       "tagsLegend": "Značke",
@@ -1225,6 +1226,8 @@
     "none": "Ni predlogov"
   },
   "import": {
+    "fileSection": "Datoteka",
+    "cancel": "Prekliči",
     "heading": "Uvoz kontaktov",
     "screenXlsx": "Uvoz iz Excela",
     "screenVcf": "Uvoz iz vizitk",
@@ -1246,6 +1249,8 @@
       "failed": "Datoteke ni bilo mogoče prebrati. Poskusi znova."
     },
     "mapping": {
+      "keyHeader": "Ključ atributa",
+      "typeHeader": "Tip ključa",
       "heading": "Preslikava stolpcev",
       "column": "Stolpec",
       "target": "Uvozi v",

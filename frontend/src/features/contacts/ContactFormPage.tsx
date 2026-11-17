@@ -36,6 +36,7 @@ export function ContactFormPage({ contactId }: { contactId?: string }) {
   const [reloads, setReloads] = useState(0);
   const showLoader = useDelayed(state.kind === 'loading');
   const list = `/groups/${group.id}/contacts${location.search}`;
+  const cancelTo = contactId ? `/groups/${group.id}/contacts/${contactId}${location.search}` : list;
 
   useEffect(() => {
     if (!contactId || !editable) return undefined;
@@ -80,10 +81,16 @@ export function ContactFormPage({ contactId }: { contactId?: string }) {
 
   const headingId = 'contact-form-heading';
   return (
-    <div className="mx-auto flex w-full max-w-[70ch] flex-col gap-5 px-4 py-6">
-      <h2 id={headingId} className="text-2xl font-bold">
-        {t(contactId ? 'contacts.form.editHeading' : 'contacts.form.newHeading')}
-      </h2>
+    <div className="mx-auto flex w-full max-w-[44rem] flex-col gap-6 px-4 py-6">
+      <div className="flex flex-col gap-2">
+        <Link to={cancelTo} className={`self-start ${link}`}>
+          <IconArrowLeft aria-hidden="true" size={20} stroke={1.75} />
+          {t(contactId ? 'contacts.form.backToContact' : 'contacts.view.back')}
+        </Link>
+        <h2 id={headingId} className="text-2xl font-bold">
+          {t(contactId ? 'contacts.form.editHeading' : 'contacts.form.newHeading')}
+        </h2>
+      </div>
       {!contactId && (
         <ContactForm
           labelledBy={headingId}
