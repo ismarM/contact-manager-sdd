@@ -29,6 +29,7 @@
 | 014 | uvoz in izvoz | uvoz iz Excela in vizitk s predogledom (editor in višje), izvoz vCard (izbor, en kontakt), koda QR kontakta (deljenje, branje s kamero ali iz slike), CardDAV samo za branje z gesli za aplikacijo | `features/import`, `features/contacts/qr`, `features/account`, paketi `contact`, `account`, `carddav` |
 | 015 | napredna revizija | filter sledi po uporabniku (tudi nekdanji in izbrisani), zgodovina posameznega kontakta, ogled in primerjava različic, obnova enega kontakta, seznam izbrisanih kontaktov | `features/audit`, `features/contacts`, paket `audit` |
 | 016 | tipizirani atributi | tip ključa atributa v skupini (7 tipov), normalizacija na strežniku, strukturiran naslov s samodokončanjem, osebna prikazna shema (telefon, datum, naslov), zemljevid naslovov (OSM samo prek zaledja), tipi v uvozu, izvozu in sledi | `features/contacts`, `features/groups`, `features/account`, paketa `contact`, `maps` |
+| 019 | API ključi | API ključi (`cmk_` + podpisan JWT, do 10 aktivnih na uporabnika; obseg po skupinah z branjem ali pisanjem, rok ali brez roka, preklic), ločeni endpointi `/v1/**` z lastno verigo filtrov in omejitvijo 120 zahtev/min na ključ, statistika uporabe po ključu, javna stran API `/api-docs` z opisom `/v1/openapi.json` | `features/account`, `features/api-docs`, paket `apikey` |
 
 Poti: `features/*` je `frontend/src/features/*`, paketi so `backend/src/main/java/si/contactmanager/*`, E2E scenariji so v `e2e/tests/*.spec.ts`.
 
@@ -58,6 +59,7 @@ Pri vsakem zahtevku nad podatki skupine se preverja v tem vrstnem redu; prvi neu
 
 - Viri, vezani na uporabnika (povabila, moji podatki, moj račun, gesla za aplikacijo): `401` brez prijave, `404` za tuj vir (npr. tuje povabilo).
 - CardDAV (014, nov tip klicatelja): prijava samo s HTTP Basic (e-naslov računa + geslo za aplikacijo) na `/dav/**`; vrstni red `401` → `404` (skupina ali kontakt ni viden) → `403` (vsako pisanje). Firebase žeton tam ne velja, Basic ne velja na `/api`.
+- API ključ (019, nov tip klicatelja): prijava samo z glavo `Authorization: Bearer cmk_…` na `/v1/**`; vrstni red `401` (brez, neveljaven, preklican ali potekel ključ ali izbrisan račun) → `429 RATE_LIMITED` (nad 120 zahtev/min na ključ, z `Retry-After`) → `404` (skupina ni vidna uporabniku ali je ključ ne pokriva) → `404` (obseg) → `403` (pravica pod potrebno: dejanska pravica je `min(ključ, vloga člana)`) → `409` (`GROUP_ARCHIVED`, `VERSION_CONFLICT`). Firebase žeton na `/v1` in ključ na `/api` ne veljata (`401`); `/v1` nima CORS. Upravljanje ključev (`/api/me/api-keys`) je vir, vezan na uporabnika.
 - Napake imajo strojno berljivo kodo; vmesnik jo prevede v razumljivo sporočilo v sl/en (brez tehničnih kod v vmesniku).
 - Vsak uspeh in neuspeh je v vmesniku viden (design.md 8.13).
 
@@ -102,11 +104,12 @@ Povsod, kjer bi bilo prikazano ime ali e-naslov uporabnika, ki je izbrisal raču
 | Dodatni atribut | ključ 1–50 znakov, edinstven v kontaktu (ne glede na velikost črk) in različen od imen predefiniranih atributov; vrednost 1–500 znakov; največ 50 atributov na kontakt; imena `država`, `country`, `podjetje`, `company` (poleg imen predefiniranih polj) so rezervirana za nove in spremenjene ključe, obstoječi atributi z njimi ostanejo; zapis ključa se ob pisanju uskladi s kanoničnim zapisom skupine (pogostejša različica, pri izenačenju najstarejši kontakt) |
 | Značka | 1–50 znakov, brez presledkov; edinstvena v kontaktu (ne glede na velikost črk); največ 30 značk na kontakt; zapis se ob pisanju uskladi s kanoničnim zapisom skupine kot pri ključih |
 | Paginacija | privzeto 25 na stran, izbira 25 / 50 / 100, največ 100 |
+| API ključ (019) | ime 1–50 znakov, edinstveno med aktivnimi ključi uporabnika; ključ `cmk_` + JWT s `jti`, prikazan samo ob ustvarjanju, shrani se zgostitev in namig (zadnjih 6 znakov); obseg: vse skupine ali izbrane, za vsako branje ali pisanje; rok: 30/90/365 dni ali brez roka; največ 10 aktivnih. Statistika uporabe: po dnevih število uspešnih, napak in zavrnitev (čiščenje po 90 dneh) |
 | Privzeto razvrščanje kontaktov | priimek, nato ime, naraščajoče; po slovenski abecedi (Č za C, Š za S, Ž za Z), ne glede na velikost črk in neodvisno od jezika vmesnika; enake vrednosti razločita čas nastanka in id (D-63, ki nadomešča D-38) |
 
 ### 2.7 Revizijska sled
 
-Od funkcionalnosti 005 naprej **vsaka** sprememba kontaktov (ustvarjanje, urejanje, izbris, množične spremembe, združevanje, rollback, obnova enega kontakta – `RESTORE`, 015, uvoz – `IMPORT`, 014) ustvari vnos v revizijski sledi skupine. Branje (izvoz, CardDAV) se ne beleži. Od 016 tudi sprememba tipa ključa atributa ustvari vnos `ATTRIBUTE_TYPE` (ključ, tip prej in potem; brez vrednosti kontaktov).
+Od funkcionalnosti 005 naprej **vsaka** sprememba kontaktov (ustvarjanje, urejanje, izbris, množične spremembe, združevanje, rollback, obnova enega kontakta – `RESTORE`, 015, uvoz – `IMPORT`, 014) ustvari vnos v revizijski sledi skupine. Branje (izvoz, CardDAV) se ne beleži. Od 016 tudi sprememba tipa ključa atributa ustvari vnos `ATTRIBUTE_TYPE` (ključ, tip prej in potem; brez vrednosti kontaktov). Sprememba prek API ključa (019) ima v sledi oznako »prek API« in ime ključa (`apiKeyName`); branje prek API se ne beleži.
 
 **Osebna prikazna shema (016):** uporabnikova nastavitev *oblika zapisa* (`phoneFormat`: `INTERNATIONAL` | `NATIONAL` | `E164`, `dateFormat`: `LOCALE` | `ISO` | `LONG`, `addressFormat`: `COUNTRY` | `SINGLE_LINE`; `null` = privzeto) se hrani ob jeziku in temi, velja na vseh napravah, je v izvozu *Moji podatki* in se izbriše z računom. Vpliva samo na prikaz; shranjeni podatki so vedno kanonični. Funkcionalnosti 009 in 011 to zahtevata v svojih FR; 005 doda beleženje operacij iz 004.
 
@@ -139,5 +142,7 @@ Skupne kode (§2.2): `UNAUTHENTICATED` (401), `FORBIDDEN` (403, D-25), `GROUP_AR
 | `RESTORE_NOT_ALLOWED` | 015 | obnova kontakta, ki je bil z združevanjem odstranjen (neposredna obnova ni dovoljena) |
 | `ATTRIBUTE_TYPE_CONFLICT` | 016 | sprememba tipa ključa atributa, ki bi pustila neveljavne vrednosti (409; telo `details`: kontakti, največ 100, in `total`) |
 | `MAP_SERVICE_UNAVAILABLE` | 016 | kartografska storitev (OSM) nedosegljiva, počasna ali omejitev pogostosti (503; ne ovira dela s kontaktom) |
+| `API_KEY_LIMIT` | 019 | ustvarjanje enajstega aktivnega API ključa (409) |
+| `RATE_LIMITED` | 019 | več kot 120 zahtev/min z istim API ključem na `/v1` (429, glava `Retry-After`) |
 
 Opomba (016): `TOO_SHORT` ni samostojna koda napake, ampak koda polja v `VALIDATION_FAILED` (400) za `q` pri predlogih naslova (krajše od najmanjše dolžine; poleg `REQUIRED`, `TOO_LONG`, `INVALID_VALUE`).

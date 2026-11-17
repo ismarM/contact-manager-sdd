@@ -125,9 +125,9 @@ description: "Tasks for 019-api-kljuci (po zgodbah, testi znotraj vsake naloge/z
 ## Phase 9: Polish & Cross-Cutting Concerns
 
 - [x] T039 — FR-019-17 – `.gitleaks.toml`: pravilo za `cmk_eyJ…` (če obstoječa pravila ključa ne zaznajo); preveri z vzorcem v testu `scripts/verify` ali ročno v opisu PR
-- [ ] T040 — — – `.specify/memory/feature-map.md`: §1 vrstica 019, §2.2 nov tip klicatelja (API ključ, `/v1`, vrstni red 401 → 429 → 404 → 404 obseg → 403 → 409), §2.6 slovar (API ključ, statistika), §2.7 oznaka »prek API« in branje prek API se ne beleži, §2.10 `API_KEY_LIMIT` (409) in `RATE_LIMITED` (429)
-- [ ] T041 — FR-019-01, -17 – Po uskladitvi z `main` (017 združen; faza PR): `ApiKeyManagementSecurityIT` – `POST /api/me/api-keys` z nepotrjenim e-naslovom → 403 `EMAIL_NOT_VERIFIED`, ustvarjanje brez sveže prijave (brez `REAUTHENTICATION_REQUIRED`); `ApiKeyAuthenticationIT` – ključ uporabnika z nepotrjenim e-naslovom na `/v1` ni zavrnjen z `EMAIL_NOT_VERIFIED` (`EmailVerifiedFilter` velja samo za `/api/**`)
-- [ ] T042 — — – Quickstart (quickstart.md) ročno ali z E2E; `./verify.sh quick`; ciljani IT `Api*IT`, `*ApiKey*IT`, `MyData*IT`, `AccountDeletion*IT`, `Audit*IT`; E2E celoten (spremenjeni `App.tsx`, `AccountPage`, `LoginPage`, `e2e/tests/support/**`)
+- [x] T040 — — – `.specify/memory/feature-map.md`: §1 vrstica 019, §2.2 nov tip klicatelja (API ključ, `/v1`, vrstni red 401 → 429 → 404 → 404 obseg → 403 → 409), §2.6 slovar (API ključ, statistika), §2.7 oznaka »prek API« in branje prek API se ne beleži, §2.10 `API_KEY_LIMIT` (409) in `RATE_LIMITED` (429)
+- [ ] T041 — FR-019-01, -17 – Po uskladitvi z `main` (017 združen; faza PR): `ApiKeyManagementSecurityIT` – `POST /api/me/api-keys` z nepotrjenim e-naslovom → 403 `EMAIL_NOT_VERIFIED`, ustvarjanje brez sveže prijave (brez `REAUTHENTICATION_REQUIRED`); `ApiKeyAuthenticationIT` – ključ uporabnika z nepotrjenim e-naslovom na `/v1` ni zavrnjen z `EMAIL_NOT_VERIFIED` (`EmailVerifiedFilter` velja samo za `/api/**`) — OPOMBA: izvede se ob uskladitvi z `main` po združitvi PR #24 (017); do takrat odprta
+- [x] T042 — — – Quickstart (quickstart.md) ročno ali z E2E; `./verify.sh quick`; ciljani IT `Api*IT`, `*ApiKey*IT`, `MyData*IT`, `AccountDeletion*IT`, `Audit*IT`; E2E celoten (spremenjeni `App.tsx`, `AccountPage`, `LoginPage`, `e2e/tests/support/**`) — E2E: CI (lokalno gradnja slik ni mogoča; quickstart.md preverjen proti kodi)
 
 ## Dependencies & Execution Order
 
