@@ -430,7 +430,10 @@
       "company": "Company",
       "country": "Country",
       "historyHeading": "History",
-      "historyLink": "Contact history"
+      "historyLink": "Contact history",
+      "fields": "Contact",
+      "meta": "Added {{created}} · last edited {{updated}} by {{who}}",
+      "historyText": "Every change to this contact, older versions and restoring a version."
     },
     "gone": "This contact no longer exists – someone deleted it in the meantime.",
     "form": {

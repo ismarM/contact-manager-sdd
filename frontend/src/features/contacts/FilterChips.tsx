@@ -44,7 +44,7 @@ export function FilterChips({
             <button
               type="button"
               aria-label={t('contacts.filters.remove', { label })}
-              className={`inline-flex min-h-11 items-center gap-1 rounded-md border border-border bg-muted px-3 break-all ${focusRing}`}
+              className={`inline-flex min-h-9 items-center gap-1 rounded-full border border-primary bg-selected px-3 text-sm font-medium break-all text-primary hover:bg-muted pointer-coarse:min-h-11 ${focusRing}`}
               onClick={() => {
                 pending.current = index;
                 onRemove(filter);

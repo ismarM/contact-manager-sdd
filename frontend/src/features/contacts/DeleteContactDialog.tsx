@@ -1,4 +1,4 @@
-import { IconAlertTriangle } from '@tabler/icons-react';
+import { IconAlertTriangle, IconTrash } from '@tabler/icons-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../../shared/ui/dialog';
-import { dangerButton, errorAlert, secondaryButton } from '../../shared/ui/styles';
+import { dangerButton, errorAlert, ghostButton, secondaryButton } from '../../shared/ui/styles';
 import { useGroup } from '../groups/groupContext';
 import { conflictCurrent, failureKey, isNotFound, useContactsApi } from './api';
 import type { ContactDetail } from './types';
@@ -82,7 +82,10 @@ export function DeleteContactDialog({
   return (
     <Dialog open={shown} onOpenChange={changeOpen}>
       {trigger && (
-        <DialogTrigger className={secondaryButton}>{t('contacts.view.delete')}</DialogTrigger>
+        <DialogTrigger className={`${ghostButton} text-destructive`}>
+          <IconTrash aria-hidden="true" size={20} stroke={1.75} />
+          {t('contacts.view.delete')}
+        </DialogTrigger>
       )}
       <DialogContent
         onInteractOutside={(event) => event.preventDefault()}

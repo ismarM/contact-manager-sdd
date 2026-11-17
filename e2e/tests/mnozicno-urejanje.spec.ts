@@ -419,3 +419,27 @@ test('FR-009-05 FR-009-15: v arhivirani skupini urednik izbira, akcij pisanja pa
   await expectNoAxeViolations(eva.page);
   await eva.context.close();
 });
+
+test('FR-020-21: izbrana vrstica ima označeno potrditveno polje, vrstica izbora je plavajoča in ne prekriva vsebine', async ({
+  page,
+}) => {
+  await signedIn(page);
+  const id = await createGroup(page, { title: 'Projekt FERI' });
+  createTaggedContacts(id, 30, 'konferenca2025');
+  await page.goto(`/groups/${id}/contacts`);
+
+  const box = pick(page, name(1));
+  await box.check();
+  await expect(box).toBeChecked();
+  await expect(box.locator('xpath=ancestor::tr')).toHaveAttribute('class', /bg-selected/);
+  await expect(toolbar(page)).toBeVisible();
+  await expect(toolbar(page)).toHaveCSS('position', 'fixed');
+  await expect(status(page)).toHaveText('Izbran: 1');
+
+  // Paginacija se da doseči: vrstica izbora je ne prekrije.
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  const bar = await toolbar(page).boundingBox();
+  const pager = await pagination(page).boundingBox();
+  if (bar && pager) expect(pager.y + pager.height).toBeLessThanOrEqual(bar.y + 1);
+  await expectNoAxeViolations(page);
+});

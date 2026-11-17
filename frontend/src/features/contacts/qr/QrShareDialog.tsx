@@ -15,6 +15,7 @@ import {
   errorAlert,
   primaryButton,
   secondaryButton,
+  softButton,
   warningAlert,
 } from '../../../shared/ui/styles';
 import { fileNameTitle } from '../export/exportFileName';
@@ -97,7 +98,7 @@ export function QrShareDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger className={secondaryButton}>
+      <DialogTrigger className={softButton}>
         <IconQrcode aria-hidden="true" size={20} stroke={1.75} />
         {t('contacts.qrShare.button')}
       </DialogTrigger>

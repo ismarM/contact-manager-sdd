@@ -430,7 +430,10 @@
       "company": "Podjetje",
       "country": "Država",
       "historyHeading": "Zgodovina",
-      "historyLink": "Zgodovina kontakta"
+      "historyLink": "Zgodovina kontakta",
+      "fields": "Kontakt",
+      "meta": "Dodano {{created}} · nazadnje urejeno {{updated}}, {{who}}",
+      "historyText": "Vsaka sprememba tega kontakta, starejše različice in obnovitev različice."
     },
     "gone": "Tega kontakta ni več – medtem ga je nekdo izbrisal.",
     "form": {

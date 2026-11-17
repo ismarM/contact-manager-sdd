@@ -121,14 +121,14 @@ description: "Naloge: Prenova vmesnika (Kartoteka v2) – ena izvedba, testi zno
 
 **Goal**: preglednica, plavajoča vrstica izbora, lepljiva plošča, kartica po platnu. **Independent Test**: iskanje, filtri, izbor, množične akcije, ogled, urejanje, izbris delujejo kot prej pri 360, 768, 1280 px.
 
-- [ ] T047 FR-020-17 — `ContactList`: semantična preglednica (lepljiva glava, začetnice/slika, ime, največ tri značke + »+N«), zlaganje v kartice po širini vsebnika < 640 px (R-08) (frontend/src/features/contacts/ContactList.tsx)
-- [ ] T048 FR-020-21 — Plavajoča vrstica izbora (»Izbrano: N« + akcije) in izbrana vrstica z barvo in označenim potrditvenim poljem (frontend/src/features/contacts/selection/)
-- [ ] T049 [P] FR-020-17, FR-020-22 — `ContactToolbar`, `FilterChips`, `FilterPanel`, paginacija v jeziku v2 (čipi z »Odstrani filter …«, mehki gumbi) (frontend/src/features/contacts/)
-- [ ] T050 FR-020-18 — `ContactsPage`: od 1280 px plošča ob seznamu `sticky` z lastnim pomikom, pod 1280 px stran kontakta, na telefonu primarna akcija v spodnji vrstici akcij (frontend/src/features/contacts/ContactsPage.tsx)
-- [ ] T051 FR-020-19 — `ContactView`: trak barve skupine (6 px v plošči), 64 px avatar/začetnice, ime, »Dodal … · nazadnje urejeno …«, *Uredi kontakt* (primarno) pred *Izbriši kontakt* (tiho, nevarno), *Deli s kodo QR*, *Prenesi vizitko*, polja po skupinah, atributi, značke, razdelek *Zgodovina* s povezavama na zgodovino kontakta in revizijsko sled s filtrom `contact`; akcije po vlogi/stanju (frontend/src/features/contacts/ContactView.tsx)
-- [ ] T052 FR-020-20 — Odstrani `RevertedBadge.tsx` in prikaz `contact.reverted` na kartici (podatek ostane v API in sledi); posodobi `ContactReverted.test.tsx`: kartica po rollbacku in obnovi nima značke ali opombe, podatek je viden v sledi/zgodovini (frontend/src/features/contacts/)
-- [ ] T053 [P] FR-020-17 … -21 — FE testi: preglednica ↔ kartice, izbor, kartica po vlogah (VIEWER, arhivirana: akcij ni), vrstni red akcij, povezavi zgodovine, vitest-axe (frontend/src/features/contacts/*.test.tsx)
-- [ ] T054 FR-020-17 … -21 — E2E: `kontakti.spec.ts`, `iskanje.spec.ts`, `mnozicno-urejanje.spec.ts` (izbor, plavajoča vrstica, plošča pri 1280 px, kartica), axe (e2e/tests/)
+- [x] T047 FR-020-17 — `ContactList`: semantična preglednica (lepljiva glava, začetnice/slika, ime, največ tri značke + »+N«), zlaganje v kartice po širini vsebnika < 640 px (R-08) (frontend/src/features/contacts/ContactList.tsx)
+- [x] T048 FR-020-21 — Plavajoča vrstica izbora (»Izbrano: N« + akcije) in izbrana vrstica z barvo in označenim potrditvenim poljem (frontend/src/features/contacts/selection/)
+- [x] T049 [P] FR-020-17, FR-020-22 — `ContactToolbar`, `FilterChips`, `FilterPanel`, paginacija v jeziku v2 (čipi z »Odstrani filter …«, mehki gumbi) (frontend/src/features/contacts/)
+- [x] T050 FR-020-18 — `ContactsPage`: od 1280 px plošča ob seznamu `sticky` z lastnim pomikom, pod 1280 px stran kontakta, na telefonu primarna akcija v spodnji vrstici akcij (frontend/src/features/contacts/ContactsPage.tsx)
+- [x] T051 FR-020-19 — `ContactView`: trak barve skupine (6 px v plošči), 64 px avatar/začetnice, ime, »Dodal … · nazadnje urejeno …«, *Uredi kontakt* (primarno) pred *Izbriši kontakt* (tiho, nevarno), *Deli s kodo QR*, *Prenesi vizitko*, polja po skupinah, atributi, značke, razdelek *Zgodovina* s povezavama na zgodovino kontakta in revizijsko sled s filtrom `contact`; akcije po vlogi/stanju (frontend/src/features/contacts/ContactView.tsx)
+- [x] T052 FR-020-20 — Odstrani `RevertedBadge.tsx` in prikaz `contact.reverted` na kartici (podatek ostane v API in sledi); posodobi `ContactReverted.test.tsx`: kartica po rollbacku in obnovi nima značke ali opombe, podatek je viden v sledi/zgodovini (frontend/src/features/contacts/)
+- [x] T053 [P] FR-020-17 … -21 — FE testi: preglednica ↔ kartice, izbor, kartica po vlogah (VIEWER, arhivirana: akcij ni), vrstni red akcij, povezavi zgodovine, vitest-axe (frontend/src/features/contacts/*.test.tsx)
+- [x] T054 FR-020-17 … -21 — E2E: `kontakti.spec.ts`, `iskanje.spec.ts`, `mnozicno-urejanje.spec.ts` (izbor, plavajoča vrstica, plošča pri 1280 px, kartica), axe (e2e/tests/)
 
 ---
 
