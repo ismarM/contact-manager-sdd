@@ -87,6 +87,8 @@ export function Sidebar({ counts, className }: { counts: NavCounts; className?: 
         >
           <NAV_ICON.invitations aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
           <span className="flex-1 truncate">{t('invitations.link.text')}</span>
+          {/* Presledek: vidno besedilo »Povabila 1« je vsebovano v imenu »Povabila, 1 novo« (WCAG 2.5.3). */}
+          {invitations > 0 && ' '}
           {invitations > 0 && (
             <span
               aria-hidden="true"

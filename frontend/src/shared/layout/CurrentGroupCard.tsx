@@ -25,35 +25,38 @@ export function CurrentGroupCard() {
   const group = current?.id === id ? current : groups.find((item) => item.id === id);
   if (!group) return null;
 
+  // Vidno besedilo kartice je zunaj gumba, gumb (ime »Preklopi skupino«) pa prekrije celo kartico: ime gumba se ne
+  // razlikuje od vidnega besedila v njem (WCAG 2.5.3, axe label-content-name-mismatch); meni se poravna na kartico.
   return (
-    <GroupSwitcher triggerRef={trigger}>
-      <button
-        ref={trigger}
-        type="button"
-        aria-label={t('groups.switchGroup')}
-        aria-describedby={titleId}
-        className={`flex w-full items-center gap-3 rounded-md border border-border bg-card p-3 text-left hover:shadow-sm ${focusRing}`}
-      >
-        <Monogram
-          title={group.title}
-          color={group.color}
-          size={32}
-          photo={{ path: `/groups/${group.id}/photo`, revision: group.photoRevision }}
-        />
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className="text-xs text-muted-foreground">{t('groups.currentGroup')}</span>
-          <span id={titleId} title={group.title} className="truncate font-bold text-foreground">
-            {group.title}
-          </span>
-          <span className="text-xs text-muted-foreground">{t(`roles.${group.role}`)}</span>
+    <div className="relative flex w-full items-center gap-3 rounded-md border border-border bg-card p-3 text-left hover:shadow-sm">
+      <Monogram
+        title={group.title}
+        color={group.color}
+        size={32}
+        photo={{ path: `/groups/${group.id}/photo`, revision: group.photoRevision }}
+      />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="text-xs text-muted-foreground">{t('groups.currentGroup')}</span>
+        <span id={titleId} title={group.title} className="truncate font-bold text-foreground">
+          {group.title}
         </span>
-        <IconSelector
-          aria-hidden="true"
-          size={20}
-          stroke={1.75}
-          className="shrink-0 text-muted-foreground"
+        <span className="text-xs text-muted-foreground">{t(`roles.${group.role}`)}</span>
+      </span>
+      <IconSelector
+        aria-hidden="true"
+        size={20}
+        stroke={1.75}
+        className="shrink-0 text-muted-foreground"
+      />
+      <GroupSwitcher triggerRef={trigger}>
+        <button
+          ref={trigger}
+          type="button"
+          aria-label={t('groups.switchGroup')}
+          aria-describedby={titleId}
+          className={`absolute inset-0 cursor-pointer rounded-md ${focusRing}`}
         />
-      </button>
-    </GroupSwitcher>
+      </GroupSwitcher>
+    </div>
   );
 }

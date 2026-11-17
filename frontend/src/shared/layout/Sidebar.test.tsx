@@ -132,9 +132,11 @@ describe('Sidebar', () => {
 
     const card = await screen.findByRole('button', { name: switcherNames.button() });
     expect(card).toHaveAccessibleDescription('Cvet');
-    expect(card).toHaveTextContent('Trenutna skupina');
-    expect(card).toHaveTextContent('Cvet');
-    expect(card).toHaveTextContent(roleName('ADMIN'));
+    // Vidno besedilo je ob gumbu, ki prekrije kartico (ime gumba = »Preklopi skupino«, WCAG 2.5.3).
+    const visible = card.parentElement;
+    expect(visible).toHaveTextContent('Trenutna skupina');
+    expect(visible).toHaveTextContent('Cvet');
+    expect(visible).toHaveTextContent(roleName('ADMIN'));
   });
 
   it('FR-020-06: izbira skupine v kartici ohrani zavihek (Revizijska sled), označena je trenutna', async () => {

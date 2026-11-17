@@ -27,9 +27,20 @@ export async function mainNavigation(page: Page): Promise<Locator> {
   return page.getByRole('navigation', { name: t('shell.mainNav') });
 }
 
-/** Odpre preklopnik skupin (kartica *Trenutna skupina* ali naziv v glavi) in vrne meni; samo znotraj skupine. */
+/**
+ * Odpre preklopnik skupin in vrne meni; samo znotraj skupine. Od 1024 px kartica *Trenutna skupina* v stranski vrstici,
+ * od 640 do 1023 px ista kartica v ploskvi navigacije, pod 640 px naziv v glavi skupine.
+ */
 export async function openGroupSwitcher(page: Page): Promise<Locator> {
-  await page.getByRole('button', { name: t('groups.switchGroup') }).click();
+  if (!isWideViewport(page) && !isPhoneViewport(page)) {
+    await page.getByRole('button', { name: t('shell.openNav') }).click();
+    await page
+      .getByRole('dialog', { name: t('shell.nav') })
+      .getByRole('button', { name: t('groups.switchGroup') })
+      .click();
+  } else {
+    await page.getByRole('button', { name: t('groups.switchGroup') }).click();
+  }
   const menu = page.getByRole('menu', { name: t('groups.switchGroup') });
   await expect(menu).toBeVisible();
   return menu;

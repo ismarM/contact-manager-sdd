@@ -51,6 +51,10 @@ export function BottomBar({ counts }: { counts: NavCounts }) {
                   focusRing,
                 )}
               >
+                {/* Napis je v DOM pred ikono (prikazan pod njo z `order-last`): vidno besedilo »Povabila 1« je tako
+                    vsebovano v imenu »Povabila, 1 novo« (WCAG 2.5.3, axe label-content-name-mismatch). */}
+                <span className="order-last max-w-full truncate px-1">{label}</span>
+                {/* Presledek loči napis in število: vidno besedilo »Povabila 1«, ne »Povabila1«. */}{' '}
                 <span
                   className={cn(
                     'relative flex h-8 w-14 items-center justify-center rounded-full',
@@ -67,7 +71,6 @@ export function BottomBar({ counts }: { counts: NavCounts }) {
                     </span>
                   )}
                 </span>
-                <span className="max-w-full truncate px-1">{label}</span>
               </Link>
             </li>
           );

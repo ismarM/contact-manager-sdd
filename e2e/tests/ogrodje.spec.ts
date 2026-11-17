@@ -17,8 +17,8 @@ import {
 // Začasna začetna stran ogrodja (plan.md – Public Interfaces). Vsak test teče pri 360, 768 in 1280 px
 // (projekti v playwright.config.ts) ter v svetli in temni shemi sistema.
 
-const LIGHT_BG = 'rgb(246, 245, 241)'; // --k-bg svetla (#F6F5F1)
-const DARK_BG = 'rgb(22, 21, 19)'; // --k-bg temna (#161513)
+const LIGHT_BG = 'rgb(247, 246, 242)'; // --k-bg svetla (#F7F6F2, design.md v2)
+const DARK_BG = 'rgb(18, 18, 17)'; // --k-bg temna (#121211, design.md v2)
 
 for (const colorScheme of ['light', 'dark'] as const) {
   test.describe(`shema ${colorScheme}`, () => {
@@ -34,7 +34,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
     test('FR-000-12: začetna stran brez kršitev axe', async ({ page }) => {
       await page.goto('/');
-      await expect(page.getByRole('heading', { level: 1, name: 'Kontakti' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Prijava' })).toBeVisible();
 
       const results = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
@@ -61,7 +61,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     test('FR-000-12: brez vodoravnega drsenja pri 320 px', async ({ page }) => {
       await page.setViewportSize({ width: 320, height: 640 });
       await page.goto('/');
-      await expect(page.getByRole('heading', { level: 1, name: 'Kontakti' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Prijava' })).toBeVisible();
 
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -71,7 +71,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
     test('FR-000-13: shema sledi sistemu, data-theme jo preglasi', async ({ page }) => {
       await page.goto('/');
-      await expect(page.getByRole('heading', { level: 1, name: 'Kontakti' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Prijava' })).toBeVisible();
       const bodyBackground = () =>
         page.evaluate(() => getComputedStyle(document.body).backgroundColor);
 
@@ -80,7 +80,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       const override = colorScheme === 'dark' ? 'light' : 'dark';
       await page.evaluate((theme) => localStorage.setItem('theme', theme), override);
       await page.reload();
-      await expect(page.getByRole('heading', { level: 1, name: 'Kontakti' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Prijava' })).toBeVisible();
 
       expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe(override);
       expect(await bodyBackground()).toBe(override === 'dark' ? DARK_BG : LIGHT_BG);
@@ -118,12 +118,12 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await page.goto('/');
       await page.evaluate(() => navigator.serviceWorker.ready);
       await page.reload();
-      await expect(page.getByRole('heading', { level: 1, name: 'Kontakti' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Prijava' })).toBeVisible();
 
       await context.setOffline(true);
       await page.reload();
 
-      await expect(page.getByRole('heading', { level: 1, name: 'Kontakti' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Prijava' })).toBeVisible();
       const apiReachable = await page.evaluate(() =>
         fetch('/api/health').then(
           () => true,
@@ -140,7 +140,7 @@ test.describe('zmanjšano gibanje in vsiljene barve', () => {
 
   test('FR-000-13: ob prefers-reduced-motion ni prehodov ali animacij', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { level: 1, name: 'Kontakti' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Prijava' })).toBeVisible();
 
     const moving = await page.evaluate(
       () =>
@@ -158,7 +158,7 @@ test.describe('zmanjšano gibanje in vsiljene barve', () => {
     page,
   }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { level: 1, name: 'Kontakti' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Prijava' })).toBeVisible();
 
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
@@ -174,7 +174,7 @@ test.describe('jezik brskalnika', () => {
     test('FR-000-14: sl-SI → slovenska besedila in lang="sl"', async ({ page }) => {
       await page.goto('/');
 
-      await expect(page.getByRole('heading', { level: 1, name: 'Kontakti' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Prijava' })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.lang)).toBe('sl');
     });
   });
@@ -185,7 +185,7 @@ test.describe('jezik brskalnika', () => {
     test('FR-000-14: de-DE → angleška besedila in lang="en"', async ({ page }) => {
       await page.goto('/');
 
-      await expect(page.getByRole('heading', { level: 1, name: 'Contacts' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.lang)).toBe('en');
     });
   });
@@ -305,7 +305,10 @@ test.describe('ogrodje in navigacija', () => {
     await expect(page).toHaveURL(/\/audit$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Beta' })).toBeVisible();
     if (isWideViewport(page)) {
-      await expect(page.getByRole('button', { name: 'Preklopi skupino' })).toContainText('Beta');
+      // Vidni naziv kartice je ob gumbu (WCAG 2.5.3); gumb ga ima kot opis.
+      await expect(
+        page.getByRole('button', { name: 'Preklopi skupino' }),
+      ).toHaveAccessibleDescription('Beta');
     }
   });
 

@@ -52,35 +52,42 @@ export function AccountMenu({
 
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger
-        ref={trigger}
-        aria-label={t('shell.accountMenu')}
-        className={cn(
-          variant === 'item'
-            ? 'flex min-h-14 w-full items-center gap-3 rounded-md px-2 text-left hover:bg-card'
-            : 'flex size-11 items-center justify-center rounded-full pointer-coarse:size-12',
-          focusRing,
-          className,
-        )}
-      >
-        {avatar}
-        {variant === 'item' && (
-          <>
-            <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate font-bold text-foreground">{name}</span>
-              {profile.name && (
-                <span className="truncate text-sm text-muted-foreground">{profile.email}</span>
-              )}
-            </span>
-            <IconSelector
-              aria-hidden="true"
-              size={20}
-              stroke={1.75}
-              className="shrink-0 text-muted-foreground"
-            />
-          </>
-        )}
-      </DropdownMenuTrigger>
+      {variant === 'item' ? (
+        // Vidno besedilo (ime, e-naslov) je zunaj gumba, gumb »Meni računa« prekrije celo vrstico: ime gumba se ne
+        // razlikuje od vidnega besedila v njem (WCAG 2.5.3, axe label-content-name-mismatch).
+        <div className="relative flex min-h-14 w-full items-center gap-3 rounded-md px-2 text-left hover:bg-card">
+          {avatar}
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="truncate font-bold text-foreground">{name}</span>
+            {profile.name && (
+              <span className="truncate text-sm text-muted-foreground">{profile.email}</span>
+            )}
+          </span>
+          <IconSelector
+            aria-hidden="true"
+            size={20}
+            stroke={1.75}
+            className="shrink-0 text-muted-foreground"
+          />
+          <DropdownMenuTrigger
+            ref={trigger}
+            aria-label={t('shell.accountMenu')}
+            className={cn('absolute inset-0 cursor-pointer rounded-md', focusRing, className)}
+          />
+        </div>
+      ) : (
+        <DropdownMenuTrigger
+          ref={trigger}
+          aria-label={t('shell.accountMenu')}
+          className={cn(
+            'flex size-11 items-center justify-center rounded-full pointer-coarse:size-12',
+            focusRing,
+            className,
+          )}
+        >
+          {avatar}
+        </DropdownMenuTrigger>
+      )}
       <DropdownMenuContent
         align={variant === 'item' ? 'start' : 'end'}
         side={variant === 'item' ? 'top' : 'bottom'}
