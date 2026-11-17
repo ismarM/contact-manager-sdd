@@ -60,4 +60,28 @@ class ApiRateLimitIT extends ApiV1Test {
             assertThat(v1("GET", groupsV1(), "cmk_neveljaven").statusCode()).isEqualTo(401);
         }
     }
+
+    @Test
+    void rateLimitComesBeforeNotFoundForNonMemberAndOutOfScopeGroupsAndIsCounted() throws Exception {
+        Scenario s = scenario();
+        Key limited = keys().forGroups(s.id(Who.NON_MEMBER), Permission.READ, s.group());
+        for (int i = 0; i < 5; i++) {
+            assertThat(v1("GET", contactsV1(s.group()), limited.token()).statusCode())
+                    .isEqualTo(404);
+        }
+
+        HttpResponse<String> member = v1("GET", contactsV1(s.group()), limited.token());
+        HttpResponse<String> unknown = v1("GET", contactsV1(java.util.UUID.randomUUID()), limited.token());
+        HttpResponse<String> malformed = v1("GET", "/v1/groups/not-a-uuid/contacts", limited.token());
+
+        for (HttpResponse<String> response : java.util.List.of(member, unknown, malformed)) {
+            assertThat(response.statusCode()).isEqualTo(429);
+            assertThat(json(response.body())).containsEntry("code", "RATE_LIMITED");
+        }
+        assertThat(jdbc.queryForObject(
+                        "select coalesce(sum(rate_limited), 0) from api_key_usage where key_id = ?",
+                        Integer.class,
+                        limited.id()))
+                .isEqualTo(3);
+    }
 }

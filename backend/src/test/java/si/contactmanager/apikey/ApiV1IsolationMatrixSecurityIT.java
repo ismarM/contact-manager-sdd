@@ -314,6 +314,24 @@ class ApiV1IsolationMatrixSecurityIT extends ApiV1Test {
         };
     }
 
+    /**
+     * Zahteva, ki bi v aktivni skupini z dovoljeno pravico dala 400 ali 409 VERSION_CONFLICT (neveljavno telo,
+     * zastarela verzija): vrstni red zahteva, da 403 in 409 GROUP_ARCHIVED prideta pred obema.
+     */
+    private HttpResponse<String> hostileWrite(Write write, UUID group, UUID contact, String key) throws Exception {
+        long stale = contacts.version(contact) + 1000;
+        Map<String, Object> invalid = new java.util.LinkedHashMap<>();
+        invalid.put("email", "ni-epostni-naslov");
+        return switch (write) {
+            case POST -> v1("POST", contactsV1(group), key, body(invalid));
+            case PUT -> {
+                invalid.put("version", stale);
+                yield v1("PUT", contactV1(group, contact), key, body(invalid));
+            }
+            case DELETE -> v1("DELETE", contactV1(group, contact) + "?version=" + stale, key);
+        };
+    }
+
     private static int success(Write write) {
         return switch (write) {
             case POST -> 201;
@@ -393,6 +411,82 @@ class ApiV1IsolationMatrixSecurityIT extends ApiV1Test {
             assertThat(jdbc.queryForObject(
                             "select count(*) from audit_entry where group_id = ?", Integer.class, s.group()))
                     .isZero();
+        }
+    }
+
+    @ParameterizedTest(name = "{0}, {1} {2}, zastarela verzija in neveljavno telo")
+    @MethodSource("writeMatrix")
+    void forbiddenAndArchivedComeBeforeVersionConflictAndValidation(Write write, State state, Member member)
+            throws Exception {
+        Scenario s = scenario();
+        UUID contact = contacts.insert(s.group(), s.id(Who.OWNER), "Janez", "Novak");
+        apply(s, state);
+        Map<String, Object> rowBefore = contacts.row(contact);
+        int expected = expectedWrite(write, state, member);
+        org.junit.jupiter.api.Assumptions.assumeTrue(expected == 403 || expected == 409);
+
+        HttpResponse<String> response =
+                hostileWrite(write, s.group(), contact, keyFor(s, member.who(), member.permission(), s.group()));
+
+        assertThat(response.statusCode()).isEqualTo(expected);
+        assertThat(json(response.body())).containsEntry("code", expected == 403 ? "FORBIDDEN" : "GROUP_ARCHIVED");
+        assertThat(contacts.row(contact)).isEqualTo(rowBefore);
+        assertThat(contacts.count(s.group())).isEqualTo(1);
+    }
+
+    @ParameterizedTest(name = "{0}, nečlan in izven obsega pred zastarelo verzijo in neveljavnim telesom")
+    @MethodSource("writesOnly")
+    void notFoundComesBeforeVersionConflictAndValidation(Write write) throws Exception {
+        Scenario s = scenario();
+        UUID contact = contacts.insert(s.group(), s.id(Who.OWNER), "Janez", "Novak");
+        UUID other = groups.createGroup(s.id(Who.EDITOR), "Druga");
+
+        assertNotFound(hostileWrite(write, s.group(), contact, keyFor(s, Who.NON_MEMBER, Permission.WRITE, s.group())));
+        assertNotFound(hostileWrite(write, s.group(), contact, keyFor(s, Who.EDITOR, Permission.WRITE, other)));
+        assertThat(contacts.count(s.group())).isEqualTo(1);
+    }
+
+    @ParameterizedTest(name = "{0}, vloga znižana po ustvaritvi ključa")
+    @MethodSource("writesOnly")
+    void roleLoweredAfterKeyCreationIsAppliedByTheFilterAndRemovalGives404(Write write) throws Exception {
+        Scenario s = scenario();
+        UUID contact = contacts.insert(s.group(), s.id(Who.OWNER), "Janez", "Novak");
+        String key = keyFor(s, Who.EDITOR, Permission.WRITE, s.group());
+        assertThat(v1("GET", contactV1(s.group(), contact), key).statusCode()).isEqualTo(200);
+        jdbc.update(
+                "update group_member set role = 'VIEWER' where group_id = ? and user_id = ?",
+                s.group(),
+                s.id(Who.EDITOR));
+        Map<String, Object> rowBefore = contacts.row(contact);
+
+        HttpResponse<String> response = write(write, s.group(), contact, key);
+
+        assertThat(response.statusCode()).isEqualTo(403);
+        assertThat(json(response.body())).containsEntry("code", "FORBIDDEN");
+        assertThat(v1("GET", contactV1(s.group(), contact), key).statusCode()).isEqualTo(200);
+        assertThat(contacts.row(contact)).isEqualTo(rowBefore);
+        jdbc.update("delete from group_member where group_id = ? and user_id = ?", s.group(), s.id(Who.EDITOR));
+        assertNotFound(write(write, s.group(), contact, key));
+    }
+
+    @Test
+    void preflightOnDataPathsGetsNoCorsHeaders() throws Exception {
+        Scenario s = scenario();
+        UUID contact = contacts.insert(s.group(), s.id(Who.OWNER), "Janez", "Novak");
+        Map<String, String> headers = Map.of(
+                "Origin", "https://tuj.example",
+                "Access-Control-Request-Method", "GET",
+                "Access-Control-Request-Headers", "authorization");
+
+        for (String path : List.of(groupsV1(), contactsV1(s.group()), contactV1(s.group(), contact))) {
+            HttpResponse<String> response = Http.send("OPTIONS", url(path), headers);
+
+            assertThat(response.headers().firstValue("Access-Control-Allow-Origin"))
+                    .as(path)
+                    .isEmpty();
+            assertThat(response.headers().firstValue("Access-Control-Allow-Methods"))
+                    .as(path)
+                    .isEmpty();
         }
     }
 

@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 
@@ -111,12 +111,13 @@ describe('ApiDocsPage', () => {
     expect(written).toHaveLength(1);
     expect(written[0]).toContain('curl -H "Authorization: Bearer cmk_…"');
     expect(written[0]).toContain('/v1/groups');
-    expect(await screen.findByText(tr('apiDocs.copied'))).toBeInTheDocument();
+    const statuses = () => screen.getAllByRole('status').map((status) => status.textContent);
+    await waitFor(() => expect(statuses()).toContain(tr('apiDocs.copied')));
 
     clipboard.writeText = () => Promise.reject(new Error('denied'));
     await user.click(screen.getByRole('button', { name: tr('apiDocs.copyExample', { name }) }));
-    expect(await screen.findByText(tr('apiDocs.copyFailed'))).toBeInTheDocument();
-    expect(screen.queryByText(tr('apiDocs.copied'))).not.toBeInTheDocument();
+    await waitFor(() => expect(statuses()).toContain(tr('apiDocs.copyFailed')));
+    expect(statuses()).not.toContain(tr('apiDocs.copied'));
   });
 
   it('FR-019-14: preklop jezika prevede stran; v angleščini ni slovenskih besedil', async () => {
@@ -128,7 +129,7 @@ describe('ApiDocsPage', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: tr('apiDocs.heading', { lng: 'en' }) }),
     ).toBeInTheDocument();
-    expect(screen.queryByText(slovenianIntro)).not.toBeInTheDocument();
+    expect(screen.getByRole('main')).not.toHaveTextContent(slovenianIntro);
   });
 
   it('FR-019-14: brez kršitev axe (sl in en)', async () => {

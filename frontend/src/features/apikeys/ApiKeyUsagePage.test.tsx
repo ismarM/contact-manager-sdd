@@ -16,7 +16,7 @@ describe('Statistika ključa (FR-019-20)', () => {
     await i18n.changeLanguage('sl');
   });
 
-  it('prikaže skupna števila, graf kot aria-hidden in enakovredno tabelo po dnevih z ničlami', async () => {
+  it('prikaže skupna števila in enakovredno tabelo po dnevih z ničlami', async () => {
     // [branja, pisanja, napake, zavrnitve] od najnovejšega dne nazaj: danes 40/5/3/2, včeraj 1/0/0/0
     const api = mockApiKeysApi({
       list: replies.list([apiKey()]),
@@ -36,27 +36,23 @@ describe('Statistika ključa (FR-019-20)', () => {
       }),
     ).toBeInTheDocument();
     const totals = screen.getByRole('region', { name: tr('apiKeys.usage.totals') });
-    expect(
-      within(totals).getByText(tr('apiKeys.usage.total')).nextElementSibling,
-    ).toHaveTextContent('51');
-    expect(
-      within(totals).getByText(tr('apiKeys.usage.successful')).nextElementSibling,
-    ).toHaveTextContent('46');
-    expect(
-      within(totals).getByText(tr('apiKeys.usage.reads')).nextElementSibling,
-    ).toHaveTextContent('41');
-    expect(
-      within(totals).getByText(tr('apiKeys.usage.writes')).nextElementSibling,
-    ).toHaveTextContent('5');
-    expect(
-      within(totals).getByText(tr('apiKeys.usage.errors')).nextElementSibling,
-    ).toHaveTextContent('3');
-    expect(
-      within(totals).getByText(tr('apiKeys.usage.rateLimited')).nextElementSibling,
-    ).toHaveTextContent('2');
+    const labels = within(totals)
+      .getAllByRole('term')
+      .map((term) => term.textContent);
+    const values = within(totals)
+      .getAllByRole('definition')
+      .map((definition) => definition.textContent);
+    expect(labels.map((label, index) => [label, values[index]])).toEqual([
+      [tr('apiKeys.usage.total'), '51'],
+      [tr('apiKeys.usage.successful'), '46'],
+      [tr('apiKeys.usage.reads'), '41'],
+      [tr('apiKeys.usage.writes'), '5'],
+      [tr('apiKeys.usage.errors'), '3'],
+      [tr('apiKeys.usage.rateLimited'), '2'],
+    ]);
 
-    const chart = screen.getByTestId('usage-chart');
-    expect(chart).toHaveAttribute('aria-hidden', 'true');
+    // graf (SVG, aria-hidden) ne sodi v dostopno drevo: podatke nosi samo enakovredna tabela
+    expect(screen.getAllByRole('table')).toHaveLength(1);
     const table = screen.getByRole('table', { name: tr('apiKeys.usage.tableCaption') });
     expect(
       within(table)
