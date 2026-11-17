@@ -50,6 +50,8 @@ export interface AuditEntry {
   attributeKey?: string;
   typeBefore?: AttributeType;
   typeAfter?: AttributeType;
+  /** 019: ime API ključa, s katerim je bila sprememba narejena; `null` = spletna aplikacija ali izbrisan uporabnik. */
+  apiKeyName?: string | null;
 }
 
 export interface AuditPage {

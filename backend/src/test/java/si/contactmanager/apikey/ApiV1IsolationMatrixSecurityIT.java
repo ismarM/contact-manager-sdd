@@ -295,4 +295,141 @@ class ApiV1IsolationMatrixSecurityIT extends ApiV1Test {
         assertNotFound(v1("GET", contactV1(s.group(), UUID.randomUUID()), both));
         assertNotFound(v1("GET", contactV1(s.group(), "not-a-uuid"), both));
     }
+
+    // --- pisanje: POST, PUT, DELETE (T022 do T024) ---
+
+    enum Write {
+        POST,
+        PUT,
+        DELETE
+    }
+
+    private HttpResponse<String> write(Write write, UUID group, UUID contact, String key) throws Exception {
+        long version = contacts.version(contact);
+        return switch (write) {
+            case POST -> v1("POST", contactsV1(group), key, body(input("Nov", "Kontakt")));
+            case PUT ->
+                v1("PUT", contactV1(group, contact), key, body(withVersion(input("Prepisan", "Kontakt"), version)));
+            case DELETE -> v1("DELETE", contactV1(group, contact) + "?version=" + version, key);
+        };
+    }
+
+    private static int success(Write write) {
+        return switch (write) {
+            case POST -> 201;
+            case PUT -> 200;
+            case DELETE -> 204;
+        };
+    }
+
+    /** Vrstni red: vloga ali ključ samo za branje 403, nato arhivirana 409. */
+    private static int expectedWrite(Write write, State state, Member member) {
+        if (!member.who().equals(Who.OWNER)
+                        && !member.who().equals(Who.ADMIN)
+                        && !member.who().equals(Who.EDITOR)
+                || member.permission() == Permission.READ) {
+            return 403;
+        }
+        return state == State.ACTIVE ? success(write) : 409;
+    }
+
+    static Stream<Arguments> writeMatrix() {
+        List<Arguments> rows = new ArrayList<>();
+        for (Write write : Write.values()) {
+            memberStates().forEach(row -> rows.add(Arguments.of(write, row.get()[0], row.get()[1])));
+        }
+        return rows.stream();
+    }
+
+    static Stream<Arguments> writesOnly() {
+        return Stream.of(Write.values()).map(Arguments::of);
+    }
+
+    static Stream<Arguments> writeUnauthenticated() {
+        List<Arguments> rows = new ArrayList<>();
+        for (Write write : Write.values()) {
+            for (Unauthenticated actor : Unauthenticated.values()) {
+                rows.add(Arguments.of(write, actor));
+            }
+        }
+        return rows.stream();
+    }
+
+    @ParameterizedTest(name = "{0}, {1}")
+    @MethodSource("writeUnauthenticated")
+    void writeIsUnauthenticatedWithoutAValidKeyAndChangesNothing(Write write, Unauthenticated actor) throws Exception {
+        Scenario s = scenario();
+        UUID contact = contacts.insert(s.group(), s.id(Who.OWNER), "Janez", "Novak");
+        Map<String, Object> rowBefore = contacts.row(contact);
+
+        assertUnauthenticated(actor, s, key -> write(write, s.group(), contact, key));
+
+        assertThat(contacts.row(contact)).isEqualTo(rowBefore);
+        assertThat(contacts.count(s.group())).isEqualTo(1);
+    }
+
+    @ParameterizedTest(name = "{0}, {1} {2}")
+    @MethodSource("writeMatrix")
+    void writeFollowsRoleKeyPermissionAndGroupState(Write write, State state, Member member) throws Exception {
+        Scenario s = scenario();
+        UUID contact = contacts.insert(s.group(), s.id(Who.OWNER), "Janez", "Novak");
+        apply(s, state);
+        Map<String, Object> rowBefore = contacts.row(contact);
+        int expected = expectedWrite(write, state, member);
+
+        HttpResponse<String> response =
+                write(write, s.group(), contact, keyFor(s, member.who(), member.permission(), s.group()));
+
+        assertThat(response.statusCode()).isEqualTo(expected);
+        if (expected == 403) {
+            assertThat(json(response.body())).containsEntry("code", "FORBIDDEN");
+        } else if (expected == 409) {
+            assertThat(json(response.body())).containsEntry("code", "GROUP_ARCHIVED");
+        }
+        if (expected >= 400) {
+            assertThat(contacts.exists(contact)).isTrue();
+            assertThat(contacts.row(contact)).isEqualTo(rowBefore);
+            assertThat(contacts.count(s.group())).isEqualTo(1);
+            assertThat(jdbc.queryForObject(
+                            "select count(*) from audit_entry where group_id = ?", Integer.class, s.group()))
+                    .isZero();
+        }
+    }
+
+    @ParameterizedTest(name = "{0}, 404")
+    @MethodSource("writesOnly")
+    void writeIsNotFoundForNonMemberOutOfScopeUnknownGroupAndForeignContact(Write write) throws Exception {
+        Scenario s = scenario();
+        UUID contact = contacts.insert(s.group(), s.id(Who.OWNER), "Janez", "Novak");
+        UUID other = groups.createGroup(s.id(Who.EDITOR), "Druga");
+        groups.addMember(other, s.id(Who.OWNER), "EDITOR");
+        UUID foreign = contacts.insert(other, s.id(Who.OWNER), "Tuj", "Kontakt");
+        Map<String, Object> rowBefore = contacts.row(contact);
+        Map<String, Object> foreignBefore = contacts.row(foreign);
+
+        // nečlan
+        assertNotFound(write(write, s.group(), contact, keyFor(s, Who.NON_MEMBER, Permission.WRITE, s.group())));
+        // član z ustrezno vlogo, a skupina izven obsega ključa
+        assertNotFound(write(write, s.group(), contact, keyFor(s, Who.EDITOR, Permission.WRITE, other)));
+        // neobstoječa skupina
+        assertNotFound(write(write, UUID.randomUUID(), contact, allKey(s, Who.EDITOR, Permission.WRITE)));
+        if (write != Write.POST) {
+            // kontakt druge skupine (uporabnik je član obeh in ključ velja za obe) in neobstoječ kontakt
+            String both = keyFor(s, Who.EDITOR, Permission.WRITE, s.group(), other);
+            assertNotFound(v1(
+                    write == Write.PUT ? "PUT" : "DELETE",
+                    contactV1(s.group(), foreign) + (write == Write.DELETE ? "?version=0" : ""),
+                    both,
+                    write == Write.PUT ? body(withVersion(input("X", "Y"), 0)) : null));
+            assertNotFound(v1(
+                    write == Write.PUT ? "PUT" : "DELETE",
+                    contactV1(s.group(), UUID.randomUUID()) + (write == Write.DELETE ? "?version=0" : ""),
+                    both,
+                    write == Write.PUT ? body(withVersion(input("X", "Y"), 0)) : null));
+        }
+        assertThat(contacts.row(contact)).isEqualTo(rowBefore);
+        assertThat(contacts.row(foreign)).isEqualTo(foreignBefore);
+        assertThat(contacts.count(s.group())).isEqualTo(1);
+        assertThat(contacts.count(other)).isEqualTo(1);
+    }
 }

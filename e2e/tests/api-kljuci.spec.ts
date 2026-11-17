@@ -65,3 +65,62 @@ test('FR-019-01, -03: ključ se pokaže enkrat, deluje na /v1 in po preklicu dob
   expect(await revoked.json()).toEqual({ code: 'UNAUTHENTICATED' });
   await expectNoAxeViolations(page);
 });
+
+test('FR-019-10, -12: ključ WRITE ustvari, spremeni in izbriše kontakt, sled ima tri vnose z oznako ključa', async ({
+  page,
+  request,
+}) => {
+  await page.goto('/');
+  await signIn(page, uniqueUser('Boris Pisanje'));
+  const groupId = await createGroup(page, { title: 'Klub' });
+  await page.goto('/account');
+  const token = await createApiKey(page, {
+    name: 'Nočni izvoz',
+    groups: ['Klub'],
+    permission: 'WRITE',
+  });
+  const contacts = `/groups/${groupId}/contacts`;
+
+  const created = await callV1(request, 'POST', contacts, token, {
+    firstName: 'Janez',
+    lastName: 'Novak',
+    phone: '041 123 456',
+  });
+  expect(created.status()).toBe(201);
+  const contact = (await created.json()) as { id: string; version: number; phone: string };
+  expect(contact.phone).toBe('+38641123456');
+
+  const updated = await callV1(request, 'PUT', `${contacts}/${contact.id}`, token, {
+    firstName: 'Janez',
+    lastName: 'Horvat',
+    version: contact.version,
+  });
+  expect(updated.status()).toBe(200);
+  const next = ((await updated.json()) as { version: number }).version;
+
+  const stale = await callV1(
+    request,
+    'DELETE',
+    `${contacts}/${contact.id}?version=${contact.version}`,
+    token,
+  );
+  expect(stale.status()).toBe(409);
+  expect(await stale.json()).toEqual({ code: 'VERSION_CONFLICT' });
+  const removed = await callV1(
+    request,
+    'DELETE',
+    `${contacts}/${contact.id}?version=${next}`,
+    token,
+  );
+  expect(removed.status()).toBe(204);
+
+  await page.goto(`/groups/${groupId}/audit`);
+  const entries = page.getByRole('list', { name: t('audit.list.entries') }).getByRole('listitem');
+  await expect(entries).toHaveCount(3);
+  const label = t('audit.source.viaApiKey', { name: 'Nočni izvoz' });
+  for (let i = 0; i < 3; i++) {
+    await expect(entries.nth(i)).toContainText(label);
+  }
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+});

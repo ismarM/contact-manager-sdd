@@ -32,6 +32,8 @@ export interface HistoryEvent {
   targetInitial: boolean;
   /** Samo `MERGE` + `REMOVED`: ohranjeni kontakt. */
   mergedInto: { contactId: string; displayName: string } | null;
+  /** 019: ime API ključa, s katerim je bila sprememba narejena; `null` = spletna aplikacija ali izbrisan uporabnik. */
+  apiKeyName?: string | null;
 }
 
 export interface History {

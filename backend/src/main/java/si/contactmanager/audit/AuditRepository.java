@@ -18,6 +18,7 @@ import org.springframework.jdbc.core.simple.JdbcClient.StatementSpec;
 import org.springframework.stereotype.Repository;
 import si.contactmanager.contact.ContactState;
 import si.contactmanager.group.UserRef;
+import si.contactmanager.shared.security.ApiKeyPrincipal;
 import tools.jackson.databind.json.JsonMapper;
 
 /** Tabele {@code audit_entry}, {@code audit_change} in {@code audit_head} (data-model.md). Vsaka poizvedba ima {@code group_id}. */
@@ -27,7 +28,7 @@ class AuditRepository {
     private static final String ENTRY_SELECT =
             "SELECT e.id, e.created_at, u.name AS actor_name, u.email AS actor_email, e.action, e.contact_count,"
                     + " e.contact_name, t.id AS target_id, t.created_at AS target_at, e.target_initial, e.attribute_key,"
-                    + " e.type_before, e.type_after"
+                    + " e.type_before, e.type_after, e.api_key_name"
                     + " FROM audit_entry e LEFT JOIN app_user u ON u.id = e.actor_id"
                     + " LEFT JOIN audit_entry t ON t.id = e.target_entry_id";
 
@@ -92,9 +93,9 @@ class AuditRepository {
                 ? changes.get(0).displayName()
                 : null;
         jdbc.sql("INSERT INTO audit_entry (id, group_id, seq, actor_id, action, contact_count, contact_name,"
-                        + " target_entry_id, target_initial, attribute_key, type_before, type_after)"
+                        + " target_entry_id, target_initial, attribute_key, type_before, type_after, api_key_name)"
                         + " VALUES (:id, :group, :seq, :actor, :action, :count, :name, :target, :initial, :akey,"
-                        + " :tbefore, :tafter)")
+                        + " :tbefore, :tafter, :apiKey)")
                 .param("id", id)
                 .param("group", group)
                 .param("seq", seq)
@@ -107,6 +108,10 @@ class AuditRepository {
                 .param("akey", attributeKey)
                 .param("tbefore", typeBefore)
                 .param("tafter", typeAfter)
+                // 019 (R-04): ime API ključa, če je klicatelj ključ; spletna aplikacija in CardDAV ga nimata.
+                .param(
+                        "apiKey",
+                        ApiKeyPrincipal.current().map(ApiKeyPrincipal::keyName).orElse(null))
                 .update();
         // Večvrstični stavki (unnest) po AUDIT_CHUNK vrstic: en klic na kos namesto na spremembo (SC-002).
         for (int from = 0; from < changes.size(); from += AUDIT_CHUNK) {
@@ -381,6 +386,7 @@ class AuditRepository {
                 rs.getBoolean("target_initial"),
                 rs.getString("attribute_key"),
                 rs.getString("type_before"),
-                rs.getString("type_after"));
+                rs.getString("type_after"),
+                rs.getString("api_key_name"));
     }
 }
