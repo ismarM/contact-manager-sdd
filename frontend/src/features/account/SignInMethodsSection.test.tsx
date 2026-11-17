@@ -22,7 +22,7 @@ describe('SignInMethodsSection (FR-017-09, -10, -11)', () => {
     );
     expect(within(region).queryByRole('button', { name: 'Dodaj Google' })).not.toBeInTheDocument();
 
-    await user.click(within(region).getByRole('button', { name: 'Dodaj geslo' }));
+    await user.click(within(region).getByRole('button', { name: 'Omogoči prijavo z geslom' }));
 
     const email = within(region).getByLabelText('E-naslov');
     expect(email).toHaveValue('ana@primer.si');
@@ -37,7 +37,7 @@ describe('SignInMethodsSection (FR-017-09, -10, -11)', () => {
     region: HTMLElement,
     agree = true,
   ) {
-    await user.click(within(region).getByRole('button', { name: 'Dodaj geslo' }));
+    await user.click(within(region).getByRole('button', { name: 'Omogoči prijavo z geslom' }));
     await user.type(within(region).getByLabelText('Geslo'), 'geslo-12345678');
     await user.type(within(region).getByLabelText('Ponovi geslo'), 'geslo-12345678');
     if (agree) {
@@ -54,7 +54,7 @@ describe('SignInMethodsSection (FR-017-09, -10, -11)', () => {
     expect(within(region).getByRole('note')).toHaveTextContent(warning);
     expect((await axe(document.body)).violations).toEqual([]);
 
-    await user.click(within(region).getByRole('button', { name: 'Dodaj geslo' }));
+    await user.click(within(region).getByRole('button', { name: 'Omogoči prijavo z geslom' }));
 
     expect(await within(region).findByRole('alert')).toHaveTextContent('Potrdi, da razumeš');
     expect(gateway.reauthentications).toHaveLength(0);
@@ -67,7 +67,7 @@ describe('SignInMethodsSection (FR-017-09, -10, -11)', () => {
     await fillNewPassword(user, region);
     const mailsBefore = gateway.verificationEmails;
 
-    await user.click(within(region).getByRole('button', { name: 'Dodaj geslo' }));
+    await user.click(within(region).getByRole('button', { name: 'Omogoči prijavo z geslom' }));
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Potrdi e-naslov' })).toBeVisible();
     expect(screen.getByRole('main')).toHaveTextContent(
@@ -96,7 +96,7 @@ describe('SignInMethodsSection (FR-017-09, -10, -11)', () => {
     const region = await accountRegion(REGION);
     await fillNewPassword(user, region);
 
-    await user.click(within(region).getByRole('button', { name: 'Dodaj geslo' }));
+    await user.click(within(region).getByRole('button', { name: 'Omogoči prijavo z geslom' }));
 
     await waitFor(() =>
       expect(screen.getByRole('region', { name: REGION })).toHaveTextContent(
@@ -111,12 +111,12 @@ describe('SignInMethodsSection (FR-017-09, -10, -11)', () => {
   it('prekratko geslo in neujemanje: napake ob poljih, nobenega klica ponudniku', async () => {
     const { user, gateway } = renderAccountApp();
     const region = await accountRegion(REGION);
-    await user.click(within(region).getByRole('button', { name: 'Dodaj geslo' }));
+    await user.click(within(region).getByRole('button', { name: 'Omogoči prijavo z geslom' }));
     await user.type(within(region).getByLabelText('Geslo'), 'kratko');
     await user.type(within(region).getByLabelText('Ponovi geslo'), 'drugo');
     await user.click(within(region).getByRole('checkbox'));
 
-    await user.click(within(region).getByRole('button', { name: 'Dodaj geslo' }));
+    await user.click(within(region).getByRole('button', { name: 'Omogoči prijavo z geslom' }));
 
     expect(await within(region).findByRole('alert')).toHaveTextContent(
       'Geslo mora imeti najmanj 8 znakov.',
@@ -128,13 +128,13 @@ describe('SignInMethodsSection (FR-017-09, -10, -11)', () => {
   it('preklicano pojavno okno Googla: sporočilo, geslo ni dodano', async () => {
     const { user, gateway } = renderAccountApp();
     const region = await accountRegion(REGION);
-    await user.click(within(region).getByRole('button', { name: 'Dodaj geslo' }));
+    await user.click(within(region).getByRole('button', { name: 'Omogoči prijavo z geslom' }));
     await user.type(within(region).getByLabelText('Geslo'), 'geslo-12345678');
     await user.type(within(region).getByLabelText('Ponovi geslo'), 'geslo-12345678');
     await user.click(within(region).getByRole('checkbox'));
     gateway.failNextSignIn('cancelled');
 
-    await user.click(within(region).getByRole('button', { name: 'Dodaj geslo' }));
+    await user.click(within(region).getByRole('button', { name: 'Omogoči prijavo z geslom' }));
 
     expect(await within(region).findByRole('alert')).toBeVisible();
     expect(gateway.links).toHaveLength(0);
@@ -199,12 +199,136 @@ describe('SignInMethodsSection (FR-017-09, -10, -11)', () => {
     expect(gateway.currentUser?.providers).toEqual(['password']);
   });
 
+  it('FR-017-24: samo Google – brez možnosti Spremeni geslo, kratko pojasnilo neobvezne prijave z geslom', async () => {
+    renderAccountApp();
+    const region = await accountRegion(REGION);
+
+    expect(
+      within(region).queryByRole('button', { name: 'Spremeni geslo' }),
+    ).not.toBeInTheDocument();
+    expect(region).toHaveTextContent('Neobvezno: poleg Googla');
+    expect(within(region).getByRole('button', { name: 'Omogoči prijavo z geslom' })).toBeVisible();
+  });
+
+  it('FR-017-24: samo geslo – Spremeni geslo, brez ponovnega dodajanja gesla', async () => {
+    const gateway = await passwordGateway();
+    renderAccountApp({}, { gateway });
+    const region = await accountRegion(REGION);
+
+    expect(within(region).getByRole('button', { name: 'Spremeni geslo' })).toBeVisible();
+    expect(
+      within(region).queryByRole('button', { name: 'Omogoči prijavo z geslom' }),
+    ).not.toBeInTheDocument();
+    expect(region).not.toHaveTextContent('Neobvezno: poleg Googla');
+  });
+
+  it('FR-017-24: oba ponudnika – Spremeni geslo, brez Dodaj Google', async () => {
+    const gateway = await passwordGateway();
+    await gateway.linkGoogle();
+    renderAccountApp({}, { gateway });
+    const region = await accountRegion(REGION);
+
+    expect(region).toHaveTextContent('Google: povezano');
+    expect(region).toHaveTextContent('E-naslov in geslo: povezano');
+    expect(within(region).getByRole('button', { name: 'Spremeni geslo' })).toBeVisible();
+    expect(within(region).queryByRole('button', { name: 'Dodaj Google' })).not.toBeInTheDocument();
+  });
+
+  async function openChange(
+    user: ReturnType<typeof renderAccountApp>['user'],
+    region: HTMLElement,
+    values: { current: string; next: string; confirm: string },
+  ) {
+    await user.click(within(region).getByRole('button', { name: 'Spremeni geslo' }));
+    await user.type(within(region).getByLabelText('Trenutno geslo'), values.current);
+    await user.type(within(region).getByLabelText('Novo geslo'), values.next);
+    await user.type(within(region).getByLabelText('Ponovi novo geslo'), values.confirm);
+  }
+
+  it('FR-017-24: sprememba gesla – ponovna avtentikacija z geslom, nato updatePassword, isti uporabnik, potrdilo', async () => {
+    const gateway = await passwordGateway();
+    const { user } = renderAccountApp({}, { gateway });
+    const region = await accountRegion(REGION);
+    await openChange(user, region, {
+      current: 'geslo-12345678',
+      next: 'novo-geslo-123',
+      confirm: 'novo-geslo-123',
+    });
+    expect((await axe(document.body)).violations).toEqual([]);
+
+    await user.click(within(region).getByRole('button', { name: 'Spremeni geslo' }));
+
+    expect(await within(region).findByRole('status')).toHaveTextContent('Geslo je spremenjeno.');
+    expect(gateway.reauthentications).toEqual(['password']);
+    expect(gateway.passwordChanges).toEqual(['novo-geslo-123'.length]);
+    expect(gateway.currentUser?.uid).toBe('uid-ana@primer.si');
+    await expect(
+      gateway.signInWithPassword('ana@primer.si', 'novo-geslo-123'),
+    ).resolves.toBeUndefined();
+    await expect(
+      gateway.signInWithPassword('ana@primer.si', 'geslo-12345678'),
+    ).rejects.toBeTruthy();
+  });
+
+  it('FR-017-24: napačno trenutno geslo – napaka ob polju, geslo ni spremenjeno', async () => {
+    const gateway = await passwordGateway();
+    const { user } = renderAccountApp({}, { gateway });
+    const region = await accountRegion(REGION);
+    await openChange(user, region, {
+      current: 'napacno-geslo',
+      next: 'novo-geslo-123',
+      confirm: 'novo-geslo-123',
+    });
+
+    await user.click(within(region).getByRole('button', { name: 'Spremeni geslo' }));
+
+    const field = await within(region).findByLabelText('Trenutno geslo');
+    await waitFor(() => expect(field).toHaveAttribute('aria-invalid', 'true'));
+    expect(field).toHaveAccessibleDescription('E-naslov ali geslo ni pravilno.');
+    expect(gateway.passwordChanges).toHaveLength(0);
+  });
+
+  it('FR-017-24: prekratko ali neujemajoče novo geslo – napake ob poljih, brez klica ponudniku', async () => {
+    const gateway = await passwordGateway();
+    const { user } = renderAccountApp({}, { gateway });
+    const region = await accountRegion(REGION);
+    await openChange(user, region, { current: 'geslo-12345678', next: 'kratko', confirm: 'drugo' });
+
+    await user.click(within(region).getByRole('button', { name: 'Spremeni geslo' }));
+
+    expect(await within(region).findByRole('alert')).toHaveTextContent(
+      'Geslo mora imeti najmanj 8 znakov.',
+    );
+    expect(gateway.reauthentications).toHaveLength(0);
+    expect(gateway.passwordChanges).toHaveLength(0);
+  });
+
+  it('FR-017-24: Firebase zavrne šibko geslo ali zahteva novo prijavo – jasno sporočilo, brez spremembe', async () => {
+    const gateway = await passwordGateway();
+    const { user } = renderAccountApp({}, { gateway });
+    const region = await accountRegion(REGION);
+    await openChange(user, region, {
+      current: 'geslo-12345678',
+      next: 'novo-geslo-123',
+      confirm: 'novo-geslo-123',
+    });
+    // prvi klic (ponovna avtentikacija) porabi napako: sprememba ne steče
+    gateway.failNextSignIn('requires-recent-login');
+
+    await user.click(within(region).getByRole('button', { name: 'Spremeni geslo' }));
+
+    expect(await within(region).findByRole('alert')).toHaveTextContent(
+      'Za to dejanje se moraš znova prijaviti.',
+    );
+    expect(gateway.passwordChanges).toHaveLength(0);
+  });
+
   it('angleški vmesnik', async () => {
     localStorage.setItem('language', 'en');
     await i18n.changeLanguage('en');
     renderAccountApp();
 
     const region = await screen.findByRole('region', { name: 'Sign-in methods' });
-    expect(within(region).getByRole('button', { name: 'Add password' })).toBeVisible();
+    expect(within(region).getByRole('button', { name: 'Enable password sign-in' })).toBeVisible();
   });
 });

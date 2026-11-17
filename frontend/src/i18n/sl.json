@@ -184,9 +184,9 @@
       "password": "E-naslov in geslo",
       "linked": "povezano",
       "notLinked": "ni povezano",
-      "addPassword": "Dodaj geslo",
+      "addPassword": "Omogoči prijavo z geslom",
       "addGoogle": "Dodaj Google",
-      "addPasswordSubmit": "Dodaj geslo",
+      "addPasswordSubmit": "Omogoči prijavo z geslom",
       "addGoogleSubmit": "Poveži Google",
       "cancel": "Prekliči",
       "reauthGoogle": "Za dodajanje gesla se boš najprej znova prijavil z Googlom. Geslo je vezano na ta e-naslov in isti račun.",
@@ -196,7 +196,13 @@
       "googleAdded": "Google je povezan. Odslej se lahko prijaviš z Googlom ali z geslom.",
       "verifyWarning": "Pozor: Firebase po dodajanju gesla zahteva, da znova potrdiš e-naslov. Do potrditve do aplikacije ne boš imel dostopa – tudi z Googlom. Takoj po dodajanju ti pošljemo sporočilo na {{email}}; v njem odpri povezavo.",
       "verifyUnderstood": "Razumem in imam dostop do svojega e-poštnega predala.",
-      "verifyUnderstoodRequired": "Potrdi, da razumeš, da boš moral znova potrditi e-naslov."
+      "verifyUnderstoodRequired": "Potrdi, da razumeš, da boš moral znova potrditi e-naslov.",
+      "passwordIntro": "Neobvezno: poleg Googla se lahko prijavljaš tudi z e-pošto in posebej nastavljenim geslom. Google prijava ostane enaka.",
+      "changePassword": "Spremeni geslo",
+      "changePasswordSubmit": "Spremeni geslo",
+      "newPassword": "Novo geslo",
+      "newPasswordConfirm": "Ponovi novo geslo",
+      "passwordChanged": "Geslo je spremenjeno. Pri naslednji prijavi z geslom uporabi novo geslo."
     }
   },
   "roles": {

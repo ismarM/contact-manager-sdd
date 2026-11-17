@@ -44,6 +44,8 @@ vi.mock('firebase/auth', () => ({
   reauthenticateWithPopup: sdk.reauthenticateWithPopup,
   signInWithPopup: sdk.signInWithPopup,
   signOut: sdk.signOut,
+  updatePassword: vi.fn(),
+  linkWithPopup: vi.fn(),
 }));
 
 function firebaseError(code: string) {

@@ -160,6 +160,7 @@ Lastnik vidi akcijo *Zapusti skupino*; ko jo izbere, dialog pojasni, da mora naj
 - **FR-017-19**: System MUST lastniku pokazati akcijo *Zapusti skupino* s pojasnilom o prenosu lastništva; backend še naprej zavrne (`OWNER_CANNOT_LEAVE`).
 - **FR-017-20**: System MUST lastniku-edinemu članu ponuditi samo povezavo do obstoječega postopka izbrisa skupine (003); izbris se ne izvede neposredno iz akcije *Zapusti skupino*.
 - **FR-017-21**: System MUST ne spremeniti zapuščanja za ne-lastnike.
+- **FR-017-24**: Users MUST v *Moj račun → Prijavne metode* imeti *Omogoči prijavo z geslom* (neobvezno; prej »dodaj geslo«) in, če geslo imajo, *Spremeni geslo* prek Firebase SDK (`updatePassword`) po ponovni avtentikaciji; UID in podatki ostanejo; *Pozabljeno geslo?* je na prijavnem zaslonu (FR-017-07).
 - **FR-017-22**: Vsa besedila (sporočila napak, dostopna imena) so v sl/en; zasloni prijave, registracije, potrditve in ponastavitve so odzivni od 320 px, brez kršitev axe (WCAG 2.1 AA); napake so povezane s polji (`aria-describedby`) in oznanjene.
 - **FR-017-23**: System MUST v testih in CI uporabljati samo Firebase Auth Emulator; prava Firebase konfiguracija ostane samo v lokalnem razvoju (docs/decisions/2026-11-15-pravi-firebase-v-lokalnem-razvoju.md).
 

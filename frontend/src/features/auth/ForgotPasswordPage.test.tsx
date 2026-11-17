@@ -47,6 +47,30 @@ describe('ForgotPasswordPage', () => {
     expect(screen.getByRole('status')).toHaveTextContent('');
   });
 
+  it('FR-017-07: omejitev pogostosti – sporočilo o preveč poskusih, potrdila ni', async () => {
+    const gateway = createAuthFake();
+    gateway.failNextSignIn('too-many-requests');
+    const { user } = renderApp('/forgot-password', { gateway });
+
+    await requestReset(user, 'ana@primer.si');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(t('auth.error.tooManyRequests'));
+    expect(screen.getByRole('status')).toHaveTextContent('');
+  });
+
+  it('FR-017-22: angleški vmesnik – potrdilo je enako nevtralno', async () => {
+    await i18n.changeLanguage('en');
+    const gateway = createAuthFake();
+    const { user } = renderApp('/forgot-password', { gateway });
+
+    await user.type(await screen.findByLabelText('Email'), 'nihce@primer.si');
+    await user.click(screen.getByRole('button', { name: 'Send link' }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'If an account with this email exists',
+    );
+  });
+
   it('FR-017-07: neveljaven e-naslov se ne pošlje', async () => {
     const gateway = createAuthFake();
     const { user } = renderApp('/forgot-password', { gateway });

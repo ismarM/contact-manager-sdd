@@ -246,6 +246,10 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
     [gateway],
   );
 
+  const changePassword = useCallback(
+    (newPassword: string) => gateway.changePassword(newPassword),
+    [gateway],
+  );
   const linkGoogle = useCallback(() => gateway.linkGoogle(), [gateway]);
 
   const signOut = useCallback(async () => {
@@ -322,6 +326,7 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
       reauthenticate,
       linkPassword,
       linkedNeedsVerification: linkedNeedsVerification && status === 'unverified',
+      changePassword,
       linkGoogle,
       signOut,
       accountDeleted,
@@ -348,6 +353,7 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
       reauthenticate,
       linkPassword,
       linkedNeedsVerification,
+      changePassword,
       linkGoogle,
       signOut,
       accountDeleted,

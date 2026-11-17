@@ -236,7 +236,7 @@ test('FR-017-09 FR-017-10 FR-017-11: Google uporabnik doda geslo – opozorilo v
     await route.fulfill({ response });
   });
 
-  await methods(page).getByRole('button', { name: 'Dodaj geslo' }).click();
+  await methods(page).getByRole('button', { name: 'Omogoči prijavo z geslom' }).click();
   await expect(methods(page).getByLabel(N.email, { exact: true })).toHaveAttribute('readonly', '');
   await expect(methods(page).getByLabel(N.email, { exact: true })).toHaveValue(user.email);
   await expect(methods(page).getByRole('note')).toContainText(
@@ -249,7 +249,7 @@ test('FR-017-09 FR-017-10 FR-017-11: Google uporabnik doda geslo – opozorilo v
     .getByRole('checkbox', { name: /imam dostop do svojega e-poštnega predala/ })
     .check();
   await reauthenticateWithGoogle(page, user, () =>
-    methods(page).getByRole('button', { name: 'Dodaj geslo' }).click(),
+    methods(page).getByRole('button', { name: 'Omogoči prijavo z geslom' }).click(),
   );
 
   // Uporabnik ni zaklenjen brez pojasnila: zaslon potrditve pove, kaj se je zgodilo, sporočilo je že poslano.
@@ -323,4 +323,39 @@ test('FR-017-12: izbris računa z geslom zahteva geslo; napačno geslo ne spreme
 
   await expect(page).toHaveURL(/\/login\?reason=account-deleted$/);
   expect(userExists(email)).toBe(false);
+});
+
+test('FR-017-24: sprememba gesla v Mojem računu – ponovna avtentikacija, staro geslo ne deluje več, novo deluje, isti račun', async ({
+  page,
+  request,
+}) => {
+  const email = uniqueUser().email;
+  const password = testPassword();
+  const newPassword = testPassword();
+  await createVerifiedPasswordAccount(request, email, password);
+  await page.goto('/login');
+  await signInWithPassword(page, email, password);
+  await expect(accountMenu(page)).toBeVisible();
+  await page.goto('/account');
+  await expect(methods(page).getByRole('button', { name: 'Omogoči prijavo z geslom' })).toHaveCount(
+    0,
+  );
+
+  await methods(page).getByRole('button', { name: 'Spremeni geslo' }).click();
+  await methods(page).getByLabel('Trenutno geslo').fill(password);
+  await methods(page).getByLabel('Novo geslo', { exact: true }).fill(newPassword);
+  await methods(page).getByLabel('Ponovi novo geslo').fill(newPassword);
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+  await methods(page).getByRole('button', { name: 'Spremeni geslo' }).click();
+
+  await expect(methods(page).getByRole('status')).toContainText('Geslo je spremenjeno.');
+  expect(userExists(email)).toBe(true);
+  await signOut(page);
+
+  await signInWithPassword(page, email, password);
+  await expect(page.getByRole('alert')).toHaveText(N.invalidCredentials);
+  await page.reload();
+  await signInWithPassword(page, email, newPassword);
+  await expect(accountMenu(page)).toBeVisible();
 });

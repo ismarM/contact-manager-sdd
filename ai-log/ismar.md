@@ -261,3 +261,8 @@ Predlogi za pohitritev (iz zgornjih meritev):
 - **Povrnitev dostopa**: read-only branje računa (emailVerified=false, google.com+password, UID nespremenjen, aktiven), nato s soglasjem razvijalca samo `emailVerified=true` za ta UID prek Admin REST; ponovno branje: UID, ponudnika in `validSince` nespremenjeni.
 - **Popravek**: opozorilo in izrecno soglasje PRED dodajanjem; sporočilo se pošlje takoj, še pred preklopom na zaslon potrditve; zaslon potrditve pojasni, kaj se je zgodilo; ponovno pošiljanje; `EmailVerifiedFilter` nespremenjen. Testi: gateway (vrstni red mail → poslušalci), FE, IT (admin reset v emulatorju), E2E (Google → geslo → potrditev → Google prijava → skupine).
 - **Ostaja**: preizkus s pravim Firebase na ločenem testnem Google računu (razvijalec).
+
+## 017 – zaključne UX izboljšave avtentikacije (2026-11-17)
+- **Obstajalo**: *Pozabljeno geslo?* na prijavi in stran `/forgot-password` z nevtralnim potrdilom (T015); povezovanje gesla z opozorilom in potrditvenim sporočilom. Ni bilo spremembe gesla; izraz »Dodaj geslo« je bil tehničen.
+- **Dodano**: *Omogoči prijavo z geslom* / *Enable password sign-in* s kratkim pojasnilom (neobvezno); *Spremeni geslo* samo za uporabnike z geslom (ponovna avtentikacija s trenutnim geslom, `updatePassword` v Firebase SDK, politika ≥ 8, jasne napake); logika prikaza: samo Google / samo geslo / oba. Varni linking flow nespremenjen. Dnevniki: gesla se nikjer ne beležijo (fake beleži samo dolžine).
+- **Testi**: gateway (`updatePassword`, napake, neuspel refresh žetona), RTL + axe za vse tri kombinacije ponudnikov in napake, pozabljeno geslo (omejitev pogostosti, angleščina), E2E spremembe gesla. FR-017-24 dodan v spec/tasks (T070).

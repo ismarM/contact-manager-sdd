@@ -17,6 +17,7 @@ import {
   signInWithPopup,
   signOut,
   type User,
+  updatePassword,
 } from 'firebase/auth';
 
 import { type AuthGateway, type AuthProviderId, type AuthUser, SignInError } from './AuthGateway';
@@ -258,6 +259,16 @@ export function createFirebaseGateway(auth: Auth = createAuth()): AuthGateway {
       }
       for (const listener of [...listeners]) listener(result);
       return { verificationRequired: !result.emailVerified };
+    },
+    async changePassword(newPassword) {
+      const user = current();
+      try {
+        await updatePassword(user, newPassword);
+        // Nov žeton po spremembi gesla (Firebase razveljavi druge seje); neuspeh osvežitve ni neuspeh spremembe.
+        await user.getIdToken(true).catch(() => undefined);
+      } catch (error) {
+        throw toSignInError(error);
+      }
     },
     async linkGoogle() {
       const user = current();

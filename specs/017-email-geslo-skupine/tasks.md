@@ -72,6 +72,10 @@ Faze US1–US4 uvajajo Email/Password, kar spreminja §5. Razvijalec funkcionaln
 - [x] T050 [US6] FR-017-19, -20, -21 — `GroupManagementSection.tsx`: gumb *Zapusti skupino* tudi za lastnika; `LeaveGroupDialog.tsx`: za lastnika pojasnilo + *Prenesi lastništvo* (odpre obstoječi `TransferOwnershipDialog`; kjer prenos ni mogoč, samo pojasnilo), za lastnika-edinega člana povezava do obstoječega *Izbriši skupino* (brez brisanja), brez potrditvenega gumba; ne-lastniki nespremenjeno; ažuriraj `LeaveGroup.test.tsx` (spremenjen obstoječi test z razlogom v PR); axe
 - [x] T051 [US6] FR-017-19 — zaledje nespremenjeno (matrika in `MemberLeaveIT` že pokrivata vse vrstice, brez dopolnitev); dopolni `MemberIsolationMatrixSecurityIT`/`MemberLeaveIT` (neposreden klic OWNER → 409 `OWNER_CANNOT_LEAVE`, nečlan 404, neprijavljen 401, arhivirana skupina in ne-lastnik 2xx) in E2E v `e2e/tests/` obstoječem scenariju članov: lastnik odpre dialog, vidi pojasnilo, prenese lastništvo
 
+## Phase 8b: Zaključne UX izboljšave avtentikacije (FR-017-24)
+
+- [x] T070 [US3] *Omogoči prijavo z geslom* (preimenovanje »Dodaj geslo«) s kratkim pojasnilom neobveznosti; `changePassword` (`updatePassword`) v gatewayu; *Spremeni geslo* v `SignInMethodsSection` (ponovna avtentikacija s trenutnim geslom, politika ≥ 8, napake) samo za uporabnike z geslom; testi (gateway, RTL + axe, E2E sl/en); pozabljeno geslo že obstaja (T015), dodani testi omejitve in angleščine
+
 ## Phase 9: Polish
 
 - [x] T060 — `.specify/memory/feature-map.md`: vrstica 017, kodi `EMAIL_NOT_VERIFIED`, `REAUTHENTICATION_REQUIRED`, `ACCOUNT_CONFLICT` v §2.10, popravek §2.4 (arhivirane skupine dosegljive tudi z domače strani prek filtra) – **samo po T001** (§7: potrdita oba razvijalca)

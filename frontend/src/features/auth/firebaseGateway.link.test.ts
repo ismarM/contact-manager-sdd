@@ -13,6 +13,7 @@ const sdk = vi.hoisted(() => ({
   signOut: vi.fn(),
   linkWithCredential: vi.fn(),
   sendEmailVerification: vi.fn(),
+  updatePassword: vi.fn(),
 }));
 
 vi.mock('firebase/app', () => ({ initializeApp: vi.fn() }));
@@ -31,6 +32,7 @@ vi.mock('firebase/auth', () => ({
   signOut: sdk.signOut,
   createUserWithEmailAndPassword: vi.fn(),
   sendEmailVerification: sdk.sendEmailVerification,
+  updatePassword: sdk.updatePassword,
   sendPasswordResetEmail: vi.fn(),
   reauthenticateWithCredential: vi.fn(),
   reauthenticateWithPopup: vi.fn(),
@@ -306,5 +308,48 @@ describe('firebaseGateway – povezovanje', () => {
 
     await expect(gateway.linkGoogle()).rejects.toMatchObject({ code: 'credential-in-use' });
     expect(seen).toHaveLength(0);
+  });
+
+  it('FR-017-24: changePassword uporabi updatePassword v SDK in osveži žeton; geslo ne gre prek fetch', async () => {
+    const user = fakeUser({ providerData: [{ providerId: 'password' }] });
+    const { gateway } = setup(user);
+    sdk.updatePassword.mockResolvedValue(undefined);
+
+    await gateway.changePassword('novo-geslo-123');
+
+    expect(sdk.updatePassword).toHaveBeenCalledWith(user, 'novo-geslo-123');
+    expect(user.getIdToken).toHaveBeenCalledWith(true);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['auth/requires-recent-login', 'requires-recent-login'],
+    ['auth/weak-password', 'weak-password'],
+    ['auth/password-does-not-meet-requirements', 'weak-password'],
+    ['auth/network-request-failed', 'offline'],
+  ])('FR-017-24: napaka %s pri spremembi gesla → %s', async (firebase, code) => {
+    const { gateway } = setup(fakeUser({ providerData: [{ providerId: 'password' }] }));
+    sdk.updatePassword.mockRejectedValue(Object.assign(new Error(firebase), { code: firebase }));
+    vi.stubGlobal('navigator', { onLine: code !== 'offline' });
+
+    await expect(gateway.changePassword('novo-geslo-123')).rejects.toMatchObject({ code });
+  });
+
+  it('FR-017-24: neuspela osvežitev žetona po spremembi ni neuspeh spremembe', async () => {
+    const user = fakeUser({ providerData: [{ providerId: 'password' }] });
+    user.getIdToken.mockRejectedValue(new Error('refresh'));
+    const { gateway } = setup(user);
+    sdk.updatePassword.mockResolvedValue(undefined);
+
+    await expect(gateway.changePassword('novo-geslo-123')).resolves.toBeUndefined();
+  });
+
+  it('FR-017-24: brez prijavljenega uporabnika sprememba ne steče', async () => {
+    const { gateway } = setup(null);
+
+    await expect(gateway.changePassword('novo-geslo-123')).rejects.toMatchObject({
+      code: 'failed',
+    });
+    expect(sdk.updatePassword).not.toHaveBeenCalled();
   });
 });

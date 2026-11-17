@@ -77,6 +77,11 @@ export interface AuthGateway {
    * (`providers` vsebuje `password`). Ob neujemanju UID odjavi in vrže `failed`.
    */
   linkPassword(password: string): Promise<{ verificationRequired: boolean }>;
+  /**
+   * Spremeni geslo prijavljenega uporabnika (`updatePassword` v Firebase SDK; geslo ne gre prek našega zaledja).
+   * Klic mora slediti ponovni avtentikaciji (`requires-recent-login` sicer); UID in podatki ostanejo.
+   */
+  changePassword(newPassword: string): Promise<void>;
   /** Doda Google računu z geslom (pojavno okno); Google račun drugega uporabnika → `credential-in-use`. */
   linkGoogle(): Promise<void>;
   signOut(): Promise<void>;

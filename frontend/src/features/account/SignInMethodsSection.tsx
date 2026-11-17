@@ -14,30 +14,33 @@ import { authErrorKey } from '../auth/authErrorKey';
 import { useAuth } from '../auth/authContext';
 import { AuthField, ErrorSummary, useAuthForm } from '../auth/AuthForm';
 
-type Mode = 'idle' | 'password' | 'google';
+type Mode = 'idle' | 'password' | 'google' | 'change';
 
 /**
- * Razdelek *Prijavne metode* (FR-017-09 … 11, design.md 9.9): kateri ponudniki so povezani z računom ter *Dodaj geslo*
+ * Razdelek *Prijavne metode* (FR-017-09 … 11, -24, design.md 9.9): kateri ponudniki so povezani z računom ter *Omogoči prijavo z geslom*
  * (Google račun) in *Dodaj Google* (račun z geslom). Povezovanje je občutljivo: pred njim je ponovna avtentikacija
  * (geslo ali Google); isti Firebase UID, noben nov profil. Napaka ne spremeni ničesar.
  */
 export function SignInMethodsSection() {
   const { t } = useTranslation();
-  const { user, reauthenticate, linkPassword, linkGoogle } = useAuth();
+  const { user, reauthenticate, linkPassword, linkGoogle, changePassword } = useAuth();
   const [mode, setMode] = useState<Mode>('idle');
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
-  const [done, setDone] = useState<'password' | 'google' | null>(null);
+  const [done, setDone] = useState<'password' | 'google' | 'changed' | null>(null);
   const [understood, setUnderstood] = useState(false);
   const [understoodError, setUnderstoodError] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [currentError, setCurrentError] = useState<string | null>(null);
   const form = useAuthForm('register', ['password', 'passwordConfirm']);
+  const changeForm = useAuthForm('register', ['password', 'passwordConfirm']);
   const ids = {
     password: useId(),
     passwordConfirm: useId(),
     current: useId(),
     currentError: useId(),
+    newPassword: useId(),
+    newPasswordConfirm: useId(),
   };
   const headingId = useId();
 
@@ -78,6 +81,30 @@ export function SignInMethodsSection() {
       setMode('idle');
     } catch (error) {
       fail(error);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitChange = async (event: FormEvent) => {
+    if (busy) return;
+    setCurrentError(null);
+    const valid = changeForm.validate(event);
+    if (!currentPassword) {
+      setCurrentError(t('auth.form.errors.passwordRequired'));
+      return;
+    }
+    if (!valid) return;
+    setBusy(true);
+    setFailure(null);
+    try {
+      // Ponovna avtentikacija s trenutnim geslom, nato updatePassword v Firebase SDK (FR-017-24).
+      await reauthenticate(currentPassword);
+      await changePassword(changeForm.values.password);
+      setDone('changed');
+      setMode('idle');
+    } catch (error) {
+      fail(error, setCurrentError);
     } finally {
       setBusy(false);
     }
@@ -126,7 +153,11 @@ export function SignInMethodsSection() {
           <p className="flex items-center gap-2">
             <IconCheck aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
             {t(
-              done === 'password' ? 'account.methods.passwordAdded' : 'account.methods.googleAdded',
+              done === 'password'
+                ? 'account.methods.passwordAdded'
+                : done === 'google'
+                  ? 'account.methods.googleAdded'
+                  : 'account.methods.passwordChanged',
             )}
           </p>
         )}
@@ -138,8 +169,16 @@ export function SignInMethodsSection() {
         </div>
       )}
 
+      {mode === 'idle' && !hasPassword && (
+        <p className="text-muted-foreground">{t('account.methods.passwordIntro')}</p>
+      )}
       {mode === 'idle' && (
         <div className="flex flex-wrap gap-3">
+          {hasPassword && (
+            <button type="button" className={secondaryButton} onClick={() => open('change')}>
+              {t('account.methods.changePassword')}
+            </button>
+          )}
           {!hasPassword && (
             <button type="button" className={secondaryButton} onClick={() => open('password')}>
               {t('account.methods.addPassword')}
@@ -221,6 +260,77 @@ export function SignInMethodsSection() {
           <div className="flex flex-wrap gap-3">
             <button type="submit" className={primaryButton} aria-busy={busy} aria-disabled={busy}>
               {t('account.methods.addPasswordSubmit')}
+            </button>
+            <button type="button" className={secondaryButton} onClick={() => open('idle')}>
+              {t('account.methods.cancel')}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {mode === 'change' && (
+        <form
+          noValidate
+          onSubmit={(event) => void submitChange(event)}
+          className="flex flex-col gap-4"
+        >
+          <div className="flex flex-col gap-1">
+            <label htmlFor={ids.current} className="font-bold">
+              {t('account.methods.currentPassword')}
+            </label>
+            <input
+              id={ids.current}
+              type="password"
+              autoComplete="current-password"
+              value={currentPassword}
+              aria-required="true"
+              aria-invalid={currentError !== null}
+              aria-describedby={currentError ? ids.currentError : undefined}
+              onChange={(event) => setCurrentPassword(event.target.value)}
+              className={`h-11 ${textInput}`}
+            />
+            {currentError && (
+              <p id={ids.currentError} className={fieldError}>
+                {currentError}
+              </p>
+            )}
+          </div>
+          <AuthField
+            id={ids.newPassword}
+            label={t('account.methods.newPassword')}
+            hint={t('auth.form.passwordHint')}
+            type="password"
+            autoComplete="new-password"
+            value={changeForm.values.password}
+            error={
+              changeForm.errors.password && t(`auth.form.errors.${changeForm.errors.password}`)
+            }
+            onChange={(value) => changeForm.change('password', value)}
+            onBlur={() => changeForm.blur('password')}
+          />
+          <AuthField
+            id={ids.newPasswordConfirm}
+            label={t('account.methods.newPasswordConfirm')}
+            type="password"
+            autoComplete="new-password"
+            value={changeForm.values.passwordConfirm ?? ''}
+            error={
+              changeForm.errors.passwordConfirm &&
+              t(`auth.form.errors.${changeForm.errors.passwordConfirm}`)
+            }
+            onChange={(value) => changeForm.change('passwordConfirm', value)}
+            onBlur={() => changeForm.blur('passwordConfirm')}
+          />
+          {changeForm.summaryVisible && (
+            <ErrorSummary
+              errors={changeForm.errors}
+              fieldIds={{ password: ids.newPassword, passwordConfirm: ids.newPasswordConfirm }}
+              summaryRef={changeForm.summaryRef}
+            />
+          )}
+          <div className="flex flex-wrap gap-3">
+            <button type="submit" className={primaryButton} aria-busy={busy} aria-disabled={busy}>
+              {t('account.methods.changePasswordSubmit')}
             </button>
             <button type="button" className={secondaryButton} onClick={() => open('idle')}>
               {t('account.methods.cancel')}

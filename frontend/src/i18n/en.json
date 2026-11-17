@@ -184,9 +184,9 @@
       "password": "Email and password",
       "linked": "linked",
       "notLinked": "not linked",
-      "addPassword": "Add password",
+      "addPassword": "Enable password sign-in",
       "addGoogle": "Add Google",
-      "addPasswordSubmit": "Add password",
+      "addPasswordSubmit": "Enable password sign-in",
       "addGoogleSubmit": "Link Google",
       "cancel": "Cancel",
       "reauthGoogle": "To add a password you will first sign in again with Google. The password is tied to this email address and the same account.",
@@ -196,7 +196,13 @@
       "googleAdded": "Google linked. You can now sign in with Google or with the password.",
       "verifyWarning": "Heads up: after you add a password, Firebase requires you to confirm your email again. Until then you cannot use the app – not even with Google. We send a message to {{email}} right after adding it; open the link in it.",
       "verifyUnderstood": "I understand and I have access to my mailbox.",
-      "verifyUnderstoodRequired": "Confirm that you understand you will have to verify your email again."
+      "verifyUnderstoodRequired": "Confirm that you understand you will have to verify your email again.",
+      "passwordIntro": "Optional: besides Google you can also sign in with your email and a separate password. Google sign-in stays the same.",
+      "changePassword": "Change password",
+      "changePasswordSubmit": "Change password",
+      "newPassword": "New password",
+      "newPasswordConfirm": "Repeat new password",
+      "passwordChanged": "Password changed. Use the new password the next time you sign in with a password."
     }
   },
   "roles": {

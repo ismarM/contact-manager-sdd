@@ -36,6 +36,8 @@ export interface AuthFake extends AuthGateway {
   readonly passwordResets: readonly string[];
   /** Klici ponovne avtentikacije (`password` ali `google`). */
   readonly reauthentications: readonly ('password' | 'google')[];
+  /** Dolžine novih gesel ob klicih changePassword (gesla se ne hranijo v dnevniku). */
+  readonly passwordChanges: readonly number[];
   /** Klici povezovanja (`password` ali `google`). */
   readonly links: readonly ('password' | 'google')[];
   /** Naslednja prijava ali dejanje z računom ne uspe z dano kodo. */
@@ -77,6 +79,7 @@ export function createAuthFake(
   const passwordResets: string[] = [];
   const reauthentications: ('password' | 'google')[] = [];
   const links: ('password' | 'google')[] = [];
+  const changes: number[] = [];
   const accounts = new Map<string, PasswordAccount>();
   const listeners = new Set<(user: AuthUser | null) => void>();
 
@@ -126,6 +129,9 @@ export function createAuthFake(
     },
     get reauthentications() {
       return reauthentications;
+    },
+    get passwordChanges() {
+      return changes;
     },
     get links() {
       return links;
@@ -223,6 +229,16 @@ export function createAuthFake(
       }
       notify();
       return Promise.resolve({ verificationRequired: reset });
+    },
+    changePassword(newPassword) {
+      changes.push(newPassword.length);
+      const error = takeError();
+      if (error) return Promise.reject(error);
+      const account = user?.email ? accounts.get(user.email.toLowerCase()) : undefined;
+      if (!user || !account) return Promise.reject(new SignInError('failed'));
+      if (newPassword.length < 8) return Promise.reject(new SignInError('weak-password'));
+      account.password = newPassword;
+      return Promise.resolve();
     },
     linkGoogle() {
       links.push('google');
