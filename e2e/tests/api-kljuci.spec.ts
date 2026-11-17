@@ -10,6 +10,9 @@ import { createGroup } from './support/groups';
 // 019 API ključi (plan.md – Public Interfaces, quickstart.md). Teče pri 360 in 1280 px. Ključ se ustvari in prekliče v
 // razdelku *API ključi* na strani *Moj račun*; programski vmesnik /v1 se kliče z `request` (brez brskalnika).
 
+// Imena iz prevodov so slovenska (t() bere sl.json); brskalnik mora zato zahtevati slovenščino.
+test.use({ locale: 'sl-SI', timezoneId: Intl.DateTimeFormat().resolvedOptions().timeZone });
+
 const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
 async function expectNoAxeViolations(page: Page) {
@@ -153,7 +156,11 @@ test('FR-019-14, -15: neprijavljen odpre stran API s prijave, prenese opis, kopi
   expect(Object.keys(description.paths)).toContain('/v1/groups');
 
   // Tipkovnica: gumb Kopiraj je dosegljiv s Tab in deluje z Enter.
-  const copy = page.getByRole('button', { name: /^Kopiraj/ }).first();
+  const copy = page.getByRole('button', {
+    name: t('apiDocs.copyExample', {
+      name: `${t('apiDocs.examples.listGroups')} – ${t('apiDocs.examples.request')}`,
+    }),
+  });
   await page.keyboard.press('Tab');
   await copy.focus();
   await expect(copy).toBeFocused();
