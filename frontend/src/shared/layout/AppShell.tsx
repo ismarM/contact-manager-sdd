@@ -69,7 +69,7 @@ function Shell() {
       {saveFailed && (
         <div
           role="alert"
-          className="flex items-center gap-2 border-l-4 border-destructive bg-destructive-soft px-4 py-2"
+          className="flex items-center gap-2 border border-border bg-destructive-soft px-4 py-2"
         >
           <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
           <span className="flex-1">{t('shell.saveFailed')}</span>

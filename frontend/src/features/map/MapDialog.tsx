@@ -9,7 +9,7 @@ import { type AddressLocation, fetchAddressLocation, fetchMapTile } from './api'
 
 const MapView = lazy(() => import('./MapView'));
 
-const LINK = `text-primary underline underline-offset-4 ${focusRing}`;
+const LINK = `text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`;
 const OSM = 'https://www.openstreetmap.org';
 
 type State =
@@ -89,7 +89,7 @@ export function MapDialog({
       : null;
 
   return (
-    <DialogContent className="max-w-[640px]">
+    <DialogContent className="sm:max-w-[640px]">
       <DialogTitle>{t('map.title', { name })}</DialogTitle>
       <p className="break-words whitespace-pre-line">{address}</p>
 

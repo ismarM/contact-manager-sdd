@@ -70,7 +70,7 @@ export function LoginPage() {
       footer={
         <Link
           to="/api-docs"
-          className="inline-flex min-h-11 items-center text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="inline-flex min-h-11 items-center text-primary underline decoration-1 underline-offset-[3px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           {t('login.apiDocsLink')}
         </Link>
@@ -78,14 +78,14 @@ export function LoginPage() {
     >
       <p className="mt-3 text-muted-foreground">{t('login.tagline')}</p>
       {deletedNotice && (
-        <p role="status" className="mt-6 rounded-md border-l-4 border-border bg-muted p-3">
+        <p role="status" className="mt-6 rounded-md border border-border bg-muted p-3">
           {t(deletedNotice)}
         </p>
       )}
       {signInError ? (
         <div
           role="alert"
-          className="mt-6 flex gap-2 rounded-md border-l-4 border-destructive bg-destructive-soft p-3"
+          className="mt-6 flex gap-2 rounded-md border border-border bg-destructive-soft p-3"
         >
           <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
           <span>{t(AUTH_ERROR_KEYS[signInError])}</span>
@@ -94,7 +94,7 @@ export function LoginPage() {
         sessionExpired && (
           <div
             role="alert"
-            className="mt-6 flex gap-2 rounded-md border-l-4 border-warning bg-warning-soft p-3"
+            className="mt-6 flex gap-2 rounded-md border border-border bg-warning-soft p-3"
           >
             <IconClockExclamation aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
             <span>{t('login.sessionExpired')}</span>
@@ -153,13 +153,13 @@ export function LoginPage() {
       <div className="mt-6 flex flex-col gap-2">
         <Link
           to="/forgot-password"
-          className={`font-bold text-primary underline underline-offset-4 ${focusRing}`}
+          className={`font-bold text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`}
         >
           {t('auth.login.forgot')}
         </Link>
         <Link
           to={withNext('/register')}
-          className={`font-bold text-primary underline underline-offset-4 ${focusRing}`}
+          className={`font-bold text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`}
         >
           {t('auth.login.register')}
         </Link>

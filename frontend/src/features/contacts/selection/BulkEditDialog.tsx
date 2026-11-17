@@ -217,7 +217,7 @@ export function BulkEditDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent onInteractOutside={(event) => event.preventDefault()}>
+      <DialogContent wide onInteractOutside={(event) => event.preventDefault()}>
         <DialogTitle>{t('contacts.bulk.editTitle', { count })}</DialogTitle>
         {check.notice && (
           <SelectionChangedNotice

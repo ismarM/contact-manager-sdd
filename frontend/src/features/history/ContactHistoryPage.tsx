@@ -21,7 +21,7 @@ type State =
   | { kind: 'notFound' }
   | { kind: 'ready'; data: History };
 
-const link = `text-primary underline underline-offset-4 ${focusRing}`;
+const link = `text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`;
 
 /**
  * Zgodovina kontakta (plan.md 015 – Pages and routes; FR-015-05 … FR-015-09, FR-015-19): paginirana časovnica z

@@ -286,7 +286,7 @@ function RestoreBody({
                   <li key={duplicate.contactId}>
                     <Link
                       to={`/groups/${group.id}/contacts/${duplicate.contactId}`}
-                      className={`font-bold text-primary underline underline-offset-4 ${focusRing}`}
+                      className={`font-bold text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`}
                     >
                       {duplicate.displayName}
                     </Link>{' '}

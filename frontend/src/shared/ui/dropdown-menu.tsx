@@ -5,7 +5,7 @@ import type { ComponentProps } from 'react';
 import { cn } from '../lib/cn';
 
 // shadcn/ui Dropdown Menu (D-15), prilagojen po design.md 13.4: ikone Tabler, skupni fokus (13.3), text-base,
-// višina h-11 (dotik h-12), zaobljenost do rounded-lg, senca samo float (lebdi nad stranjo), brez lucide.
+// višina h-11 (dotik h-12), `raised` z robom `divider`, `radius-md`, senca `md`, elementi `radius-sm`, brez lucide.
 
 export const DropdownMenu = Primitive.Root;
 export const DropdownMenuTrigger = Primitive.Trigger;
@@ -13,7 +13,7 @@ export const DropdownMenuRadioGroup = Primitive.RadioGroup;
 export const DropdownMenuGroup = Primitive.Group;
 
 const item =
-  'flex h-11 w-full cursor-default items-center gap-2 rounded-md px-3 text-base outline-none select-none data-[highlighted]:bg-muted data-[highlighted]:outline-2 data-[highlighted]:outline-offset-[-2px] data-[highlighted]:outline-ring pointer-coarse:h-12 forced-colors:data-[highlighted]:outline-[Highlight]';
+  'flex h-11 w-full cursor-default items-center gap-2 rounded-sm px-3 text-base outline-none select-none data-[highlighted]:bg-muted data-[highlighted]:outline-2 data-[highlighted]:outline-offset-[-2px] data-[highlighted]:outline-ring pointer-coarse:h-12 forced-colors:data-[highlighted]:outline-[Highlight]';
 
 export function DropdownMenuContent({
   className,
@@ -25,7 +25,7 @@ export function DropdownMenuContent({
       sideOffset={sideOffset}
       collisionPadding={8}
       className={cn(
-        'z-50 min-w-56 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-float',
+        'z-50 min-w-56 k-fade-in rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md',
         className,
       )}
       {...props}

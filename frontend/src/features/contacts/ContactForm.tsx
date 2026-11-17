@@ -707,7 +707,7 @@ export function ContactForm({
                     event.preventDefault();
                     document.getElementById(domId(field))?.focus();
                   }}
-                  className={`text-destructive underline underline-offset-4 ${focusRing}`}
+                  className={`text-destructive underline decoration-1 underline-offset-[3px] ${focusRing}`}
                 >
                   {t(errors[field]!)}
                 </a>

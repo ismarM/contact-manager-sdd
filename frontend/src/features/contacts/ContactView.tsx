@@ -39,7 +39,7 @@ type State =
   | { kind: 'notFound' }
   | { kind: 'ready'; contact: ContactDetail };
 
-const link = `text-primary underline underline-offset-4 ${focusRing}`;
+const link = `text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`;
 
 /** `tel:` brez presledkov in ločil, z ohranjenim vodilnim `+`. */
 function telHref(phone: string): string {

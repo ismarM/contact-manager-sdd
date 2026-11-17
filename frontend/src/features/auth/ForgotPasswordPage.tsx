@@ -53,7 +53,7 @@ export function ForgotPasswordPage() {
       )}
       <p
         role="status"
-        className={sent ? 'mt-6 rounded-md border-l-4 border-border bg-muted p-3' : 'sr-only'}
+        className={sent ? 'mt-6 rounded-md border border-border bg-muted p-3' : 'sr-only'}
       >
         {sent ? t('auth.forgot.sent') : ''}
       </p>
@@ -79,7 +79,7 @@ export function ForgotPasswordPage() {
       <p className="mt-6">
         <Link
           to="/login"
-          className={`font-bold text-primary underline underline-offset-4 ${focusRing}`}
+          className={`font-bold text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`}
         >
           {t('auth.forgot.back')}
         </Link>

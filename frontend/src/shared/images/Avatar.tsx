@@ -43,7 +43,7 @@ const sizeFor = (size: AvatarSize): PhotoSize => (size <= 40 ? 96 : 256);
 
 /**
  * Avatar (design.md 4.2; FR-018-21): slika, sicer začetnice (največ 2) v barvi iz osmih barv skupin kot besedilo z
- * robom 1 px na `surface`. Izbrisan uporabnik ima nevtralno ikono. Okrogel; velikosti 24, 32, 40, 64, 128 px.
+ * robom 1 px na `surface`. Izbrisan uporabnik ima nevtralno ikono. Krog (uporabnik, kontakt) ali zaobljen kvadrat (skupina); velikosti 24, 32, 40, 64, 128 px.
  */
 export function Avatar({ kind, name, colorSeed, size, photo, src, alt }: AvatarProps) {
   const { src: loadedSrc, attach } = useProtectedImage(
@@ -53,7 +53,11 @@ export function Avatar({ kind, name, colorSeed, size, photo, src, alt }: AvatarP
   );
   const url = src ?? loadedSrc;
   const label = alt ?? name ?? '';
-  const common = 'inline-flex shrink-0 select-none items-center justify-center rounded-full';
+  // Uporabnik in kontakt: krog; skupina: zaobljen kvadrat (design.md 8.17).
+  const common = cn(
+    'inline-flex shrink-0 select-none items-center justify-center',
+    kind === 'group' ? 'rounded-sm' : 'rounded-full',
+  );
 
   if (url) {
     return (

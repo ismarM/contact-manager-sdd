@@ -34,7 +34,8 @@ export function GroupsPage() {
   const api = useGroupsApi();
   const lang = useListLanguage();
   const [tick, setTick] = useState(0);
-  const [pageIndex, setPageIndex] = useState(0);
+  // Stran velja samo za iskanje in filter, pri katerem je izbrana; menjava vrne prvo stran.
+  const [pageState, setPageState] = useState({ filterKey: '', index: 0 });
   const [pageSize, setPageSize] = useState<number>(PAGE_SIZES[0]);
   const focusAfterLoad = useRef(false);
   // Po zapustitvi skupine (007) fokus prevzame naslov strani (state `focusHeading` iz preusmeritve).
@@ -72,17 +73,14 @@ export function GroupsPage() {
       ),
     [setParams],
   );
+  const filterKey = `${q}:${roleParam}`;
+  const pageIndex = pageState.filterKey === filterKey ? pageState.index : 0;
   const multiRole = roles.length > 1;
   const effectivePage = multiRole ? 0 : pageIndex;
   const effectiveSize = multiRole ? MULTI_ROLE_SIZE : pageSize;
   const singleRole = roles.length === 1 ? roles[0] : undefined;
   const key = `${lang}:${tick}:${q}:${roleParam}:${effectivePage}:${effectiveSize}`;
   useDocumentTitle(t('title.groups'));
-
-  // Menjava iskanja ali filtra vedno pokaže prvo stran.
-  useEffect(() => {
-    setPageIndex(0);
-  }, [q, roleParam]);
 
   useEffect(() => {
     let active = true;
@@ -249,10 +247,10 @@ export function GroupsPage() {
           disabled={loading}
           onPage={(next) => {
             focusAfterLoad.current = true;
-            setPageIndex(next);
+            setPageState({ filterKey, index: next });
           }}
           onSize={(next) => {
-            setPageIndex(0);
+            setPageState({ filterKey, index: 0 });
             setPageSize(next);
           }}
         />

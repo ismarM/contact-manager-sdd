@@ -40,7 +40,7 @@ export function AuditEntryItem({
               {' '}
               <Link
                 to={`/groups/${group.id}/audit/${entry.target.entryId}`}
-                className={`text-primary underline underline-offset-4 ${focusRing}`}
+                className={`text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`}
               >
                 {time(entry.target.createdAt)}
               </Link>

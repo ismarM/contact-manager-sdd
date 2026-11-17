@@ -38,7 +38,7 @@ import type {
 
 const PAGE = 25;
 const MAX_FILE = 10 * 1024 * 1024;
-const link = `inline-flex items-center gap-1 self-start text-primary underline underline-offset-4 ${focusRing}`;
+const link = `inline-flex items-center gap-1 self-start text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`;
 
 type Decision = 'skip' | 'create';
 

@@ -25,7 +25,7 @@ type State =
   | { kind: 'notFound' }
   | { kind: 'ready'; version: Version };
 
-const link = `text-primary underline underline-offset-4 ${focusRing}`;
+const link = `text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`;
 
 /** Polja različice za branje: samo izpolnjena, kot v pogledu kontakta (004). */
 export function VersionFields({ version }: { version: Version }) {

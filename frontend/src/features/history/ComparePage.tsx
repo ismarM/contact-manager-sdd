@@ -27,7 +27,7 @@ type State =
   | { kind: 'notFound' }
   | { kind: 'ready'; data: Comparison };
 
-const link = `text-primary underline underline-offset-4 ${focusRing}`;
+const link = `text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`;
 
 function Cell({ row, side }: { row: CompareRow; side: 'before' | 'after' }) {
   const { t } = useTranslation();

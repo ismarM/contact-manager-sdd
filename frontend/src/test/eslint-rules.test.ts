@@ -25,10 +25,51 @@ describe('ESLint pravila projekta', () => {
     );
   });
 
-  it('FR-000-12: privzete sence Tailwind niso na voljo', async () => {
-    expect(await ruleIds(component('<p className="shadow-sm">x</p>'))).toContain(
+  it('FR-020-01: privzete sence Tailwind (xl, 2xl, inner) niso na voljo; sence v2 sm, md in lg so', async () => {
+    expect(await ruleIds(component('<p className="shadow-xl">x</p>'))).toContain(
       'better-tailwindcss/no-unknown-classes',
     );
+    expect(await ruleIds(component('<p className="shadow-2xl">x</p>'))).toContain(
+      'better-tailwindcss/no-unknown-classes',
+    );
+    expect(
+      await ruleIds(component('<p className="shadow-sm hover:shadow-md shadow-lg">x</p>')),
+    ).toEqual([]);
+  });
+
+  it('FR-020-01: zaobljenosti iz lestvice v2 (xs, sm, md, lg, full) so dovoljene, večje ne', async () => {
+    expect(
+      await ruleIds(
+        component('<p className="rounded-xs rounded-sm rounded-md rounded-lg rounded-full">x</p>'),
+      ),
+    ).toEqual([]);
+    expect(await ruleIds(component('<p className="rounded-3xl">x</p>'))).toContain(
+      'better-tailwindcss/no-unknown-classes',
+    );
+  });
+
+  it.each(['bg-linear-to-r', 'bg-gradient-to-b', 'from-card', 'via-muted', 'to-background'])(
+    'FR-020-01: preliv %s ni dovoljen',
+    async (cls) => {
+      expect(await ruleIds(component(`<p className="${cls}">x</p>`))).toContain(
+        'better-tailwindcss/no-restricted-classes',
+      );
+    },
+  );
+
+  it.each(['backdrop-blur-sm', 'blur-md', 'backdrop-blur'])(
+    'FR-020-01: zameglitev %s ni dovoljena',
+    async (cls) => {
+      expect(await ruleIds(component(`<p className="${cls}">x</p>`))).toContain(
+        'better-tailwindcss/no-restricted-classes',
+      );
+    },
+  );
+
+  it('FR-020-02: barva izven žetonov v2 (zinc) ni dovoljena', async () => {
+    expect(
+      await ruleIds(component('<p className="text-zinc-500 border-slate-200">x</p>')),
+    ).toContain('better-tailwindcss/no-unknown-classes');
   });
 
   it.each(['bg-[#ff0000]', 'text-[rgb(0,0,0)]', 'border-[hsl(0_0%_0%)]'])(

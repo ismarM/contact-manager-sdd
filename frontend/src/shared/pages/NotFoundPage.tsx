@@ -18,7 +18,7 @@ export function NotFoundPage() {
       <p>
         <Link
           to="/"
-          className="font-bold text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="font-bold text-primary underline decoration-1 underline-offset-[3px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           {t('notFound.back')}
         </Link>

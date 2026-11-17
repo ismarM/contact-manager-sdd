@@ -250,6 +250,16 @@
     "region": "Obvestila",
     "close": "Zapri obvestilo"
   },
+  "ui": {
+    "badge": {
+      "archived": "Arhivirana",
+      "permanentlyArchived": "Trajno arhivirana",
+      "rolePrefix": "Vloga: "
+    },
+    "chip": {
+      "remove": "Odstrani filter {{name}}"
+    }
+  },
   "groups": {
     "heading": "Skupine",
     "newGroup": "Nova skupina",

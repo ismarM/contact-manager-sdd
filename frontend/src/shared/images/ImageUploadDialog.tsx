@@ -128,6 +128,7 @@ function UploadBody({ shape, title, onUpload }: Pick<Props, 'shape' | 'title' | 
 
   return (
     <DialogContent
+      wide
       onInteractOutside={(event) => event.preventDefault()}
       onOpenAutoFocus={(event) => {
         // Fokus na izbiro datoteke (ne na *Prekliči*).

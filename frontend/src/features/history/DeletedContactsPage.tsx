@@ -23,7 +23,7 @@ import { LATEST, type DeletedItem, type DeletedPage as DeletedPageData } from '.
 
 type State = { kind: 'loading' } | { kind: 'failed' } | { kind: 'ready'; data: DeletedPageData };
 
-const link = `text-primary underline underline-offset-4 ${focusRing}`;
+const link = `text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`;
 
 function DeletedRow({
   item,

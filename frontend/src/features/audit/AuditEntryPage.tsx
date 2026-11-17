@@ -65,7 +65,7 @@ export function AuditEntryPage({ entryId }: { entryId: string }) {
       </h2>
       <Link
         to={`/groups/${group.id}/audit`}
-        className={`inline-flex items-center gap-1 self-start text-primary underline underline-offset-4 ${focusRing}`}
+        className={`inline-flex items-center gap-1 self-start text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`}
       >
         <IconArrowLeft aria-hidden="true" size={20} stroke={1.75} />
         {t('audit.entry.back')}

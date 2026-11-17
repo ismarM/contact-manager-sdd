@@ -13,7 +13,7 @@ import { CodeBlock } from './CodeBlock';
 /** Največ zahtev na minuto na ključ (`api-keys.rate-limit`, plan.md; FR-019-16). */
 const RATE_LIMIT = 120;
 
-const link = `font-bold text-primary underline underline-offset-4 ${focusRing}`;
+const link = `font-bold text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`;
 const heading = 'text-xl font-bold';
 
 const SECTIONS = [

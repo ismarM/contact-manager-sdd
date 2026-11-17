@@ -28,9 +28,9 @@ export function Toaster() {
         closeButtonAriaLabel: t('toast.close'),
         classNames: {
           toast:
-            'flex w-[calc(100vw-2rem)] max-w-[360px] items-center gap-3 rounded-lg border border-border bg-card p-4 pr-12 text-card-foreground shadow-float',
+            'flex w-[calc(100vw-2rem)] max-w-[360px] items-center gap-3 rounded-md border border-border bg-popover p-4 pr-12 text-popover-foreground shadow-md',
           title: 'text-base',
-          closeButton: `absolute top-2 right-2 flex size-8 items-center justify-center rounded-md text-foreground hover:bg-muted ${focusRing}`,
+          closeButton: `absolute top-2 right-2 flex size-8 items-center justify-center rounded-sm text-foreground hover:bg-muted ${focusRing}`,
         },
       }}
     />

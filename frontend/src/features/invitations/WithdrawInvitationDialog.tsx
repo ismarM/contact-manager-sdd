@@ -60,7 +60,7 @@ export function WithdrawInvitationDialog({
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
       <DialogTrigger
-        className={`min-h-11 rounded-md px-2 font-bold text-primary underline underline-offset-4 hover:bg-muted pointer-coarse:min-h-12 ${focusRing}`}
+        className={`min-h-11 rounded-md px-2 font-bold text-primary underline decoration-1 underline-offset-[3px] hover:bg-muted pointer-coarse:min-h-12 ${focusRing}`}
         aria-label={t('invitations.pending.withdrawName', { email })}
       >
         {t('invitations.pending.withdraw')}

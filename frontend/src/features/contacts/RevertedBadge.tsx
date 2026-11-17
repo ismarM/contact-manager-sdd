@@ -8,7 +8,7 @@ import { useAuditTime } from '../audit/formatTime';
 import { useGroup } from '../groups/groupContext';
 import type { RevertInfo } from './types';
 
-const link = `text-primary underline underline-offset-4 ${focusRing}`;
+const link = `text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`;
 
 /**
  * Oznaka *Povrnjeno* v pogledu kontakta (design.md 8.5; FR-005-19): zaprta `details`/`summary`; podrobnosti (ciljna

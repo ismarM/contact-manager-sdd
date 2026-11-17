@@ -279,7 +279,7 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
           </h2>
           <Link
             to={`/groups/${group.id}/deleted-contacts`}
-            className={`text-primary underline underline-offset-4 ${focusRing}`}
+            className={`text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`}
           >
             {t('contacts.deletedLink')}
           </Link>
@@ -488,7 +488,7 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
                         />
                         <Link
                           to={`${base}/${contact.id}${link}`}
-                          className={`text-primary underline underline-offset-4 ${focusRing}`}
+                          className={`text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`}
                         >
                           {contact.displayName}
                         </Link>

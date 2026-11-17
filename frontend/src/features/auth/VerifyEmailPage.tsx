@@ -61,7 +61,7 @@ export function VerifyEmailPage() {
   return (
     <AuthCard heading={t('auth.verify.heading')}>
       {linkedNeedsVerification && (
-        <p className="mt-3 rounded-md border-l-4 border-border bg-muted p-3">
+        <p className="mt-3 rounded-md border border-border bg-muted p-3">
           {t('auth.verify.afterLinking', { email: user?.email ?? '' })}
         </p>
       )}
@@ -71,7 +71,7 @@ export function VerifyEmailPage() {
         role="status"
         className={
           notice?.kind === 'status'
-            ? 'mt-6 rounded-md border-l-4 border-border bg-muted p-3'
+            ? 'mt-6 rounded-md border border-border bg-muted p-3'
             : 'sr-only'
         }
       >

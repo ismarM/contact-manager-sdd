@@ -250,6 +250,16 @@
     "region": "Notifications",
     "close": "Close notification"
   },
+  "ui": {
+    "badge": {
+      "archived": "Archived",
+      "permanentlyArchived": "Permanently archived",
+      "rolePrefix": "Role: "
+    },
+    "chip": {
+      "remove": "Remove filter {{name}}"
+    }
+  },
   "groups": {
     "heading": "Groups",
     "newGroup": "New group",

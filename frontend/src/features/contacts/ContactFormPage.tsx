@@ -20,7 +20,7 @@ type State =
   | { kind: 'notFound' }
   | { kind: 'ready'; contact: ContactDetail };
 
-const link = `inline-flex items-center gap-1 self-start text-primary underline underline-offset-4 ${focusRing}`;
+const link = `inline-flex items-center gap-1 self-start text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`;
 
 /**
  * Stran *Nov kontakt* (brez `contactId`) in *Uredi kontakt* (FR-004-01, -10): obrazec samo za EDITOR+ v nearhivirani

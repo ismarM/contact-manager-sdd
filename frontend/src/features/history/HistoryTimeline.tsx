@@ -17,7 +17,7 @@ export interface ComparePick {
   createdAt: string | null;
 }
 
-const link = `text-primary underline underline-offset-4 ${focusRing}`;
+const link = `text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`;
 
 /** Imena spremenjenih polj (osnovna polja po prevodu, dodatni atributi po ključu, značke) brez podvajanja. */
 function useFieldNames() {

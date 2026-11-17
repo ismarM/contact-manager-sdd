@@ -133,7 +133,7 @@ export function InvitationsPage() {
           {t('invitations.toast.joined', { title: joined.title })}{' '}
           <Link
             to={`/groups/${joined.groupId}`}
-            className={`font-bold text-primary underline underline-offset-4 ${focusRing}`}
+            className={`font-bold text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`}
           >
             {t('invitations.toast.openGroup')}
           </Link>

@@ -19,7 +19,7 @@ type State =
   | { kind: 'notFound' }
   | { kind: 'ready'; key: ApiKey; usage: ApiKeyUsage };
 
-const link = `inline-flex min-h-11 items-center gap-2 self-start text-primary underline underline-offset-4 ${focusRing}`;
+const link = `inline-flex min-h-11 items-center gap-2 self-start text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`;
 
 /**
  * Statistika ključa (FR-019-20; plan.md – /account/api-keys/:keyId): obdobje 7 ali 30 dni, skupna števila, graf in

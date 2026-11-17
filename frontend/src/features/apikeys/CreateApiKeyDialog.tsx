@@ -184,7 +184,7 @@ export function CreateApiKeyDialog({ api, onCreated }: { api: ApiKeysApi; onCrea
       }}
     >
       <DialogTrigger className={`${primaryButton} self-start`}>{t('apiKeys.create')}</DialogTrigger>
-      <DialogContent onInteractOutside={(event) => event.preventDefault()}>
+      <DialogContent wide onInteractOutside={(event) => event.preventDefault()}>
         {created ? (
           <ApiKeyCreatedDialog created={created} />
         ) : (

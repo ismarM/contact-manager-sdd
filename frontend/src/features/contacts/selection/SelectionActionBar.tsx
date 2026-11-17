@@ -101,7 +101,7 @@ export function SelectionActionBar({
         ref={bar}
         role="toolbar"
         aria-label={t('contacts.selection.toolbar')}
-        className="fixed inset-x-0 bottom-0 z-10 flex flex-wrap items-center gap-3 border-t border-border bg-card p-3 shadow-float sm:static sm:rounded-md sm:border sm:shadow-none"
+        className="fixed inset-x-0 bottom-0 z-10 flex flex-wrap items-center gap-3 border-t border-border bg-card p-3 shadow-md sm:static sm:rounded-md sm:border sm:shadow-none"
       >
         <p role="status" aria-live="polite" className="font-bold">
           {t('contacts.selection.count', { count: selection.count })}

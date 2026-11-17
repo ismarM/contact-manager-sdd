@@ -76,6 +76,7 @@ export function NewGroupDialog({ className = primaryButton }: { className?: stri
     <Dialog open={open} onOpenChange={changeOpen}>
       <DialogTrigger className={className}>{t('groups.newGroup')}</DialogTrigger>
       <DialogContent
+        wide
         // Klik ob dialog ne zapre obrazca (design.md 8.10); po uspehu fokus prevzame naslov nove skupine.
         onInteractOutside={(event) => event.preventDefault()}
         onCloseAutoFocus={(event) => {

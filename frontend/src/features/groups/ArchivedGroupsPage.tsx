@@ -27,7 +27,7 @@ export function ArchivedGroupsPage() {
             <h2 className="text-xl font-bold">{t('groups.archivedList.empty')}</h2>
             <Link
               to="/"
-              className={`font-bold text-primary underline underline-offset-4 ${focusRing}`}
+              className={`font-bold text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`}
             >
               {t('groups.archivedList.back')}
             </Link>

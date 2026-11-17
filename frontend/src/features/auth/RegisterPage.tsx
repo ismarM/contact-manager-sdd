@@ -105,7 +105,7 @@ export function RegisterPage() {
         {t('auth.register.haveAccount')}{' '}
         <Link
           to={next ? `/login?${new URLSearchParams({ next }).toString()}` : '/login'}
-          className={`font-bold text-primary underline underline-offset-4 ${focusRing}`}
+          className={`font-bold text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`}
         >
           {t('auth.register.signIn')}
         </Link>
