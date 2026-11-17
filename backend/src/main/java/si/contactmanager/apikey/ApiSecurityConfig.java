@@ -47,8 +47,10 @@ public class ApiSecurityConfig {
             ApiKeyTokens tokens,
             ApiKeyRepository keys,
             ApiUsageRepository usage,
+            ApiKeyProperties properties,
             Clock clock)
             throws Exception {
+        ApiRateLimiter limiter = new ApiRateLimiter(properties.rateLimit());
         AuthenticationEntryPoint unauthenticated = (request, response, exception) -> unauthenticated(response, json);
         return http.securityMatcher("/v1/**")
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -60,6 +62,7 @@ public class ApiSecurityConfig {
                 .requestCache(AbstractHttpConfigurer::disable)
                 .addFilterBefore(new ApiKeyAuthenticationFilter(tokens, keys), AnonymousAuthenticationFilter.class)
                 .addFilterAfter(new ApiUsageFilter(usage, clock), ApiKeyAuthenticationFilter.class)
+                .addFilterAfter(new ApiRateLimitFilter(limiter, clock, json), ApiUsageFilter.class)
                 .authorizeHttpRequests(auth -> auth.requestMatchers(HttpMethod.GET, "/v1/openapi.json")
                         .permitAll()
                         .anyRequest()

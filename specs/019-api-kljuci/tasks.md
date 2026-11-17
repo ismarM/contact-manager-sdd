@@ -93,7 +93,7 @@ description: "Tasks for 019-api-kljuci (po zgodbah, testi znotraj vsake naloge/z
 - [x] T028 [US4] FR-019-15, -19 – `backend/src/main/resources/api/openapi-v1.json` (OpenAPI 3.1, `info.version` `1`, varnostna shema `cmk_`, vse operacije `/v1` s parametri, telesi, odgovori in kodami napak, vključno 401/429) in `apikey/ApiDescriptionController` (`GET /v1/openapi.json`, `application/json`); `ApiDescriptionIT`: množica (metoda, pot) iz opisa = preslikave `RequestMappingHandlerMapping` pod `/v1` (v obe smeri)
 - [x] T029 [US4] FR-019-15 – Matrika `ApiV1IsolationMatrixSecurityIT`: `GET /v1/openapi.json` (200 brez ključa, z neveljavnim ključem in s Firebase žetonom; brez glav CORS; ne šteje se v statistiko)
 - [x] T030 [P] [US4] FR-019-14, -15, -19 – FE `frontend/src/features/api-docs/`: `ApiDocsPage` (javna pot `/api-docs` v `frontend/src/app/App.tsx` zunaj `RequireAuth`; razdelki po FR-019-14: namen, varnost, bralec vidi vse, lastnik ne nadzira, brez CORS, ustvarjanje (povezava na *Moj račun* → prijava, če neprijavljen), pošiljanje, operacije z vlogo in pravico ključa, primeri `curl` in odgovori, paginacija, kode napak, omejitve, različica in spremembe, *Prenesi opis vmesnika*), `CodeBlock` s *Kopiraj* (brez vodoravnega drsenja pri 320 px), `apiOperations.ts`; povezava s `features/auth/LoginPage.tsx`; testi: `ApiDocsPage.test.tsx` (RTL + vitest-axe, sl/en, *Kopiraj*), `apiOperations.test.ts` (seznam = operacije v `backend/src/main/resources/api/openapi-v1.json`)
-- [ ] T031 [US4] FR-019-14, -15 – E2E v `e2e/tests/api-kljuci.spec.ts`: neprijavljen odpre `/api-docs` s prijave, prenese opis (JSON z `/v1/groups`), tipkovnica do *Kopiraj*, brez vodoravnega drsenja, axe (360, 1280)
+- [x] T031 [US4] FR-019-14, -15 – E2E v `e2e/tests/api-kljuci.spec.ts`: neprijavljen odpre `/api-docs` s prijave, prenese opis (JSON z `/v1/groups`), tipkovnica do *Kopiraj*, brez vodoravnega drsenja, axe (360, 1280)
 
 **Checkpoint**: US4 deluje brez prijave.
 
@@ -108,7 +108,7 @@ description: "Tasks for 019-api-kljuci (po zgodbah, testi znotraj vsake naloge/z
 - [x] T034 [US5] FR-019-20 – Matrika `ApiKeyManagementSecurityIT`: `GET /api/me/api-keys/{keyId}/usage` (401 ×3, 401 z API ključem – tudi lastnim, 404 tuj/neobstoječ/neveljaven id, 200 lastnik, 200 preklican in potekel ključ ≤ 90 dni)
 - [x] T035 [US5] FR-019-21 – `apikey/ApiKeyPurgeJob` (`@Scheduled`, R-07) z `Clock`; `ApiKeyPurgeIT` (preklican/potekel > 90 dni izbrisan s statistiko, ≤ 90 dni ostane, ura starejša od 90 dni izbrisana, aktiven ključ ostane)
 - [x] T036 [P] [US5] FR-019-20 – FE `ApiKeyUsagePage` (pot `/account/api-keys/:keyId` v `App.tsx`; 404 → »Te strani ni«), `UsageChart` (SVG/CSS stolpci iz žetonov, `aria-hidden` z enakovredno tabelo: dan, uspešne, napake, zavrnitve), izbira obdobja 7/30, skupna števila; število 24 ur na seznamu; testi RTL + MSW + vitest-axe
-- [ ] T037 [US5] FR-019-20 – E2E v `e2e/tests/api-kljuci.spec.ts`: nekaj zahtev s ključem → statistika (tabela) pokaže števila; axe (360, 1280)
+- [x] T037 [US5] FR-019-20 – E2E v `e2e/tests/api-kljuci.spec.ts`: nekaj zahtev s ključem → statistika (tabela) pokaže števila; axe (360, 1280)
 
 **Checkpoint**: US5 deluje; `./verify.sh quick` zelen.
 
@@ -118,13 +118,13 @@ description: "Tasks for 019-api-kljuci (po zgodbah, testi znotraj vsake naloge/z
 
 **Independent Test**: 121 zahtev → zadnja 429; drug ključ istega uporabnika 200; `/api` 200.
 
-- [ ] T038 [US6] FR-019-16, -20 – `apikey/ApiRateLimiter` (fiksno okno 60 s na `jti`, `Clock`, čiščenje starih oken) in `ApiRateLimitFilter` za `ApiUsageFilter` (`429 {"code":"RATE_LIMITED"}`, `Retry-After` v sekundah); unit `ApiRateLimiterTest` (meja, novo okno, `Retry-After`, ločeni ključi, sočasnost); `ApiRateLimitIT` (`api-keys.rate-limit` znižan v testu: N+1 → 429 z glavo, drug ključ 200, `/api` 200, 429 šteje kot `rate_limited` v statistiki, po oknu spet 200); `ApiExceptionHandler` / FE prevod `RATE_LIMITED`
+- [x] T038 [US6] FR-019-16, -20 – `apikey/ApiRateLimiter` (fiksno okno 60 s na `jti`, `Clock`, čiščenje starih oken) in `ApiRateLimitFilter` za `ApiUsageFilter` (`429 {"code":"RATE_LIMITED"}`, `Retry-After` v sekundah); unit `ApiRateLimiterTest` (meja, novo okno, `Retry-After`, ločeni ključi, sočasnost); `ApiRateLimitIT` (`api-keys.rate-limit` znižan v testu: N+1 → 429 z glavo, drug ključ 200, `/api` 200, 429 šteje kot `rate_limited` v statistiki, po oknu spet 200); `ApiExceptionHandler` / FE prevod `RATE_LIMITED`
 
 **Checkpoint**: vse zgodbe delujejo.
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T039 — FR-019-17 – `.gitleaks.toml`: pravilo za `cmk_eyJ…` (če obstoječa pravila ključa ne zaznajo); preveri z vzorcem v testu `scripts/verify` ali ročno v opisu PR
+- [x] T039 — FR-019-17 – `.gitleaks.toml`: pravilo za `cmk_eyJ…` (če obstoječa pravila ključa ne zaznajo); preveri z vzorcem v testu `scripts/verify` ali ročno v opisu PR
 - [ ] T040 — — – `.specify/memory/feature-map.md`: §1 vrstica 019, §2.2 nov tip klicatelja (API ključ, `/v1`, vrstni red 401 → 429 → 404 → 404 obseg → 403 → 409), §2.6 slovar (API ključ, statistika), §2.7 oznaka »prek API« in branje prek API se ne beleži, §2.10 `API_KEY_LIMIT` (409) in `RATE_LIMITED` (429)
 - [ ] T041 — FR-019-01, -17 – Po uskladitvi z `main` (017 združen; faza PR): `ApiKeyManagementSecurityIT` – `POST /api/me/api-keys` z nepotrjenim e-naslovom → 403 `EMAIL_NOT_VERIFIED`, ustvarjanje brez sveže prijave (brez `REAUTHENTICATION_REQUIRED`); `ApiKeyAuthenticationIT` – ključ uporabnika z nepotrjenim e-naslovom na `/v1` ni zavrnjen z `EMAIL_NOT_VERIFIED` (`EmailVerifiedFilter` velja samo za `/api/**`)
 - [ ] T042 — — – Quickstart (quickstart.md) ročno ali z E2E; `./verify.sh quick`; ciljani IT `Api*IT`, `*ApiKey*IT`, `MyData*IT`, `AccountDeletion*IT`, `Audit*IT`; E2E celoten (spremenjeni `App.tsx`, `AccountPage`, `LoginPage`, `e2e/tests/support/**`)
