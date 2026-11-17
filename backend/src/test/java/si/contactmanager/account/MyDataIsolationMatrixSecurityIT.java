@@ -131,6 +131,24 @@ class MyDataIsolationMatrixSecurityIT extends AccountApiTest {
         assertThat(anaProfile.get("addressFormat").asString()).isEqualTo("SINGLE_LINE");
     }
 
+    /** 019, FR-019-05: izvoz vsebuje samo API ključe klicatelja. */
+    @Tag("FR-019-05")
+    @Test
+    void exportContainsOnlyTheCallersApiKeys() throws Exception {
+        SignedIn pia = registeredUser("Pia Izvoz Ključev");
+        SignedIn ana = registeredUser("Ana Izvoz Ključev");
+        post("/api/me/api-keys", pia.idToken(), "{\"name\":\"PiinKljuc\",\"allGroups\":true}");
+        post("/api/me/api-keys", ana.idToken(), "{\"name\":\"AninKljuc\",\"allGroups\":true}");
+
+        HttpResponse<String> response = export(pia);
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        JsonNode keys = JSON.readTree(response.body()).get("apiKeys");
+        assertThat(keys).hasSize(1);
+        assertThat(keys.get(0).get("name").asString()).isEqualTo("PiinKljuc");
+        assertThat(response.body()).doesNotContain("AninKljuc");
+    }
+
     @Test
     void pathsWithAnotherUsersIdentifierDoNotExist() throws Exception {
         SignedIn pia = registeredUser("Pia Pot");

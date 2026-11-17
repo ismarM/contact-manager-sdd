@@ -47,6 +47,17 @@ describe('zaščitene poti, odjava in potek seje', () => {
     await waitFor(() => expect(currentLocation()).toBe('/'));
   });
 
+  it('FR-019-14: /api-docs je javna pot: neprijavljen ostane na njej, brez preusmeritve na prijavo', async () => {
+    mockProfileApi();
+    renderApp('/api-docs');
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: i18n.t('apiDocs.heading') }),
+    ).toBeInTheDocument();
+    expect(currentLocation()).toBe('/api-docs');
+    expect(screen.queryByRole('button', { name: 'Prijava z Googlom' })).not.toBeInTheDocument();
+  });
+
   it('FR-001-06: neprijavljen na neobstoječi poti gre na prijavo, po prijavi vidi »Te strani ni«', async () => {
     mockProfileApi();
     const { user } = renderApp('/ne-obstaja');

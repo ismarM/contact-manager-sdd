@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 
 import { focusRing, secondaryButton } from '../../shared/ui/styles';
 import { useGroup } from '../groups/groupContext';
+import { ApiKeySource } from './ApiKeySource';
 import { AuditDetails } from './AuditDetails';
 import { useAuditSentence } from './auditSentence';
 import { useAuditTime } from './formatTime';
@@ -33,6 +34,7 @@ export function AuditEntryItem({
         </time>
         <span>
           <span className="font-bold">{actor}</span> {sentence}
+          <ApiKeySource name={entry.apiKeyName} />
           {entry.target && (
             <>
               {' '}

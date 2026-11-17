@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { Language } from '../../i18n/language';
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
+import { ApiKeysSection } from '../apikeys/ApiKeysSection';
 import { useAuth } from '../auth/authContext';
 import { AppPasswordsSection } from './AppPasswordsSection';
 import { DeleteAccountSection } from './DeleteAccountSection';
@@ -88,6 +89,8 @@ export function AccountPage() {
       <MyDataSection />
 
       <AppPasswordsSection />
+
+      <ApiKeysSection />
 
       <DeleteAccountSection />
 

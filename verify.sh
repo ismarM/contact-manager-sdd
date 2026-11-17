@@ -31,6 +31,13 @@ source "$ROOT/scripts/verify/lib.sh"
 
 COMPOSE=(docker compose -p contact-manager-verify -f compose.yaml -f compose.verify.yaml)
 
+# 019: compose.yaml zahteva API_KEY_SIGNING_SECRET. Brez nastavljene vrednosti sistem za E2E dobi naključno začasno
+# skrivnost (nikoli v Gitu); velja samo za ta zagon in projekt contact-manager-verify.
+if includes e2e && [[ -z ${API_KEY_SIGNING_SECRET:-} ]]; then
+  API_KEY_SIGNING_SECRET="$(openssl rand -base64 32 2>/dev/null || head -c 32 /dev/urandom | base64)"
+  export API_KEY_SIGNING_SECRET
+fi
+
 # --- Načrt korakov -------------------------------------------------------------------------------
 # Statični koraki se izvedejo vsi, testni se ustavijo pri prvem padcu.
 if includes quick; then

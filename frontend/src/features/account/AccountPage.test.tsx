@@ -4,6 +4,7 @@ import { axe } from 'vitest-axe';
 
 import { i18n } from '../../i18n';
 import { ANA, createAuthFake } from '../../test/authFake';
+import { apiKeyNames } from '../../test/apiKeysApi';
 import { renderAccountApp } from '../../test/myDataApi';
 import { ANA_PROFILE, currentLocation, mockProfileApi, renderApp } from '../../test/renderApp';
 
@@ -150,7 +151,7 @@ describe('AccountPage – Moji podatki in Izbris računa', () => {
     await i18n.changeLanguage('sl');
   });
 
-  it('FR-012-01 FR-012-05 FR-014-21: razdelki si sledijo Profil → Videz → Oblika zapisa → Moji podatki → Gesla za aplikacijo → Izbris računa → Odjava', async () => {
+  it('FR-012-01 FR-012-05 FR-014-21 FR-019-01: razdelki si sledijo Profil → Videz → Oblika zapisa → Moji podatki → Gesla za aplikacijo → API ključi → Izbris računa → Odjava', async () => {
     renderAccountApp();
 
     await screen.findByRole('heading', { level: 1, name: 'Moj račun' });
@@ -160,6 +161,7 @@ describe('AccountPage – Moji podatki in Izbris računa', () => {
       'Oblika zapisa',
       'Moji podatki',
       'Gesla za aplikacijo (CardDAV)',
+      apiKeyNames.section(),
       'Izbris računa',
     ]);
     const regions = [

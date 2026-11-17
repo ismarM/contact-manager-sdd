@@ -34,7 +34,12 @@ public final class PostgresContainer {
         register(registry, SHARED);
     }
 
+    /**
+     * Vsak kontekst Spring v testih gre skozi to metodo, zato tu dobi tudi obvezno podpisno skrivnost API ključev (019),
+     * ki je v Gitu ni.
+     */
     public static void register(DynamicPropertyRegistry registry, PostgreSQLContainer container) {
+        ApiKeySigningSecret.register(registry);
         registry.add("spring.datasource.url", container::getJdbcUrl);
         registry.add("spring.datasource.username", container::getUsername);
         registry.add("spring.datasource.password", container::getPassword);

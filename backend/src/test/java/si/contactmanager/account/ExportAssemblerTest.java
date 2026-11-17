@@ -58,6 +58,7 @@ class ExportAssemblerTest {
                 List.of(new ReceivedInvitation("Klub", "EDITOR", new Sender("Ana Novak", false), T2)),
                 List.of(new SentInvitation("Projekt FERI", "VIEWER", "cene.kralj@primer.si", T3)),
                 List.of(new OwnedGroup("Projekt FERI", "Skupni stiki", "morje", "ACTIVE", T1)),
+                List.of(),
                 List.of());
         assertThat(actual).isEqualTo(expected);
     }
@@ -78,6 +79,50 @@ class ExportAssemblerTest {
 
         assertThat(actual.appPasswords())
                 .containsExactly(new MyData.AppPassword("iPhone", T1, T3), new MyData.AppPassword("Telefon", T2, null));
+    }
+
+    /** 019 (FR-019-05, -21): API ključi po času nastanka, skupine po naslovu, statistika po dnevih; brez ključa. */
+    @Test
+    void apiKeysAreListedByCreationTimeWithScopeTimesAndDailyUsage() {
+        var day1 = new MyData.ApiKeyUsageDay(java.time.LocalDate.parse("2026-11-14"), 3, 1, 0, 0);
+        var day2 = new MyData.ApiKeyUsageDay(java.time.LocalDate.parse("2026-11-15"), 0, 0, 2, 1);
+        MyData actual = ExportAssembler.assemble(
+                NOW,
+                PROFILE,
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(
+                        new ExportAssembler.ApiKeyRow(
+                                "Skripta",
+                                null,
+                                List.of(
+                                        new MyData.ApiKeyGroup("Zbor", "WRITE"),
+                                        new MyData.ApiKeyGroup("Klub", "READ")),
+                                T2,
+                                null,
+                                T3,
+                                null,
+                                List.of(day2, day1)),
+                        new ExportAssembler.ApiKeyRow("Nočni izvoz", "READ", List.of(), T1, T2, null, T3, List.of())));
+
+        assertThat(actual.apiKeys())
+                .containsExactly(
+                        new MyData.ApiKey("Nočni izvoz", true, "READ", List.of(), T1, T2, null, T3, List.of()),
+                        new MyData.ApiKey(
+                                "Skripta",
+                                false,
+                                null,
+                                List.of(
+                                        new MyData.ApiKeyGroup("Klub", "READ"),
+                                        new MyData.ApiKeyGroup("Zbor", "WRITE")),
+                                T2,
+                                null,
+                                T3,
+                                null,
+                                List.of(day1, day2)));
     }
 
     @Test

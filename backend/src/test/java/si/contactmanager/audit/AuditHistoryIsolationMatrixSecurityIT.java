@@ -13,7 +13,11 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import si.contactmanager.apikey.ApiKeyTokens;
 import si.contactmanager.audit.support.HistoryApiTest;
+import si.contactmanager.shared.security.ApiKeyPrincipal.Permission;
+import si.contactmanager.support.ApiKeys;
 import si.contactmanager.support.FirebaseEmulatorContainer.SignedIn;
 import si.contactmanager.support.Http;
 import si.contactmanager.support.Tokens;
@@ -31,6 +35,7 @@ import si.contactmanager.support.Tokens;
 @Tag("FR-015-16")
 @Tag("FR-015-21")
 @Tag("FR-015-22")
+@Tag("FR-019-12")
 class AuditHistoryIsolationMatrixSecurityIT extends HistoryApiTest {
 
     enum Actor {
@@ -228,5 +233,72 @@ class AuditHistoryIsolationMatrixSecurityIT extends HistoryApiTest {
             }
         }
         return rows.stream();
+    }
+
+    @Autowired
+    ApiKeyTokens apiKeyTokens;
+
+    static Stream<Arguments> memberStates() {
+        List<Arguments> rows = new ArrayList<>();
+        for (Actor actor : List.of(Actor.VIEWER, Actor.EDITOR, Actor.ADMIN, Actor.OWNER)) {
+            for (boolean archived : new boolean[] {false, true}) {
+                rows.add(Arguments.of(actor, archived));
+            }
+        }
+        return rows.stream();
+    }
+
+    /** Ključ »Testni ključ« ustvari kontakt prek {@code /v1}; vrne ključ in id kontakta. */
+    private record ByKey(String key, UUID contact) {}
+
+    private ByKey contactByApiKey(Scenario s) throws Exception {
+        String key = new ApiKeys(apiKeyTokens, jdbc)
+                .forGroups(s.id(Who.EDITOR), Permission.WRITE, s.group())
+                .token();
+        HttpResponse<String> created = Http.send(
+                "POST",
+                url("/v1/groups/" + s.group() + "/contacts"),
+                Http.bearer(key),
+                body(contactInput("Ana", "Prva", "+38690111111")));
+        assertThat(created.statusCode()).isEqualTo(201);
+        return new ByKey(key, UUID.fromString((String) json(created.body()).get("id")));
+    }
+
+    @ParameterizedTest(name = "apiKeyName v zgodovini, {0}, arhivirana={1}")
+    @MethodSource("memberStates")
+    void everyMemberSeesTheApiKeyNameInTheContactHistoryAndTheListByActor(Actor actor, boolean archived)
+            throws Exception {
+        Scenario s = scenario();
+        ByKey created = contactByApiKey(s);
+        UUID entry = (UUID) audit.entries(s.group()).get(0).get("id");
+        if (archived) {
+            groups.archive(s.group());
+        }
+        Map<String, String> headers = headers(actor, s.users());
+
+        HttpResponse<String> history = send(Endpoint.HISTORY, s.group(), created.contact(), entry, 0, headers);
+        HttpResponse<String> list = Http.send("GET", url(auditPath(s.group())), headers);
+
+        assertThat(history.statusCode()).isEqualTo(200);
+        assertThat(asObjects(json(history.body()).get("items")).get(0)).containsEntry("apiKeyName", "Testni ključ");
+        assertThat(list.statusCode()).isEqualTo(200);
+        assertThat(asObjects(json(list.body()).get("items")).get(0)).containsEntry("apiKeyName", "Testni ključ");
+    }
+
+    @ParameterizedTest(name = "API ključ na {0}")
+    @EnumSource(Endpoint.class)
+    void anApiKeyOnTheHistoryPathsIsUnauthenticated(Endpoint endpoint) throws Exception {
+        Scenario s = scenario();
+        ByKey created = contactByApiKey(s);
+        UUID entry = (UUID) audit.entries(s.group()).get(0).get("id");
+        int entriesBefore = audit.count(s.group());
+
+        HttpResponse<String> response =
+                send(endpoint, s.group(), created.contact(), entry, 0, Http.bearer(created.key()));
+
+        assertThat(response.statusCode()).isEqualTo(401);
+        assertThat(json(response.body())).isEqualTo(Map.of("code", "UNAUTHENTICATED"));
+        assertThat(audit.count(s.group())).isEqualTo(entriesBefore);
+        assertThat(contacts.exists(created.contact())).isTrue();
     }
 }

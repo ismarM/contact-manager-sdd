@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import si.contactmanager.support.ApiKeySigningSecret;
 import si.contactmanager.support.PostgresContainer;
 
 /** Migracija z napako prepreči zagon; shema ostane v zadnjem veljavnem stanju (FR-000-03). */
@@ -38,7 +39,8 @@ class BrokenMigrationIT {
                                 "--spring.flyway.locations=classpath:db/broken",
                                 "--spring.datasource.url=" + DATABASE.getJdbcUrl(),
                                 "--spring.datasource.username=" + DATABASE.getUsername(),
-                                "--spring.datasource.password=" + DATABASE.getPassword())
+                                "--spring.datasource.password=" + DATABASE.getPassword(),
+                                "--api-keys.signing-secret=" + ApiKeySigningSecret.VALUE)
                         .close())
                 .isInstanceOf(Exception.class)
                 .hasStackTraceContaining("table_that_does_not_exist");

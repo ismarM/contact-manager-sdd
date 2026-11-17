@@ -35,6 +35,14 @@ identity-deletion:
   connect-timeout: 2s
   tombstone-retention: 2h
 
+# 019 API ključi (specs/019-api-kljuci/research.md R-01, R-05 … R-07): ključ je cmk_ + JWT HS256, podpisan s skrivnostjo
+# iz okolja (base64, vsaj 32 bajtov). Brez privzete vrednosti: brez API_KEY_SIGNING_SECRET se zaledje ne zažene.
+api-keys:
+  signing-secret: ${API_KEY_SIGNING_SECRET:}
+  rate-limit: 120
+  stats-zone: Europe/Ljubljana
+  purge-interval: 1h
+
 management:
   endpoints:
     web:

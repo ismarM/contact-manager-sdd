@@ -44,6 +44,17 @@ public class GroupAccess {
         return new Membership(id, user, state.role(), state.archived(), state.permanentlyArchived());
     }
 
+    /**
+     * Članstvo uporabnika {@code userId} brez preverjanja vloge in stanja (019, research R-03: klicatelj z API ključem,
+     * ki vlogo omeji s pravico ključa). Neveljaven zapis {@code groupId}, neobstoječa skupina ali nečlan →
+     * {@link NotFoundException} (404).
+     */
+    public Membership membership(long userId, String groupId) {
+        UUID id = parse(groupId);
+        GroupRepository.MemberState state = groups.memberState(id, userId).orElseThrow(NotFoundException::new);
+        return new Membership(id, userId, state.role(), state.archived(), state.permanentlyArchived());
+    }
+
     private static UUID parse(String groupId) {
         try {
             return UUID.fromString(groupId);

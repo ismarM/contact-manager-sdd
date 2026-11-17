@@ -27,6 +27,17 @@ final class ExportAssembler {
 
     record AppPasswordRow(String name, Instant createdAt, Instant lastUsedAt) {}
 
+    /** API ključ (019) s skupinami in dnevnimi povzetki; {@code allGroupsPermission} {@code null} = izbrane skupine. */
+    record ApiKeyRow(
+            String name,
+            String allGroupsPermission,
+            List<MyData.ApiKeyGroup> groups,
+            Instant createdAt,
+            Instant expiresAt,
+            Instant lastUsedAt,
+            Instant revokedAt,
+            List<MyData.ApiKeyUsageDay> usage) {}
+
     private ExportAssembler() {}
 
     static final String DELETED_USER = "izbrisan uporabnik";
@@ -50,6 +61,19 @@ final class ExportAssembler {
             List<SentRow> sent,
             List<OwnedRow> owned,
             List<AppPasswordRow> appPasswords) {
+        return assemble(exportedAt, profile, memberships, received, sent, owned, appPasswords, List.of());
+    }
+
+    /** 019: z API ključi (FR-019-05, -21) po času nastanka; skupine po naslovu, statistika po dnevih. */
+    static MyData assemble(
+            Instant exportedAt,
+            ProfileRow profile,
+            List<MembershipRow> memberships,
+            List<ReceivedRow> received,
+            List<SentRow> sent,
+            List<OwnedRow> owned,
+            List<AppPasswordRow> appPasswords,
+            List<ApiKeyRow> apiKeys) {
         return new MyData(
                 1,
                 exportedAt,
@@ -88,6 +112,27 @@ final class ExportAssembler {
                 appPasswords.stream()
                         .sorted(Comparator.comparing(AppPasswordRow::createdAt).thenComparing(AppPasswordRow::name))
                         .map(row -> new MyData.AppPassword(row.name(), row.createdAt(), row.lastUsedAt()))
+                        .toList(),
+                apiKeys.stream()
+                        .sorted(Comparator.comparing(ApiKeyRow::createdAt).thenComparing(ApiKeyRow::name))
+                        .map(ExportAssembler::apiKey)
+                        .toList());
+    }
+
+    private static MyData.ApiKey apiKey(ApiKeyRow row) {
+        return new MyData.ApiKey(
+                row.name(),
+                row.allGroupsPermission() != null,
+                row.allGroupsPermission(),
+                row.groups().stream()
+                        .sorted(Comparator.comparing(MyData.ApiKeyGroup::title))
+                        .toList(),
+                row.createdAt(),
+                row.expiresAt(),
+                row.lastUsedAt(),
+                row.revokedAt(),
+                row.usage().stream()
+                        .sorted(Comparator.comparing(MyData.ApiKeyUsageDay::day))
                         .toList());
     }
 
