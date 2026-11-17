@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 
 import { i18n } from '../../i18n';
+import { currentLocation } from '../../test/renderApp';
 import { listReply, renderGroupsApp, summaries } from '../../test/groupsApi';
 
 // Paginacija zbirke na zaslonu *Skupine* (FR-002-04; design.md 8.9, D-26; plan.md – Key elements).
@@ -71,6 +72,30 @@ describe('GroupsPage – paginacija', () => {
     await within(main).findByRole('link', { name: 'Skupina 001' });
 
     expect(within(main).queryByRole('navigation')).not.toBeInTheDocument();
+  });
+
+  it('FR-020-11: stran je v URL (od 1); povezava s page=2 odpre drugo stran, vrnitev na prvo stran page odstrani', async () => {
+    const { user, api } = renderGroupsApp('/?page=2', {
+      list: listReply({ OWNER: summaries(30) }),
+    });
+    const main = await screen.findByRole('main');
+    const pages = await within(main).findByRole('navigation', {
+      name: 'Strani rezultatov: Skupine',
+    });
+
+    await waitFor(() => expect(groupLinks(main)).toHaveLength(5));
+    expect(
+      pageRequests(api)
+        .filter((r) => r.search.get('size') === '25')
+        .at(-1)
+        ?.search.get('page'),
+    ).toBe('1');
+    expect(pages).toHaveTextContent('Stran 2 od 2');
+
+    await user.click(within(pages).getByRole('button', { name: 'Prejšnja' }));
+
+    await waitFor(() => expect(groupLinks(main)).toHaveLength(25));
+    expect(currentLocation()).toBe('/');
   });
 
   it.each(['sl', 'en'] as const)(

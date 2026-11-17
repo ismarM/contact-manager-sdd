@@ -13,7 +13,7 @@ import {
 import { currentLocation } from '../../test/renderApp';
 import type { GroupItem, Role } from './types';
 
-// Iskanje in filtri na zaslonu *Skupine* (FR-017-14 … -18; plan.md – Pages and routes; design.md 9.2).
+// Iskanje in filtri na zaslonu *Skupine* (FR-017-14 … -18, FR-020-11; plan.md – Pages and routes; design.md 9.2).
 
 const BY_ROLE: Partial<Record<Role, GroupItem[]>> = {
   OWNER: [summary(1, { title: 'Alfa' }), summary(2, { title: 'Šolski krožek' })],
@@ -59,54 +59,68 @@ describe('Iskanje skupin', () => {
     expect(api.of('GET', '/api/groups').filter((r) => r.search.get('q'))).toHaveLength(1);
   });
 
-  it('FR-017-15: filter vlog (več hkrati) pokaže samo izbrane razdelke in zapiše role v URL', async () => {
-    const { user } = renderGroupsApp('/', { list });
+  it('FR-020-11: čipi vlog (ena vloga naenkrat, Vse vloge ponastavi) filtrirajo zbirko in zapišejo role v URL', async () => {
+    const { user, api } = renderGroupsApp('/', { list });
     await screen.findByRole('link', { name: 'Alfa' });
     const filter = screen.getByRole('group', { name: 'Vloga' });
+    expect(within(filter).getByRole('button', { name: 'Vse vloge' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
 
-    await user.click(within(filter).getByRole('checkbox', { name: 'Bralec' }));
+    await user.click(within(filter).getByRole('button', { name: 'Bralec' }));
     await waitFor(() =>
       expect(screen.queryByRole('link', { name: 'Alfa' })).not.toBeInTheDocument(),
     );
     expect(screen.getByRole('link', { name: 'Delta' })).toBeInTheDocument();
-    await user.click(within(filter).getByRole('checkbox', { name: 'Lastnik' }));
+    expect(within(filter).getByRole('button', { name: 'Bralec' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(currentLocation()).toBe('/?role=VIEWER');
+    expect(api.of('GET', '/api/groups').at(-1)?.search.get('role')).toBe('VIEWER');
 
+    await user.click(within(filter).getByRole('button', { name: 'Lastnik' }));
     expect(await screen.findByRole('link', { name: 'Alfa' })).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Delta' })).toBeVisible();
-    expect(screen.queryByRole('link', { name: 'Alfa klub' })).not.toBeInTheDocument();
-    expect(currentLocation()).toBe('/?role=OWNER&role=VIEWER');
+    expect(screen.queryByRole('link', { name: 'Delta' })).not.toBeInTheDocument();
+    expect(currentLocation()).toBe('/?role=OWNER');
+
+    await user.click(within(filter).getByRole('button', { name: 'Vse vloge' }));
+    expect(await screen.findByRole('link', { name: 'Delta' })).toBeVisible();
+    expect(currentLocation()).toBe('/');
   });
 
-  it('FR-017-16: Stanje Arhivirane pokaže arhivirane skupine z istim iskanjem in filtrom vlog', async () => {
-    const { api, user } = renderGroupsApp('/?q=arh&role=ADMIN', {
-      list,
+  it('FR-020-11: zbirka Arhivirane ima isto orodno vrstico in zahteva q in role iz URL', async () => {
+    const { api } = renderGroupsApp('/groups/archived?q=arh&role=ADMIN', {
       listArchived: (url) =>
         archivedReply([archivedSummary(7, { title: 'Arhiv sedem', role: 'ADMIN' })])(url),
     });
-    await user.click(await screen.findByRole('radio', { name: 'Arhivirane' }));
 
     expect(await screen.findByRole('link', { name: 'Arhiv sedem' })).toBeInTheDocument();
-    const request = api.of('GET', '/api/groups/archived').at(-1);
+    const request = api
+      .of('GET', '/api/groups/archived')
+      .filter((r) => r.search.get('size') === '25')
+      .at(-1);
     expect(request?.search.get('q')).toBe('arh');
     expect(request?.search.getAll('role')).toEqual(['ADMIN']);
-    expect(currentLocation()).toBe('/?q=arh&role=ADMIN&state=archived');
+    expect(await searchBox()).toHaveValue('arh');
+    expect(screen.getByRole('button', { name: 'Admin' })).toHaveAttribute('aria-pressed', 'true');
     expect(await screen.findByRole('status')).toHaveTextContent('1 zadetek');
-    expect(screen.getByRole('link', { name: 'Arhivirane skupine' })).toBeInTheDocument();
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
   });
 
   it('FR-017-17: stanje iz URL napolni polja; brez zadetkov je prazno stanje, Počisti iskanje ga ponastavi', async () => {
     const { user } = renderGroupsApp('/?q=nicneobstaja&role=VIEWER', { list });
 
     expect(await searchBox()).toHaveValue('nicneobstaja');
-    expect(screen.getByRole('checkbox', { name: 'Bralec' })).toBeChecked();
-    expect(screen.getByRole('radio', { name: 'Aktivne' })).toBeChecked();
+    expect(screen.getByRole('button', { name: 'Bralec' })).toHaveAttribute('aria-pressed', 'true');
     expect(await screen.findByRole('heading', { level: 2, name: 'Ni zadetkov.' })).toBeVisible();
 
     await user.click(screen.getByRole('link', { name: 'Počisti iskanje' }));
 
     expect(await screen.findByRole('link', { name: 'Alfa' })).toBeVisible();
     expect(await searchBox()).toHaveValue('');
-    expect(screen.getByRole('checkbox', { name: 'Bralec' })).not.toBeChecked();
+    expect(screen.getByRole('button', { name: 'Bralec' })).toHaveAttribute('aria-pressed', 'false');
     expect(currentLocation()).toBe('/');
   });
 

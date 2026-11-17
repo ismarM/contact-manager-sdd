@@ -10,6 +10,7 @@ import {
   memberCount,
   setRole,
 } from './support/groups';
+import { goToArchived } from './support/nav';
 
 // 003 arhiviranje in izbris skupine (plan.md – Public Interfaces). Vsak test teče pri 360, 768 in 1280 px; stranski pas je
 // viden od 1024 px. Druge vloge, trajno arhivirano stanje (012) in arhiviranje drugih skupin pripravi SQL (D-27).
@@ -76,15 +77,14 @@ test('FR-003-01 FR-003-02 FR-003-04 FR-003-05 FR-003-07 SC-002 SC-003: lastnik a
 
   await page.goto('/');
   await expect(page.getByRole('main').getByRole('link', { name: 'Projekt FERI' })).toHaveCount(0);
-  await page.getByRole('main').getByRole('link', { name: 'Arhivirane skupine' }).click();
-  await expect(page).toHaveURL(/\/groups\/archived$/);
+  await goToArchived(page);
   await expect(page).toHaveTitle('Arhivirane skupine – Kontakti');
   await expect(page.getByRole('heading', { level: 1, name: 'Arhivirane skupine' })).toBeVisible();
   const row = page
     .getByRole('listitem')
     .filter({ has: page.getByRole('link', { name: 'Projekt FERI' }) });
   await expect(row).toContainText('Vloga: Lastnik');
-  await expect(row).toContainText('Arhivirano');
+  await expect(row).toContainText('Arhivirana');
   await expectNoAxeViolations(page);
   await row.getByRole('link', { name: 'Projekt FERI' }).click();
   await expect(page).toHaveURL(new RegExp(`/groups/${id}/contacts$`));

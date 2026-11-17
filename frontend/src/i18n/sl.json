@@ -267,13 +267,18 @@
   },
   "groups": {
     "heading": "Skupine",
+    "subtitle": "Skupine, katerih član si. Tvoja vloga je prikazana na kartici.",
     "newGroup": "Nova skupina",
-    "sectionHeading": "{{role}} ({{total}})",
     "contactCount_one": "{{count}} kontakt",
     "contactCount_two": "{{count}} kontakta",
     "contactCount_few": "{{count}} kontakti",
     "contactCount_other": "{{count}} kontaktov",
+    "count_one": "{{count}} skupina",
+    "count_two": "{{count}} skupini",
+    "count_few": "{{count}} skupine",
+    "count_other": "{{count}} skupin",
     "empty": "Nimaš še nobene skupine.",
+    "emptyHint": "Ustvari prvo skupino za svoje kontakte ali sprejmi povabilo.",
     "loading": "Nalagam…",
     "loadFailed": "Skupin ni bilo mogoče naložiti. Poskusi znova.",
     "retry": "Poskusi znova",
@@ -338,7 +343,8 @@
       "empty": "Nimaš arhiviranih skupin.",
       "back": "Na seznam skupin",
       "ownerDeleted": "lastnik: izbrisan uporabnik",
-      "pagination": "Arhivirane skupine"
+      "pagination": "Arhivirane skupine",
+      "subtitle": "Skupine, ki so jih lastniki ali admini arhivirali. Pregled in izvoz sta še vedno mogoča."
     },
     "banner": {
       "region": "Stanje skupine",
@@ -378,15 +384,14 @@
     "search": {
       "label": "Išči skupine",
       "rolesLegend": "Vloga",
-      "stateLegend": "Stanje",
-      "active": "Aktivne",
-      "archived": "Arhivirane",
       "results_one": "{{count}} zadetek",
       "results_two": "{{count}} zadetka",
       "results_few": "{{count}} zadetki",
       "results_other": "{{count}} zadetkov",
       "none": "Ni zadetkov.",
-      "clear": "Počisti iskanje"
+      "clear": "Počisti iskanje",
+      "placeholder": "Naziv skupine",
+      "allRoles": "Vse vloge"
     },
     "currentGroup": "Trenutna skupina"
   },

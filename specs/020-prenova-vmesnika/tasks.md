@@ -95,12 +95,12 @@ description: "Naloge: Prenova vmesnika (Kartoteka v2) – ena izvedba, testi zno
 
 **Goal**: ena paginirana zbirka z značko vloge; arhivirane enako. **Independent Test**: uporabnik z več vlogami filtrira in odpre skupino s klikom na kartico.
 
-- [ ] T035 FR-020-10 — `GroupCard` (monogram/slika, naziv, opis ali »Brez opisa«, število kontaktov, značka vloge z »Vloga:« za bralnik; cela kartica je ena povezava) in zbirka: mreža na namizju, vrstice v enem seznamu na telefonu (frontend/src/features/groups/GroupCard.tsx, GroupCollection.tsx)
-- [ ] T036 FR-020-11 — Orodna vrstica: iskanje (017), čipi vlog *Vse vloge/Lastnik/Admin/Urednik/Bralec*, števec zadetkov v `aria-live`, paginacija, stanje (`q`, `role`, `page`) v URL (frontend/src/features/groups/GroupToolbar.tsx, SectionPagination.tsx)
-- [ ] T037 FR-020-10, FR-020-12 — `GroupsPage`: ena zbirka iz `GET /api/groups`, primarni gumb *Nova skupina* (dialog 002 nespremenjen), napake in nalaganje (okostje > 300 ms); odstrani `GroupSection.tsx` in razdelke (frontend/src/features/groups/GroupsPage.tsx)
-- [ ] T038 FR-020-13 — `ArchivedGroupsPage`/`ArchivedGroupsList`: ista zbirka in orodna vrstica z `GET /api/groups/archived`, znački *Arhivirana*/*Trajno arhivirana* (ključavnica), »lastnik: izbrisan uporabnik« (frontend/src/features/groups/ArchivedGroupsPage.tsx)
-- [ ] T039 [P] FR-020-10, FR-020-11 — FE testi: kartica (vloga, dolg naziv, slika), filtri in iskanje, URL stanje, paginacija čez vloge, prazno stanje, vitest-axe (frontend/src/features/groups/*.test.tsx)
-- [ ] T040 FR-020-10 … -13 — E2E: `skupine.spec.ts`, `skupine-iskanje.spec.ts`, `arhiviranje.spec.ts` na novih zaslonih (enotna zbirka, čipi, *Nova skupina*, arhivirane) pri 360 in 1280 px, axe (e2e/tests/)
+- [x] T035 FR-020-10 — `GroupCard` (monogram/slika, naziv, opis ali »Brez opisa«, število kontaktov, značka vloge z »Vloga:« za bralnik; cela kartica je ena povezava) in zbirka: mreža na namizju, vrstice v enem seznamu na telefonu (frontend/src/features/groups/GroupCard.tsx, GroupCollection.tsx)
+- [x] T036 FR-020-11 — Orodna vrstica: iskanje (017), čipi vlog *Vse vloge/Lastnik/Admin/Urednik/Bralec*, števec zadetkov v `aria-live`, paginacija, stanje (`q`, `role`, `page`) v URL (frontend/src/features/groups/GroupToolbar.tsx, SectionPagination.tsx)
+- [x] T037 FR-020-10, FR-020-12 — `GroupsPage`: ena zbirka iz `GET /api/groups`, primarni gumb *Nova skupina* (dialog 002 nespremenjen), napake in nalaganje (okostje > 300 ms); odstrani `GroupSection.tsx` in razdelke (frontend/src/features/groups/GroupsPage.tsx)
+- [x] T038 FR-020-13 — `ArchivedGroupsPage`/`ArchivedGroupsList`: ista zbirka in orodna vrstica z `GET /api/groups/archived`, znački *Arhivirana*/*Trajno arhivirana* (ključavnica), »lastnik: izbrisan uporabnik« (frontend/src/features/groups/ArchivedGroupsPage.tsx)
+- [x] T039 [P] FR-020-10, FR-020-11 — FE testi: kartica (vloga, dolg naziv, slika), filtri in iskanje, URL stanje, paginacija čez vloge, prazno stanje, vitest-axe (frontend/src/features/groups/*.test.tsx)
+- [x] T040 FR-020-10 … -13 — E2E: `skupine.spec.ts`, `skupine-iskanje.spec.ts`, `arhiviranje.spec.ts` na novih zaslonih (enotna zbirka, čipi, *Nova skupina*, arhivirane) pri 360 in 1280 px, axe (e2e/tests/)
 
 ---
 

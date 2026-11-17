@@ -267,13 +267,18 @@
   },
   "groups": {
     "heading": "Groups",
+    "subtitle": "The groups you belong to. Your role in each is shown on its card.",
     "newGroup": "New group",
-    "sectionHeading": "{{role}} ({{total}})",
     "contactCount_one": "{{count}} contact",
     "contactCount_two": "{{count}} contacts",
     "contactCount_few": "{{count}} contacts",
     "contactCount_other": "{{count}} contacts",
+    "count_one": "{{count}} group",
+    "count_two": "{{count}} groups",
+    "count_few": "{{count}} groups",
+    "count_other": "{{count}} groups",
     "empty": "You don't have any groups yet.",
+    "emptyHint": "Create your first group for your contacts, or accept an invitation.",
     "loading": "Loading…",
     "loadFailed": "Groups could not be loaded. Please try again.",
     "retry": "Try again",
@@ -338,7 +343,8 @@
       "empty": "You have no archived groups.",
       "back": "Back to groups",
       "ownerDeleted": "owner: deleted user",
-      "pagination": "Archived groups"
+      "pagination": "Archived groups",
+      "subtitle": "Groups that were archived. Viewing, searching and export are still available."
     },
     "banner": {
       "region": "Group status",
@@ -378,15 +384,14 @@
     "search": {
       "label": "Search groups",
       "rolesLegend": "Role",
-      "stateLegend": "State",
-      "active": "Active",
-      "archived": "Archived",
       "results_one": "{{count}} result",
       "results_two": "{{count}} results",
       "results_few": "{{count}} results",
       "results_other": "{{count}} results",
       "none": "No results.",
-      "clear": "Clear search"
+      "clear": "Clear search",
+      "placeholder": "Group title",
+      "allRoles": "All roles"
     },
     "currentGroup": "Current group"
   },

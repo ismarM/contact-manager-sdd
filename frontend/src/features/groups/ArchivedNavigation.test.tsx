@@ -16,14 +16,13 @@ describe('povezave na Arhivirane skupine', () => {
     await i18n.changeLanguage('sl');
   });
 
-  it('FR-003-07: zaslon Skupine ima povezavo, tudi ko je seznam prazen', async () => {
+  it('FR-020-13: zaslon Skupine nima povezave na Arhivirane (stanje je izbira navigacije), tudi ko je seznam prazen', async () => {
     renderGroupsApp('/');
 
     const main = await screen.findByRole('main');
-    expect(await within(main).findByRole('link', { name: 'Arhivirane skupine' })).toHaveAttribute(
-      'href',
-      '/groups/archived',
-    );
+    expect(
+      within(main).queryByRole('link', { name: 'Arhivirane skupine' }),
+    ).not.toBeInTheDocument();
     expect(
       await within(main).findByRole('heading', { level: 2, name: 'Nimaš še nobene skupine.' }),
     ).toBeInTheDocument();
@@ -36,9 +35,6 @@ describe('povezave na Arhivirane skupine', () => {
     const sidebar = await screen.findByRole('navigation', { name: 'Glavna navigacija' });
     const link = await within(sidebar).findByRole('link', { name: navNames.archived() });
     expect(link).toHaveAttribute('href', '/groups/archived');
-    expect(
-      within(await screen.findByRole('main')).getByRole('link', { name: 'Arhivirane skupine' }),
-    ).toBeInTheDocument();
 
     await user.click(link);
 
@@ -64,9 +60,8 @@ describe('povezave na Arhivirane skupine', () => {
     setViewport('wide');
     const { container } = renderGroupsApp('/', { list: listReply({ OWNER: summaries(2) }) });
 
-    await screen.findAllByRole('link', {
-      name: language === 'sl' ? 'Arhivirane skupine' : 'Archived groups',
-    });
+    await screen.findByRole('link', { name: navNames.archived() });
+    await screen.findAllByRole('link', { name: 'Skupina 001' });
     expect((await axe(container)).violations).toEqual([]);
   });
 });

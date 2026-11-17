@@ -309,9 +309,9 @@ test('FR-002-09 SC-006: naslovi strani in axe v slovenščini in angleščini', 
 
   await page.goto('/');
   await expect(page).toHaveTitle('Groups – Contacts');
-  await expect(
-    page.getByRole('main').getByRole('heading', { level: 2, name: 'Owner (1)' }),
-  ).toBeVisible();
+  // Ena zbirka kartic (ne razdelkov po vlogah): kartica z značko vloge »Role: Owner«.
+  await expect(page.getByRole('main').getByRole('listitem')).toHaveCount(1);
+  await expect(page.getByRole('main').getByRole('listitem')).toContainText('Role: Owner');
   await expectNoAxeViolations(page);
   await page.getByRole('main').getByRole('button', { name: 'New group' }).click();
   await expect(page.getByRole('dialog', { name: 'New group' })).toBeVisible();
