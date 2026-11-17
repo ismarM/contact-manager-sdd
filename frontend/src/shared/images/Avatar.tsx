@@ -68,18 +68,29 @@ export function Avatar({ kind, name, colorSeed, size, photo, src, alt }: AvatarP
 
   const color = AVATAR_CLASS[name === null ? 'grafit' : avatarColorFor(kind, colorSeed)];
   const decorative = label === '';
+  // Okrasne začetnice so vsebina pseudoelementa, ne besedila v DOM-u: sicer gumb z avatarjem (meni računa) krši
+  // WCAG 2.5.3 (dostopno ime mora vsebovati vidno besedilo; axe `label-content-name-mismatch`).
+  const initialsText = name === null ? null : initials(name);
   return (
     <span
       ref={attach}
       role={decorative ? undefined : 'img'}
       aria-label={decorative ? undefined : label}
       aria-hidden={decorative ? true : undefined}
-      className={cn(common, BOX[size], TEXT[size], 'border bg-card leading-none font-bold', color)}
+      data-initials={decorative ? (initialsText ?? undefined) : undefined}
+      className={cn(
+        common,
+        BOX[size],
+        TEXT[size],
+        'border bg-card leading-none font-bold',
+        color,
+        decorative && initialsText !== null && 'after:content-[attr(data-initials)]',
+      )}
     >
       {name === null ? (
         <IconUser aria-hidden="true" size={Math.round(size * 0.6)} stroke={1.75} />
       ) : (
-        <span aria-hidden="true">{initials(name)}</span>
+        !decorative && <span aria-hidden="true">{initialsText}</span>
       )}
     </span>
   );

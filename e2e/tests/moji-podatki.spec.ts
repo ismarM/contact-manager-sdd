@@ -384,7 +384,7 @@ test('FR-012-05 FR-012-07 FR-012-08 FR-012-09 FR-012-11 FR-012-12 FR-012-14 FR-0
   expect(membershipCount(ana.email)).toBe(0);
   await expect(page).not.toHaveURL(/\/login/);
   await openAccount(page);
-  await expect(page.getByRole('region', { name: 'Profil' })).toContainText(ana.email);
+  await expect(page.getByRole('region', { name: 'Profil', exact: true })).toContainText(ana.email);
   await expect(deleteSection(page).getByRole('button', { name: 'Izbriši račun' })).toBeVisible();
   await expectNoAxeViolations(page);
 

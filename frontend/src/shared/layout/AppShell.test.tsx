@@ -35,9 +35,12 @@ describe('AppShell', () => {
     const banner = await screen.findByRole('banner');
     expect(within(banner).getByRole('link', { name: 'Kontakti' })).toHaveAttribute('href', '/');
     const menuButton = within(banner).getByRole('button', { name: 'Meni računa' });
-    // Avatar je okras (alt=""): začetnice so skrite bralnikom zaslona, dostopno ime ostane »Meni računa« (CR-01, D-24).
+    // Avatar je okras (alt=""): začetnice so vsebina pseudoelementa (brez besedila v DOM-u, WCAG 2.5.3), dostopno ime
+    // ostane »Meni računa« (CR-01, D-24).
     expect(within(menuButton).queryByRole('img')).not.toBeInTheDocument();
-    expect(within(menuButton).getByText('AN')).toHaveAttribute('aria-hidden', 'true');
+    expect(within(menuButton).queryByText('AN')).not.toBeInTheDocument();
+    expect(menuButton.firstElementChild).toHaveAttribute('data-initials', 'AN');
+    expect(menuButton.firstElementChild).toHaveAttribute('aria-hidden', 'true');
     expect(screen.getByRole('main')).toBeInTheDocument();
   });
 

@@ -318,6 +318,11 @@ Nič se ne prepiše tiho. Enak vzorec velja za sočasne spremembe članov (npr. 
 - Meni dejanj vrstice, meni računa in preklop skupine so gumb s `popover` ali shadcn *Dropdown Menu* (13.4). Elementi menija so gumbi ali povezave; zapiranje z *Esc* in klikom drugam, fokus se vrne na gumb. Puščice premikajo fokus med elementi.
 - Meni se ob robu zaslona obrne navzgor ali v levo, da se ne odreže.
 
+### 8.17 Avatar in nalaganje slike
+
+- **Avatar** je krog (uporabnik, kontakt) ali zaobljen kvadrat (skupina) velikosti 24, 32, 40, 64 ali 128 px. Brez slike so v njem začetnice (največ dve) v barvi iz 8 barv skupine (4.2), izbrani po id, kot besedilo na `surface` z robom 1 px. Ime ob avatarju ga že izrazi, zato je `alt` prazen; sicer je `alt` ime.
+- **Nalaganje** odpre dialog (8.10): izbira datoteke ali povleci in spusti (JPEG, PNG, WebP), predogled z okvirjem, premik s povleko ali puščicami, povečava z drsnikom in `+`/`−`, *Shrani sliko*. Napake (neveljavna slika, prevelika, preveč poskusov) so trajne v dialogu z *Poskusi znova*; dokler nalaganje ne uspe, ostane stara slika. Slike se prenašajo z žetonom in so le v pomnilniku (`blob:`); po odjavi se prekličejo.
+
 ## 9. Zasloni
 
 Vsak zaslon ima svojo pot in naslov strani (`<title>`: »‹Zaslon› – ‹skupina› – Kontakti«).
@@ -380,8 +385,9 @@ Seznam prejetih povabil: jeziček in naslov skupine, kdo vabi, ponujena vloga, d
 ### 9.9 Moj račun
 
 1. **Profil** – ime in e-naslov iz Google računa (samo za branje).
+   **Profilna slika** – avatar (64 px), *Naloži sliko* ali *Zamenjaj sliko* in *Odstrani sliko* (potrditev 8.11); če ima Google račun sliko, še *Uporabi sliko Google računa* (8.17).
 2. **Videz** – *Jezik*: izbirna gumba *Slovenščina*, *English*; *Tema*: *Sistemska*, *Svetla*, *Temna*.
-3. **Moji podatki** – razlaga, kaj izvoz vsebuje (članstva, povabila, osebni podatki, skupine v lasti), gumb *Prenesi moje podatke (JSON)*.
+3. **Moji podatki** – razlaga, kaj izvoz vsebuje (profilna slika, članstva, povabila, osebni podatki, skupine v lasti), gumb *Prenesi moje podatke (JSON)*.
 4. **Izbris računa** – razlaga posledic (podatki in povabila se izbrišejo; v arhiviranih skupinah in revizijskih sledeh bo prikazan »izbrisan uporabnik«; arhivirane skupine, v katerih si edini član, se izbrišejo). Če je uporabnik lastnik vsaj ene nearhivirane skupine, je namesto gumba seznam teh skupin s povezavami in navodilom »Prenesi lastništvo ali arhiviraj te skupine«. Sicer *Izbriši račun* s potrditvijo z vpisom e-naslova.
 5. *Odjava*.
 

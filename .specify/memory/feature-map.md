@@ -28,6 +28,7 @@
 | 013 | pametni atributi | predefinirani polji *Podjetje* in *Država* (koda ISO 3166-1), predlogi ključev, vrednosti, podjetij, držav in značk, kanonični zapis ključev in značk, ročni prenos starih atributov | `features/contacts`, paket `contact` |
 | 014 | uvoz in izvoz | uvoz iz Excela in vizitk s predogledom (editor in višje), izvoz vCard (izbor, en kontakt), koda QR kontakta (deljenje, branje s kamero ali iz slike), CardDAV samo za branje z gesli za aplikacijo | `features/import`, `features/contacts/qr`, `features/account`, paketi `contact`, `account`, `carddav` |
 | 015 | napredna revizija | filter sledi po uporabniku (tudi nekdanji in izbrisani), zgodovina posameznega kontakta, ogled in primerjava različic, obnova enega kontakta, seznam izbrisanih kontaktov | `features/audit`, `features/contacts`, paket `audit` |
+| 018 | slike | profilna slika (nalaganje z obrezovanjem, slika Google računa), slika skupine (admin in lastnik), slika kontakta (editor in višje), prikaz v sledi, združevanju in izvozu mojih podatkov | `shared/images`, `features/account`, `features/groups`, `features/contacts`, paket `image` |
 
 Poti: `features/*` je `frontend/src/features/*`, paketi so `backend/src/main/java/si/contactmanager/*`, E2E scenariji so v `e2e/tests/*.spec.ts`.
 
@@ -57,6 +58,7 @@ Pri vsakem zahtevku nad podatki skupine se preverja v tem vrstnem redu; prvi neu
 
 - Viri, vezani na uporabnika (povabila, moji podatki, moj račun, gesla za aplikacijo): `401` brez prijave, `404` za tuj vir (npr. tuje povabilo).
 - CardDAV (014, nov tip klicatelja): prijava samo s HTTP Basic (e-naslov računa + geslo za aplikacijo) na `/dav/**`; vrstni red `401` → `404` (skupina ali kontakt ni viden) → `403` (vsako pisanje). Firebase žeton tam ne velja, Basic ne velja na `/api`.
+- Omejitev hitrosti (018: nalaganje slik in prevzem slike Google računa): `429` s kodo `RATE_LIMITED`; vmesnik prikaže sporočilo »poskusi znova čez trenutek«.
 - Napake imajo strojno berljivo kodo; vmesnik jo prevede v razumljivo sporočilo v sl/en (brez tehničnih kod v vmesniku).
 - Vsak uspeh in neuspeh je v vmesniku viden (design.md 8.13).
 
@@ -99,12 +101,13 @@ Povsod, kjer bi bilo prikazano ime ali e-naslov uporabnika, ki je izbrisal raču
 | Telefon | neobvezen, do 30 znakov; dovoljeni števke, presledki in `+ - ( ) /` |
 | Dodatni atribut | ključ 1–50 znakov, edinstven v kontaktu (ne glede na velikost črk) in različen od imen predefiniranih atributov; vrednost 1–500 znakov; največ 50 atributov na kontakt; imena `država`, `country`, `podjetje`, `company` (poleg imen predefiniranih polj) so rezervirana za nove in spremenjene ključe, obstoječi atributi z njimi ostanejo; zapis ključa se ob pisanju uskladi s kanoničnim zapisom skupine (pogostejša različica, pri izenačenju najstarejši kontakt) |
 | Značka | 1–50 znakov, brez presledkov; edinstvena v kontaktu (ne glede na velikost črk); največ 30 značk na kontakt; zapis se ob pisanju uskladi s kanoničnim zapisom skupine kot pri ključih |
+| Slika (uporabnik, skupina, kontakt) | ena slika na lastnika (zamenjava prepiše); JPEG, PNG ali WebP; datoteka do 5 MB; obrezana na kvadrat, shranjena v več različicah (največ 1024 točk); neveljavna vsebina `400` z `INVALID_IMAGE`, `IMAGE_TOO_LARGE` ali `FILE_TOO_LARGE`; dostop do slike ima samo, kdor sme videti lastnika (§2.2) |
 | Paginacija | privzeto 25 na stran, izbira 25 / 50 / 100, največ 100 |
 | Privzeto razvrščanje kontaktov | priimek, nato ime, naraščajoče; po slovenski abecedi (Č za C, Š za S, Ž za Z), ne glede na velikost črk in neodvisno od jezika vmesnika; enake vrednosti razločita čas nastanka in id (D-63, ki nadomešča D-38) |
 
 ### 2.7 Revizijska sled
 
-Od funkcionalnosti 005 naprej **vsaka** sprememba kontaktov (ustvarjanje, urejanje, izbris, množične spremembe, združevanje, rollback, obnova enega kontakta – `RESTORE`, 015, uvoz – `IMPORT`, 014) ustvari vnos v revizijski sledi skupine. Branje (izvoz, CardDAV) se ne beleži. Funkcionalnosti 009 in 011 to zahtevata v svojih FR; 005 doda beleženje operacij iz 004.
+Od funkcionalnosti 005 naprej **vsaka** sprememba kontaktov (ustvarjanje, urejanje, izbris, množične spremembe, združevanje, rollback, obnova enega kontakta – `RESTORE`, 015, uvoz – `IMPORT`, 014) ustvari vnos v revizijski sledi skupine. Sprememba slike kontakta (dodaj, zamenjaj, odstrani) je vnos `UPDATE` z oznako `photo_change`; obnova in rollback slik ne spreminjata. Branje (izvoz, CardDAV) se ne beleži. Funkcionalnosti 009 in 011 to zahtevata v svojih FR; 005 doda beleženje operacij iz 004.
 
 ### 2.8 Nevarne operacije
 
@@ -132,4 +135,5 @@ Skupne kode (§2.2): `UNAUTHENTICATED` (401), `FORBIDDEN` (403, D-25), `GROUP_AR
 | `OWNS_ACTIVE_GROUPS` | 012 | izbris računa lastnika nearhivirane skupine |
 | `APP_PASSWORD_LIMIT` | 014 | ustvarjanje enajstega gesla za aplikacijo |
 | `RESTORE_NO_CHANGES` | 015 | obnova kontakta, ki ne bi spremenila nobenega polja |
+| `GOOGLE_PHOTO_UNAVAILABLE` | 018 | prevzem slike Google računa ni mogoč (račun je nima ali je ni mogoče varno prenesti) |
 | `RESTORE_NOT_ALLOWED` | 015 | obnova kontakta, ki je bil z združevanjem odstranjen (neposredna obnova ni dovoljena) |

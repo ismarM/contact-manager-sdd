@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { i18n } from '../../i18n';
 import { ANA, createAuthFake } from '../../test/authFake';
+import { imageText, mockImagesApi, trackBlobUrls } from '../../test/imagesApi';
 import { confirmDeletion, openDeleteDialog, renderAccountApp, replies } from '../../test/myDataApi';
 import { ANA_PROFILE, currentLocation, mockProfileApi, renderApp } from '../../test/renderApp';
 
@@ -128,5 +129,26 @@ describe('AuthProvider – izbris računa (accountDeleted)', () => {
     await waitFor(() => expect(currentLocation()).toBe('/'));
     expect(gateway.signInCalls).toBe(1);
     expect(profile.requests.filter((r) => r.path === '/api/me')).toHaveLength(syncsBefore + 1);
+  });
+});
+
+describe('AuthProvider – slike ob odjavi (FR-018-22)', () => {
+  beforeEach(async () => {
+    await i18n.changeLanguage('sl');
+  });
+
+  it('po odjavi ni aktivnega blob URL-ja, števca createObjectURL in revokeObjectURL sta izenačena', async () => {
+    const urls = trackBlobUrls();
+    mockProfileApi({ profile: { ...ANA_PROFILE, photoRevision: 2 } });
+    mockImagesApi();
+    const { user } = renderApp('/', { gateway: createAuthFake({ user: ANA }) });
+
+    await waitFor(() => expect(urls.active().length).toBeGreaterThan(0));
+
+    await user.click(await screen.findByRole('button', { name: 'Meni računa' }));
+    await user.click(await screen.findByRole('menuitem', { name: imageText('shell.signOut') }));
+
+    await waitFor(() => expect(urls.active()).toEqual([]));
+    expect(urls.created).toBe(urls.revoked);
   });
 });
