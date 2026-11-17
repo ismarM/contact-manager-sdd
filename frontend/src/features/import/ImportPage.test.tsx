@@ -98,6 +98,53 @@ describe('ImportPage (014)', () => {
     expect((await axe(container)).violations).toEqual([]);
   });
 
+  it('FR-016-24: tip novega ključa in deli naslova iz stolpcev gredo v predogled; naslov v enem stolpcu ni združljiv z deli', async () => {
+    const typed = sheet(
+      ['Ime', 'Ulica', 'Kraj', 'Mobitel'],
+      [['Ana', 'Trg 1', 'Ljubljana', '041 123 456']],
+      {
+        suggestedMapping: [
+          { column: 0, target: 'FIRST_NAME', key: null },
+          { column: 1, target: 'ADDRESS_STREET', key: null },
+          { column: 2, target: 'ADDRESS_CITY', key: null },
+          { column: 3, target: 'ATTRIBUTE', key: 'Mobitel' },
+        ],
+      },
+    );
+    const api = mockImportApi({
+      parse: () => ({ status: 200, body: typed as unknown as JsonBodyType }),
+    });
+    const { container } = renderContactsApp(`${PATH}?source=xlsx`, { role: 'EDITOR' });
+    const user = await upload();
+
+    await user.selectOptions(
+      await screen.findByLabelText(names.typeFor('Mobitel')),
+      tr('attributes.types.PHONE'),
+    );
+
+    await waitFor(() =>
+      expect(api.preview.at(-1)?.[0]?.attributes).toEqual([
+        { key: 'Mobitel', type: 'PHONE', value: '041 123 456' },
+      ]),
+    );
+    expect(api.preview.at(-1)?.[0]).toMatchObject({
+      address: null,
+      addressParts: { street: 'Trg 1', city: 'Ljubljana' },
+    });
+    const table = await screen.findByRole('table', { name: tr('import.preview.table') });
+    expect(within(table).getByRole('row', { name: /^2 Ana/ })).toHaveTextContent('Trg 1');
+    expect((await axe(container)).violations).toEqual([]);
+
+    await user.selectOptions(
+      screen.getByLabelText(names.targetFor('Mobitel')),
+      names.target('ADDRESS'),
+    );
+
+    expect(screen.getByLabelText(names.targetFor('Mobitel'))).toHaveAccessibleDescription(
+      tr('import.mapping.addressConflict'),
+    );
+  });
+
   it('FR-014-02: dva stolpca ne moreta imeti istega predefiniranega cilja', async () => {
     mockImportApi({ parse: () => ({ status: 200, body: EXPORTED as unknown as JsonBodyType }) });
     renderContactsApp(`${PATH}?source=xlsx`, { role: 'EDITOR' });

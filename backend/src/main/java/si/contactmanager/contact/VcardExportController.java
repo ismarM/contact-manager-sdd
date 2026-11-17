@@ -124,6 +124,7 @@ class VcardExportController {
                 state.firstName(),
                 state.lastName(),
                 state.address(),
+                state.addressParts(),
                 state.email(),
                 state.phone(),
                 state.company(),

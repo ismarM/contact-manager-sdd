@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
 import { secondaryButton, focusRing } from '../../shared/ui/styles';
+import { ApiKeySource } from '../audit/ApiKeySource';
 import { ChangeTable } from '../audit/ChangeTable';
 import { useAuditSentence } from '../audit/auditSentence';
 import { useAuditTime } from '../audit/formatTime';
@@ -118,10 +119,12 @@ function EventItem({
               {event.mergedInto.displayName}
             </Link>{' '}
             <span className="text-muted-foreground">({actor})</span>
+            <ApiKeySource name={event.apiKeyName} />
           </span>
         ) : (
           <span>
             <span className="font-bold">{actor}</span> {text}
+            <ApiKeySource name={event.apiKeyName} />
             {event.target && (
               <>
                 {' '}

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import { countryName } from '../contacts/countries';
 import { useUiLanguage } from '../contacts/useUiLanguage';
+import { useFormatters } from '../formats/useFormatters';
 import { FIELDS } from './mergeModel';
 import type { MergeResultInput } from './types';
 
@@ -10,6 +11,7 @@ import type { MergeResultInput } from './types';
 export function MergePreview({ result }: { result: MergeResultInput }) {
   const { t } = useTranslation();
   const language = useUiLanguage();
+  const format = useFormatters();
   const titleId = useId();
   const empty = t('duplicates.compare.emptyValue');
 
@@ -28,14 +30,18 @@ export function MergePreview({ result }: { result: MergeResultInput }) {
             <dd className="break-words">
               {field === 'country' && result.country
                 ? countryName(result.country, language)
-                : (result[field] ?? empty)}
+                : field === 'address' && result.addressParts
+                  ? format.address(result.addressParts, true)
+                  : (result[field] ?? empty)}
             </dd>
           </div>
         ))}
         {result.attributes.map((attribute) => (
           <div key={attribute.key} className="contents">
             <dt className="font-bold break-words">{attribute.key}</dt>
-            <dd className="break-words">{attribute.value}</dd>
+            <dd className="break-words whitespace-pre-line">
+              {attribute.parts ? format.address(attribute.parts, true) : attribute.value}
+            </dd>
           </div>
         ))}
         <div className="contents">

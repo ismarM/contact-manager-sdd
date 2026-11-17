@@ -37,7 +37,44 @@ public class AuditLog {
     @Transactional(propagation = Propagation.MANDATORY)
     public UUID recordPhoto(UUID groupId, long actorId, ContactChange change, PhotoChange photoChange) {
         validate(AuditAction.UPDATE, List.of(change));
-        return repository.insert(groupId, actorId, AuditAction.UPDATE, List.of(change), null, false, photoChange);
+        return repository.insert(
+                groupId, actorId, AuditAction.UPDATE, List.of(change), null, false, null, null, null, photoChange);
+    }
+
+    /**
+     * Zapiše vnos spremembe tipa ključa atributa (016, FR-016-26): ključ, tip pred in po ter ena sprememba na kontakt
+     * s ključem (stanji {@code before} in {@code after}). Brez obdajajoče transakcije vrže izjemo.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public UUID recordAttributeType(
+            UUID groupId,
+            long actorId,
+            String attributeKey,
+            String typeBefore,
+            String typeAfter,
+            List<ContactChange> changes) {
+        if (attributeKey == null || typeBefore == null || typeAfter == null || typeBefore.equals(typeAfter)) {
+            throw new IllegalArgumentException("sprememba tipa potrebuje ključ in različna tipa");
+        }
+        if (changes == null || changes.isEmpty()) {
+            throw new IllegalArgumentException("vnos mora imeti vsaj eno spremembo");
+        }
+        for (ContactChange change : changes) {
+            if (change.before() == null || change.after() == null) {
+                throw new IllegalArgumentException("neveljavna oblika spremembe za ATTRIBUTE_TYPE");
+            }
+        }
+        return repository.insert(
+                groupId,
+                actorId,
+                AuditAction.ATTRIBUTE_TYPE,
+                changes,
+                null,
+                false,
+                attributeKey,
+                typeBefore,
+                typeAfter,
+                null);
     }
 
     /** Zapis vnosa rollbacka (samo {@code RollbackService}). */
@@ -54,6 +91,9 @@ public class AuditLog {
         if (action == AuditAction.ROLLBACK || action == AuditAction.RESTORE) {
             throw new IllegalArgumentException(action + " zapiše samo svoja storitev");
         }
+        if (action == AuditAction.ATTRIBUTE_TYPE) {
+            throw new IllegalArgumentException("ATTRIBUTE_TYPE zapiše samo recordAttributeType");
+        }
         if (changes == null || changes.isEmpty()) {
             throw new IllegalArgumentException("vnos mora imeti vsaj eno spremembo");
         }
@@ -63,7 +103,7 @@ public class AuditLog {
                 case DELETE -> change.before() != null && change.after() == null;
                 case UPDATE -> change.before() != null && change.after() != null;
                 case MERGE -> change.before() != null;
-                case ROLLBACK, RESTORE -> false;
+                case ROLLBACK, RESTORE, ATTRIBUTE_TYPE -> false;
             };
             if (!valid) {
                 throw new IllegalArgumentException("neveljavna oblika spremembe za " + action);

@@ -46,6 +46,7 @@ class MyDataService {
                 repository.receivedInvitations(user),
                 repository.sentInvitations(user),
                 repository.ownedGroups(user),
-                repository.appPasswords(user));
+                repository.appPasswords(user),
+                repository.apiKeys(user));
     }
 }

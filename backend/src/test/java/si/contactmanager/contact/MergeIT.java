@@ -99,7 +99,8 @@ class MergeIT extends DuplicateApiTest {
                 .containsEntry("phone", "041 111 222")
                 .containsEntry("tags", List.of("vip", "konferenca2025", "alumni"))
                 .containsEntry("version", 1);
-        assertThat(asObjects(kept.get("attributes"))).containsExactly(Map.of("key", "Kompetenca", "value", "java"));
+        assertThat(asObjects(kept.get("attributes")))
+                .containsExactly(Map.of("key", "Kompetenca", "type", "OTHER", "value", "java"));
         assertThat(Instant.parse((String) kept.get("updatedAt"))).isAfterOrEqualTo(requested);
         assertThat(contacts.createdAt(a)).isEqualTo(createdBefore);
         assertThat(contacts.row(a).get("updated_by")).isEqualTo(s.id(Who.EDITOR));

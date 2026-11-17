@@ -17,9 +17,11 @@ import si.contactmanager.shared.error.ValidationException;
 public class RestoreRules {
 
     private final CanonicalForms canonical;
+    private final TypedAttributes typed;
 
-    RestoreRules(CanonicalForms canonical) {
+    RestoreRules(CanonicalForms canonical, TypedAttributes typed) {
         this.canonical = canonical;
+        this.typed = typed;
     }
 
     /**
@@ -27,6 +29,15 @@ public class RestoreRules {
      * (po polju: {@code country}, {@code company}, {@code attributes[i].key}), če stanje ni več veljavno.
      */
     public ContactState conform(UUID group, ContactState goal, ContactState current) {
+        return conform(group, goal, current, true);
+    }
+
+    /**
+     * Kot {@link #conform(UUID, ContactState, ContactState)}; {@code write == false} (predogled) tipov ključev ne
+     * zapiše: prost ključ ostane brez vrstice. Vrednosti atributov morajo biti veljavne za <b>trenutni</b> tip ključa
+     * v skupini (016, FR-016-26), sicer napaka {@code attributes[i].value}; prost ključ prevzame tip iz posnetka.
+     */
+    public ContactState conform(UUID group, ContactState goal, ContactState current, boolean write) {
         List<FieldError> errors = new ArrayList<>();
         if (goal.country() != null && !CountryNames.isValid(goal.country())) {
             errors.add(new FieldError("country", "INVALID_VALUE"));
@@ -36,6 +47,7 @@ public class RestoreRules {
         }
         Set<String> held = current == null ? Set.of() : AttributeKeys.normalizedKeys(current.attributes());
         errors.addAll(AttributeKeys.reservedErrors(goal.attributes(), held));
+        List<Attribute> typedAttributes = typedAttributes(group, goal, errors, write);
         if (!errors.isEmpty()) {
             throw new ValidationException(errors);
         }
@@ -47,15 +59,38 @@ public class RestoreRules {
                 goal.firstName(),
                 goal.lastName(),
                 goal.address(),
+                goal.addressParts(),
                 goal.email(),
                 goal.phone(),
                 goal.company(),
                 goal.country(),
-                canonical.attributes(group, goal.attributes(), storedKeys),
+                canonical.attributes(group, typedAttributes, storedKeys),
                 canonical.tags(group, goal.tags(), storedTags),
                 goal.version(),
                 goal.createdAt(),
                 goal.updatedAt(),
                 goal.updatedById());
+    }
+
+    private List<Attribute> typedAttributes(UUID group, ContactState goal, List<FieldError> errors, boolean write) {
+        List<Attribute> result = new ArrayList<>(goal.attributes().size());
+        for (int i = 0; i < goal.attributes().size(); i++) {
+            Attribute recorded = goal.attributes().get(i);
+            AttributeType current =
+                    typed.effective(group, ContactInputParser.normalize(recorded.key()), recorded.type(), write);
+            if (current == recorded.type()) {
+                result.add(recorded);
+                continue;
+            }
+            String text = recorded.parts() != null ? AddressFormats.text(recorded.parts()) : recorded.value();
+            TypedValues.Result normalized = TypedValues.normalize(current, text, goal.country());
+            if (normalized.valid()) {
+                result.add(new Attribute(recorded.key(), current, normalized.value(), null));
+            } else {
+                errors.add(new FieldError("attributes[" + i + "].value", normalized.error()));
+                result.add(recorded);
+            }
+        }
+        return result;
     }
 }

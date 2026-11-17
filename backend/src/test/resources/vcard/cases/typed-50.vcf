@@ -1,0 +1,27 @@
+BEGIN:VCARD
+VERSION:3.0
+N:Kos;Ana
+FN:Ana Kos
+TEL;TYPE=voice:+38641123456
+ADR;X-CM-PARTS=1;X-CM-PC=SI;X-CM-CC=SI:;Vhod B;Trg 1;Ljubljana;Osrednjeslovenska;1000;Slovenija
+attr1.TEL:+38612345678
+attr1.X-ABLabel:Služba
+attr1.X-CM-KEY:Služba
+attr2.EMAIL:ana@delo.si
+attr2.X-ABLabel:Pisarna
+attr2.X-CM-KEY:Pisarna
+attr3.ADR;X-CM-PARTS=1:;;Gozdna 5;Bled;;;
+attr3.X-ABLabel:Vikend
+attr3.X-CM-KEY:Vikend
+attr4.ADR:;;Stara cesta 3\, Kranj;;;;
+attr4.X-ABLabel:Dom
+attr4.X-CM-KEY:Dom
+attr5.URL:https://primer.si
+attr5.X-CM-KEY:Splet
+attr6.BDAY:1990-05-17
+attr6.X-CM-KEY:Rojstvo
+attr7.NOTE:Prva\nDruga\; tretja
+attr7.X-CM-KEY:Opomba
+attr8.X-CM-KEY:Vloga
+attr8.X-CM-VALUE:mentor
+END:VCARD

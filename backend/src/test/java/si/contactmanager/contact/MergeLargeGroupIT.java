@@ -68,7 +68,7 @@ class MergeLargeGroupIT extends MergeApiTest {
 
     /** Rezultat kroga {@code round}: ime, priimek in telefon kroga ter značka kroga. */
     private Map<String, Object> roundResult(int round) {
-        return result("Ime01", "Priimek01", null, EMAIL, "01 000 00" + round, null, List.of("krog" + round));
+        return result("Ime01", "Priimek01", null, EMAIL, "+3869000000" + round, null, List.of("krog" + round));
     }
 
     /** Primerjava in združitev prvih {@code ids}; vrne {@code auditEntryId}. */
@@ -165,7 +165,7 @@ class MergeLargeGroupIT extends MergeApiTest {
             for (UUID id : taken.subList(1, taken.size())) {
                 assertThat(contacts.exists(id)).as("združen " + id).isFalse();
             }
-            assertThat(contacts.row(kept).get("phone")).isEqualTo("01 000 00" + round);
+            assertThat(contacts.row(kept).get("phone")).isEqualTo("+3869000000" + round);
             assertThat(contacts.tagsOf(kept)).containsExactly("krog" + round);
             mergeEntries++;
             assertThat(auditEntries(s.group(), "MERGE")).hasSize(mergeEntries);

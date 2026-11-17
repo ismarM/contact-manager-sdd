@@ -15,6 +15,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import si.contactmanager.support.ApiKeySigningSecret;
 import si.contactmanager.support.Http;
 import si.contactmanager.support.PostgresContainer;
 
@@ -63,7 +64,8 @@ class HealthAndMigrationIT {
                         "--server.port=0",
                         "--spring.datasource.url=" + container.getJdbcUrl(),
                         "--spring.datasource.username=" + container.getUsername(),
-                        "--spring.datasource.password=" + container.getPassword())) {
+                        "--spring.datasource.password=" + container.getPassword(),
+                        "--api-keys.signing-secret=" + ApiKeySigningSecret.VALUE)) {
             assertThat(second.isActive()).isTrue();
         }
 

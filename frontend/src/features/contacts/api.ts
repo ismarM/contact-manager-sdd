@@ -5,6 +5,7 @@ import { ApiError } from '../../shared/api/client';
 import { useAuth } from '../auth/authContext';
 import { useGroup } from '../groups/groupContext';
 import { type ContactQuery, toApiParams } from './contactQuery';
+import type { AddressSuggestion } from '../attributes/types';
 import type {
   ContactDetail,
   ContactFilterOptions,
@@ -72,6 +73,22 @@ export function createContactsApi(authFetch: AuthFetch) {
       return authFetch<Suggestions>(`${base(groupId)}/suggestions?${params.toString()}`, {
         signal,
       });
+    },
+    /**
+     * 016: do 5 predlogov naslova prek posrednika v zaledju (FR-016-13, FR-016-23); brskalnik nikoli ne kliče tuje
+     * storitve. Napaka storitve je na strežniku prazen seznam.
+     */
+    addressSuggestions(
+      groupId: string,
+      request: { q: string; country?: string; language: 'sl' | 'en' },
+      signal?: AbortSignal,
+    ): Promise<{ items: AddressSuggestion[] }> {
+      const params = new URLSearchParams({ q: request.q, language: request.language });
+      if (request.country) params.set('country', request.country);
+      return authFetch<{ items: AddressSuggestion[] }>(
+        `${base(groupId)}/address-suggestions?${params.toString()}`,
+        { signal },
+      );
     },
     /** 013: prepoznavanje držav iz besedila (ni vezano na skupino). */
     resolveCountries(values: string[]): Promise<{ results: CountryResolution[] }> {
@@ -209,5 +226,29 @@ export function useCanonical(type: 'key' | 'tag'): (text: string) => Promise<str
       }
     },
     [api, group.id, type],
+  );
+}
+
+/**
+ * Ključ skupine (016): med predlogi ključev poišče zapis z enakim `toLowerCase` kot vpis in vrne predlog s tipom
+ * ključa (`attributeType`); napaka ali brez zadetka vrne `null` (ključ je nov).
+ */
+export function useKeyLookup(): (text: string) => Promise<Suggestion | null> {
+  const api = useContactsApi();
+  const { group } = useGroup();
+  return useMemo(
+    () => async (text: string) => {
+      const wanted = text.trim();
+      if (wanted === '') return null;
+      try {
+        const result = await api.suggestions(group.id, { type: 'key', q: wanted });
+        return (
+          result.items.find((item) => item.text.toLowerCase() === wanted.toLowerCase()) ?? null
+        );
+      } catch {
+        return null;
+      }
+    },
+    [api, group.id],
   );
 }

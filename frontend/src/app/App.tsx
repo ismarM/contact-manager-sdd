@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { createBrowserRouter, Route, RouterProvider, Routes } from 'react-router';
 
 import { AccountPage } from '../features/account/AccountPage';
+import { ApiDocsPage } from '../features/api-docs/ApiDocsPage';
+import { ApiKeyUsagePage } from '../features/apikeys/ApiKeyUsagePage';
 import type { AuthGateway } from '../features/auth/AuthGateway';
 import { AuthProvider } from '../features/auth/AuthProvider';
+import { DisplayFormatsProvider } from '../features/formats/DisplayFormatsProvider';
 import { ArchivedGroupsPage } from '../features/groups/ArchivedGroupsPage';
 import { GroupLayout } from '../features/groups/GroupLayout';
 import { GroupsPage } from '../features/groups/GroupsPage';
@@ -27,24 +30,28 @@ export function App({ gateway }: { gateway: AuthGateway }) {
 function AppRoutes({ gateway }: { gateway: AuthGateway }) {
   return (
     <AuthProvider gateway={gateway}>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route
-          element={
-            <RequireAuth>
-              <AppShell />
-            </RequireAuth>
-          }
-        >
-          <Route index element={<GroupsPage />} />
-          <Route path="groups" element={<GroupsPage />} />
-          <Route path="groups/archived" element={<ArchivedGroupsPage />} />
-          <Route path="groups/:groupId/*" element={<GroupLayout />} />
-          <Route path="invitations" element={<InvitationsPage />} />
-          <Route path="account" element={<AccountPage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Route>
-      </Routes>
+      <DisplayFormatsProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/api-docs" element={<ApiDocsPage />} />
+          <Route
+            element={
+              <RequireAuth>
+                <AppShell />
+              </RequireAuth>
+            }
+          >
+            <Route index element={<GroupsPage />} />
+            <Route path="groups" element={<GroupsPage />} />
+            <Route path="groups/archived" element={<ArchivedGroupsPage />} />
+            <Route path="groups/:groupId/*" element={<GroupLayout />} />
+            <Route path="invitations" element={<InvitationsPage />} />
+            <Route path="account" element={<AccountPage />} />
+            <Route path="account/api-keys/:keyId" element={<ApiKeyUsagePage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+        </Routes>
+      </DisplayFormatsProvider>
     </AuthProvider>
   );
 }

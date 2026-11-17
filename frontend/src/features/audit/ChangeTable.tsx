@@ -1,16 +1,13 @@
 import { useTranslation } from 'react-i18next';
 
-import { countryName } from '../contacts/countries';
-import { useUiLanguage } from '../contacts/useUiLanguage';
-import type { ChangeField, ChangeValue, ContactChange } from './types';
+import { typeNameKey } from '../attributes/typeNames';
+import { typeChange, useChangeText } from './changeText';
+import type { ChangeField, ChangeFieldName, ChangeValue, ContactChange } from './types';
 
-/** Vrednost celice: besedilo, značke ločene z vejico ali »—« z vizualno skritim »prazno« (design.md 8.6). */
-function Value({ value, country = false }: { value: ChangeValue; country?: boolean }) {
+/** Vrednost celice: besedilo po shemah uporabnika ali »—« z vizualno skritim »prazno« (design.md 8.6). */
+function Value({ field, value }: { field: ChangeFieldName; value: ChangeValue }) {
   const { t } = useTranslation();
-  const language = useUiLanguage();
-  const joined = Array.isArray(value) ? value.join(', ') : value;
-  // 013: pri državi sta `before`/`after` kodi ISO; ime v jeziku vmesnika, neznana koda ostane surova.
-  const text = country && joined ? countryName(joined, language) : joined;
+  const text = useChangeText()(field, value);
   if (text === null || text === '') {
     return (
       <>
@@ -19,12 +16,27 @@ function Value({ value, country = false }: { value: ChangeValue; country?: boole
       </>
     );
   }
-  return <>{text}</>;
+  return <span className="whitespace-pre-line">{text}</span>;
 }
 
 function FieldLabel({ field }: { field: ChangeField }) {
   const { t } = useTranslation();
-  if (field.field === 'ATTRIBUTE') return <span className="font-mono">{field.key}</span>;
+  if (field.field === 'ATTRIBUTE') {
+    const types = typeChange(field.before, field.after);
+    return (
+      <>
+        <span className="font-mono">{field.key}</span>
+        {types && (
+          <span className="block text-sm font-normal text-muted-foreground">
+            {t('audit.details.typeChange', {
+              before: t(typeNameKey(types[0])),
+              after: t(typeNameKey(types[1])),
+            })}
+          </span>
+        )}
+      </>
+    );
+  }
   return <>{t(`audit.details.fields.${field.field}`)}</>;
 }
 
@@ -60,10 +72,10 @@ export function ChangeTable({ change }: { change: ContactChange }) {
                 <FieldLabel field={field} />
               </th>
               <td className="p-2 break-words">
-                <Value value={field.before} country={field.field === 'COUNTRY'} />
+                <Value field={field.field} value={field.before} />
               </td>
               <td className="p-2 break-words">
-                <Value value={field.after} country={field.field === 'COUNTRY'} />
+                <Value field={field.field} value={field.after} />
               </td>
             </tr>
           ))}

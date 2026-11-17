@@ -41,7 +41,12 @@ const COMPARISON = comparison({
   }),
   changes: [
     { field: 'PHONE', key: null, before: '01 234 5678', after: '031 123 456' },
-    { field: 'ATTRIBUTE', key: 'kompetenca', before: null, after: 'web dev' },
+    {
+      field: 'ATTRIBUTE',
+      key: 'kompetenca',
+      before: null,
+      after: { type: 'OTHER', value: 'web dev' },
+    },
     { field: 'TAGS', key: null, before: ['vip', 'skupna'], after: ['konferenca', 'skupna'] },
   ],
 });
@@ -252,6 +257,44 @@ describe('ComparePage', () => {
     expect(row(table, 'Phone')).toHaveTextContent('Changed');
     expect(row(table, 'kompetenca')).toHaveTextContent('Added');
     expect(row(table, 'Tag vip')).toHaveTextContent('Removed');
+    expect((await axe(container)).violations).toEqual([]);
+  });
+
+  it('FR-016-26: tip ključa in vrednosti po shemi, deli naslova in sprememba tipa v primerjavi različic; axe', async () => {
+    const parts = { street: 'Trg 1', postalCode: '1000', city: 'Ljubljana', country: 'SI' };
+    const typed = comparison({
+      from: version(FROM, { state: stateView({ attributes: [] }) }),
+      to: version('current', {
+        state: stateView({
+          addressParts: parts,
+          attributes: [{ key: 'Domov', type: 'ADDRESS', parts }],
+        }),
+      }),
+      changes: [
+        {
+          field: 'ATTRIBUTE',
+          key: 'Mobilni',
+          before: { type: 'OTHER', value: '041 123 456' },
+          after: { type: 'PHONE', value: '+38641123456' },
+        },
+        { field: 'ADDRESS', key: null, before: 'Trg 1, Ljubljana', after: parts },
+      ],
+    });
+    const { container } = render(PATH, { history: { compare: () => ok(typed) } });
+
+    const table = await screen.findByRole('table', {
+      name: tr('history.compare.caption', { name: 'Janez Novak' }),
+    });
+
+    const mobile = row(
+      table,
+      'Mobilni' + tr('audit.details.typeChange', { before: 'Drugo', after: 'Telefon' }),
+    );
+    expect(mobile).toHaveTextContent('041 123 456');
+    expect(mobile).toHaveTextContent('+386 41 123 456');
+    const address = row(table, tr('audit.details.fields.ADDRESS'));
+    expect(address).toHaveTextContent('Trg 1, Ljubljana');
+    expect(address).toHaveTextContent('1000 Ljubljana');
     expect((await axe(container)).violations).toEqual([]);
   });
 });

@@ -25,6 +25,7 @@ import {
   secondaryButton,
   warningAlert,
 } from '../../shared/ui/styles';
+import { useFormatters } from '../formats/useFormatters';
 import { useGroup } from '../groups/groupContext';
 import { SectionPagination } from '../groups/SectionPagination';
 import { useDelayed } from '../groups/useDelayed';
@@ -85,6 +86,7 @@ export interface ListNavigationState {
  */
 export function ContactList({ titled, selectedId }: { titled: boolean; selectedId?: string }) {
   const { t } = useTranslation();
+  const format = useFormatters();
   const api = useContactsApi();
   const { group } = useGroup();
   const location = useLocation();
@@ -501,7 +503,7 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
                       {contact.email}
                     </td>
                     <td data-label={t('contacts.list.phone')} className="p-2">
-                      {contact.phone}
+                      {contact.phone ? format.phone(contact.phone) : contact.phone}
                     </td>
                     <td data-label={t('contacts.list.tags')} className="p-2">
                       {contact.tags.length > 0 && <TagChips tags={contact.tags} />}

@@ -36,9 +36,10 @@ export default defineConfig({
         // 014: zxing_reader.wasm (branje kode QR) se gosti lokalno in deluje brez povezave.
         globPatterns: ['**/*.{html,js,css,woff2,png,svg,ico,webmanifest,wasm}'],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
-        // API, CardDAV (014) in poti emulatorja Auth (001, research R-04) nikoli iz predpomnilnika.
+        // API, programski vmesnik /v1 (019), CardDAV (014) in poti emulatorja Auth (001, research R-04) nikoli iz predpomnilnika.
         navigateFallbackDenylist: [
           /^\/api\//,
+          /^\/v1\//,
           /^\/dav\//,
           /^\/\.well-known\//,
           /^\/emulator\//,
@@ -54,6 +55,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': 'http://localhost:8080',
+      '/v1': 'http://localhost:8080',
       '/dav': 'http://localhost:8080',
       '/.well-known/carddav': 'http://localhost:8080',
       '/emulator': 'http://localhost:9099',

@@ -53,6 +53,12 @@ class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("APP_PASSWORD_LIMIT"));
     }
 
+    /** Že 10 aktivnih API ključev (019, FR-019-01). */
+    @ExceptionHandler(ApiKeyLimitException.class)
+    ResponseEntity<ErrorResponse> apiKeyLimit() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("API_KEY_LIMIT"));
+    }
+
     /** Množična operacija: napake zahtevka ali končnih stanj kontaktov (research R-06). */
     @ExceptionHandler(BulkValidationException.class)
     ResponseEntity<BulkValidationError> bulkValidation(BulkValidationException exception) {
@@ -166,6 +172,19 @@ class ApiExceptionHandler {
     @ExceptionHandler(VersionConflictException.class)
     ResponseEntity<VersionConflict> versionConflict(VersionConflictException exception) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(VersionConflict.of(exception.current()));
+    }
+
+    /** Sprememba tipa ključa atributa z neveljavnimi vrednostmi (016, FR-016-05, feature-map §2.10). */
+    @ExceptionHandler(AttributeTypeConflictException.class)
+    ResponseEntity<DetailedError> attributeTypeConflict(AttributeTypeConflictException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new DetailedError("ATTRIBUTE_TYPE_CONFLICT", exception.details()));
+    }
+
+    /** Kartografska storitev ni na voljo (016, FR-016-23): telo brez podatkov o naslovu. */
+    @ExceptionHandler(MapServiceUnavailableException.class)
+    ResponseEntity<ErrorResponse> mapServiceUnavailable() {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(new ErrorResponse("MAP_SERVICE_UNAVAILABLE"));
     }
 
     /** Metoda za pot ne obstaja (npr. PUT/PATCH/DELETE vnosa sledi, FR-005-05): 405 s praznim telesom in glavo Allow. */

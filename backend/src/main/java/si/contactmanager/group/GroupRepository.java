@@ -3,6 +3,7 @@ package si.contactmanager.group;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.Collection;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -167,6 +168,48 @@ class GroupRepository {
                         Role.valueOf(rs.getString("role")),
                         rs.getBoolean("permanent"),
                         rs.getObject("photo_revision", Long.class)))
+                .list();
+    }
+
+    /** Vrstica seznama skupin za API ključ (019, FR-019-06): uporabnikova vloga, stanje arhiviranja. */
+    record ApiRow(UUID id, String title, String description, String color, boolean archived, Role role) {}
+
+    private static String apiScope(Collection<UUID> scope) {
+        return scope == null ? "" : " AND g.id IN (:scope)";
+    }
+
+    /** Število skupin uporabnika v obsegu ključa ({@code scope == null}: vse), tudi arhiviranih. */
+    long countForApi(long user, Collection<UUID> scope) {
+        var statement = jdbc.sql("SELECT count(*) FROM group_member m JOIN contact_group g ON g.id = m.group_id"
+                        + " WHERE m.user_id = :user" + apiScope(scope))
+                .param("user", user);
+        if (scope != null) {
+            statement = statement.param("scope", scope);
+        }
+        return statement.query(Long.class).single();
+    }
+
+    /** Stran skupin uporabnika v obsegu ključa, urejena po naslovu (ICU kolacija), nato po id. */
+    List<ApiRow> pageForApi(long user, Collection<UUID> scope, Collation collation, int size, int page) {
+        var statement = jdbc.sql("SELECT g.id, g.title, g.description, g.color, g.archived_at IS NOT NULL AS archived,"
+                        + " m.role FROM group_member m JOIN contact_group g ON g.id = m.group_id"
+                        + " WHERE m.user_id = :user" + apiScope(scope)
+                        + " ORDER BY g.title COLLATE " + collation.sqlName() + ", g.id"
+                        + " LIMIT :size OFFSET :offset")
+                .param("user", user)
+                .param("size", size)
+                .param("offset", (long) page * size);
+        if (scope != null) {
+            statement = statement.param("scope", scope);
+        }
+        return statement
+                .query((rs, row) -> new ApiRow(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("title"),
+                        rs.getString("description"),
+                        rs.getString("color"),
+                        rs.getBoolean("archived"),
+                        Role.valueOf(rs.getString("role"))))
                 .list();
     }
 

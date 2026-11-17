@@ -18,6 +18,7 @@ import org.springframework.jdbc.core.simple.JdbcClient.StatementSpec;
 import org.springframework.stereotype.Repository;
 import si.contactmanager.contact.ContactState;
 import si.contactmanager.group.UserRef;
+import si.contactmanager.shared.security.ApiKeyPrincipal;
 import tools.jackson.databind.json.JsonMapper;
 
 /** Tabele {@code audit_entry}, {@code audit_change} in {@code audit_head} (data-model.md). Vsaka poizvedba ima {@code group_id}. */
@@ -26,8 +27,8 @@ class AuditRepository {
 
     private static final String ENTRY_SELECT =
             "SELECT e.id, e.created_at, u.name AS actor_name, u.email AS actor_email, e.action, e.contact_count,"
-                    + " e.contact_name, t.id AS target_id, t.created_at AS target_at, e.target_initial,"
-                    + " e.photo_change"
+                    + " e.contact_name, t.id AS target_id, t.created_at AS target_at, e.target_initial, e.attribute_key,"
+                    + " e.type_before, e.type_after, e.api_key_name, e.photo_change"
                     + " FROM audit_entry e LEFT JOIN app_user u ON u.id = e.actor_id"
                     + " LEFT JOIN audit_entry t ON t.id = e.target_entry_id";
 
@@ -66,9 +67,13 @@ class AuditRepository {
             List<ContactChange> changes,
             UUID targetEntry,
             boolean targetInitial) {
-        return insert(group, actor, action, changes, targetEntry, targetInitial, null);
+        return insert(group, actor, action, changes, targetEntry, targetInitial, null, null, null, null);
     }
 
+    /**
+     * Kot {@code insert}, s ključem in tipoma pred/po za vnos {@code ATTRIBUTE_TYPE} (016; sicer vsi trije {@code null})
+     * in dejstvom spremembe slike (018; sicer {@code null}).
+     */
     UUID insert(
             UUID group,
             long actor,
@@ -76,6 +81,9 @@ class AuditRepository {
             List<ContactChange> changes,
             UUID targetEntry,
             boolean targetInitial,
+            String attributeKey,
+            String typeBefore,
+            String typeAfter,
             PhotoChange photoChange) {
         UUID id = jdbc.sql("SELECT uuidv7()").query(UUID.class).single();
         long seq = jdbc.sql("INSERT INTO audit_head (group_id, last_seq, last_entry_id) VALUES (:group, 1, :id)"
@@ -89,8 +97,10 @@ class AuditRepository {
                 ? changes.get(0).displayName()
                 : null;
         jdbc.sql("INSERT INTO audit_entry (id, group_id, seq, actor_id, action, contact_count, contact_name,"
-                        + " target_entry_id, target_initial, photo_change)"
-                        + " VALUES (:id, :group, :seq, :actor, :action, :count, :name, :target, :initial, :photo)")
+                        + " target_entry_id, target_initial, attribute_key, type_before, type_after, api_key_name,"
+                        + " photo_change)"
+                        + " VALUES (:id, :group, :seq, :actor, :action, :count, :name, :target, :initial, :akey,"
+                        + " :tbefore, :tafter, :apiKey, :photo)")
                 .param("id", id)
                 .param("group", group)
                 .param("seq", seq)
@@ -100,6 +110,13 @@ class AuditRepository {
                 .param("name", name)
                 .param("target", targetEntry)
                 .param("initial", targetInitial)
+                .param("akey", attributeKey)
+                .param("tbefore", typeBefore)
+                .param("tafter", typeAfter)
+                // 019 (R-04): ime API ključa, če je klicatelj ključ; spletna aplikacija in CardDAV ga nimata.
+                .param(
+                        "apiKey",
+                        ApiKeyPrincipal.current().map(ApiKeyPrincipal::keyName).orElse(null))
                 .param("photo", photoChange == null ? null : photoChange.name())
                 .update();
         // Večvrstični stavki (unnest) po AUDIT_CHUNK vrstic: en klic na kos namesto na spremembo (SC-002).
@@ -374,6 +391,10 @@ class AuditRepository {
                         : new AuditEntry.Target(
                                 target, rs.getTimestamp("target_at").toInstant()),
                 rs.getBoolean("target_initial"),
+                rs.getString("attribute_key"),
+                rs.getString("type_before"),
+                rs.getString("type_after"),
+                rs.getString("api_key_name"),
                 photoChange == null ? null : PhotoChange.valueOf(photoChange));
     }
 }

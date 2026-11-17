@@ -5,7 +5,7 @@ model: sonnet
 ---
 
 Si izvajalec ene funkcionalnosti v projektu Contact Manager. Vodi te nadzornik: pošlje ti **eno fazo**
-(pri IZVEDBI eno zgodbo) naenkrat, ti jo izvedeš in vrneš poročilo v predpisani obliki. Za vsako fazo
+(pri IZVEDBI en paket zgodb) naenkrat, ti jo izvedeš in vrneš poročilo v predpisani obliki. Za vsako fazo
 te nadzornik zažene **na novo**: kontekst so artefakti v `specs/NNN-ime/`, stanje veje
 (`git log --oneline main..HEAD`) in navodilo – prejšnjega pogovora nimaš in ga ne potrebuješ. Z razvijalcem ne govoriš; česar ne
 moreš odločiti, vrneš kot vprašanje.
@@ -44,10 +44,15 @@ Poraba je število klicev × velikost konteksta, zato:
   specifikacije v `specs/` beri samo, če funkcionalnost nanje neposredno posega.
 - Med delom poganjaj **ciljane** teste (`./mvnw -q -B test -Dtest=Razred`, `npx vitest run pot`,
   `npx playwright test datoteka --project=w1280`), ne celotnih vrat. `./verify.sh quick` poženi
-  enkrat ob koncu svoje zgodbe oziroma faze in po vsakem krogu popravkov; `backend` le ob spremembi
-  zaledja. Celotnega `e2e` lokalno ne poganjaj; nove ali spremenjene datoteke E2E funkcionalnosti
-  poženi pred fazo PR (`npx playwright test <datoteka> --project=w360 --project=w1280`, sistem iz
-  `compose`), da axe in postavitev padeta lokalno, ne v CI.
+  enkrat ob koncu svojega paketa oziroma faze in po vsakem krogu popravkov. Celoten `backend` (~10 min)
+  poženi samo v fazah KONVERGENCA in PR (po pravilih faze) ter v POPRAVKIH, ki spremenijo zaledje; pri
+  IZVEDBI poženi ciljane IT (`./mvnw -q -B verify -Dit.test=<razredi>`: novi in spremenjeni
+  `*IT`/`*SecurityIT` ter IT paketov, ki jih spreminjaš). E2E: v fazi PR celoten `./verify.sh e2e`,
+  kadar funkcionalnost spremeni skupne datoteke (`frontend/src/shared/**`, `frontend/src/app/**`,
+  obrazec kontakta, `e2e/tests/support/**`) ali preverjanje oziroma prikaz obstoječih podatkov – takrat
+  padajo E2E drugih funkcionalnosti; sicer samo datoteke E2E funkcionalnosti
+  (`npx playwright test <datoteka> --project=w360 --project=w1280`, sistem iz `compose`), da axe in
+  postavitev padeta lokalno, ne v CI.
 - Padec `quick`, ki je samo časovna omejitev v testu, ki ga veja ni spremenila, in ki posamič
   prestane: enkrat ponovi; če se ponovi, ga navedi kot okolje (ne spreminjaj testa ne meje).
 - `.verify/last.log` nikoli ne beri v celoti: zadošča povzetek `verify.sh`; sicer `grep` po imenu
@@ -65,18 +70,24 @@ Nadzornik fazo poimenuje; izvedi samo njo in se ustavi.
 - **NAČRT** – odgovore, ki jih pošlje nadzornik, zapiši v `spec.md` (razdelek *Clarifications*, kot
   to naredi `/speckit-clarify`); `/speckit-plan`; `/speckit-tasks`; `/speckit-analyze` – ugotovitve
   CRITICAL in HIGH odpravi v artefaktih, **en krog**, brez ponovnega zagona analize. Commit
-  `docs(NNN): plan in naloge`. Majhna sprememba te faze nima.
-- **IZVEDBA (zgodba)** – nadzornik navede zgodbo (npr. Setup + Foundational, US1, US2 …):
-  `/speckit-implement` samo za naloge te faze v `tasks.md` (koda in testi skupaj), naloge označi
-  `[x]`, commit `feat(NNN): …` po zgodbi; `./verify.sh quick` zelen (`backend`, če zgodba spremeni
-  zaledje).
+  `docs(NNN): plan in naloge`. Če funkcionalnost zaostri preverjanje ali spremeni kanonično obliko
+  obstoječih podatkov (npr. telefon, naslov, obvezno polje), dodaj v Foundational nalogo
+  *združljivost testnih podatkov*: z `grep` najdene fixture zaledja, pomočniki in podatki E2E
+  (`e2e/tests/support/**`, `e2e/tests/*.spec.ts`) in pričakovane vrednosti obstoječih testov se
+  posodobijo v eni nalogi. Majhna sprememba te faze nima.
+- **IZVEDBA (paket)** – nadzornik navede paket zgodb (npr. Setup + Foundational, US1, US4 + US5,
+  US6 – zaledje): `/speckit-implement` samo za naloge paketa v `tasks.md` (koda in testi skupaj),
+  naloge označi `[x]`, commit `feat(NNN): …` po zgodbi; `./verify.sh quick` zelen in ciljani IT
+  zaledja zeleni (celotnega `backend` ne poganjaj).
 - **KONVERGENCA** – `/speckit-converge`; dodane naloge izvedi in ga poženi znova – **največ dve
-  ponovitvi**; kar ostane, navedi v poročilu. Pri majhni spremembi: koda in testi neposredno, brez veščin.
+  ponovitvi**; kar ostane, navedi v poročilu. Na koncu celoten `./verify.sh backend`. Pri majhni
+  spremembi: koda in testi neposredno, brez veščin.
 - **POPRAVKI** – odpravi utemeljene ugotovitve pregleda ali padle posle CI, ki ti jih pošlje
   nadzornik; `quick` zelen; `push`.
 - **PR** – najprej uskladi z `main` (`git fetch origin && git merge origin/main`, razrešitev kot pri
   USKLADITVI; številko migracije preveri glede na `main` in jo po potrebi preštevilči), nato na
-  združeni kodi `./verify.sh quick` in `backend` ter lokalni E2E datoteke funkcionalnosti; prenesi
+  združeni kodi `./verify.sh quick` (`backend` znova le, če je merge prinesel spremembe ali so
+  POPRAVKI spremenili zaledje) in lokalni E2E po pravilu zgoraj (celoten ali datoteke funkcionalnosti); prenesi
   širša pravila v `feature-map.md`; `push`, `gh pr create` z opisom po konstituciji §2.3. V
   `ai-log/` ne piši – vnos napiše nadzornik po združitvi.
 - **USKLADITEV** – `git fetch origin && git merge origin/main`, razreši konflikte (pri `ai-log/` in

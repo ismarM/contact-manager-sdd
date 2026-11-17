@@ -89,7 +89,16 @@ class MyDataExportIT extends AccountApiTest {
                 .isBetween(Instant.now().minusSeconds(30), Instant.now().plusSeconds(1));
         JsonNode profile = data.get("profile");
         assertThat(fieldNames(profile))
-                .containsExactlyInAnyOrder("name", "email", "registeredAt", "language", "theme", "photo");
+                .containsExactlyInAnyOrder(
+                        "name",
+                        "email",
+                        "registeredAt",
+                        "language",
+                        "theme",
+                        "phoneFormat",
+                        "dateFormat",
+                        "addressFormat",
+                        "photo");
         assertThat(profile.get("name").asString()).isEqualTo("Pia Kos");
         assertThat(profile.get("email").asString()).isEqualTo(email(pia));
         assertThat(instant(profile.get("registeredAt")))
@@ -180,8 +189,62 @@ class MyDataExportIT extends AccountApiTest {
                         "receivedInvitations",
                         "sentInvitations",
                         "ownedGroups",
-                        "appPasswords");
+                        "appPasswords",
+                        "apiKeys");
         assertThat(body).doesNotContain("\"id\"").doesNotContain("memberId").doesNotContain("firebase");
+    }
+
+    /**
+     * 019 (FR-019-05, -21): API ključi z imenom, obsegom, časi in dnevnimi povzetki statistike (časovni pas statistike),
+     * brez ključa in prepoznavnega dela; tuji ključi niso v izvozu.
+     */
+    @Tag("FR-019-05")
+    @Tag("FR-019-21")
+    @Test
+    void exportContainsOwnApiKeysWithDailyUsageButNeverTheKey() throws Exception {
+        SignedIn pia = registeredUser("Pia Ključi");
+        SignedIn ana = registeredUser("Ana Ključi");
+        UUID klub = activeGroup(pia, "Klub");
+        JsonNode created = JSON.readTree(post(
+                        "/api/me/api-keys",
+                        pia.idToken(),
+                        "{\"name\":\"Nočni izvoz\",\"groups\":[{\"groupId\":\"" + klub
+                                + "\",\"permission\":\"WRITE\"}]}")
+                .body());
+        String token = created.get("token").asString();
+        UUID keyId = UUID.fromString(created.get("key").get("id").asString());
+        String hint = created.get("key").get("hint").asString();
+        post("/api/me/api-keys", ana.idToken(), "{\"name\":\"TujKljucZq9\",\"allGroups\":true}");
+        // Ljubljana je novembra UTC+1: ura 23:00 UTC 14. 11. je že 15. 11., uri 10:00 in 22:00 UTC sta 14. 11.
+        jdbc.update(
+                "insert into api_key_usage (key_id, hour, read_ok, write_ok, errors, rate_limited) values"
+                        + " (?, '2026-11-14T10:00:00Z', 3, 0, 1, 0), (?, '2026-11-14T22:00:00Z', 2, 1, 0, 0),"
+                        + " (?, '2026-11-14T23:00:00Z', 1, 0, 0, 4)",
+                keyId,
+                keyId,
+                keyId);
+
+        HttpResponse<String> response = export(pia);
+        JsonNode keys = tree(response).get("apiKeys");
+
+        assertThat(keys).hasSize(1);
+        JsonNode key = keys.get(0);
+        assertThat(key.get("name").asString()).isEqualTo("Nočni izvoz");
+        assertThat(key.get("allGroups").asBoolean()).isFalse();
+        assertThat(key.get("groups").get(0).get("title").asString()).isEqualTo("Klub");
+        assertThat(key.get("groups").get(0).get("permission").asString()).isEqualTo("WRITE");
+        assertThat(key.get("createdAt").isNull()).isFalse();
+        assertThat(key.get("expiresAt").isNull()).isFalse();
+        assertThat(key.get("revokedAt").isNull()).isTrue();
+        assertThat(key.get("usage").toString())
+                .isEqualTo("[{\"day\":\"2026-11-14\",\"readOk\":5,\"writeOk\":1,\"errors\":1,\"rateLimited\":0},"
+                        + "{\"day\":\"2026-11-15\",\"readOk\":1,\"writeOk\":0,\"errors\":0,\"rateLimited\":4}]");
+        assertThat(key.has("hint")).isFalse();
+        assertThat(response.body())
+                .doesNotContain(token.substring(4))
+                .doesNotContain(hint)
+                .doesNotContain(keyId.toString())
+                .doesNotContain("TujKljucZq9");
     }
 
     @Test
@@ -193,8 +256,9 @@ class MyDataExportIT extends AccountApiTest {
         assertThat(data.get("profile").get("email").asString()).isEqualTo(email(nova));
         assertThat(data.get("profile").get("language").isNull()).isTrue();
         assertThat(data.get("profile").get("theme").isNull()).isTrue();
-        for (String list :
-                new String[] {"memberships", "receivedInvitations", "sentInvitations", "ownedGroups", "appPasswords"}) {
+        for (String list : new String[] {
+            "memberships", "receivedInvitations", "sentInvitations", "ownedGroups", "appPasswords", "apiKeys"
+        }) {
             assertThat(data.get(list).isArray()).as(list).isTrue();
             assertThat(data.get(list)).as(list).isEmpty();
         }

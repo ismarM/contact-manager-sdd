@@ -69,4 +69,23 @@ describe('buildRows', () => {
     ]);
     expect(unchanged.every((row) => row.kind === 'UNCHANGED')).toBe(true);
   });
+
+  it('FR-016-26: tipiziran atribut in razčlenjen naslov v nespremenjenih vrsticah', () => {
+    const parts = { street: 'Trg 1', city: 'Ljubljana', country: 'SI' };
+    const state = stateView({
+      address: 'Trg 1, Ljubljana',
+      addressParts: parts,
+      attributes: [
+        { key: 'Mobilni', type: 'PHONE', value: '+38641123456' },
+        { key: 'Domov', type: 'ADDRESS', parts },
+      ],
+    });
+
+    const { unchanged } = buildRows(comparison({ changes: [], to: version('current', { state }) }));
+
+    const byId = Object.fromEntries(unchanged.map((row) => [row.id, row.after]));
+    expect(byId['field:ADDRESS']).toEqual(parts);
+    expect(byId['attribute:Mobilni']).toEqual({ type: 'PHONE', value: '+38641123456' });
+    expect(byId['attribute:Domov']).toEqual({ type: 'ADDRESS', parts });
+  });
 });

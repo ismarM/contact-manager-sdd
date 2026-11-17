@@ -26,8 +26,8 @@ class AuditRollbackRulesIT extends AuditApiTest {
 
     /** Dva vnosa (dodajanje, urejanje) kontakta Ana; vrne razčlenjen kontakt. */
     private Map<String, Object> twoEntries(Scenario s) throws Exception {
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
-        update(s, Who.EDITOR, idOf(a), contactValues(a, "02 222 222"), versionOf(a));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
+        update(s, Who.EDITOR, idOf(a), contactValues(a, "+38690222221"), versionOf(a));
         return a;
     }
 
@@ -55,10 +55,10 @@ class AuditRollbackRulesIT extends AuditApiTest {
     @Tag("FR-005-15")
     void rollbackToAPointAfterWhichTheChangesWereUndoneWouldChangeNothing() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         UUID created = audit.latestEntryId(s.group());
-        Map<String, Object> second = update(s, Who.EDITOR, idOf(a), contactValues(a, "02 222 222"), versionOf(a));
-        update(s, Who.EDITOR, idOf(a), contactValues(second, "01 111 111"), versionOf(second));
+        Map<String, Object> second = update(s, Who.EDITOR, idOf(a), contactValues(a, "+38690222221"), versionOf(a));
+        update(s, Who.EDITOR, idOf(a), contactValues(second, "+38690111111"), versionOf(second));
         Map<String, Object> row = contacts.row(idOf(a));
 
         HttpResponse<String> response = rollback(s, Who.ADMIN, created, audit.latestEntryId(s.group()));
@@ -123,7 +123,7 @@ class AuditRollbackRulesIT extends AuditApiTest {
         Map<String, Object> a = twoEntries(s);
         UUID target = (UUID) audit.entries(s.group()).get(0).get("id");
         UUID other = groups.createGroup(s.id(Who.OWNER), "Skupina B");
-        post(contactsPath(other), s.token(Who.OWNER), body(contactInput("Tuj", "Kontakt", "01 999 999")));
+        post(contactsPath(other), s.token(Who.OWNER), body(contactInput("Tuj", "Kontakt", "+38690999999")));
         UUID foreign = (UUID) audit.entries(other).get(0).get("id");
         Map<String, Object> row = contacts.row(idOf(a));
         String invalid = "{\"latestEntryId\":\"abc\"}";

@@ -7,6 +7,7 @@ import { imageCache } from '../../shared/images/imageCache';
 import { ApiError } from '../../shared/api/client';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
 import { errorAlert } from '../../shared/ui/styles';
+import { GroupAttributesPage } from '../attributes/GroupAttributesPage';
 import { AuditEntryPage } from '../audit/AuditEntryPage';
 import { AuditPage } from '../audit/AuditPage';
 import { ContactsPage } from '../contacts/ContactsPage';
@@ -26,10 +27,11 @@ import type { GroupDetail } from './types';
 import { useDelayed } from './useDelayed';
 
 /**
- * Razdelki skupine (plan.md 004, 005, 011, 015 – Pages and routes): *Kontakti* (privzeti, s podpotmi), *Dvojniki*
- * (`duplicates`, `duplicates/compare`), *Revizijska sled* in *Nastavitve*; iz kontaktov še `deleted-contacts`.
+ * Razdelki skupine (plan.md 004, 005, 011, 015, 016 – Pages and routes): *Kontakti* (privzeti, s podpotmi), *Dvojniki*
+ * (`duplicates`, `duplicates/compare`), *Revizijska sled*, *Atributi skupine* (`attributes`, 016) in *Nastavitve*; iz
+ * kontaktov še `deleted-contacts`.
  */
-const SECTIONS = ['contacts', 'duplicates', 'audit', 'settings'] as const;
+const SECTIONS = ['contacts', 'duplicates', 'audit', 'attributes', 'settings'] as const;
 
 /** Zgodovina kontakta (015): `contacts/:id/history`, `…/history/:ref`, `…/compare`; ostale podpoti razreši ContactsPage. */
 type HistoryRoute =
@@ -74,7 +76,10 @@ export function GroupLayout() {
       ? rest.length > 1 || rest[0] === ''
       : first === 'duplicates'
         ? section !== 'duplicates' && section !== 'duplicates/compare'
-        : section !== 'settings' && section !== 'deleted-contacts' && first !== 'contacts';
+        : section !== 'settings' &&
+          section !== 'attributes' &&
+          section !== 'deleted-contacts' &&
+          first !== 'contacts';
   if (unknown) return <NotFoundPage />;
   return (
     <GroupScreen
@@ -92,7 +97,9 @@ export function GroupLayout() {
                 : 'compare'
               : first === 'audit'
                 ? 'audit'
-                : 'settings'
+                : section === 'attributes'
+                  ? 'attributes'
+                  : 'settings'
       }
       entryId={first === 'audit' ? rest[0] : undefined}
     />
@@ -112,7 +119,7 @@ function GroupScreen({
   history,
 }: {
   groupId: string;
-  screen: 'contacts' | 'duplicates' | 'compare' | 'audit' | 'settings' | 'deleted';
+  screen: 'contacts' | 'duplicates' | 'compare' | 'audit' | 'attributes' | 'settings' | 'deleted';
   entryId: string | undefined;
   history: HistoryRoute | null;
 }) {
@@ -223,6 +230,8 @@ function GroupScreen({
           ) : (
             <AuditEntryPage entryId={entryId} />
           )
+        ) : screen === 'attributes' ? (
+          <GroupAttributesPage />
         ) : (
           <SettingsPage />
         )}

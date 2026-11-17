@@ -130,6 +130,7 @@ class ImportController {
             @RequestBody(required = false) String body) {
         Membership membership = access.require(jwt, groupId, Role.EDITOR, true);
         ImportInputParser.Commit commit = parser.commit(body);
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.commit(membership, commit.contacts()));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(service.commit(membership, commit.contacts(), commit.extras()));
     }
 }

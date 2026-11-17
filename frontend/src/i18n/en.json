@@ -33,7 +33,8 @@
       "failed": "Sign-in failed. Please try again."
     },
     "accountDeleted": "Your account has been deleted.",
-    "accountDeletedPending": "Your account has been deleted. Removing the link to your Google account is still in progress, so you may not be able to register again with the same Google account for a while. Please try again in a few minutes."
+    "accountDeletedPending": "Your account has been deleted. Removing the link to your Google account is still in progress, so you may not be able to register again with the same Google account for a while. Please try again in a few minutes.",
+    "apiDocsLink": "Application programming interface (API)"
   },
   "shell": {
     "skipLink": "Skip to content",
@@ -117,6 +118,30 @@
         "step3": "Enter the server address {{server}}, the username {{username}} and the app password.",
         "https": "The connection works only over a secure HTTPS connection."
       }
+    },
+    "formats": {
+      "heading": "Format",
+      "description": "Only affects how data is shown; stored data does not change.",
+      "default": "Default",
+      "phone": {
+        "label": "Phone numbers",
+        "INTERNATIONAL": "International (+386 41 123 456)",
+        "NATIONAL": "National (041 123 456)",
+        "E164": "No spaces (+38641123456)"
+      },
+      "date": {
+        "label": "Dates",
+        "LOCALE": "By interface language",
+        "ISO": "ISO (2026-11-16)",
+        "LONG": "Long form (16 November 2026)"
+      },
+      "address": {
+        "label": "Addresses",
+        "COUNTRY": "By country rules",
+        "SINGLE_LINE": "On one line"
+      },
+      "saved": "The format is saved.",
+      "failed": "The format could not be saved. Try again."
     }
   },
   "roles": {
@@ -329,7 +354,7 @@
     "errors": {
       "nameRequired": "Enter at least a first or last name.",
       "emailInvalid": "Enter a valid email address.",
-      "phoneInvalid": "Phone may contain only digits, spaces and + - ( ) / characters.",
+      "phoneInvalid": "Enter a valid phone number, e.g. 041 123 456 or +386 41 123 456.",
       "firstNameTooLong": "The first name is too long (at most 100 characters).",
       "lastNameTooLong": "The last name is too long (at most 100 characters).",
       "addressTooLong": "The address is too long (at most 300 characters).",
@@ -531,6 +556,10 @@
       "tooManyTagsFor_other": "{{count}} contacts would have too many tags: {{names}}.",
       "tooManyAttributesFor_one": "{{count}} contact would have too many custom attributes: {{names}}.",
       "tooManyAttributesFor_other": "{{count}} contacts would have too many custom attributes: {{names}}.",
+      "invalidValueFor_one": "{{count}} contact has a value that is not valid for the key type: {{names}}.",
+      "invalidValueFor_two": "{{count}} contacts have a value that is not valid for the key type: {{names}}.",
+      "invalidValueFor_few": "{{count}} contacts have a value that is not valid for the key type: {{names}}.",
+      "invalidValueFor_other": "{{count}} contacts have a value that is not valid for the key type: {{names}}.",
       "andMore": "… and {{count}} more",
       "errors": {
         "REQUIRED": "Enter a value.",
@@ -690,6 +719,11 @@
       "default_count_few": "changed {{count}} contacts",
       "default_count_other": "changed {{count}} contacts",
       "IMPORT_single": "imported the contact",
+      "ATTRIBUTE_TYPE_one": "changed the type of the key “{{key}}” from {{before}} to {{after}} ({{count}} contact)",
+      "ATTRIBUTE_TYPE_two": "changed the type of the key “{{key}}” from {{before}} to {{after}} ({{count}} contacts)",
+      "ATTRIBUTE_TYPE_few": "changed the type of the key “{{key}}” from {{before}} to {{after}} ({{count}} contacts)",
+      "ATTRIBUTE_TYPE_other": "changed the type of the key “{{key}}” from {{before}} to {{after}} ({{count}} contacts)",
+      "ATTRIBUTE_TYPE_generic": "changed the type of an attribute key",
       "PHOTO_ADDED": "added a contact picture",
       "PHOTO_ADDED_named": "added a picture to contact {{name}}",
       "PHOTO_REPLACED": "replaced a contact picture",
@@ -710,7 +744,8 @@
         "MERGE": "merged",
         "ROLLBACK": "rollback",
         "IMPORT": "import",
-        "RESTORE": "restore"
+        "RESTORE": "restore",
+        "ATTRIBUTE_TYPE": "attribute type change"
       },
       "removeAction": "Remove filter Action: {{action}}",
       "removeContact": "Remove filter Contact: {{name}}",
@@ -737,6 +772,7 @@
       "before": "Before",
       "after": "After",
       "empty": "empty",
+      "typeChange": "type: {{before}} → {{after}}",
       "loading": "Loading…",
       "loadFailed": "The details could not be loaded. Please try again.",
       "retry": "Try again",
@@ -775,6 +811,10 @@
     "toast": {
       "restored": "The group was restored to the state of {{time}}.",
       "restoredInitial": "The group was restored to the initial state."
+    },
+    "source": {
+      "viaApiKey": "via API key “{{name}}”",
+      "viaApi": "via API"
     }
   },
   "duplicates": {
@@ -1087,6 +1127,9 @@
       "target": "Import into",
       "targetFor": "Import column {{column}} into",
       "keyFor": "Attribute key for column {{column}}",
+      "typeFor": "Key type for column {{column}}",
+      "typeAuto": "Automatic (the key’s type in the group, new key: Other)",
+      "addressConflict": "An address in a single column cannot be combined with address parts.",
       "duplicateTarget": "This field is already chosen for another column.",
       "duplicateKey": "This key is already chosen for another column.",
       "emptyKey": "Enter an attribute key.",
@@ -1094,6 +1137,11 @@
         "FIRST_NAME": "First name",
         "LAST_NAME": "Last name",
         "ADDRESS": "Address",
+        "ADDRESS_STREET": "Address: street and number",
+        "ADDRESS_EXTRA": "Address: extra line",
+        "ADDRESS_POSTAL_CODE": "Address: postal code",
+        "ADDRESS_CITY": "Address: city",
+        "ADDRESS_REGION": "Address: region",
         "EMAIL": "Email",
         "PHONE": "Phone",
         "COUNTRY": "Country",
@@ -1131,6 +1179,7 @@
         "firstName": "First name",
         "lastName": "Last name",
         "address": "Address",
+        "addressParts": "Address parts",
         "email": "Email",
         "phone": "Phone",
         "company": "Company",
@@ -1330,6 +1379,330 @@
       "loading": "Loading…",
       "loadFailed": "Could not load the deleted contacts. Try again.",
       "retry": "Try again"
+    }
+  },
+  "attributes": {
+    "heading": "Group attributes",
+    "description": "The keys of additional attributes in this group and their type. The type applies to every contact with that key.",
+    "types": {
+      "OTHER": "Other",
+      "NOTES": "Notes",
+      "EMAIL": "Email",
+      "PHONE": "Phone",
+      "ADDRESS": "Address",
+      "URL": "Web address",
+      "DATE": "Date"
+    },
+    "type": {
+      "label": "Type",
+      "fixed": "The type of this key in the group is {{type}}. An editor can change it under Group attributes.",
+      "new": "Type of the new key",
+      "hint": "The type applies to every contact with this key in the group.",
+      "mismatch": "This key already exists with a different type. Pick the suggested key or use another key name."
+    },
+    "list": {
+      "key": "Key",
+      "type": "Type",
+      "count": "Contacts",
+      "search": "Search keys",
+      "empty": "The group has no additional attributes yet.",
+      "noResults": "No key matches the search.",
+      "loading": "Loading keys…",
+      "loadFailed": "The keys could not be loaded.",
+      "retry": "Try again",
+      "changeType": "Change type",
+      "changeTypeFor": "Change the type of key {{key}}",
+      "total": "Number of keys: {{total}}"
+    },
+    "change": {
+      "title": "Change the key type",
+      "body": "The key “{{key}}” will have the type {{type}} for all contacts ({{count}}). Values are checked and stored in canonical form; it is one change and it can be undone by rolling back in the audit trail.",
+      "current": "Current type: {{type}}",
+      "newType": "New type",
+      "confirm": "Change type",
+      "cancel": "Cancel",
+      "success": "The type of key “{{key}}” was changed.",
+      "unchanged": "The key “{{key}}” already has this type.",
+      "failed": "The type could not be changed. Try again.",
+      "versionConflict": "Someone else has changed the key type in the meantime. The current type is shown.",
+      "gone": "The key is no longer in use.",
+      "forbidden": "You are not allowed to change the key type.",
+      "archived": "The group is archived, the type cannot be changed."
+    },
+    "conflict": {
+      "title": "Some values are not valid for the type {{type}}",
+      "intro": "For {{total}} contacts the value does not fit the type {{type}}. Fix them and try again; nothing was changed.",
+      "open": "Open contact {{name}}",
+      "value": "Value: {{value}}",
+      "more": "and {{count}} more",
+      "retry": "Try again"
+    }
+  },
+  "address": {
+    "legend": "Address",
+    "parts": {
+      "street": "Street and house number",
+      "extra": "Additional line",
+      "postalCode": "Postal code",
+      "city": "City",
+      "region": "Region",
+      "country": "Address country"
+    },
+    "unstructured": "Address (text)",
+    "split": "Split address",
+    "splitHint": "The address is stored as text. Split it into parts and save.",
+    "suggestions": {
+      "label": "Address suggestions",
+      "count": "Address suggestions: {{total}}",
+      "none": "No address suggestions."
+    },
+    "errors": {
+      "REQUIRED": "Enter a street or a city.",
+      "TOO_LONG": "The value is too long.",
+      "INVALID_VALUE": "The value is not valid."
+    }
+  },
+  "typedValue": {
+    "normalized": "Stored as: {{value}}",
+    "errors": {
+      "REQUIRED": "Enter a value.",
+      "TOO_LONG": "The value is too long.",
+      "INVALID_VALUE": {
+        "EMAIL": "Enter a valid email address.",
+        "PHONE": "Enter a valid phone number.",
+        "URL": "Enter a valid web address (http or https).",
+        "DATE": "Enter a valid date (YYYY-MM-DD).",
+        "OTHER": "The value is not valid.",
+        "NOTES": "The value is not valid.",
+        "ADDRESS": "The value is not valid."
+      }
+    },
+    "openLink": "Open {{value}}",
+    "call": "Call {{value}}",
+    "mail": "Send an email to {{value}}"
+  },
+  "map": {
+    "showShort": "Show on map",
+    "show": "Show on map: {{name}}",
+    "title": "Map: {{name}}",
+    "loading": "Looking up the address…",
+    "notFound": "The address could not be found on the map.",
+    "approximate": "The location is approximate: a city or street was found, not the house number.",
+    "unavailable": "The map is not available right now. The contact's details are still available.",
+    "retry": "Try again",
+    "region": "Map: {{name}}. Arrow keys move the map, + and − zoom in and out.",
+    "descriptionExact": "The marker is at the address location (latitude {{lat}}, longitude {{lon}}).",
+    "descriptionApproximate": "The marker is at the approximate address location (latitude {{lat}}, longitude {{lon}}).",
+    "attribution": "© OpenStreetMap contributors",
+    "openExternal": "Open the location in OpenStreetMap",
+    "searchExternal": "Search for the address in OpenStreetMap",
+    "newTab": "(opens in a new tab)",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "close": "Close map"
+  },
+  "errorsTyped": {
+    "ATTRIBUTE_TYPE_CONFLICT": "Some values are not valid for the selected type.",
+    "MAP_SERVICE_UNAVAILABLE": "The map is not available right now."
+  },
+  "apiKeys": {
+    "heading": "API keys",
+    "description": "With an API key, your program or script reads and changes the contacts of your groups without signing in to the app. A key has the same rights as you and never more than you grant it.",
+    "docsLink": "How to use the API",
+    "create": "Create key",
+    "list": "API keys",
+    "empty": "You have no API keys yet.",
+    "loadFailed": "The keys could not be loaded. Try again.",
+    "retry": "Try again",
+    "hint": "Key {{hint}}",
+    "allGroups": "all my groups",
+    "allGroupsWithPermission": "All my groups, including future ones ({{permission}})",
+    "groupWithPermission": "{{title}} ({{permission}})",
+    "noValidGroups": "no valid groups",
+    "created": "Created {{date}}",
+    "expires": "Valid until {{date}}",
+    "noExpiry": "No expiry",
+    "expired": "Expired {{date}}",
+    "revokedAt": "Revoked {{date}}",
+    "lastUsed": "Last used {{date}}",
+    "neverUsed": "not used yet",
+    "requests24h_one": "{{count}} request in the last 24 hours",
+    "requests24h_two": "{{count}} requests in the last 24 hours",
+    "requests24h_few": "{{count}} requests in the last 24 hours",
+    "requests24h_other": "{{count}} requests in the last 24 hours",
+    "usageLink": "Statistics for key {{name}}",
+    "status": {
+      "ACTIVE": "Active",
+      "EXPIRED": "Expired",
+      "REVOKED": "Revoked",
+      "expiringSoon": "Expires soon"
+    },
+    "permission": {
+      "READ": "read only",
+      "WRITE": "read and write"
+    },
+    "form": {
+      "title": "New API key",
+      "nameLabel": "Key name",
+      "nameHint": "For example the name of the program or script that will use the key.",
+      "nameRequired": "Enter a key name.",
+      "nameTooLong": "The name is too long (at most 50 characters).",
+      "scopeLegend": "Groups",
+      "scopeSelected": "Selected groups",
+      "scopeAll": "All my groups, including future ones",
+      "groupsLabel": "Groups the key is valid for",
+      "groupsRequired": "Select at least one group.",
+      "groupsTooMany": "You can select at most 50 groups.",
+      "groupsLoadFailed": "The groups could not be loaded. Try again.",
+      "archivedGroup": "{{title}} (archived)",
+      "permissionFor": "Permission for {{title}}",
+      "permissionLabel": "Permission",
+      "permissionHint": "A key never has more rights than you have in the group. A read-only key cannot change anything.",
+      "expiryLabel": "Expiry",
+      "expiry30": "30 days",
+      "expiry90": "90 days",
+      "expiry365": "365 days",
+      "expiryNever": "No expiry",
+      "submit": "Create key",
+      "cancel": "Cancel",
+      "limit": "You already have 10 active keys. Revoke one before creating a new one.",
+      "groupNotFound": "One of the selected groups is no longer available. Refresh the selection and try again.",
+      "failed": "The key could not be created. Try again."
+    },
+    "createdDialog": {
+      "title": "Key {{name}} has been created",
+      "showOnce": "The key is shown only once. Copy it now and keep it like a password – you will not be able to see it again.",
+      "keyLabel": "API key",
+      "copy": "Copy key",
+      "copied": "The key has been copied.",
+      "copyFailed": "Copying failed. Select the key and copy it manually.",
+      "close": "Close"
+    },
+    "revoke": {
+      "button": "Revoke key {{name}}",
+      "title": "Revoke key {{name}}?",
+      "body": "Programs that use this key will immediately get error 401. Other keys keep working. Revoking cannot be undone.",
+      "confirm": "Revoke key",
+      "cancel": "Don't revoke",
+      "done": "Key {{name}} has been revoked.",
+      "failed": "The key could not be revoked. Try again."
+    },
+    "usage": {
+      "heading": "Statistics for key {{name}}",
+      "back": "Back to My account",
+      "periodLegend": "Period",
+      "period7": "Last 7 days",
+      "period30": "Last 30 days",
+      "totals": "Total for the period",
+      "total": "All requests",
+      "successful": "Successful",
+      "reads": "Reads",
+      "writes": "Writes",
+      "errors": "Errors",
+      "rateLimited": "Rejected by rate limit",
+      "chartHeading": "Requests per day",
+      "tableCaption": "Requests per day",
+      "day": "Day",
+      "loadFailed": "The statistics could not be loaded. Try again.",
+      "retry": "Try again",
+      "note": "Only the number of requests is counted, not their content. Requests with an invalid, revoked or expired key are not counted."
+    },
+    "errors": {
+      "API_KEY_LIMIT": "You already have 10 active keys. Revoke one before creating a new one.",
+      "RATE_LIMITED": "Too many requests with this key. Try again in {{seconds}} s."
+    }
+  },
+  "apiDocs": {
+    "title": "API",
+    "heading": "Application programming interface (API)",
+    "intro": "With an API key, your programs and scripts can read groups and contacts and create, change and delete contacts – with the same rules as the web app.",
+    "version": "Version {{version}}",
+    "download": "Download the API description (OpenAPI)",
+    "toc": "Contents",
+    "copy": "Copy",
+    "copyExample": "Copy example {{name}}",
+    "copied": "Copied.",
+    "copyFailed": "Copying failed. Select the text and copy it manually.",
+    "backToLogin": "To sign-in",
+    "backToAccount": "To My account",
+    "security": {
+      "heading": "Security",
+      "secret": "Keep the key like a password: do not publish it in code, repositories or messages.",
+      "leastPrivilege": "Grant the key only the groups and permissions the program really needs, and a short expiry.",
+      "revoke": "If you suspect misuse, revoke the key immediately in the API keys section and create a new one.",
+      "memberSees": "A member's key reads everything the member sees in the app – even a viewer. The group owner does not control members' API access.",
+      "noCors": "The API has no CORS: it is meant for server programs and scripts, not for web pages in a browser on another domain."
+    },
+    "create": {
+      "heading": "Creating a key",
+      "text": "Create a key in the API keys section of the My account page: choose a name, groups with a permission (read only or read and write) or all your groups, and an expiry. The key is shown only once.",
+      "link": "Open API keys",
+      "limit": "You can have at most 10 active keys."
+    },
+    "auth": {
+      "heading": "Sending the key",
+      "text": "Send the key in the Authorization header as Bearer. A key in the URL or in another header is rejected.",
+      "rights": "On every request, the lesser of the key's permission and your current role in the group applies."
+    },
+    "operations": {
+      "heading": "Operations",
+      "caption": "Operations of API version 1",
+      "method": "Method",
+      "path": "Path",
+      "description": "Description",
+      "role": "Lowest role",
+      "permission": "Key permission",
+      "listGroups": "List of groups the key is valid for (including archived), with my role",
+      "listContacts": "List of a group's contacts with search, filters and sorting",
+      "getContact": "One contact with its version",
+      "createContact": "Create a contact",
+      "updateContact": "Change a contact (version in the body)",
+      "deleteContact": "Delete a contact (version in the version parameter)",
+      "description_doc": "Machine-readable API description",
+      "roleAny": "any",
+      "rolePublic": "public",
+      "permissionNone": "not required",
+      "permissionRead": "read or write",
+      "permissionWrite": "read and write",
+      "archived": "In an archived group only reading is allowed (writing returns 409 GROUP_ARCHIVED)."
+    },
+    "examples": {
+      "heading": "Examples",
+      "listGroups": "List of groups",
+      "listContacts": "Searching contacts",
+      "createContact": "Creating a contact",
+      "updateContact": "Changing a contact",
+      "deleteContact": "Deleting a contact",
+      "request": "Request",
+      "response": "Response"
+    },
+    "pagination": {
+      "heading": "Pagination",
+      "text": "Lists return a page (page, starting at 0) of size size and the total number of results total. The default size is 25, at most 100 for groups; contacts follow the same rules as in the app."
+    },
+    "errors": {
+      "heading": "Error codes",
+      "caption": "API error codes",
+      "status": "Status",
+      "code": "Code",
+      "meaning": "Meaning",
+      "VALIDATION_FAILED": "The data is not valid; the list of errors per field is in the errors field.",
+      "UNAUTHENTICATED": "The key is missing, invalid, revoked or expired.",
+      "FORBIDDEN": "The key or your role does not allow the operation (e.g. writing with a read-only key).",
+      "NOT_FOUND": "The group or contact does not exist, you are not a member, or the group is outside the key's scope.",
+      "GROUP_ARCHIVED": "The group is archived; only reading is allowed.",
+      "VERSION_CONFLICT": "Someone else changed the contact in the meantime; read it again and repeat the change.",
+      "RATE_LIMITED": "Too many requests; the Retry-After header says after how many seconds you may retry."
+    },
+    "limits": {
+      "heading": "Limits",
+      "rate": "At most {{limit}} requests per minute per key. Exceeding it returns 429 RATE_LIMITED with a Retry-After header; other keys and the web app are not affected."
+    },
+    "versions": {
+      "heading": "Versions and changes",
+      "text": "The API is versioned in the path (/v1). New optional fields are not an incompatible change – a program should ignore unknown fields. A removed or renamed field or a changed meaning means a new version; the existing one stays unchanged.",
+      "changes": "Changes",
+      "v1": "Version 1: groups and contacts (read, create, change, delete)."
     }
   },
   "images": {

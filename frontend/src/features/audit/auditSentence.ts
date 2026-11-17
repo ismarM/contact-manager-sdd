@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
+import type { AttributeType } from '../attributes/types';
+import { typeNameKey } from '../attributes/typeNames';
 import type { PhotoChange } from './types';
 
 /** Podatki, iz katerih nastane stavek dejanja: vnos sledi ali dogodek zgodovine kontakta (FR-015-18). */
@@ -12,6 +14,10 @@ export interface SentenceSource {
   targetInitial: boolean;
   /** 018: vnos `UPDATE` je spremenil sliko kontakta (stavek o sliki namesto splošnega »uredil(a)«). */
   photoChange?: PhotoChange | null;
+  /** `ATTRIBUTE_TYPE` (016): ključ in tipa; v zgodovini kontakta odsotni. */
+  attributeKey?: string;
+  typeBefore?: AttributeType;
+  typeAfter?: AttributeType;
 }
 
 /**
@@ -56,6 +62,17 @@ export function useAuditSentence() {
         if (single && name) return t('audit.sentence.DELETE_named', { name });
         if (single && options.anonymous) return t('audit.sentence.DELETE_single');
         return t('audit.sentence.DELETE_count', { count: entry.contactCount });
+      case 'ATTRIBUTE_TYPE':
+        // 016 (FR-016-26): ključ in tip pred/po; zgodovina kontakta teh podatkov nima, spremembo pokažejo polja.
+        if (entry.attributeKey && entry.typeBefore && entry.typeAfter) {
+          return t('audit.sentence.ATTRIBUTE_TYPE', {
+            key: entry.attributeKey,
+            before: t(typeNameKey(entry.typeBefore)),
+            after: t(typeNameKey(entry.typeAfter)),
+            count: entry.contactCount,
+          });
+        }
+        return t('audit.sentence.ATTRIBUTE_TYPE_generic');
       case 'IMPORT':
         // 014 (FR-014-05): uvoz se prikaže kot vsak drug vnos z več kontakti.
         if (single && name) return t('audit.sentence.IMPORT_named', { name });

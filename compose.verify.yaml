@@ -3,3 +3,24 @@ services:
   frontend:
     ports:
       - "127.0.0.1::80"
+
+  # 016: nadomestna kartografska storitev (research R-08); zaledje kliče njo namesto OpenStreetMap.
+  osm-stub:
+    image: node:22-alpine
+    command: ["node", "/stub/server.mjs"]
+    volumes:
+      - ./e2e/osm-stub:/stub:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8090/health >/dev/null || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    environment:
+      MAPS_PHOTON_URL: http://osm-stub:8090
+      MAPS_NOMINATIM_URL: http://osm-stub:8090
+      MAPS_TILE_URL: http://osm-stub:8090/tiles/{z}/{x}/{y}.png
+    depends_on:
+      osm-stub:
+        condition: service_healthy

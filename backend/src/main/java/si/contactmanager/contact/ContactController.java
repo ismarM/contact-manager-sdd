@@ -80,7 +80,8 @@ class ContactController {
         if (!parsed.valid()) {
             throw new ValidationException(parsed.errors());
         }
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.create(membership, parsed.input()));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(service.create(membership, parsed.input(), parsed.extras()));
     }
 
     /** Urejanje kontakta (FR-004-10, FR-004-11). */
@@ -116,7 +117,7 @@ class ContactController {
         return service.filterOptions(access.require(jwt, groupId, Role.VIEWER, false));
     }
 
-    private static UUID parseId(String value) {
+    static UUID parseId(String value) {
         try {
             return UUID.fromString(value);
         } catch (IllegalArgumentException e) {
@@ -124,7 +125,7 @@ class ContactController {
         }
     }
 
-    private static long parseVersion(String value) {
+    static long parseVersion(String value) {
         try {
             if (value != null) {
                 long version = Long.parseLong(value);

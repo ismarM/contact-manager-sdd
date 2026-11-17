@@ -5,6 +5,9 @@ import java.sql.SQLException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
+import si.contactmanager.account.DisplayFormat.AddressFormat;
+import si.contactmanager.account.DisplayFormat.DateFormat;
+import si.contactmanager.account.DisplayFormat.PhoneFormat;
 
 /**
  * Profil v tabeli {@code app_user} (data-model.md). Vsaka operacija je en stavek {@code INSERT … ON CONFLICT}, zato
@@ -18,24 +21,34 @@ class ProfileRepository {
 
     record Result(Profile profile, boolean created) {}
 
-    private static final String INSERT = "INSERT INTO app_user (firebase_uid, name, email, language, theme)"
-            + " VALUES (:uid, :name, :email, :language, :theme)"
+    private static final String INSERT = "INSERT INTO app_user"
+            + " (firebase_uid, name, email, language, theme, phone_format, date_format, address_format)"
+            + " VALUES (:uid, :name, :email, :language, :theme, :phone, :date, :address)"
             + " ON CONFLICT (firebase_uid) DO UPDATE SET ";
 
-    private static final String RETURNING =
-            ", updated_at = now()" + " RETURNING name, email, language, theme, (xmax = 0) AS created,"
-                    + " (SELECT i.revision FROM image i WHERE i.kind = 'USER' AND i.user_id = app_user.id)"
-                    + " AS photo_revision";
+    private static final String RETURNING = ", updated_at = now()"
+            + " RETURNING name, email, language, theme, phone_format, date_format, address_format,"
+            + " (xmax = 0) AS created,"
+            + " (SELECT i.revision FROM image i WHERE i.kind = 'USER' AND i.user_id = app_user.id)"
+            + " AS photo_revision";
 
     /** Ime in e-naslov iz žetona, izbira naprave samo v prazna polja profila (FR-001-19 b). */
     private static final String SYNC = INSERT
             + "name = excluded.name, email = excluded.email,"
             + " language = COALESCE(app_user.language, excluded.language),"
-            + " theme = COALESCE(app_user.theme, excluded.theme)"
+            + " theme = COALESCE(app_user.theme, excluded.theme),"
+            + " phone_format = COALESCE(app_user.phone_format, excluded.phone_format),"
+            + " date_format = COALESCE(app_user.date_format, excluded.date_format),"
+            + " address_format = COALESCE(app_user.address_format, excluded.address_format)"
             + RETURNING;
 
-    private static final String SAVE_PREFERENCES =
-            INSERT + "language = excluded.language, theme = excluded.theme" + RETURNING;
+    /** Oblike zapisa: manjka = nespremenjeno (FR-016-17), {@code null} = privzeto. */
+    private static final String SAVE_PREFERENCES = INSERT
+            + "language = excluded.language, theme = excluded.theme,"
+            + " phone_format = CASE WHEN :phoneSet THEN excluded.phone_format ELSE app_user.phone_format END,"
+            + " date_format = CASE WHEN :dateSet THEN excluded.date_format ELSE app_user.date_format END,"
+            + " address_format = CASE WHEN :addressSet THEN excluded.address_format ELSE app_user.address_format END"
+            + RETURNING;
 
     private final JdbcClient jdbc;
 
@@ -79,6 +92,12 @@ class ProfileRepository {
                 .param(
                         "theme",
                         preferences.theme() == null ? null : preferences.theme().code())
+                .param("phone", preferences.phoneFormat().name())
+                .param("date", preferences.dateFormat().name())
+                .param("address", preferences.addressFormat().name())
+                .param("phoneSet", preferences.phoneFormat().present())
+                .param("dateSet", preferences.dateFormat().present())
+                .param("addressSet", preferences.addressFormat().present())
                 .query(ProfileRepository::result)
                 .single();
     }
@@ -89,6 +108,9 @@ class ProfileRepository {
                 row.getString("email"),
                 Language.fromCode(row.getString("language")).orElse(null),
                 Theme.fromCode(row.getString("theme")).orElse(null),
+                DisplayFormat.read(PhoneFormat.class, row.getString("phone_format")),
+                DisplayFormat.read(DateFormat.class, row.getString("date_format")),
+                DisplayFormat.read(AddressFormat.class, row.getString("address_format")),
                 row.getObject("photo_revision", Long.class));
         return new Result(profile, row.getBoolean("created"));
     }

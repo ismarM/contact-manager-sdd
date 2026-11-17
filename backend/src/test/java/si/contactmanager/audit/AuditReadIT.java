@@ -35,7 +35,8 @@ class AuditReadIT extends AuditApiTest {
     private List<UUID> createMany(Scenario s, int count) throws Exception {
         List<UUID> ids = new ArrayList<>();
         for (int i = 1; i <= count; i++) {
-            ids.add(idOf(create(s, Who.EDITOR, contactInput("Ime" + i, "Priimek" + i, "01 000 " + i))));
+            ids.add(idOf(create(
+                    s, Who.EDITOR, contactInput("Ime" + i, "Priimek" + i, "+38690" + String.format("%06d", i)))));
         }
         return ids;
     }
@@ -70,13 +71,15 @@ class AuditReadIT extends AuditApiTest {
                         "contactName",
                         "target",
                         "targetInitial",
+                        "apiKeyName",
                         "photoChange");
         assertThat(newest)
                 .containsEntry("action", "CREATE")
                 .containsEntry("contactCount", 1)
                 .containsEntry("contactName", "Ime40 Priimek40")
                 .containsEntry("target", null)
-                .containsEntry("targetInitial", false);
+                .containsEntry("targetInitial", false)
+                .containsEntry("apiKeyName", null);
         assertThat(Instant.parse((String) newest.get("createdAt"))).isNotNull();
         assertThat(asObject(newest.get("actor")))
                 .containsEntry("name", "EDITOR")
@@ -163,10 +166,10 @@ class AuditReadIT extends AuditApiTest {
     @Tag("FR-005-09")
     void filtersByActionTypeAndByContact() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> janez = create(s, Who.EDITOR, contactInput("Janez", "Novak", "01 234 567"));
-        Map<String, Object> ana = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> janez = create(s, Who.EDITOR, contactInput("Janez", "Novak", "+38690234567"));
+        Map<String, Object> ana = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         Map<String, Object> changed = valuesOf(janez);
-        changed.put("phone", "031 111 222");
+        changed.put("phone", "+38631111222");
         Map<String, Object> updated = update(s, Who.EDITOR, idOf(janez), changed, versionOf(janez));
         remove(s, Who.EDITOR, idOf(ana), versionOf(ana));
         remove(s, Who.EDITOR, idOf(janez), versionOf(updated));
@@ -212,9 +215,9 @@ class AuditReadIT extends AuditApiTest {
         Scenario s = scenario();
         UUID other = groups.createGroup(s.id(Who.OWNER), "Skupina B");
         Map<String, Object> foreign = asObject(
-                json(post(contactsPath(other), s.token(Who.OWNER), body(contactInput("Tuj", "Kontakt", "01 999 999")))
+                json(post(contactsPath(other), s.token(Who.OWNER), body(contactInput("Tuj", "Kontakt", "+38690999999")))
                         .body()));
-        create(s, Who.EDITOR, contactInput("Janez", "Novak", "01 234 567"));
+        create(s, Who.EDITOR, contactInput("Janez", "Novak", "+38690234567"));
 
         Map<String, Object> result = page(list(s, Who.VIEWER, "?contact=" + foreign.get("id")));
 
@@ -229,7 +232,7 @@ class AuditReadIT extends AuditApiTest {
     @Tag("FR-005-09")
     void aDeletedContactCanStillBeFiltered() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> janez = create(s, Who.EDITOR, contactInput("Janez", "Novak", "01 234 567"));
+        Map<String, Object> janez = create(s, Who.EDITOR, contactInput("Janez", "Novak", "+38690234567"));
         remove(s, Who.EDITOR, idOf(janez), versionOf(janez));
 
         Map<String, Object> result = page(list(s, Who.VIEWER, "?contact=" + idOf(janez)));
@@ -259,7 +262,7 @@ class AuditReadIT extends AuditApiTest {
         Scenario s = scenario();
         createMany(s, 1);
         UUID other = groups.createGroup(s.id(Who.OWNER), "Skupina B");
-        post(contactsPath(other), s.token(Who.OWNER), body(contactInput("Tuj", "Kontakt", "01 999 999")));
+        post(contactsPath(other), s.token(Who.OWNER), body(contactInput("Tuj", "Kontakt", "+38690999999")));
         UUID mine = (UUID) audit.entries(s.group()).get(0).get("id");
         UUID foreign = (UUID) audit.entries(other).get(0).get("id");
 
@@ -281,9 +284,9 @@ class AuditReadIT extends AuditApiTest {
     @Tag("FR-005-08")
     void changesListTheAffectedContactsWithOnlyTheChangedFields() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> janez = create(s, Who.EDITOR, contactInput("Janez", "Novak", "01 234 567"));
+        Map<String, Object> janez = create(s, Who.EDITOR, contactInput("Janez", "Novak", "+38690234567"));
         Map<String, Object> changed = valuesOf(janez);
-        changed.put("phone", "031 111 222");
+        changed.put("phone", "+38631111222");
         changed.put("attributes", List.of(Map.of("key", "kompetenca", "value", "web dev")));
         Map<String, Object> updated = update(s, Who.EDITOR, idOf(janez), changed, versionOf(janez));
         Map<String, Object> renamed = valuesOf(updated);
@@ -311,13 +314,13 @@ class AuditReadIT extends AuditApiTest {
         assertThat(editedFields.get(0))
                 .containsEntry("field", "PHONE")
                 .containsEntry("key", null)
-                .containsEntry("before", "01 234 567")
-                .containsEntry("after", "031 111 222");
+                .containsEntry("before", "+38690234567")
+                .containsEntry("after", "+38631111222");
         assertThat(editedFields.get(1))
                 .containsEntry("field", "ATTRIBUTE")
                 .containsEntry("key", "kompetenca")
                 .containsEntry("before", null)
-                .containsEntry("after", "web dev");
+                .containsEntry("after", Map.of("type", "OTHER", "value", "web dev"));
         Map<String, Object> deletedContact = asObjects(deleted.get("items")).get(0);
         assertThat(deletedContact).containsEntry("kind", "REMOVED").containsEntry("displayName", "Janez Kovač");
         assertThat(asObjects(deletedContact.get("fields")))
@@ -393,16 +396,16 @@ class AuditReadIT extends AuditApiTest {
     @Tag("FR-005-09")
     void theContactFilterIncludesMergeAndRollbackEntriesAndCombinesWithTheActionFilter() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> janez = create(s, Who.EDITOR, contactInput("Janez", "Novak", "01 234 567"));
+        Map<String, Object> janez = create(s, Who.EDITOR, contactInput("Janez", "Novak", "+38690234567"));
         UUID target = (UUID) audit.entries(s.group()).get(0).get("id");
-        update(s, Who.EDITOR, idOf(janez), valuesOf(withPhone(janez, "02 222 222")), versionOf(janez));
-        Map<String, Object> kept = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        update(s, Who.EDITOR, idOf(janez), valuesOf(withPhone(janez, "+38690222221")), versionOf(janez));
+        Map<String, Object> kept = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         ContactState keptState = new ContactState(
                 "Ana",
                 "Prva",
                 null,
                 null,
-                "01 111 111",
+                "+38690111111",
                 List.of(),
                 List.of(),
                 0,

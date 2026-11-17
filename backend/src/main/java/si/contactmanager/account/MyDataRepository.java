@@ -3,12 +3,22 @@ package si.contactmanager.account;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
+import si.contactmanager.account.DisplayFormat.AddressFormat;
+import si.contactmanager.account.DisplayFormat.DateFormat;
+import si.contactmanager.account.DisplayFormat.PhoneFormat;
 import si.contactmanager.account.ExportAssembler.MembershipRow;
 import si.contactmanager.account.ExportAssembler.OwnedRow;
 import si.contactmanager.account.ExportAssembler.ProfileRow;
@@ -26,13 +36,16 @@ class MyDataRepository {
     record ProfileWithId(long id, ProfileRow profile) {}
 
     private final JdbcClient jdbc;
+    private final String statsZone;
 
-    MyDataRepository(JdbcClient jdbc) {
+    MyDataRepository(JdbcClient jdbc, @Value("${api-keys.stats-zone}") ZoneId statsZone) {
         this.jdbc = jdbc;
+        this.statsZone = statsZone.getId();
     }
 
     Optional<ProfileWithId> profile(String firebaseUid) {
-        return jdbc.sql("SELECT id, name, email, created_at, language, theme FROM app_user WHERE firebase_uid = :uid")
+        return jdbc.sql("SELECT id, name, email, created_at, language, theme, phone_format, date_format, address_format"
+                        + " FROM app_user WHERE firebase_uid = :uid")
                 .param("uid", firebaseUid)
                 .query((rs, row) -> new ProfileWithId(
                         rs.getLong("id"),
@@ -41,7 +54,10 @@ class MyDataRepository {
                                 rs.getString("email"),
                                 instant(rs, "created_at"),
                                 rs.getString("language"),
-                                rs.getString("theme"))))
+                                rs.getString("theme"),
+                                known(PhoneFormat.class, rs.getString("phone_format")),
+                                known(DateFormat.class, rs.getString("date_format")),
+                                known(AddressFormat.class, rs.getString("address_format")))))
                 .optional();
     }
 
@@ -54,6 +70,12 @@ class MyDataRepository {
                 .query((rs, row) -> new MyData.Photo(
                         rs.getString("content_type"), Base64.getEncoder().encodeToString(rs.getBytes("data"))))
                 .optional();
+    }
+
+    /** Neznana vrednost v bazi se izvozi kot privzeta ({@code null}), enako kot v profilu. */
+    private static <E extends Enum<E>> String known(Class<E> type, String name) {
+        E value = DisplayFormat.read(type, name);
+        return value == null ? null : value.name();
     }
 
     List<MembershipRow> memberships(long user) {
@@ -122,6 +144,62 @@ class MyDataRepository {
                         instant(rs, "created_at"),
                         rs.getObject("last_used_at") == null ? null : instant(rs, "last_used_at")))
                 .list();
+    }
+
+    /**
+     * API ključi (019, FR-019-05, -21): ime, obseg, časi in dnevni povzetki statistike v časovnem pasu statistike; brez
+     * ključa in prepoznavnega dela.
+     */
+    List<ExportAssembler.ApiKeyRow> apiKeys(long user) {
+        Map<UUID, List<MyData.ApiKeyGroup>> groups = new HashMap<>();
+        jdbc.sql("SELECT kg.key_id, g.title, kg.permission FROM api_key_group kg"
+                        + " JOIN api_key k ON k.id = kg.key_id JOIN contact_group g ON g.id = kg.group_id"
+                        + " WHERE k.user_id = :user")
+                .param("user", user)
+                .query((rs, row) -> {
+                    groups.computeIfAbsent(rs.getObject("key_id", UUID.class), k -> new ArrayList<>())
+                            .add(new MyData.ApiKeyGroup(rs.getString("title"), rs.getString("permission")));
+                    return null;
+                })
+                .list();
+        Map<UUID, List<MyData.ApiKeyUsageDay>> usage = new HashMap<>();
+        jdbc.sql("SELECT u.key_id, (u.hour AT TIME ZONE :zone)::date AS day, sum(u.read_ok) AS read_ok,"
+                        + " sum(u.write_ok) AS write_ok, sum(u.errors) AS errors, sum(u.rate_limited) AS rate_limited"
+                        + " FROM api_key_usage u JOIN api_key k ON k.id = u.key_id WHERE k.user_id = :user"
+                        + " GROUP BY u.key_id, day")
+                .param("user", user)
+                .param("zone", statsZone)
+                .query((rs, row) -> {
+                    usage.computeIfAbsent(rs.getObject("key_id", UUID.class), k -> new ArrayList<>())
+                            .add(new MyData.ApiKeyUsageDay(
+                                    rs.getObject("day", LocalDate.class),
+                                    rs.getInt("read_ok"),
+                                    rs.getInt("write_ok"),
+                                    rs.getInt("errors"),
+                                    rs.getInt("rate_limited")));
+                    return null;
+                })
+                .list();
+        return jdbc.sql("SELECT id, name, all_groups_permission, created_at, expires_at, last_used_at, revoked_at"
+                        + " FROM api_key WHERE user_id = :user")
+                .param("user", user)
+                .query((rs, row) -> {
+                    UUID id = rs.getObject("id", UUID.class);
+                    return new ExportAssembler.ApiKeyRow(
+                            rs.getString("name"),
+                            rs.getString("all_groups_permission"),
+                            groups.getOrDefault(id, List.of()),
+                            instant(rs, "created_at"),
+                            nullableInstant(rs, "expires_at"),
+                            nullableInstant(rs, "last_used_at"),
+                            nullableInstant(rs, "revoked_at"),
+                            usage.getOrDefault(id, List.of()));
+                })
+                .list();
+    }
+
+    private static Instant nullableInstant(ResultSet rs, String column) throws SQLException {
+        return rs.getObject(column) == null ? null : instant(rs, column);
     }
 
     private static Instant instant(ResultSet rs, String column) throws SQLException {

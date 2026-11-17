@@ -13,7 +13,11 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import si.contactmanager.apikey.ApiKeyTokens;
 import si.contactmanager.audit.support.AuditApiTest;
+import si.contactmanager.shared.security.ApiKeyPrincipal.Permission;
+import si.contactmanager.support.ApiKeys;
 import si.contactmanager.support.FirebaseEmulatorContainer.SignedIn;
 import si.contactmanager.support.Http;
 import si.contactmanager.support.Tokens;
@@ -30,6 +34,7 @@ import si.contactmanager.support.Tokens;
 @Tag("FR-005-10")
 @Tag("FR-005-11")
 @Tag("FR-005-17")
+@Tag("FR-019-12")
 class AuditIsolationMatrixSecurityIT extends AuditApiTest {
 
     enum Actor {
@@ -115,9 +120,9 @@ class AuditIsolationMatrixSecurityIT extends AuditApiTest {
 
     /** Skupina z dvema vnosoma (dodajanje, urejanje) kontakta Ana; vrne id kontakta. */
     private UUID twoEntries(Scenario s) throws Exception {
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         Map<String, Object> values = valuesOf(a);
-        values.put("phone", "02 222 222");
+        values.put("phone", "+38690222221");
         update(s, Who.EDITOR, idOf(a), values, versionOf(a));
         return idOf(a);
     }
@@ -163,7 +168,7 @@ class AuditIsolationMatrixSecurityIT extends AuditApiTest {
             groups.addMember(other, s.id(who), who.name());
         }
         Map<String, Object> foreignContact = asObject(
-                json(post(contactsPath(other), s.token(Who.OWNER), body(contactInput("Tuj", "Kontakt", "01 999 999")))
+                json(post(contactsPath(other), s.token(Who.OWNER), body(contactInput("Tuj", "Kontakt", "+38690999999")))
                         .body()));
         UUID foreign = (UUID) audit.entries(other).get(0).get("id");
         UUID latest = audit.latestEntryId(other);
@@ -210,5 +215,67 @@ class AuditIsolationMatrixSecurityIT extends AuditApiTest {
             }
         }
         return rows.stream();
+    }
+
+    @Autowired
+    ApiKeyTokens apiKeyTokens;
+
+    static Stream<Arguments> memberStates() {
+        List<Arguments> rows = new ArrayList<>();
+        for (Actor actor : List.of(Actor.VIEWER, Actor.EDITOR, Actor.ADMIN, Actor.OWNER)) {
+            for (boolean archived : new boolean[] {false, true}) {
+                rows.add(Arguments.of(actor, archived));
+            }
+        }
+        return rows.stream();
+    }
+
+    /** Skupina z enim vnosom, ki ga je ustvaril ključ »Testni ključ« prek {@code /v1}; vrne ključ. */
+    private String entryByApiKey(Scenario s) throws Exception {
+        String key = new ApiKeys(apiKeyTokens, jdbc)
+                .forGroups(s.id(Who.EDITOR), Permission.WRITE, s.group())
+                .token();
+        HttpResponse<String> created = Http.send(
+                "POST",
+                url("/v1/groups/" + s.group() + "/contacts"),
+                Http.bearer(key),
+                body(contactInput("Ana", "Prva", "+38690111111")));
+        assertThat(created.statusCode()).isEqualTo(201);
+        return key;
+    }
+
+    @ParameterizedTest(name = "apiKeyName v sledi, {0}, arhivirana={1}")
+    @MethodSource("memberStates")
+    void everyMemberSeesTheApiKeyNameInTheListAndTheEntry(Actor actor, boolean archived) throws Exception {
+        Scenario s = scenario();
+        entryByApiKey(s);
+        UUID entry = (UUID) audit.entries(s.group()).get(0).get("id");
+        if (archived) {
+            groups.archive(s.group());
+        }
+        Map<String, String> headers = headers(actor, s.users());
+
+        HttpResponse<String> list = send(Endpoint.LIST, s.group(), entry, entry, headers);
+        HttpResponse<String> one = send(Endpoint.ENTRY, s.group(), entry, entry, headers);
+
+        assertThat(list.statusCode()).isEqualTo(200);
+        assertThat(asObjects(json(list.body()).get("items")).get(0)).containsEntry("apiKeyName", "Testni ključ");
+        assertThat(one.statusCode()).isEqualTo(200);
+        assertThat(json(one.body())).containsEntry("apiKeyName", "Testni ključ");
+    }
+
+    @ParameterizedTest(name = "API ključ na {0}")
+    @EnumSource(Endpoint.class)
+    void anApiKeyOnTheTrailPathsIsUnauthenticated(Endpoint endpoint) throws Exception {
+        Scenario s = scenario();
+        String key = entryByApiKey(s);
+        UUID entry = (UUID) audit.entries(s.group()).get(0).get("id");
+        int entriesBefore = audit.count(s.group());
+
+        HttpResponse<String> response = send(endpoint, s.group(), entry, entry, Http.bearer(key));
+
+        assertThat(response.statusCode()).isEqualTo(401);
+        assertThat(json(response.body())).isEqualTo(Map.of("code", "UNAUTHENTICATED"));
+        assertThat(audit.count(s.group())).isEqualTo(entriesBefore);
     }
 }

@@ -81,6 +81,44 @@ class AccountDeletionIT extends AccountApiTest {
                 .isEqualTo(401);
     }
 
+    /** 019 (FR-019-05, -21): izbris računa izbriše ključe s skupinami in statistiko; ključ takoj dobi 401. */
+    @Tag("FR-019-05")
+    @Tag("FR-019-21")
+    @Test
+    void deletionRemovesApiKeysWithUsageAndTheKeyStopsWorking() throws Exception {
+        SignedIn pia = registeredUser("Pia Ključ Izbris");
+        SignedIn ana = registeredUser("Ana Ključ Ostane");
+        UUID group = activeGroup(ana, "Ključna");
+        groups.addMember(group, id(pia), "EDITOR");
+        JsonNode created = JSON.readTree(post(
+                        "/api/me/api-keys",
+                        pia.idToken(),
+                        "{\"name\":\"Skripta\",\"groups\":[{\"groupId\":\"" + group + "\"}]}")
+                .body());
+        String token = created.get("token").asString();
+        UUID keyId = UUID.fromString(created.get("key").get("id").asString());
+        jdbc.update(
+                "insert into api_key_usage (key_id, hour, read_ok) values (?, date_trunc('hour', now()), 5)", keyId);
+        assertThat(si.contactmanager.support.Http.send(
+                                "GET", url("/v1/groups"), si.contactmanager.support.Http.bearer(token))
+                        .statusCode())
+                .isNotEqualTo(401);
+
+        assertThat(deleteAccount(pia).statusCode()).isEqualTo(204);
+
+        assertThat(si.contactmanager.support.Http.send(
+                                "GET", url("/v1/groups"), si.contactmanager.support.Http.bearer(token))
+                        .statusCode())
+                .isEqualTo(401);
+        for (String table :
+                new String[] {"api_key where id = ?", "api_key_group where key_id = ?", "api_key_usage where key_id = ?"
+                }) {
+            assertThat(jdbc.queryForObject("select count(*) from " + table, Integer.class, keyId))
+                    .as(table)
+                    .isZero();
+        }
+    }
+
     @Test
     void sentInvitationRemainsValidAndShowsDeletedSender() throws Exception {
         SignedIn pia = registeredUser("Pia Admin");

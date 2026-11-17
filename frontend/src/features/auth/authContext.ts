@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react';
 
 import type { AuthFetch, AuthFetchBlob } from '../../shared/api/authFetch';
 import type { Language, Theme } from '../account/preferences';
+import type { AddressFormat, DateFormat, PhoneFormat } from '../formats/types';
 import type { SignInErrorCode } from './AuthGateway';
 
 /** Profil prijavljenega uporabnika (contracts/openapi.yaml – Profile). */
@@ -12,6 +13,10 @@ export interface Profile {
   theme: Theme | null;
   /** Revizija profilne slike (`null` = brez slike); strežnik jo vrne pri vsakem profilu (018). */
   photoRevision: number | null;
+  /** 016: prikazne sheme (`null` ali odsoten = privzeto). */
+  phoneFormat?: PhoneFormat | null;
+  dateFormat?: DateFormat | null;
+  addressFormat?: AddressFormat | null;
 }
 
 export type AuthStatus = 'unknown' | 'signedOut' | 'syncing' | 'signedIn';

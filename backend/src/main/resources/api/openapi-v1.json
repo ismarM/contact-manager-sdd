@@ -1,0 +1,882 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Contact Manager – programski vmesnik",
+    "version": "1",
+    "description": "Vmesnik za programe z API ključem (Authorization: Bearer cmk_…). Ključ bere in piše, kar član vidi in sme v aplikaciji; CORS ni dovoljen (samo strežniki in skripte). Dodajanje neobveznih polj ni nezdružljiva sprememba."
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "security": [
+    {
+      "apiKey": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "apiKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "cmk_<JWT>"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "ApiGroup": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "color": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "VIEWER",
+              "EDITOR",
+              "ADMIN",
+              "OWNER"
+            ]
+          }
+        }
+      },
+      "ApiGroupPage": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiGroup"
+            }
+          }
+        }
+      },
+      "Address": {
+        "type": "object",
+        "properties": {
+          "street": {
+            "type": "string"
+          },
+          "extra": {
+            "type": "string"
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          }
+        }
+      },
+      "Attribute": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "type": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "parts": {
+            "$ref": "#/components/schemas/Address"
+          }
+        },
+        "required": [
+          "key"
+        ]
+      },
+      "ContactInput": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "lastName": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "address": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "addressParts": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 254
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 30
+          },
+          "company": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "country": {
+            "type": "string"
+          },
+          "attributes": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/Attribute"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "maxItems": 30,
+            "items": {
+              "type": "string",
+              "maxLength": 50
+            }
+          }
+        }
+      },
+      "ContactUpdate": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ContactInput"
+          }
+        ],
+        "properties": {
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version"
+        ]
+      },
+      "ContactSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "firstName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lastName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "version": {
+            "type": "integer"
+          },
+          "reverted": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ContactPage": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContactSummary"
+            }
+          }
+        }
+      },
+      "ContactDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ContactInput"
+          }
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/v1/openapi.json": {
+      "get": {
+        "summary": "Opis vmesnika",
+        "description": "Javno, brez ključa.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OpenAPI 3.1 opis vmesnika /v1."
+          }
+        }
+      }
+    },
+    "/v1/groups": {
+      "get": {
+        "summary": "Seznam skupin v obsegu ključa",
+        "description": "Najnižja vloga: VIEWER (vsaka članska vloga). Ključ READ ali WRITE.",
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stran skupin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiGroupPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED: neveljavna parametra page ali size."
+          },
+          "401": {
+            "description": "Ključ manjka, je neveljaven, preklican ali potekel.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "UNAUTHENTICATED"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED: omejitev 120 zahtev na minuto na ključ.",
+            "headers": {
+              "Retry-After": {
+                "description": "Sekunde do konca okna.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "RATE_LIMITED"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/groups/{groupId}/contacts": {
+      "get": {
+        "summary": "Seznam kontaktov skupine",
+        "description": "Najnižja vloga: VIEWER. Ključ READ ali WRITE.",
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Iskanje po besedah.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "f",
+            "in": "query",
+            "description": "Filter po polju (ponovljiv).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "description": "Filter po oznaki (ponovljiv).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dir",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stran kontaktov.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED: neveljavni parametri ali telo."
+          },
+          "404": {
+            "description": "Skupina ali kontakt ne obstaja, uporabnik ni član ali skupina ni v obsegu ključa."
+          },
+          "401": {
+            "description": "Ključ manjka, je neveljaven, preklican ali potekel.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "UNAUTHENTICATED"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED: omejitev 120 zahtev na minuto na ključ.",
+            "headers": {
+              "Retry-After": {
+                "description": "Sekunde do konca okna.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "RATE_LIMITED"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Nov kontakt",
+        "description": "Najnižja vloga: EDITOR. Ključ WRITE.",
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Ustvarjen kontakt.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED: neveljavni parametri ali telo."
+          },
+          "403": {
+            "description": "Vloga člana ali pravica ključa ne dovoljuje spremembe."
+          },
+          "404": {
+            "description": "Skupina ali kontakt ne obstaja, uporabnik ni član ali skupina ni v obsegu ključa."
+          },
+          "409": {
+            "description": "GROUP_ARCHIVED"
+          },
+          "401": {
+            "description": "Ključ manjka, je neveljaven, preklican ali potekel.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "UNAUTHENTICATED"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED: omejitev 120 zahtev na minuto na ključ.",
+            "headers": {
+              "Retry-After": {
+                "description": "Sekunde do konca okna.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "RATE_LIMITED"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/groups/{groupId}/contacts/{contactId}": {
+      "get": {
+        "summary": "Kontakt z verzijo",
+        "description": "Najnižja vloga: VIEWER. Ključ READ ali WRITE.",
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "contactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Kontakt.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Skupina ali kontakt ne obstaja, uporabnik ni član ali skupina ni v obsegu ključa."
+          },
+          "401": {
+            "description": "Ključ manjka, je neveljaven, preklican ali potekel.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "UNAUTHENTICATED"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED: omejitev 120 zahtev na minuto na ključ.",
+            "headers": {
+              "Retry-After": {
+                "description": "Sekunde do konca okna.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "RATE_LIMITED"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Sprememba kontakta",
+        "description": "Najnižja vloga: EDITOR. Ključ WRITE. Verzija v telesu.",
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "contactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Spremenjen kontakt.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED: neveljavni parametri ali telo."
+          },
+          "403": {
+            "description": "Vloga člana ali pravica ključa ne dovoljuje spremembe."
+          },
+          "404": {
+            "description": "Skupina ali kontakt ne obstaja, uporabnik ni član ali skupina ni v obsegu ključa."
+          },
+          "409": {
+            "description": "GROUP_ARCHIVED (skupina je arhivirana) ali VERSION_CONFLICT (kontakt je bil medtem spremenjen)."
+          },
+          "401": {
+            "description": "Ključ manjka, je neveljaven, preklican ali potekel.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "UNAUTHENTICATED"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED: omejitev 120 zahtev na minuto na ključ.",
+            "headers": {
+              "Retry-After": {
+                "description": "Sekunde do konca okna.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "RATE_LIMITED"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactUpdate"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Izbris kontakta",
+        "description": "Najnižja vloga: EDITOR. Ključ WRITE. Verzija v poizvedbi.",
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "contactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Izbrisan."
+          },
+          "400": {
+            "description": "VALIDATION_FAILED: neveljavni parametri ali telo."
+          },
+          "403": {
+            "description": "Vloga člana ali pravica ključa ne dovoljuje spremembe."
+          },
+          "404": {
+            "description": "Skupina ali kontakt ne obstaja, uporabnik ni član ali skupina ni v obsegu ključa."
+          },
+          "409": {
+            "description": "GROUP_ARCHIVED (skupina je arhivirana) ali VERSION_CONFLICT (kontakt je bil medtem spremenjen)."
+          },
+          "401": {
+            "description": "Ključ manjka, je neveljaven, preklican ali potekel.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "UNAUTHENTICATED"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED: omejitev 120 zahtev na minuto na ključ.",
+            "headers": {
+              "Retry-After": {
+                "description": "Sekunde do konca okna.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "RATE_LIMITED"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

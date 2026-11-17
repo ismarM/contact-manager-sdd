@@ -31,7 +31,16 @@ class ProfileIT extends ApiTest {
 
         assertThat(response.statusCode()).isEqualTo(201);
         Map<String, Object> body = json(response.body());
-        assertThat(body).containsOnlyKeys("name", "email", "language", "theme", "photoRevision");
+        assertThat(body)
+                .containsOnlyKeys(
+                        "name",
+                        "email",
+                        "language",
+                        "theme",
+                        "phoneFormat",
+                        "dateFormat",
+                        "addressFormat",
+                        "photoRevision");
         assertThat(body)
                 .containsEntry("name", "Ana Novak")
                 .containsEntry("email", email)

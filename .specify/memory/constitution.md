@@ -75,9 +75,16 @@ dnevnika sprememb testov in brez dokumentov, ki jih Spec Kit sam ne pozna.
 
 - Uporabnik lahko izvozi svoje podatke (JSON) in izbriše račun; posledice izbrisa so opisane v
   `feature-map.md` §2.4–2.5 in izbrisan uporabnik je povsod prikazan kot »izbrisan uporabnik«.
-- Hranijo se samo osebni podatki, ki jih aplikacija potrebuje (ime in e-naslov iz Google računa)
-  in uporabnikova izbira jezika in teme, ki velja na vseh njegovih napravah; kopija izbire v
-  brskalniku velja tudi pred prijavo in po odjavi.
+- Hranijo se samo osebni podatki, ki jih aplikacija potrebuje (ime in e-naslov iz Google računa) in
+  uporabnikovi nastavitvi: izbira jezika in teme ter *oblika zapisa* (telefon, datum, naslov); veljata
+  na vseh njegovih napravah, kopija v brskalniku velja tudi pred prijavo in po odjavi. Oboje je v
+  izvozu podatkov in se izbriše z računom.
+- Edina izjema od prepovedi klicev na tuje storitve je kartografska storitev OpenStreetMap (Nominatim,
+  Photon, ploščice; `docs/decisions/2026-11-16-kartografska-storitev-osm.md`): kliče jo samo zaledje,
+  samo na izrecno zahtevo uporabnika (gumb zemljevida, samodokončanje naslova, *Razčleni naslov*),
+  pošlje samo besedilo naslova brez podatkov uporabnika in kontakta, nič se ne shrani (predpomnilnik
+  samo v pomnilniku, koordinate se ne hranijo) in besedilo naslova se ne beleži. Brskalnik ne kliče
+  nobene tuje storitve.
 - Skrivnosti niso v Gitu (gitleaks v pre-commit); pisave in drugi viri se gostijo lokalno, brez
   klicev na tuje CDN-je.
 

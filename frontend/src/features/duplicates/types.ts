@@ -25,6 +25,8 @@ export interface DuplicatePage {
   groups: DuplicateGroup[];
 }
 
+import type { Address, AttributeType } from '../attributes/types';
+
 export interface CompareContact {
   id: string;
   version: number;
@@ -34,11 +36,14 @@ export interface CompareContact {
   /** 013 */
   company: string | null;
   address: string | null;
+  /** 016: razčlenjen naslov (namesto besedila). */
+  addressParts?: Address | null;
   /** 013: koda ISO 3166-1 alpha-2. */
   country: string | null;
   email: string | null;
   phone: string | null;
-  attributes: { key: string; value: string }[];
+  /** 016: tip ključa; besedilo ali deli naslova. */
+  attributes: { key: string; type?: AttributeType; value?: string; parts?: Address }[];
   tags: string[];
   photoRevision?: number | null;
 }
@@ -53,10 +58,12 @@ export interface MergeResultInput {
   lastName: string | null;
   company: string | null;
   address: string | null;
+  /** 016: razčlenjen naslov namesto `address`. */
+  addressParts?: Address | null;
   country: string | null;
   email: string | null;
   phone: string | null;
-  attributes: { key: string; value: string }[];
+  attributes: { key: string; value?: string; parts?: Address }[];
   tags: string[];
 }
 

@@ -58,6 +58,97 @@ class MyDataIsolationMatrixSecurityIT extends AccountApiTest {
         assertThat(account.appUserExists(pia.uid())).isTrue();
     }
 
+    private static final String FORMATS_BODY =
+            "{\"language\":null,\"theme\":null,\"phoneFormat\":\"E164\",\"dateFormat\":\"ISO\"}";
+
+    static Stream<Arguments> unauthenticatedFormatCases() {
+        List<String> paths = List.of("/api/me/preferences", "/api/me");
+        return paths.stream()
+                .flatMap(path ->
+                        List.of("none", "garbage", "forged", "expired").stream().map(kind -> Arguments.of(path, kind)));
+    }
+
+    /** 016, FR-016-16: PUT /api/me/preferences, /api/me – 401 pri vsaki neveljavni prijavi, nič se ne spremeni. */
+    @Tag("FR-016-16")
+    @ParameterizedTest(name = "PUT {0} s {1} žetonom → 401")
+    @MethodSource("unauthenticatedFormatCases")
+    void changingDisplayFormatsRequiresAuthentication(String path, String kind) throws Exception {
+        SignedIn pia = registeredUser("Pia Oblike 401");
+        String token = switch (kind) {
+            case "none" -> null;
+            case "garbage" -> "to.ni.zeton";
+            case "forged" -> Tokens.withForgedSignature(pia.idToken());
+            default -> Tokens.withClaims(pia.idToken(), claims -> claims.put("exp", Tokens.epochSeconds(-3600)));
+        };
+
+        HttpResponse<String> response =
+                Http.send("PUT", url(path), token == null ? java.util.Map.of() : Http.bearer(token), FORMATS_BODY);
+
+        assertThat(response.statusCode()).isEqualTo(401);
+        assertThat(JSON.readTree(response.body()).get("code").asString()).isEqualTo("UNAUTHENTICATED");
+        assertThat(JSON.readTree(export(pia).body())
+                        .get("profile")
+                        .get("phoneFormat")
+                        .isNull())
+                .isTrue();
+    }
+
+    /** FR-016-16: sprememba sheme vpliva samo na lastni profil; neveljavna vrednost je 400 brez sprememb. */
+    @Tag("FR-016-16")
+    @Test
+    void changingDisplayFormatsAffectsOnlyTheCallersProfile() throws Exception {
+        SignedIn pia = registeredUser("Pia Sheme");
+        SignedIn ana = registeredUser("Ana Sheme");
+
+        assertThat(put("/api/me/preferences", pia.idToken(), FORMATS_BODY).statusCode())
+                .isEqualTo(200);
+        assertThat(put("/api/me/preferences", pia.idToken(), "{\"language\":null,\"theme\":null,\"phoneFormat\":\"X\"}")
+                        .statusCode())
+                .isEqualTo(400);
+
+        JsonNode piaProfile = JSON.readTree(export(pia).body()).get("profile");
+        JsonNode anaProfile = JSON.readTree(export(ana).body()).get("profile");
+        assertThat(piaProfile.get("phoneFormat").asString()).isEqualTo("E164");
+        assertThat(anaProfile.get("phoneFormat").isNull()).isTrue();
+        assertThat(anaProfile.get("dateFormat").isNull()).isTrue();
+    }
+
+    /** FR-016-17: izvoz vsebuje oblike zapisa samo lastnega uporabnika. */
+    @Tag("FR-016-17")
+    @Test
+    void exportContainsOnlyTheCallersDisplayFormats() throws Exception {
+        SignedIn pia = registeredUser("Pia Izvoz Sheme");
+        SignedIn ana = registeredUser("Ana Izvoz Sheme");
+        put(
+                "/api/me/preferences",
+                ana.idToken(),
+                "{\"language\":null,\"theme\":null,\"addressFormat\":\"SINGLE_LINE\"}");
+
+        JsonNode piaProfile = JSON.readTree(export(pia).body()).get("profile");
+        JsonNode anaProfile = JSON.readTree(export(ana).body()).get("profile");
+
+        assertThat(piaProfile.get("addressFormat").isNull()).isTrue();
+        assertThat(anaProfile.get("addressFormat").asString()).isEqualTo("SINGLE_LINE");
+    }
+
+    /** 019, FR-019-05: izvoz vsebuje samo API ključe klicatelja. */
+    @Tag("FR-019-05")
+    @Test
+    void exportContainsOnlyTheCallersApiKeys() throws Exception {
+        SignedIn pia = registeredUser("Pia Izvoz Ključev");
+        SignedIn ana = registeredUser("Ana Izvoz Ključev");
+        post("/api/me/api-keys", pia.idToken(), "{\"name\":\"PiinKljuc\",\"allGroups\":true}");
+        post("/api/me/api-keys", ana.idToken(), "{\"name\":\"AninKljuc\",\"allGroups\":true}");
+
+        HttpResponse<String> response = export(pia);
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        JsonNode keys = JSON.readTree(response.body()).get("apiKeys");
+        assertThat(keys).hasSize(1);
+        assertThat(keys.get(0).get("name").asString()).isEqualTo("PiinKljuc");
+        assertThat(response.body()).doesNotContain("AninKljuc");
+    }
+
     @Test
     void pathsWithAnotherUsersIdentifierDoNotExist() throws Exception {
         SignedIn pia = registeredUser("Pia Pot");

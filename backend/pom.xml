@@ -22,6 +22,7 @@
         <google-auth.version>1.49.0</google-auth.version>
         <fastexcel.version>0.20.2</fastexcel.version>
         <ez-vcard.version>0.12.1</ez-vcard.version>
+        <libphonenumber.version>9.0.42</libphonenumber.version>
     </properties>
 
     <dependencies>
@@ -93,6 +94,13 @@
                     <artifactId>jsoup</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+
+        <!-- 016: preverjanje in normalizacija telefonskih številk (research R-02). -->
+        <dependency>
+            <groupId>com.googlecode.libphonenumber</groupId>
+            <artifactId>libphonenumber</artifactId>
+            <version>${libphonenumber.version}</version>
         </dependency>
 
         <dependency>
