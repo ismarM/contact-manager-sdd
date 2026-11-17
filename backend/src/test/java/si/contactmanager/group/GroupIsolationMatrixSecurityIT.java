@@ -146,7 +146,9 @@ class GroupIsolationMatrixSecurityIT extends ApiTest {
 
     enum UserEndpoint {
         CREATE(token -> new String[] {"POST", "/api/groups", "{\"title\":\"Ne sme nastati\"}"}),
-        LIST(token -> new String[] {"GET", "/api/groups", null});
+        LIST(token -> new String[] {"GET", "/api/groups", null}),
+        LIST_SEARCH(token -> new String[] {"GET", "/api/groups?q=a&role=OWNER", null}),
+        ARCHIVED_SEARCH(token -> new String[] {"GET", "/api/groups/archived?q=a&role=OWNER", null});
 
         final Function<String, String[]> request;
 

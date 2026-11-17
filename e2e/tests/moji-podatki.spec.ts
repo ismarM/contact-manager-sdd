@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { type Browser, expect, type Page, test } from '@playwright/test';
 
 import { createContactViaApi } from './support/audit';
-import { signIn, type TestUser, uniqueUser } from './support/auth';
+import { reauthenticateWithGoogle, signIn, type TestUser, uniqueUser } from './support/auth';
 import { archive, createGroup, groupExists, memberCount, setRole } from './support/groups';
 import { invitationExists } from './support/invitations';
 import { addMember } from './support/members';
@@ -82,9 +82,12 @@ async function openDeleteDialog(page: Page) {
   await expect(deleteDialog(page).getByRole('button', { name: 'Prekliči' })).toBeFocused();
 }
 
-async function confirmDeletion(page: Page, typed: string) {
+/** `reauthAs`: veljaven vpis sproži ponovno avtentikacijo z Googlom (017, FR-017-12) – okno emulatorja. */
+async function confirmDeletion(page: Page, typed: string, reauthAs?: TestUser) {
   await emailField(page).fill(typed);
-  await deleteDialog(page).getByRole('button', { name: 'Izbriši račun' }).click();
+  const confirm = () => deleteDialog(page).getByRole('button', { name: 'Izbriši račun' }).click();
+  if (reauthAs) await reauthenticateWithGoogle(page, reauthAs, confirm);
+  else await confirm();
 }
 
 test.use({ locale: 'sl-SI' });
@@ -253,7 +256,9 @@ test('FR-012-13: med odprtim dialogom drug uporabnik prenese lastništvo – 409
   await emailField(page).fill(ana.email);
 
   transferOwnership(id, eva.user.email, ana.email);
-  await deleteDialog(page).getByRole('button', { name: 'Izbriši račun' }).click();
+  await reauthenticateWithGoogle(page, ana, () =>
+    deleteDialog(page).getByRole('button', { name: 'Izbriši račun' }).click(),
+  );
 
   await expect(deleteDialog(page)).toHaveCount(0);
   await expect(deleteSection(page).getByRole('alert')).toHaveText(
@@ -337,7 +342,7 @@ test('FR-012-05 FR-012-07 FR-012-08 FR-012-09 FR-012-11 FR-012-12 FR-012-14 FR-0
   expect(groupExists(groupB)).toBe(true);
 
   const started = Date.now();
-  await confirmDeletion(page, `  ${ana.email.toUpperCase()}  `);
+  await confirmDeletion(page, `  ${ana.email.toUpperCase()}  `, ana);
 
   await expect(page).toHaveURL(/\/login\?reason=account-deleted$/);
   await expect(page.getByRole('status')).toHaveText('Tvoj račun je izbrisan.');
@@ -401,7 +406,7 @@ test('FR-012-17: stanje 202 – prijava s sporočilom o čakanju brisanja identi
   await openAccount(page);
   await openDeleteDialog(page);
 
-  await confirmDeletion(page, ana.email);
+  await confirmDeletion(page, ana.email, ana);
 
   await expect(page).toHaveURL(/\/login\?reason=account-deleted-pending$/);
   await expect(page.getByRole('status')).toContainText('Tvoj račun je izbrisan.');

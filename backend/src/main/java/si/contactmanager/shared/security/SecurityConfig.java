@@ -18,6 +18,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import si.contactmanager.shared.error.ErrorResponse;
@@ -28,7 +29,8 @@ import tools.jackson.databind.json.JsonMapper;
  * neuspešna prijava – brez žetona, neveljaven, ponarejen, potekel – vrne 401 UNAUTHENTICATED. Privzeta veriga za vse
  * poti, ki jih ne prevzame ločena veriga: CardDAV ({@link DavSecurityConfig}, {@code @Order(1)}) in programski vmesnik
  * {@code /v1/**} z API ključi ({@code si.contactmanager.apikey.ApiSecurityConfig}, {@code @Order(2)}, 019). API ključ
- * tukaj ni veljaven žeton (401).
+ * tukaj ni veljaven žeton (401). Veljaven žeton brez potrjenega e-naslova vrne 403
+ * EMAIL_NOT_VERIFIED ({@link EmailVerifiedFilter}, FR-017-02).
  */
 @Configuration
 @EnableConfigurationProperties(FirebaseProperties.class)
@@ -55,6 +57,8 @@ public class SecurityConfig {
                         resourceServer.jwt(jwt -> jwt.decoder(decoder)).authenticationEntryPoint(unauthenticated))
                 .exceptionHandling(errors -> errors.authenticationEntryPoint(unauthenticated)
                         .accessDeniedHandler((request, response, exception) -> unauthenticated(response, json)))
+                .addFilterBefore(new IdentityProviderUnavailableFilter(json), BearerTokenAuthenticationFilter.class)
+                .addFilterAfter(new EmailVerifiedFilter(json), BearerTokenAuthenticationFilter.class)
                 .build();
     }
 

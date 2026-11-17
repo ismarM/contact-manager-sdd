@@ -130,9 +130,12 @@ class GroupService {
     }
 
     /** Arhivirane skupine uporabnika (FR-003-07). */
-    ArchivedGroups listArchived(long user, int page, int size, Collation collation) {
+    ArchivedGroups listArchived(long user, String q, List<Role> roles, int page, int size, Collation collation) {
         return new ArchivedGroups(
-                groups.countArchived(user), page, size, groups.pageArchived(user, collation, size, page));
+                groups.countArchived(user, q, roles),
+                page,
+                size,
+                groups.pageArchived(user, q, roles, collation, size, page));
     }
 
     /**
@@ -151,15 +154,15 @@ class GroupService {
     }
 
     /** Razdelki po vlogi (FR-002-04, FR-002-06): brez {@code role} prva stran vsakega nepraznega razdelka. */
-    GroupSections list(long user, Role role, int page, int size, Collation collation) {
-        Map<Role, Long> counts = groups.countByRole(user);
+    GroupSections list(long user, String q, Role role, int page, int size, Collation collation) {
+        Map<Role, Long> counts = groups.countByRole(user, q);
         List<GroupSection> sections = new ArrayList<>();
         for (Role sectionRole : SECTION_ORDER) {
             long total = counts.getOrDefault(sectionRole, 0L);
             if (total == 0 || (role != null && role != sectionRole)) {
                 continue;
             }
-            List<GroupSummary> items = groups.pageByRole(user, sectionRole, collation, size, page);
+            List<GroupSummary> items = groups.pageByRole(user, q, sectionRole, collation, size, page);
             sections.add(new GroupSection(sectionRole, total, page, size, items));
         }
         return new GroupSections(sections);

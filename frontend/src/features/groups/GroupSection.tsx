@@ -18,9 +18,12 @@ import { useDelayed } from './useDelayed';
 export function GroupSection({
   initial,
   reloading = false,
+  query,
 }: {
   initial: Section;
   reloading?: boolean;
+  /** Iskani niz (FR-017-14): ohranjen pri menjavi strani razdelka. */
+  query?: string;
 }) {
   const { t } = useTranslation();
   const api = useGroupsApi();
@@ -38,7 +41,7 @@ export function GroupSection({
     setBusy(true);
     setFailed(false);
     try {
-      const result = await api.listGroups({ role: section.role, page, size, lang });
+      const result = await api.listGroups({ role: section.role, q: query, page, size, lang });
       const next = result.sections[0];
       if (next) setSection(next);
       if (focus) heading.current?.focus();

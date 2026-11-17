@@ -9,6 +9,7 @@ import { DeleteAccountSection } from './DeleteAccountSection';
 import { DisplayFormatSection } from './DisplayFormatSection';
 import { MyDataSection } from './MyDataSection';
 import { ProfilePhotoSection } from './ProfilePhotoSection';
+import { SignInMethodsSection } from './SignInMethodsSection';
 import type { Theme } from './preferences';
 
 const radio =
@@ -88,6 +89,8 @@ export function AccountPage() {
       </section>
 
       <DisplayFormatSection />
+
+      <SignInMethodsSection />
 
       <MyDataSection />
 
