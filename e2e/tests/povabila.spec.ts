@@ -45,7 +45,6 @@ async function otherUser(browser: Browser, page: Page, name: string) {
   return { context, page: other, user };
 }
 
-const isWide = (page: Page) => (page.viewportSize()?.width ?? 0) >= 1024;
 const toast = (page: Page) => page.getByRole('region', { name: 'Obvestila' });
 const inviteSection = (page: Page) => page.getByRole('region', { name: 'Povabi člana' });
 const pendingSection = (page: Page) => page.getByRole('region', { name: 'Čakajoča povabila' });
@@ -132,20 +131,12 @@ test('FR-006-05 FR-006-06 FR-006-08 SC-002 SC-005: povabljeni vidi število, spr
   await expect(invitee.page.getByRole('heading', { level: 1, name: 'Projekt FERI' })).toBeVisible();
   await expect(invitee.page.getByRole('main')).toContainText('Vloga: Urednik');
   expect(memberRole(id, invitee.user.email)).toBe('EDITOR');
-  if (isWide(invitee.page)) {
-    await expect(
-      invitee.page.getByRole('navigation', { name: 'Moje skupine' }).getByRole('link', {
-        name: /Projekt FERI/,
-      }),
-    ).toBeVisible();
-  } else {
-    await invitee.page.getByRole('button', { name: 'Preklopi skupino' }).click();
-    await expect(
-      invitee.page.getByRole('menu', { name: 'Preklopi skupino' }).getByRole('menuitem', {
-        name: /Projekt FERI/,
-      }),
-    ).toBeVisible();
-  }
+  await invitee.page.getByRole('button', { name: 'Preklopi skupino' }).click();
+  await expect(
+    invitee.page.getByRole('menu', { name: 'Preklopi skupino' }).getByRole('menuitem', {
+      name: /Projekt FERI/,
+    }),
+  ).toBeVisible();
   await invitee.context.close();
 });
 

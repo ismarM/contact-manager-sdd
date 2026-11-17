@@ -19,6 +19,7 @@ import { ContactHistoryPage } from '../history/ContactHistoryPage';
 import { DeletedContactsPage } from '../history/DeletedContactsPage';
 import { VersionPage } from '../history/VersionPage';
 import { useGroupsApi } from './api';
+import { useCurrentGroup } from './currentGroup';
 import { ArchivedBanner } from './ArchivedBanner';
 import { GroupContext, type GroupContextValue } from './groupContext';
 import { GroupHeader } from './GroupHeader';
@@ -129,6 +130,13 @@ function GroupScreen({
   const [state, setState] = useState<State>({ kind: 'loading' });
   const focusTitle = (location.state as { focusTitle?: boolean } | null)?.focusTitle === true;
   const showLoader = useDelayed(state.kind === 'loading');
+  const { setCurrent } = useCurrentGroup();
+
+  // Stranska vrstica (kartica *Trenutna skupina*, FR-020-05) izve, katera skupina je naložena.
+  useEffect(() => {
+    setCurrent(state.kind === 'ready' ? state.group : null);
+  }, [state, setCurrent]);
+  useEffect(() => () => setCurrent(null), [setCurrent]);
 
   useEffect(() => {
     let active = true;

@@ -99,7 +99,12 @@
     "myAccount": "My account",
     "signOut": "Sign out",
     "saveFailed": "Your choice could not be saved to your account.",
-    "dismiss": "Dismiss message"
+    "dismiss": "Dismiss message",
+    "mainNav": "Main navigation",
+    "openNav": "Open navigation",
+    "nav": "Navigation",
+    "accountTab": "Account",
+    "archived": "Archived"
   },
   "account": {
     "heading": "My account",
@@ -382,7 +387,8 @@
       "results_other": "{{count}} results",
       "none": "No results.",
       "clear": "Clear search"
-    }
+    },
+    "currentGroup": "Current group"
   },
   "notFound": {
     "heading": "Page not found",

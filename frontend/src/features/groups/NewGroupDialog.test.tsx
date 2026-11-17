@@ -222,8 +222,8 @@ describe('NewGroupDialog', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Ustvari skupino' }));
     await waitFor(() => expect(currentLocation()).toBe(`/groups/${CREATED}/contacts`));
 
-    // Skupina se še nalaga; uporabnik s tipkovnico fokusira gumb za preklop skupine (design.md 7.1).
-    const switcher = await screen.findByRole('button', { name: 'Preklopi skupino' });
+    // Skupina se še nalaga; uporabnik s tipkovnico fokusira gumb menija računa v zgornji vrstici (design.md 7.1).
+    const switcher = await screen.findByRole('button', { name: 'Meni računa' });
     switcher.focus();
     expect(switcher).toHaveFocus();
     release();

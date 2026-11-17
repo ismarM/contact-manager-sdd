@@ -9,7 +9,7 @@ const t = i18n.t.bind(i18n);
 /** Imena postavk glavne navigacije (Skupine, Arhivirane, Povabila, Račun). */
 export const navNames = {
   groups: () => t('groups.heading'),
-  archived: () => t('groups.archivedList.link'),
+  archived: () => t('shell.archived'),
   invitations: () => t('invitations.link.name'),
   /** Povabila z novimi: »Povabila, 1 novo«. */
   invitationsNew: (count: number) => t('invitations.link.nameNew', { count }),

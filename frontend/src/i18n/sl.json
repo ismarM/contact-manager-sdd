@@ -99,7 +99,12 @@
     "myAccount": "Moj račun",
     "signOut": "Odjava",
     "saveFailed": "Izbire ni bilo mogoče shraniti v račun.",
-    "dismiss": "Zapri sporočilo"
+    "dismiss": "Zapri sporočilo",
+    "mainNav": "Glavna navigacija",
+    "openNav": "Odpri navigacijo",
+    "nav": "Navigacija",
+    "accountTab": "Račun",
+    "archived": "Arhivirane"
   },
   "account": {
     "heading": "Moj račun",
@@ -382,7 +387,8 @@
       "results_other": "{{count}} zadetkov",
       "none": "Ni zadetkov.",
       "clear": "Počisti iskanje"
-    }
+    },
+    "currentGroup": "Trenutna skupina"
   },
   "notFound": {
     "heading": "Te strani ni",

@@ -73,19 +73,19 @@ description: "Naloge: Prenova vmesnika (Kartoteka v2) – ena izvedba, testi zno
 
 ### Paket A – ogrodje in števci
 
-- [ ] T025 FR-020-05, FR-020-07 — `AppShell`: postavitev (stranska vrstica ≥ 1024 px, ploskev pod 1024 px, spodnja vrstica pod 640 px), skip link, vsebina brez pomika strani (frontend/src/shared/layout/AppShell.tsx)
-- [ ] T026 FR-020-05 — `useNavCounts` (R-06): trije neodvisni klici (`GET /api/groups?size=1`, `/api/groups/archived?size=1`, `/api/invitations/count`), ob napaki brez števca, osvežitev ob `refresh()`/spremembi povabil; MSW rokovalniki (frontend/src/shared/layout/useNavCounts.ts, frontend/src/test/)
-- [ ] T027 FR-020-05, FR-020-09 — `Sidebar`: besedna znamka, *Skupine*/*Arhivirane*/*Povabila* s števci (povabila kot značka), na dnu postavka računa (slika/začetnici, ime, e-naslov) z menijem računa; brez seznama skupin, *Nove skupine* in stikala teme (frontend/src/shared/layout/{Sidebar,AccountMenu}.tsx)
-- [ ] T028 FR-020-07 — Spodnja vrstica s točno štirimi postavkami *Skupine*, *Arhivirane*, *Povabila*, *Račun* (ikona + napis, `aria-current`), ploskev za stransko vrstico pod 1024 px (frontend/src/shared/layout/BottomBar.tsx)
-- [ ] T029 [P] FR-020-27 — Testi ogrodja: `AppShell`, `Sidebar`, `BottomBar`, `useNavCounts` (števci, napaka brez števca, 401 → prijava), vitest-axe; pomočnik imen T012 (frontend/src/shared/layout/*.test.tsx)
+- [x] T025 FR-020-05, FR-020-07 — `AppShell`: postavitev (stranska vrstica ≥ 1024 px, ploskev pod 1024 px, spodnja vrstica pod 640 px), skip link, vsebina brez pomika strani (frontend/src/shared/layout/AppShell.tsx)
+- [x] T026 FR-020-05 — `useNavCounts` (R-06): trije neodvisni klici (`GET /api/groups?size=1`, `/api/groups/archived?size=1`, `/api/invitations/count`), ob napaki brez števca, osvežitev ob `refresh()`/spremembi povabil; MSW rokovalniki (frontend/src/shared/layout/useNavCounts.ts, frontend/src/test/)
+- [x] T027 FR-020-05, FR-020-09 — `Sidebar`: besedna znamka, *Skupine*/*Arhivirane*/*Povabila* s števci (povabila kot značka), na dnu postavka računa (slika/začetnici, ime, e-naslov) z menijem računa; brez seznama skupin, *Nove skupine* in stikala teme (frontend/src/shared/layout/{Sidebar,AccountMenu}.tsx)
+- [x] T028 FR-020-07 — Spodnja vrstica s točno štirimi postavkami *Skupine*, *Arhivirane*, *Povabila*, *Račun* (ikona + napis, `aria-current`), ploskev za stransko vrstico pod 1024 px (frontend/src/shared/layout/BottomBar.tsx)
+- [x] T029 [P] FR-020-27 — Testi ogrodja: `AppShell`, `Sidebar`, `BottomBar`, `useNavCounts` (števci, napaka brez števca, 401 → prijava), vitest-axe; pomočnik imen T012 (frontend/src/shared/layout/*.test.tsx)
 
 ### Paket B – skupina: kartica, preklopnik, glava
 
-- [ ] T030 FR-020-05, FR-020-06 — Kartica *Trenutna skupina* (monogram/slika, naziv z elipso in polnim imenom za bralnik, vloga) in `GroupSwitcher` (nearhivirane skupine iz `GroupsProvider`, izbira ohrani zavihek, kjer obstaja; brez skupin kartice ni) (frontend/src/shared/layout/{CurrentGroupCard,GroupSwitcher}.tsx)
-- [ ] T031 FR-020-08 — `GroupHeader` in `GroupLayout`: monogram, naziv, opis, značka vloge in *Arhivirana*; zavihki kot povezave z označenim aktivnim; na telefonu strnjena vrstica z nazivom, ki odpre preklopnik, in vodoravno pomičnimi zavihki (frontend/src/features/groups/{GroupHeader,GroupLayout}.tsx)
-- [ ] T032 FR-020-26 — Podčrtavanje povezav po pravilu (navigacija, kartice, zavihki, značke brez; »Nazaj na …« ob lebdenju) v ogrodju in glavi (frontend/src/shared/layout/, features/groups/)
-- [ ] T033 [P] FR-020-06, FR-020-08 — Testi: `GroupSwitcher` (zamenjava ohrani zavihek, odstranjena skupina → 404 »Te strani ni«), `GroupHeader`/`GroupLayout` (vloga, arhivirana, trajno arhivirana, dolg naziv), vitest-axe (frontend/src/shared/layout/, features/groups/*.test.tsx)
-- [ ] T034 FR-020-05 … -09 — E2E `ogrodje.spec.ts` (+ `@w768`): vsi cilji prek glavne navigacije, zamenjava skupine prek kartice (1280) in glave (360), spodnja vrstica s 4 postavkami, stikala teme v glavi ni, tipkovnica; posodobi preostale E2E, ki so odpirali skupino prek stranskega seznama (e2e/tests/ogrodje.spec.ts, e2e/tests/support/nav.ts)
+- [x] T030 FR-020-05, FR-020-06 — Kartica *Trenutna skupina* (monogram/slika, naziv z elipso in polnim imenom za bralnik, vloga) in `GroupSwitcher` (nearhivirane skupine iz `GroupsProvider`, izbira ohrani zavihek, kjer obstaja; brez skupin kartice ni) (frontend/src/shared/layout/{CurrentGroupCard,GroupSwitcher}.tsx)
+- [x] T031 FR-020-08 — `GroupHeader` in `GroupLayout`: monogram, naziv, opis, značka vloge in *Arhivirana*; zavihki kot povezave z označenim aktivnim; na telefonu strnjena vrstica z nazivom, ki odpre preklopnik, in vodoravno pomičnimi zavihki (frontend/src/features/groups/{GroupHeader,GroupLayout}.tsx)
+- [x] T032 FR-020-26 — Podčrtavanje povezav po pravilu (navigacija, kartice, zavihki, značke brez; »Nazaj na …« ob lebdenju) v ogrodju in glavi (frontend/src/shared/layout/, features/groups/)
+- [x] T033 [P] FR-020-06, FR-020-08 — Testi: `GroupSwitcher` (zamenjava ohrani zavihek, odstranjena skupina → 404 »Te strani ni«), `GroupHeader`/`GroupLayout` (vloga, arhivirana, trajno arhivirana, dolg naziv), vitest-axe (frontend/src/shared/layout/, features/groups/*.test.tsx)
+- [x] T034 FR-020-05 … -09 — E2E `ogrodje.spec.ts` (+ `@w768`): vsi cilji prek glavne navigacije, zamenjava skupine prek kartice (1280) in glave (360), spodnja vrstica s 4 postavkami, stikala teme v glavi ni, tipkovnica; posodobi preostale E2E, ki so odpirali skupino prek stranskega seznama (e2e/tests/ogrodje.spec.ts, e2e/tests/support/nav.ts)
 
 **Checkpoint**: `quick` zelen; E2E celoten (spremenjeni `shared/**`, `app/**`) pred koncem faze.
 
