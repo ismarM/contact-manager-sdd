@@ -300,7 +300,12 @@ test('FR-009-01 FR-009-05 SC-005: samo tipkovnica od izbora do obvestila; pri 32
   const bar = toolbar(page);
   const box = await bar.boundingBox();
   expect(box).not.toBeNull();
-  expect((box?.y ?? 0) + (box?.height ?? 0)).toBeGreaterThan(640 - 4);
+  // 020 (FR-020-07): pod 640 px je na dnu okna spodnja vrstica glavne navigacije; akcijska vrstica stoji tik nad njo.
+  const nav = await page.getByRole('navigation', { name: 'Glavna navigacija' }).boundingBox();
+  expect(nav).not.toBeNull();
+  expect((nav?.y ?? 0) + (nav?.height ?? 0)).toBeGreaterThan(640 - 4);
+  expect((box?.y ?? 0) + (box?.height ?? 0)).toBeGreaterThan((nav?.y ?? 0) - 4);
+  expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual((nav?.y ?? 0) + 1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );
@@ -310,7 +315,7 @@ test('FR-009-01 FR-009-05 SC-005: samo tipkovnica od izbora do obvestila; pri 32
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   const bottom = await bar.boundingBox();
   expect(top?.y).toBeCloseTo(bottom?.y ?? -1, 0);
-  expect((bottom?.y ?? 0) + (bottom?.height ?? 0)).toBeGreaterThan(640 - 4);
+  expect((bottom?.y ?? 0) + (bottom?.height ?? 0)).toBeGreaterThan((nav?.y ?? 0) - 4);
 
   await bar.getByRole('button', { name: 'Uredi izbrane' }).focus();
   await page.keyboard.press('Enter');

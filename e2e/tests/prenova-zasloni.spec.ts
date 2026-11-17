@@ -4,6 +4,7 @@ import { expect, type Page, test } from '@playwright/test';
 import { signIn, uniqueUser } from './support/auth';
 import { createGroup } from './support/groups';
 import { NAMES, xlsxBuffer } from './support/importExport';
+import { isPhoneViewport } from './support/nav';
 
 // 020 prenova vmesnika (Kartoteka v2): obrazec kontakta, uvoz, zgodovina in dialogi po platnu; vsak test teče pri 360 in
 // 1280 px, axe brez kršitev.
@@ -40,7 +41,11 @@ test('FR-020-22: obrazec kontakta – razdelki v karticah, nazaj na kontakt, Shr
   await expect(page.getByRole('group', { name: 'Osnovni podatki' })).toBeVisible();
   await expect(page.getByRole('group', { name: 'Dodatni atributi' })).toBeVisible();
   await expect(page.getByRole('group', { name: 'Značke' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Shrani kontakt' })).toBeInViewport();
+  // Na telefonu je vrstica s *Shrani* lepljiva nad spodnjo vrstico (v oknu brez pomikanja); od 640 px je na koncu
+  // obrazca, zato tam zadošča, da je vidna.
+  const save = page.getByRole('button', { name: 'Shrani kontakt' });
+  if (isPhoneViewport(page)) await expect(save).toBeInViewport();
+  else await expect(save).toBeVisible();
   await expect(page.getByRole('button', { name: 'Prekliči' })).toBeVisible();
   await expectNoAxeViolations(page);
 

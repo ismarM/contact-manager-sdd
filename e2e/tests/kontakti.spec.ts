@@ -643,7 +643,7 @@ test('FR-020-18: od 1280 px je plošča ob seznamu lepljiva in se pomika sama, p
   } else {
     await expect(page.getByRole('region', { name: 'Podrobnosti kontakta' })).toHaveCount(0);
     await expect(table(page)).toHaveCount(0);
-    await expect(page.getByRole('link', { name: 'Nazaj na kontakte' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Nazaj na seznam kontaktov' })).toBeVisible();
   }
   await expectNoAxeViolations(page);
 });

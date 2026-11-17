@@ -157,7 +157,7 @@ test('FR-002-04 FR-002-07 FR-002-08 FR-002-10: ena zbirka z značkami vlog, arhi
 
   await page.goto(`/groups/${archived}/settings`);
   const header = page.getByRole('region', { name: 'Stara' });
-  await expect(header).toContainText('Arhivirano');
+  await expect(header).toContainText('Arhivirana');
   await expect(page.getByRole('form', { name: 'Podatki skupine' })).toHaveCount(0);
   await expectNoAxeViolations(page);
   await switchLanguage(page, 'en');

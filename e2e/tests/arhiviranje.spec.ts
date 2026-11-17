@@ -70,7 +70,7 @@ test('FR-003-01 FR-003-02 FR-003-04 FR-003-05 FR-003-07 SC-002 SC-003: lastnik a
   await expect(banner(page)).toContainText(
     'Skupina je arhivirana – na voljo so pregled, iskanje in izvoz.',
   );
-  await expect(page.getByRole('region', { name: 'Projekt FERI' })).toContainText('Arhivirano');
+  await expect(page.getByRole('region', { name: 'Projekt FERI' })).toContainText('Arhivirana');
   await expect(page.getByRole('form', { name: 'Podatki skupine' })).toHaveCount(0);
   await expect(page.getByRole('textbox')).toHaveCount(0);
   await expectNoAxeViolations(page);
