@@ -114,7 +114,22 @@ Token usage per AI session run by Patrik. One row per session (each row has a ma
 | 11q | └ subagent: `izvajalec` – POPRAVKI CI krog 1 | Claude Code subagent | claude-sonnet-5-5 | 4 / 81 | – | 166 | 23 107 (–) | 130 197 | 6 999 420 | 7 152 890 |
 | | **Subagents subtotal (11a–11q)** | | | 54 / 1358 | – | 2 770 | 1 099 124 (–) | 3 761 514 | 241 271 462 | 246 134 870 |
 | | **Session 11 total (main + subagents)** | | | 103 / 1451 | – | 3 004 | 1 152 635 (–) | 4 049 399 | 252 939 130 | **258 144 168** |
-| | **Total – Patrik (sessions 1–11)** | | | – | – | – | – | – | – | **1 191 680 876** |
+| 12 | 019-api-kljuci: `/rollout 019` (nadzornik: sprejem, posvet, vrata faz, pregled, PR in CI prek GitHub MCP, ai-log) (`497c6b74`) – **main session** | Claude Code (cloud) | claude-opus-5-5 | 39 / 175 | – | 393 | 89 339 (–) | 574 668 | 27 438 679 | 28 103 079 |
+| 12a | └ subagent: `izvajalec` – IZVEDBA Setup + Foundational (nadomestni po ponovnem zagonu vsebnika) | Claude Code subagent | claude-opus-5-5 | 2 / 18 | – | 36 | 8 708 (–) | 186 154 | 1 374 486 | 1 569 384 |
+| 12b | └ subagent: `izvajalec` – IZVEDBA US1 | Claude Code subagent | claude-opus-5-5 | 2 / 99 | – | 200 | 85 814 (–) | 230 014 | 20 183 113 | 20 499 141 |
+| 12c | └ subagent: `izvajalec` – IZVEDBA US2 + US3 | Claude Code subagent | claude-sonnet-5-5 | 2 / 74 | – | 148 | 59 559 (–) | 920 072 | 11 895 196 | 12 874 975 |
+| 12d | └ subagent: `izvajalec` – IZVEDBA US4 + US5 | Claude Code subagent | claude-sonnet-5-5 | 4 / 88 | – | 182 | 79 561 (–) | 200 841 | 15 958 838 | 16 239 422 |
+| 12e | └ subagent: `izvajalec` – IZVEDBA US6 + Polish | Claude Code subagent | claude-sonnet-5-5 | 2 / 21 | – | 42 | 13 082 (–) | 246 752 | 1 668 126 | 1 928 002 |
+| 12f | └ subagent: `izvajalec` – KONVERGENCA | Claude Code subagent | claude-sonnet-5-5 | 2 / 31 | – | 62 | 9 074 (–) | 228 521 | 2 329 082 | 2 566 739 |
+| 12g | └ subagent: `pregled-testov` | Claude Code subagent | claude-sonnet-5-5 | 2 / 10 | – | 20 | 5 736 (–) | 37 941 | 240 398 | 284 095 |
+| 12h | └ subagent: `izvajalec` – POPRAVKI po pregledu | Claude Code subagent | claude-sonnet-5-5 | 2 / 23 | – | 46 | 12 600 (–) | 168 317 | 2 042 211 | 2 223 174 |
+| 12i | └ subagent: `izvajalec` – PR (priprava) | Claude Code subagent | claude-sonnet-5-5 | 2 / 15 | – | 30 | 7 758 (–) | 36 114 | 1 193 237 | 1 237 139 |
+| 12j | └ subagent: `izvajalec` – POPRAVKI CI krog 1 | Claude Code subagent | claude-sonnet-5-5 | 2 / 43 | – | 88 | 14 198 (–) | 126 886 | 4 534 661 | 4 675 833 |
+| 12k | └ subagent: `izvajalec` – POPRAVKI CI krog 2 | Claude Code subagent | claude-sonnet-5-5 | 2 / 9 | – | 18 | 2 758 (–) | 78 219 | 592 684 | 673 679 |
+| 12l | └ subagent: `izvajalec` – POPRAVKI CI krog 3 | Claude Code subagent | claude-sonnet-5-5 | 2 / 22 | – | 44 | 6 470 (–) | 184 414 | 1 638 378 | 1 829 306 |
+| | **Subagents subtotal (12a–12l)** | | | 26 / 453 | – | 916 | 305 318 (–) | 2 644 245 | 63 650 410 | 66 600 889 |
+| | **Session 12 total (main + subagents)** | | | 65 / 628 | – | 1 309 | 394 657 (–) | 3 218 913 | 91 089 089 | **94 703 968** |
+| | **Total – Patrik (sessions 1–12)** | | | – | – | – | – | – | – | **1 286 384 844** |
 
 Session 2 notes: the user message count excludes the 2 answers given through question dialogs (C1–C3 choice, JDK installed) and the `/context` command, which the log does not store. The numbers were read from the log while this report was being written, so the last turn (writing this report) is only partly counted.
 
@@ -137,3 +152,5 @@ Session 10 notes: the counts come from `node scripts/token-report.mjs` for sessi
 
 
 Session 11 notes: the counts come from `node scripts/token-report.mjs` for session `ebfb8c06-…` (2026-11-16) and its 17 subagent logs, read after PR #23 was merged by the developer; this ai-log step is included only as far as it was stored. Tool calls and thinking tokens are not reported by the script (–). The supervisor ran on claude-opus-5-5; workers ran on claude-sonnet-5-5 except the plan and the two OSM stories (US3, US5), which ran on claude-opus-5-5. Two workers were stopped by the 5-hour usage limit (11a after committing the plan, 11h mid-story; 11i continued from the uncommitted work in the worktree). The large cache-read share comes from the implementation workers and their repeated `verify.sh quick` and `backend` runs.
+
+Session 12 notes: the counts come from `node scripts/token-report.mjs` for session `497c6b74-…` (2026-11-16 – 2026-11-17, cloud container) and the 12 subagent logs it found, read after PR #25 was merged; this ai-log step is included only as far as it was stored. The SPEC clarify worker, the NAČRT worker (claude-opus-5-5) and the first Setup + Foundational worker (stopped when the container restarted) are not in the script output, so the totals are a lower bound. Tool calls and thinking tokens are not reported by the script (–).
