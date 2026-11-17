@@ -350,6 +350,9 @@
               }
             }
           },
+          "400": {
+            "description": "VALIDATION_FAILED: neveljavna parametra page ali size."
+          },
           "401": {
             "description": "Ključ manjka, je neveljaven, preklican ali potekel.",
             "content": {

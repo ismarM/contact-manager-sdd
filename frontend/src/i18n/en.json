@@ -1690,8 +1690,7 @@
     },
     "limits": {
       "heading": "Limits",
-      "rate": "At most {{limit}} requests per minute per key. Exceeding it returns 429 RATE_LIMITED with a Retry-After header; other keys and the web app are not affected.",
-      "body": "A request body can be at most 2 MB."
+      "rate": "At most {{limit}} requests per minute per key. Exceeding it returns 429 RATE_LIMITED with a Retry-After header; other keys and the web app are not affected."
     },
     "versions": {
       "heading": "Versions and changes",

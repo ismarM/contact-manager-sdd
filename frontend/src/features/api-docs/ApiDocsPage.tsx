@@ -199,7 +199,6 @@ export function ApiDocsPage() {
           {t('apiDocs.limits.heading')}
         </h2>
         <p>{t('apiDocs.limits.rate', { limit: RATE_LIMIT })}</p>
-        <p>{t('apiDocs.limits.body')}</p>
       </section>
 
       <section aria-labelledby="api-versions" className="flex flex-col gap-3">

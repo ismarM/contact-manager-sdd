@@ -1690,8 +1690,7 @@
     },
     "limits": {
       "heading": "Omejitve",
-      "rate": "Največ {{limit}} zahtev na minuto na ključ. Preseženo vrne 429 RATE_LIMITED z glavo Retry-After; drugi ključi in spletna aplikacija niso prizadeti.",
-      "body": "Telo zahteve je lahko veliko največ 2 MB."
+      "rate": "Največ {{limit}} zahtev na minuto na ključ. Preseženo vrne 429 RATE_LIMITED z glavo Retry-After; drugi ključi in spletna aplikacija niso prizadeti."
     },
     "versions": {
       "heading": "Različice in spremembe",
