@@ -57,7 +57,7 @@ class ContactPhotoAuditIT extends ImageApiTest {
     @Test
     void auditListEntryAndContactHistoryCarryThePhotoChangeWithoutFieldDifferences() throws Exception {
         Scenario s = scenario();
-        UUID contact = create(s, "Janez", "Novak", "01 111 111");
+        UUID contact = create(s, "Janez", "Novak", "+38612345678");
         addPhoto(s, contact, 0);
         addPhoto(s, contact, 1);
         UUID added = entryIds(s).get(1);
@@ -84,7 +84,7 @@ class ContactPhotoAuditIT extends ImageApiTest {
     @Test
     void entryChangesOfAPhotoEntryListNoFields() throws Exception {
         Scenario s = scenario();
-        UUID contact = create(s, "Janez", "Novak", "01 111 111");
+        UUID contact = create(s, "Janez", "Novak", "+38612345678");
         addPhoto(s, contact, 0);
         UUID photoEntry = entryIds(s).get(1);
 
@@ -103,9 +103,9 @@ class ContactPhotoAuditIT extends ImageApiTest {
     @Test
     void restoringAnOlderVersionOfAnExistingContactNeverChangesThePhoto() throws Exception {
         Scenario s = scenario();
-        UUID contact = create(s, "Janez", "Novak", "01 111 111");
+        UUID contact = create(s, "Janez", "Novak", "+38612345678");
         addPhoto(s, contact, 0);
-        long edited = editPhone(s, contact, "02 222 222", 1);
+        long edited = editPhone(s, contact, "+38640123456", 1);
         UUID create = entryIds(s).get(0);
         Long revision = revisionOf("kind = 'CONTACT' and contact_id = ?", contact);
         byte[] photoBefore = download(contactPhotoPath(s.group(), contact), s.token(Who.VIEWER))
@@ -118,7 +118,7 @@ class ContactPhotoAuditIT extends ImageApiTest {
 
         assertThat(response.statusCode()).isEqualTo(201);
         assertThat(json(response.body())).containsEntry("action", "RESTORE").containsEntry("photoChange", null);
-        assertThat(phoneOf(contact)).isEqualTo("01 111 111");
+        assertThat(phoneOf(contact)).isEqualTo("+38612345678");
         assertThat(revisionOf("kind = 'CONTACT' and contact_id = ?", contact)).isEqualTo(revision);
         assertThat(download(contactPhotoPath(s.group(), contact), s.token(Who.VIEWER))
                         .body())
@@ -128,7 +128,7 @@ class ContactPhotoAuditIT extends ImageApiTest {
     @Test
     void restoringTheStateOfAPhotoEntryWithUnchangedFieldsIsNoChanges() throws Exception {
         Scenario s = scenario();
-        UUID contact = create(s, "Janez", "Novak", "01 111 111");
+        UUID contact = create(s, "Janez", "Novak", "+38612345678");
         addPhoto(s, contact, 0);
         UUID photoEntry = entryIds(s).get(1);
         int entries = auditEntries(s.group()).size();
@@ -147,7 +147,7 @@ class ContactPhotoAuditIT extends ImageApiTest {
     @Test
     void restorePreviewOfAPhotoEntryHasNoFieldChanges() throws Exception {
         Scenario s = scenario();
-        UUID contact = create(s, "Janez", "Novak", "01 111 111");
+        UUID contact = create(s, "Janez", "Novak", "+38612345678");
         addPhoto(s, contact, 0);
         UUID photoEntry = entryIds(s).get(1);
 
@@ -162,7 +162,7 @@ class ContactPhotoAuditIT extends ImageApiTest {
     @Test
     void rollbackToAPhotoEntryOrBeforeItLeavesThePhotoAndAnUnchangedContactAlone() throws Exception {
         Scenario s = scenario();
-        UUID contact = create(s, "Janez", "Novak", "01 111 111");
+        UUID contact = create(s, "Janez", "Novak", "+38612345678");
         addPhoto(s, contact, 0);
         UUID create = entryIds(s).get(0);
         UUID photoEntry = entryIds(s).get(1);
@@ -188,10 +188,10 @@ class ContactPhotoAuditIT extends ImageApiTest {
     @Test
     void rollbackThatChangesFieldsKeepsTheCurrentPhoto() throws Exception {
         Scenario s = scenario();
-        UUID contact = create(s, "Janez", "Novak", "01 111 111");
+        UUID contact = create(s, "Janez", "Novak", "+38612345678");
         addPhoto(s, contact, 0);
         UUID photoEntry = entryIds(s).get(1);
-        editPhone(s, contact, "02 222 222", 1);
+        editPhone(s, contact, "+38640123456", 1);
         addPhoto(s, contact, 2); // zamenjava slike po urejanju: revizija 2
         byte[] photoBefore = download(contactPhotoPath(s.group(), contact), s.token(Who.VIEWER))
                 .body();
@@ -203,7 +203,7 @@ class ContactPhotoAuditIT extends ImageApiTest {
 
         assertThat(response.statusCode()).isEqualTo(201);
         assertThat(json(response.body())).containsEntry("action", "ROLLBACK").containsEntry("photoChange", null);
-        assertThat(phoneOf(contact)).isEqualTo("01 111 111");
+        assertThat(phoneOf(contact)).isEqualTo("+38612345678");
         assertThat(revisionOf("kind = 'CONTACT' and contact_id = ?", contact)).isEqualTo(2L);
         assertThat(download(contactPhotoPath(s.group(), contact), s.token(Who.VIEWER))
                         .body())
