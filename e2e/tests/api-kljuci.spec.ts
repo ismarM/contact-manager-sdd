@@ -110,7 +110,11 @@ test('FR-019-10, -12: ključ WRITE ustvari, spremeni in izbriše kontakt, sled i
     token,
   );
   expect(stale.status()).toBe(409);
-  expect(await stale.json()).toEqual({ code: 'VERSION_CONFLICT' });
+  // 409 vrne kodo in trenutno stanje vira (contracts – VersionConflict).
+  expect(await stale.json()).toMatchObject({
+    code: 'VERSION_CONFLICT',
+    current: { id: contact.id, version: next },
+  });
   const removed = await callV1(
     request,
     'DELETE',
