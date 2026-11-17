@@ -39,25 +39,23 @@ export interface GroupDetail {
   photoRevision?: number | null;
 }
 
-export interface GroupSummary {
+/** Element `GET /api/groups` (020): skupina z vlogo klicatelja. */
+export interface GroupItem {
   id: string;
   title: string;
   description: string | null;
   color: GroupColor;
   contactCount: number;
   photoRevision?: number | null;
+  role: Role;
 }
 
-export interface GroupSection {
-  role: Role;
+/** Odgovor `GET /api/groups` (020): en paginiran seznam nearhiviranih skupin z vlogo na elementu. */
+export interface GroupPage {
   total: number;
   page: number;
   size: number;
-  items: GroupSummary[];
-}
-
-export interface GroupSections {
-  sections: GroupSection[];
+  items: GroupItem[];
 }
 
 /** Telo `POST /api/groups` in (z `version`) `PUT /api/groups/{groupId}`. */

@@ -35,12 +35,13 @@ test('FR-017-14 FR-017-15 FR-017-16 FR-017-17: iskanje, filter vlog, arhivirane,
   createGroupsBulk(user.email, 60, 'OWNER');
   await page.goto('/');
   const main = page.getByRole('main');
-  await expect(main.getByRole('heading', { level: 2, name: 'Lastnik (60)' })).toBeVisible();
+  await expect(main.getByRole('navigation', { name: 'Strani rezultatov: Skupine' })).toContainText(
+    '1–25 od 60',
+  );
 
   // Skupina s tretje strani razdelka se najde z iskanjem po delu naziva.
   const search = main.getByRole('searchbox', { name: 'Išči skupine' });
   await search.fill('skupina 058');
-  await expect(main.getByRole('heading', { level: 2, name: 'Lastnik (1)' })).toBeVisible();
   await expect(main.getByRole('link', { name: 'Skupina 058' })).toBeVisible();
   await expect(main.getByRole('status').filter({ hasText: '1 zadetek' })).toBeVisible();
   await expect(page).toHaveURL(/[?&]q=skupina\+058|[?&]q=skupina%20058/);
@@ -62,7 +63,9 @@ test('FR-017-14 FR-017-15 FR-017-16 FR-017-17: iskanje, filter vlog, arhivirane,
   await expect(main.getByRole('heading', { level: 2, name: 'Ni zadetkov.' })).toBeVisible();
   await expectNoAxeViolations(page);
   await main.getByRole('link', { name: 'Počisti iskanje' }).click();
-  await expect(main.getByRole('heading', { level: 2, name: 'Lastnik (60)' })).toBeVisible();
+  await expect(main.getByRole('navigation', { name: 'Strani rezultatov: Skupine' })).toContainText(
+    '1–25 od 60',
+  );
   await expect(main.getByRole('searchbox', { name: 'Išči skupine' })).toHaveValue('');
 
   // Stanje Arhivirane: ista iskalna polja (brez razlike šumnikov), povezava na stran Arhivirane skupine ostane.

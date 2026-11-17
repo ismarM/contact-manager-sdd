@@ -116,9 +116,7 @@ test('FR-003-05 FR-003-06: urednik vidi pasico brez odarhiviranja, lastnik odarh
   await expect(banner(page)).toHaveCount(0);
   await expect(page.getByRole('form', { name: 'Podatki skupine' })).toBeVisible();
   await page.goto('/');
-  await expect(
-    page.getByRole('main').getByRole('heading', { level: 2, name: 'Lastnik (1)' }),
-  ).toBeVisible();
+  await expect(page.getByRole('main').getByRole('listitem')).toContainText('Vloga: Lastnik');
   await eva.context.close();
 });
 

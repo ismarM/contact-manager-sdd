@@ -133,7 +133,7 @@ test('FR-002-06: stranski pas (≥ 1024 px) ali meni preklopa (< 1024 px) prika�
   }
 });
 
-test('FR-002-04 FR-002-07 FR-002-08 FR-002-10: razdelki po vlogah, arhivirana skupina in tuja skupina', async ({
+test('FR-002-04 FR-002-07 FR-002-08 FR-002-10: ena zbirka z značkami vlog, arhivirana skupina in tuja skupina', async ({
   page,
   browser,
 }) => {
@@ -157,10 +157,11 @@ test('FR-002-04 FR-002-07 FR-002-08 FR-002-10: razdelki po vlogah, arhivirana sk
   await page.goto('/');
   const main = page.getByRole('main');
 
-  await expect(main.getByRole('heading', { level: 2 })).toHaveText([
-    'Lastnik (1)',
-    'Admin (1)',
-    'Bralec (1)',
+  await expect(main.getByRole('heading', { level: 2 })).toHaveCount(0);
+  await expect(main.getByRole('listitem')).toHaveText([
+    /Cvet.*Vloga: Admin/,
+    /Delta.*Vloga: Bralec/,
+    /Moja.*Vloga: Lastnik/,
   ]);
   await expect(main.getByRole('link', { name: 'Stara' })).toHaveCount(0);
   await expectNoAxeViolations(page);
@@ -412,10 +413,10 @@ test('SC-002: zaslon Skupine s 100 skupinami je pripravljen v manj kot 2 sekunda
 
   const started = Date.now();
   await page.goto('/');
-  await expect(main.getByRole('heading', { level: 2, name: 'Lastnik (100)' })).toBeVisible();
+  await expect(main.getByRole('link', { name: /^Skupina \d{3}$/ }).first()).toBeVisible();
   await expect(main.getByRole('link', { name: /^Skupina \d{3}$/ })).toHaveCount(25);
   const elapsed = Date.now() - started;
 
   expect(elapsed).toBeLessThan(2000);
-  await expect(main.getByRole('navigation', { name: 'Strani rezultatov: Lastnik' })).toBeVisible();
+  await expect(main.getByRole('navigation', { name: 'Strani rezultatov: Skupine' })).toBeVisible();
 });

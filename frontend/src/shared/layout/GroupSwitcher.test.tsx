@@ -36,7 +36,7 @@ describe('GroupSwitcher', () => {
     setViewport('narrow');
   });
 
-  it('FR-002-06: gumb v zgornji vrstici odpre meni z razdelki, največ 10 skupinami in »Vse skupine«', async () => {
+  it('FR-020-06: gumb v zgornji vrstici odpre meni z enim seznamom skupin brez razdelkov', async () => {
     const { user } = renderGroupsApp('/', { list: listReply(BY_ROLE), get: detail });
     const banner = await screen.findByRole('banner');
     const button = await within(banner).findByRole('button', { name: 'Preklopi skupino' });
@@ -45,12 +45,19 @@ describe('GroupSwitcher', () => {
     await user.click(button);
 
     const menu = await screen.findByRole('menu', { name: 'Preklopi skupino' });
-    expect(within(menu).getAllByRole('group')).toHaveLength(3);
-    expect(within(menu).getByRole('group', { name: 'Lastnik' })).toBeInTheDocument();
-    expect(within(menu).getByRole('group', { name: 'Admin' })).toBeInTheDocument();
-    const viewers = within(menu).getByRole('group', { name: 'Bralec' });
-    expect(within(menu).queryByRole('group', { name: 'Urednik' })).not.toBeInTheDocument();
-    expect(within(viewers).getAllByRole('menuitem', { name: /^Skupina \d{3}$/ })).toHaveLength(10);
+    expect(within(menu).queryAllByRole('group')).toHaveLength(0);
+    expect(within(menu).getAllByRole('menuitem', { name: /^Skupina \d{3}$/ })).toHaveLength(14);
+    expect(within(menu).getByRole('menuitem', { name: 'Alfa' })).toBeInTheDocument();
+    expect(within(menu).queryByRole('menuitem', { name: 'Vse skupine' })).not.toBeInTheDocument();
+  });
+
+  it('FR-020-06: pri več kot 100 skupinah je v meniju 100 skupin in »Vse skupine«', async () => {
+    const { user } = renderGroupsApp('/', { list: listReply({ OWNER: summaries(101) }) });
+    await user.click(await screen.findByRole('button', { name: 'Preklopi skupino' }));
+
+    const menu = await screen.findByRole('menu', { name: 'Preklopi skupino' });
+    await within(menu).findByRole('menuitem', { name: 'Skupina 001' });
+    expect(within(menu).getAllByRole('menuitem', { name: /^Skupina \d{3}$/ })).toHaveLength(100);
     expect(within(menu).getAllByRole('menuitem', { name: 'Vse skupine' })).toHaveLength(1);
   });
 

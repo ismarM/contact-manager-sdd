@@ -13,7 +13,7 @@ import { setupServer } from 'msw/node';
 // testi strani *Moj račun* privzet odgovor.
 // Začetni rokovalniki imajo najnižjo prednost – vsak `server.use` v testu jih preglasi.
 export const server = setupServer(
-  http.get('/api/groups', () => HttpResponse.json({ sections: [] })),
+  http.get('/api/groups', () => HttpResponse.json({ total: 0, page: 0, size: 25, items: [] })),
   http.get('/api/invitations/count', () => HttpResponse.json({ count: 0 })),
   http.get('/api/me/deletion-blockers', () => HttpResponse.json({ groups: [] })),
   // Od 014 *Moj račun* naloži gesla za aplikacijo (`GET /api/me/app-passwords` → prazen seznam).

@@ -4,8 +4,8 @@ import {
   type ArchivedGroups,
   type ArchivedGroupSummary,
   type GroupDetail,
-  type GroupSection,
-  type GroupSummary,
+  type GroupItem,
+  type GroupPage,
   type Role,
   ROLES,
 } from '../features/groups/types';
@@ -39,19 +39,20 @@ export function groupDetail(overrides: Partial<GroupDetail> = {}): GroupDetail {
   };
 }
 
-export function summary(n: number, overrides: Partial<GroupSummary> = {}): GroupSummary {
+export function summary(n: number, overrides: Partial<GroupItem> = {}): GroupItem {
   return {
     id: groupId(n),
     title: `Skupina ${n.toString().padStart(3, '0')}`,
     description: null,
     color: 'tinta',
     contactCount: 0,
+    role: 'OWNER',
     ...overrides,
   };
 }
 
 /** `count` skupin z naslovi »Skupina 001« … (že po abecedi). */
-export function summaries(count: number, start = 1): GroupSummary[] {
+export function summaries(count: number, start = 1): GroupItem[] {
   return Array.from({ length: count }, (_, i) => summary(start + i));
 }
 
@@ -97,28 +98,24 @@ export interface RecordedGroupRequest {
 }
 
 /**
- * Strežnik seznama po pogodbi: razdelki v vrstnem redu OWNER, ADMIN, EDITOR, VIEWER, prazni izpuščeni; brez `role` prva
- * stran vsakega razdelka, z `role` in `page` izbrana stran (privzeto `size` 25).
+ * Strežnik seznama po pogodbi (020): en seznam z vlogo na elementu, urejen po naslovu, nato id; `role` filtrira,
+ * `page` in `size` režeta (privzeto `size` 25). Skupine so podane po vlogah (ključ določi `role` elementa).
  */
-export function listReply(groups: Partial<Record<Role, GroupSummary[]>>) {
+export function listReply(groups: Partial<Record<Role, GroupItem[]>>) {
   return (url: URL): Reply => {
     const size = Number(url.searchParams.get('size') ?? 25);
     const role = url.searchParams.get('role') as Role | null;
     const page = Number(url.searchParams.get('page') ?? 0);
-    const sections: GroupSection[] = ROLES.filter((r) => (role ? r === role : true))
-      .filter((r) => (groups[r]?.length ?? 0) > 0)
-      .map((r) => {
-        const all = groups[r] ?? [];
-        const p = role ? page : 0;
-        return {
-          role: r,
-          total: all.length,
-          page: p,
-          size,
-          items: all.slice(p * size, p * size + size),
-        };
-      });
-    return { status: 200, body: { sections } as unknown as JsonBodyType };
+    const all = ROLES.flatMap((r) => (groups[r] ?? []).map((g) => ({ ...g, role: r })))
+      .filter((g) => (role ? g.role === role : true))
+      .sort((a, b) => a.title.localeCompare(b.title) || a.id.localeCompare(b.id));
+    const body: GroupPage = {
+      total: all.length,
+      page,
+      size,
+      items: all.slice(page * size, page * size + size),
+    };
+    return { status: 200, body: body as unknown as JsonBodyType };
   };
 }
 

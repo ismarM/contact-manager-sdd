@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
 import { useAuth } from '../auth/authContext';
-import type { ArchivedGroups, GroupSections } from '../groups/types';
+import type { ArchivedGroups, GroupPage } from '../groups/types';
 import type { ApiKey, ApiKeyCreate, ApiKeyCreated, ApiKeyUsage } from './types';
 
 // Odjemalec upravljanja API ključev 019 (plan.md – Public Interfaces, contracts/openapi.yaml).
@@ -38,13 +38,11 @@ export function useApiKeysApi() {
       groups: async (lang: 'sl' | 'en', signal?: AbortSignal): Promise<SelectableGroup[]> => {
         const query = `size=${GROUP_PAGE}&lang=${lang}`;
         const [active, archived] = await Promise.all([
-          authFetch<GroupSections>(`/groups?${query}`, { signal }),
+          authFetch<GroupPage>(`/groups?${query}`, { signal }),
           authFetch<ArchivedGroups>(`/groups/archived?${query}`, { signal }),
         ]);
         const groups: SelectableGroup[] = [
-          ...active.sections.flatMap((section) =>
-            section.items.map((group) => ({ id: group.id, title: group.title, archived: false })),
-          ),
+          ...active.items.map((group) => ({ id: group.id, title: group.title, archived: false })),
           ...archived.items.map((group) => ({ id: group.id, title: group.title, archived: true })),
         ];
         return groups.sort((a, b) => a.title.localeCompare(b.title, lang));

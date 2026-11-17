@@ -11,11 +11,11 @@ import {
   summary,
 } from '../../test/groupsApi';
 import { currentLocation } from '../../test/renderApp';
-import type { GroupSummary, Role } from './types';
+import type { GroupItem, Role } from './types';
 
 // Iskanje in filtri na zaslonu *Skupine* (FR-017-14 … -18; plan.md – Pages and routes; design.md 9.2).
 
-const BY_ROLE: Partial<Record<Role, GroupSummary[]>> = {
+const BY_ROLE: Partial<Record<Role, GroupItem[]>> = {
   OWNER: [summary(1, { title: 'Alfa' }), summary(2, { title: 'Šolski krožek' })],
   ADMIN: [summary(3, { title: 'Alfa klub' })],
   VIEWER: [summary(4, { title: 'Delta' })],
@@ -42,13 +42,15 @@ describe('Iskanje skupin', () => {
 
   it('FR-017-14 FR-017-18: vnos pošlje q po zakasnitvi, prikaže samo zadetke, objavi število in zapiše q v URL', async () => {
     const { api, user } = renderGroupsApp('/', { list });
-    await screen.findByRole('heading', { level: 2, name: 'Lastnik (2)' });
+    await screen.findByRole('link', { name: 'Alfa' });
 
     await user.type(await searchBox(), 'alf');
 
-    await screen.findByRole('heading', { level: 2, name: 'Lastnik (1)' });
-    expect(screen.getByRole('heading', { level: 2, name: 'Admin (1)' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: /Bralec/ })).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole('link', { name: 'Delta' })).not.toBeInTheDocument(),
+    );
+    expect(await screen.findByRole('link', { name: 'Alfa klub' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Alfa' })).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('2 zadetka');
     expect(currentLocation()).toBe('/?q=alf');
     const last = api.of('GET', '/api/groups').at(-1);
@@ -59,18 +61,19 @@ describe('Iskanje skupin', () => {
 
   it('FR-017-15: filter vlog (več hkrati) pokaže samo izbrane razdelke in zapiše role v URL', async () => {
     const { user } = renderGroupsApp('/', { list });
-    await screen.findByRole('heading', { level: 2, name: 'Lastnik (2)' });
+    await screen.findByRole('link', { name: 'Alfa' });
     const filter = screen.getByRole('group', { name: 'Vloga' });
 
     await user.click(within(filter).getByRole('checkbox', { name: 'Bralec' }));
     await waitFor(() =>
-      expect(screen.queryByRole('heading', { name: /Lastnik/ })).not.toBeInTheDocument(),
+      expect(screen.queryByRole('link', { name: 'Alfa' })).not.toBeInTheDocument(),
     );
-    expect(screen.getByRole('heading', { level: 2, name: 'Bralec (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Delta' })).toBeInTheDocument();
     await user.click(within(filter).getByRole('checkbox', { name: 'Lastnik' }));
 
-    expect(await screen.findByRole('heading', { level: 2, name: 'Lastnik (2)' })).toBeVisible();
-    expect(screen.queryByRole('heading', { name: /Admin/ })).not.toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Alfa' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Delta' })).toBeVisible();
+    expect(screen.queryByRole('link', { name: 'Alfa klub' })).not.toBeInTheDocument();
     expect(currentLocation()).toBe('/?role=OWNER&role=VIEWER');
   });
 
@@ -101,7 +104,7 @@ describe('Iskanje skupin', () => {
 
     await user.click(screen.getByRole('link', { name: 'Počisti iskanje' }));
 
-    expect(await screen.findByRole('heading', { level: 2, name: 'Lastnik (2)' })).toBeVisible();
+    expect(await screen.findByRole('link', { name: 'Alfa' })).toBeVisible();
     expect(await searchBox()).toHaveValue('');
     expect(screen.getByRole('checkbox', { name: 'Bralec' })).not.toBeChecked();
     expect(currentLocation()).toBe('/');
@@ -109,11 +112,11 @@ describe('Iskanje skupin', () => {
 
   it('FR-017-18: menjava iskanja pošlje zahtevek brez page (prva stran)', async () => {
     const { api, user } = renderGroupsApp('/', { list });
-    await screen.findByRole('heading', { level: 2, name: 'Lastnik (2)' });
+    await screen.findByRole('link', { name: 'Alfa' });
 
     await user.type(await searchBox(), 'delta');
 
-    await screen.findByRole('heading', { level: 2, name: 'Bralec (1)' });
+    await screen.findByRole('link', { name: 'Delta' });
     expect(api.of('GET', '/api/groups').at(-1)?.search.get('page')).toBeNull();
   });
 

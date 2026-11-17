@@ -24,20 +24,28 @@ describe('GroupsPage', () => {
     await i18n.changeLanguage('sl');
   });
 
-  it('FR-002-04: razdelki po vlogi v vrstnem redu Lastnik, Admin, Bralec s številom; razdelka Urednik ni', async () => {
+  it('FR-020-10: ena zbirka po naslovu z značko vloge na vsaki skupini, brez razdelkov', async () => {
     renderGroupsApp('/', { list: listReply(BY_ROLE) });
 
     const main = await screen.findByRole('main');
     expect(
       await within(main).findByRole('heading', { level: 1, name: 'Skupine' }),
     ).toBeInTheDocument();
-    await within(main).findByRole('heading', { level: 2, name: 'Lastnik (2)' });
-    expect(
-      within(main)
-        .getAllByRole('heading', { level: 2 })
-        .map((heading) => heading.textContent),
-    ).toEqual(['Lastnik (2)', 'Admin (1)', 'Bralec (1)']);
-    expect(within(main).queryByRole('heading', { name: /Urednik/ })).not.toBeInTheDocument();
+    await within(main).findByRole('link', { name: 'Alfa' });
+    expect(within(main).queryAllByRole('heading', { level: 2 })).toHaveLength(0);
+    const rows = within(main).getAllByRole('listitem');
+    expect(rows.map((row) => within(row).getByRole('link').textContent)).toEqual([
+      'Alfa',
+      'Beta',
+      'Cvet',
+      'Delta',
+    ]);
+    expect(rows.map((row) => row.textContent)).toEqual([
+      expect.stringContaining('Vloga: Lastnik'),
+      expect.stringContaining('Vloga: Lastnik'),
+      expect.stringContaining('Vloga: Admin'),
+      expect.stringContaining('Vloga: Bralec'),
+    ]);
   });
 
   it('FR-002-04: vrstica ima povezavo z naslovom, opis in število kontaktov', async () => {
@@ -56,14 +64,14 @@ describe('GroupsPage', () => {
 
   it('FR-002-04: zahtevek nosi jezik vmesnika; ob menjavi jezika se ponovi', async () => {
     const { api } = renderGroupsApp('/', { list: listReply(BY_ROLE) });
-    await screen.findByRole('heading', { level: 2, name: 'Lastnik (2)' });
+    await screen.findByRole('link', { name: 'Alfa' });
     expect(pageRequests(api)[0]?.search.get('lang')).toBe('sl');
 
     await i18n.changeLanguage('en');
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Groups' })).toBeInTheDocument();
     await waitFor(() => expect(pageRequests(api).at(-1)?.search.get('lang')).toBe('en'));
-    expect(await screen.findByRole('heading', { level: 2, name: 'Owner (2)' })).toBeInTheDocument();
+    expect(await screen.findAllByText('Owner')).not.toHaveLength(0);
   });
 
   it('FR-002-05: brez skupin – prazno stanje z eno kontrolo Nova skupina', async () => {
@@ -75,9 +83,7 @@ describe('GroupsPage', () => {
       await within(main).findByRole('heading', { level: 2, name: 'Nimaš še nobene skupine.' }),
     ).toBeInTheDocument();
     expect(within(main).getAllByRole('button', { name: 'Nova skupina' })).toHaveLength(1);
-    expect(
-      within(main).queryByRole('heading', { level: 2, name: /\(\d+\)$/ }),
-    ).not.toBeInTheDocument();
+    expect(within(main).queryByRole('list')).not.toBeInTheDocument();
   });
 
   it('FR-002-04: med počasnim nalaganjem je prikazano »Nalagam…« in seznam je zaseden', async () => {
@@ -99,9 +105,7 @@ describe('GroupsPage', () => {
     expect(within(main).getByRole('list', { busy: true })).toHaveAttribute('aria-busy', 'true');
 
     release();
-    expect(
-      await screen.findByRole('heading', { level: 2, name: 'Lastnik (2)' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Alfa' })).toBeInTheDocument();
   });
 
   it('FR-002-13: napaka nalaganja – sporočilo in Poskusi znova ponovi zahtevek', async () => {
@@ -121,9 +125,7 @@ describe('GroupsPage', () => {
 
     await user.click(within(alert).getByRole('button', { name: 'Poskusi znova' }));
 
-    expect(
-      await screen.findByRole('heading', { level: 2, name: 'Lastnik (2)' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Alfa' })).toBeInTheDocument();
     expect(pageRequests(api).length).toBeGreaterThan(before);
   });
 

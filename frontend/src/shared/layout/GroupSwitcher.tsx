@@ -1,5 +1,5 @@
 import { IconChevronDown, IconStack2 } from '@tabler/icons-react';
-import { Fragment, useRef } from 'react';
+import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useMatch } from 'react-router';
 
@@ -9,7 +9,6 @@ import { Avatar } from '../images/Avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -18,12 +17,12 @@ import {
 import { focusRing } from '../ui/styles';
 
 /**
- * Preklop skupine pod 1024 px (design.md 7.1, 8.16; FR-002-06): meni z istimi razdelki in omejitvami kot stranski pas.
+ * Preklop skupine pod 1024 px (design.md 7.1, 8.16; FR-002-06): meni z istim seznamom (do 100 skupin) kot stranski pas.
  * Gumb ima samo ikono (dostopno ime »Preklopi skupino«, WCAG 2.5.3 – kot meni računa, CR-01).
  */
 export function GroupSwitcher() {
   const { t } = useTranslation();
-  const { sections, error, refresh } = useGroups();
+  const { groups, total, error, refresh } = useGroups();
   const current = useMatch('/groups/:groupId/*')?.params.groupId;
   const trigger = useRef<HTMLButtonElement>(null);
 
@@ -45,38 +44,28 @@ export function GroupSwitcher() {
           trigger.current?.focus();
         }}
       >
-        {sections.map((section, index) => (
-          <Fragment key={section.role}>
-            {index > 0 && <DropdownMenuSeparator />}
-            <DropdownMenuGroup aria-labelledby={`switcher-${section.role}`}>
-              <DropdownMenuLabel id={`switcher-${section.role}`}>
-                {t(`roles.${section.role}`)}
-              </DropdownMenuLabel>
-              {section.items.map((group) => (
-                <DropdownMenuItem key={group.id} asChild>
-                  <Link
-                    to={`/groups/${group.id}`}
-                    aria-current={group.id === current ? 'page' : undefined}
-                    className="aria-[current=page]:bg-selected"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={`inline-block h-5 w-1 shrink-0 rounded-sm ${COLOR_SWATCH[group.color]}`}
-                    />
-                    <Avatar
-                      kind="group"
-                      name={group.title}
-                      colorSeed={group.color}
-                      size={24}
-                      alt=""
-                      photo={{ path: `/groups/${group.id}/photo`, revision: group.photoRevision }}
-                    />
-                    <span className="truncate">{group.title}</span>
-                  </Link>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuGroup>
-          </Fragment>
+        {groups.map((group) => (
+          <DropdownMenuItem key={group.id} asChild>
+            <Link
+              to={`/groups/${group.id}`}
+              aria-current={group.id === current ? 'page' : undefined}
+              className="aria-[current=page]:bg-selected"
+            >
+              <span
+                aria-hidden="true"
+                className={`inline-block h-5 w-1 shrink-0 rounded-sm ${COLOR_SWATCH[group.color]}`}
+              />
+              <Avatar
+                kind="group"
+                name={group.title}
+                colorSeed={group.color}
+                size={24}
+                alt=""
+                photo={{ path: `/groups/${group.id}/photo`, revision: group.photoRevision }}
+              />
+              <span className="truncate">{group.title}</span>
+            </Link>
+          </DropdownMenuItem>
         ))}
         {error && (
           <>
@@ -88,7 +77,7 @@ export function GroupSwitcher() {
         <DropdownMenuItem asChild>
           <Link to="/groups/archived">{t('groups.archivedList.link')}</Link>
         </DropdownMenuItem>
-        {sections.some((section) => section.total > section.items.length) && (
+        {total > groups.length && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>

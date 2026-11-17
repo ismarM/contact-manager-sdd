@@ -27,21 +27,24 @@ describe('Sidebar', () => {
     setViewport('wide');
   });
 
-  it('FR-002-06: razdelki po vlogi brez praznih, največ 10 skupin na razdelek in »Vse skupine« pri več kot 10', async () => {
+  it('FR-020-06: en seznam mojih skupin (brez razdelkov po vlogah) in brez »Vse skupine«, kadar so vse prikazane', async () => {
     const { listRequests } = renderGroupsApp('/', { list: listReply(BY_ROLE) });
 
     const sidebar = await screen.findByRole('navigation', { name: 'Moje skupine' });
     await within(sidebar).findByRole('link', { name: 'Alfa' });
-    expect(
-      within(sidebar)
-        .getAllByRole('heading', { level: 2 })
-        .map((heading) => heading.textContent),
-    ).toEqual(['Lastnik', 'Admin', 'Bralec']);
-    expect(within(sidebar).getAllByRole('link', { name: /^Skupina \d{3}$/ })).toHaveLength(10);
-    const all = within(sidebar).getAllByRole('link', { name: 'Vse skupine' });
-    expect(all).toHaveLength(1);
-    expect(all[0]).toHaveAttribute('href', '/');
-    expect(listRequests(10)[0]?.search.get('lang')).toBe('sl');
+    expect(within(sidebar).queryAllByRole('heading')).toHaveLength(0);
+    expect(within(sidebar).getAllByRole('link', { name: /^Skupina \d{3}$/ })).toHaveLength(14);
+    expect(within(sidebar).queryByRole('link', { name: 'Vse skupine' })).not.toBeInTheDocument();
+    expect(listRequests(100)[0]?.search.get('lang')).toBe('sl');
+  });
+
+  it('FR-020-06: pri več kot 100 skupinah je prikazanih 100 in »Vse skupine« vodi na /', async () => {
+    renderGroupsApp('/', { list: listReply({ OWNER: summaries(101) }) });
+
+    const sidebar = await screen.findByRole('navigation', { name: 'Moje skupine' });
+    await within(sidebar).findByRole('link', { name: 'Skupina 001' });
+    expect(within(sidebar).getAllByRole('link', { name: /^Skupina \d{3}$/ })).toHaveLength(100);
+    expect(within(sidebar).getByRole('link', { name: 'Vse skupine' })).toHaveAttribute('href', '/');
   });
 
   it('FR-002-06: stranski pas je prisoten tudi na Mojem računu', async () => {
@@ -71,14 +74,14 @@ describe('Sidebar', () => {
     });
     const sidebar = await screen.findByRole('navigation', { name: 'Moje skupine' });
     await within(sidebar).findByRole('link', { name: 'Alfa' });
-    const before = listRequests(10).length;
+    const before = listRequests(100).length;
 
     await user.click(within(sidebar).getByRole('button', { name: 'Nova skupina' }));
     const dialog = await screen.findByRole('dialog', { name: 'Nova skupina' });
     await user.type(within(dialog).getByRole('textbox', { name: 'Naslov' }), 'Nova');
     await user.click(within(dialog).getByRole('button', { name: 'Ustvari skupino' }));
 
-    await waitFor(() => expect(listRequests(10).length).toBeGreaterThan(before));
+    await waitFor(() => expect(listRequests(100).length).toBeGreaterThan(before));
   });
 
   it('FR-002-06: pri ozkem zaslonu stranskega pasu ni', async () => {
@@ -108,10 +111,7 @@ describe('Sidebar', () => {
       const sidebar = await screen.findByRole('navigation', { name });
       await within(sidebar).findByRole('link', { name: 'Alfa' });
       if (language === 'en') {
-        expect(within(sidebar).getByRole('link', { name: 'All groups' })).toBeInTheDocument();
-        expect(
-          within(sidebar).getByRole('heading', { level: 2, name: 'Viewer' }),
-        ).toBeInTheDocument();
+        expect(within(sidebar).getByRole('link', { name: 'Alfa' })).toBeInTheDocument();
       }
 
       expect((await axe(container)).violations).toEqual([]);
