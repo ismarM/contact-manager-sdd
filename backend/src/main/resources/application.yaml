@@ -63,6 +63,17 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p [%X{requestId:-}] %logger{36} : %m%n"
 
+# Slike (018, plan.md – Technical Context): meje obdelave in omejitev nalaganj.
+images:
+  max-bytes: 5242880
+  max-side: 4096
+  decode-side: 2048
+  concurrent: 2
+  upload-per-minute: 10
+  google:
+    allowed-hosts:
+      - '^lh[0-9]+\.googleusercontent\.com$'
+
 # 016 kartografski posrednik (specs/016-tipizirani-atributi/research.md R-08): OpenStreetMap samo prek strežnika;
 # URL-ji so nastavljivi (v testih nadomestni strežnik). User-Agent brez osebnih podatkov. Vsi predpomnilniki so v pomnilniku.
 maps:

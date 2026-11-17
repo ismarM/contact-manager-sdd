@@ -71,7 +71,8 @@ class AuditReadIT extends AuditApiTest {
                         "contactName",
                         "target",
                         "targetInitial",
-                        "apiKeyName");
+                        "apiKeyName",
+                        "photoChange");
         assertThat(newest)
                 .containsEntry("action", "CREATE")
                 .containsEntry("contactCount", 1)

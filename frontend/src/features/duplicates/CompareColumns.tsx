@@ -1,7 +1,9 @@
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { Avatar } from '../../shared/images/Avatar';
 import { secondaryButton } from '../../shared/ui/styles';
+import { useGroup } from '../groups/groupContext';
 import type { CompareContact } from './types';
 
 export const contactName = (contact: Pick<CompareContact, 'firstName' | 'lastName'>) =>
@@ -53,6 +55,7 @@ export function CompareColumns({
 }) {
   const { t } = useTranslation();
   const prefix = useId();
+  const { group } = useGroup();
 
   return (
     <div className="flex flex-col gap-3">
@@ -67,8 +70,21 @@ export function CompareColumns({
               aria-labelledby={nameId}
               className="flex min-w-0 flex-col items-start gap-2 rounded-md border border-border bg-card p-3"
             >
-              <span id={nameId} className="font-bold break-words">
-                {contactName(contact)}
+              <span className="flex min-w-0 items-center gap-2">
+                <Avatar
+                  kind="contact"
+                  name={contactName(contact)}
+                  colorSeed={contact.id}
+                  size={32}
+                  alt=""
+                  photo={{
+                    path: `/groups/${group.id}/contacts/${contact.id}/photo`,
+                    revision: contact.photoRevision,
+                  }}
+                />
+                <span id={nameId} className="font-bold break-words">
+                  {contactName(contact)}
+                </span>
               </span>
               {index === 0 && (
                 <span className="rounded-md bg-selected px-2 py-0.5 text-sm font-bold">

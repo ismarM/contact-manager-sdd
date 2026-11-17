@@ -14,6 +14,7 @@ import si.contactmanager.audit.AuditAction;
 import si.contactmanager.audit.AuditLog;
 import si.contactmanager.audit.ContactChange;
 import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.image.ImageStore;
 import si.contactmanager.shared.error.GroupArchivedException;
 import si.contactmanager.shared.error.NotFoundException;
 import si.contactmanager.shared.error.ValidationException;
@@ -30,6 +31,7 @@ class DuplicateService {
     private static final Comparator<ContactState> OLDEST_FIRST = Comparator.comparing(ContactState::createdAt);
 
     private final ContactRepository contacts;
+    private final ImageStore images;
     private final ContactSnapshots snapshots;
     private final AuditLog audit;
     private final CanonicalForms canonical;
@@ -38,12 +40,14 @@ class DuplicateService {
 
     DuplicateService(
             ContactRepository contacts,
+            ImageStore images,
             ContactSnapshots snapshots,
             AuditLog audit,
             CanonicalForms canonical,
             TypedAttributes typed) {
         this.typed = typed;
         this.canonical = canonical;
+        this.images = images;
         this.contacts = contacts;
         this.snapshots = snapshots;
         this.audit = audit;
@@ -51,7 +55,30 @@ class DuplicateService {
 
     /** Skupine dvojnikov po kategoriji med vsemi kontakti skupine (FR-011-02 … FR-011-07). */
     DuplicatePage search(Membership membership, String category, int page, int size) {
-        return DuplicateGroups.build(category, contacts.duplicateCandidates(membership.groupId()), page, size);
+        DuplicatePage found =
+                DuplicateGroups.build(category, contacts.duplicateCandidates(membership.groupId()), page, size);
+        List<UUID> shown = found.groups().stream()
+                .flatMap(group -> group.contacts().stream())
+                .map(DuplicateContact::id)
+                .toList();
+        Map<UUID, Long> revisions = images.contactRevisions(membership.groupId(), shown);
+        if (revisions.isEmpty()) {
+            return found;
+        }
+        // Slike (018): revizija se doda samo kontaktom strani, ki se vrne (FR-018-09).
+        return new DuplicatePage(
+                found.category(),
+                found.total(),
+                found.page(),
+                found.size(),
+                found.groups().stream()
+                        .map(group -> new DuplicateGroup(
+                                group.reason(),
+                                group.size(),
+                                group.contacts().stream()
+                                        .map(c -> new DuplicateContact(c.id(), c.displayName(), revisions.get(c.id())))
+                                        .toList()))
+                        .toList());
     }
 
     /**
@@ -73,10 +100,11 @@ class DuplicateService {
     /** Trenutni podatki in verzije obstoječih kontaktov, razvrščeni po {@code created_at}, {@code id} (FR-011-08). */
     Comparison compare(Membership membership, List<UUID> ids) {
         Map<UUID, ContactState> states = snapshots.load(membership.groupId(), ids);
+        Map<UUID, Long> revisions = images.contactRevisions(membership.groupId(), states.keySet());
         List<CompareContact> result = states.entrySet().stream()
                 .sorted(Map.Entry.<UUID, ContactState>comparingByValue(OLDEST_FIRST)
                         .thenComparing(entry -> entry.getKey().toString()))
-                .map(entry -> compareContact(entry.getKey(), entry.getValue()))
+                .map(entry -> compareContact(entry.getKey(), entry.getValue(), revisions.get(entry.getKey())))
                 .toList();
         return new Comparison(result);
     }
@@ -155,6 +183,8 @@ class DuplicateService {
 
         ContactState keeperBefore = before.get(keeper);
         snapshots.replaceMerged(group, membership.userId(), keeper, merged(keeperBefore, result));
+        // Slike (018, FR-018-11): v isti transakciji, pred izbrisom poraženih (sprožilec jih sicer samo odklopi).
+        images.mergeInto(group, keeper, removed);
         contacts.deleteAll(group, removed);
         ContactState keeperAfter = snapshots.snapshot(group, keeper);
 
@@ -186,7 +216,7 @@ class DuplicateService {
                 null);
     }
 
-    private static CompareContact compareContact(UUID id, ContactState state) {
+    private static CompareContact compareContact(UUID id, ContactState state, Long photoRevision) {
         return new CompareContact(
                 id,
                 state.version(),
@@ -199,7 +229,8 @@ class DuplicateService {
                 state.company(),
                 state.country(),
                 state.attributes(),
-                state.tags());
+                state.tags(),
+                photoRevision);
     }
 
     private static String name(ContactState state) {

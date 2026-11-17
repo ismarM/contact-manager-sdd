@@ -15,7 +15,26 @@ final class ExportAssembler {
             String theme,
             String phoneFormat,
             String dateFormat,
-            String addressFormat) {}
+            String addressFormat,
+            MyData.Photo photo) {
+
+        ProfileRow(
+                String name,
+                String email,
+                Instant createdAt,
+                String language,
+                String theme,
+                String phoneFormat,
+                String dateFormat,
+                String addressFormat) {
+            this(name, email, createdAt, language, theme, phoneFormat, dateFormat, addressFormat, null);
+        }
+
+        ProfileRow withPhoto(MyData.Photo photo) {
+            return new ProfileRow(
+                    name, email, createdAt, language, theme, phoneFormat, dateFormat, addressFormat, photo);
+        }
+    }
 
     record MembershipRow(String groupTitle, String role, Instant joinedAt, boolean archived, boolean hasOwner) {}
 
@@ -85,7 +104,8 @@ final class ExportAssembler {
                         profile.theme(),
                         profile.phoneFormat(),
                         profile.dateFormat(),
-                        profile.addressFormat()),
+                        profile.addressFormat(),
+                        profile.photo()),
                 memberships.stream()
                         .sorted(Comparator.comparing(MembershipRow::joinedAt).thenComparing(MembershipRow::groupTitle))
                         .map(row -> new MyData.Membership(row.groupTitle(), row.role(), row.joinedAt(), state(row)))

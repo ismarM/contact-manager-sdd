@@ -5,6 +5,8 @@ export type DuplicateCategory = 'name' | 'email' | 'phone';
 export interface DuplicateContact {
   id: string;
   displayName: string;
+  /** 018: revizija slike kontakta; odsotno/`null` = brez slike. */
+  photoRevision?: number | null;
 }
 
 export interface DuplicateGroup {
@@ -43,6 +45,7 @@ export interface CompareContact {
   /** 016: tip ključa; besedilo ali deli naslova. */
   attributes: { key: string; type?: AttributeType; value?: string; parts?: Address }[];
   tags: string[];
+  photoRevision?: number | null;
 }
 
 export interface Comparison {

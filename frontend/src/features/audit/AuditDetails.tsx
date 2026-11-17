@@ -8,7 +8,7 @@ import { SectionPagination } from '../groups/SectionPagination';
 import { useAuditApi } from './api';
 import { DEFAULT_SIZE } from './auditRouting';
 import { ChangeTable } from './ChangeTable';
-import type { ChangePage } from './types';
+import type { ChangePage, PhotoChange } from './types';
 
 type State = { kind: 'loading' } | { kind: 'failed' } | { kind: 'ready'; data: ChangePage };
 
@@ -16,6 +16,10 @@ type State = { kind: 'loading' } | { kind: 'failed' } | { kind: 'ready'; data: C
 function AffectedContact({ change }: { change: ChangePage['items'][number] }) {
   const [open, setOpen] = useState(false);
   const summary = useId();
+  // 018: vnos, ki je spremenil samo sliko, nima razlik polj; prazne preglednice ne izrišemo (nikoli »Ni sprememb«).
+  if (change.fields.length === 0) {
+    return <li className="py-1 font-bold break-words">{change.displayName}</li>;
+  }
   return (
     <li>
       <details
@@ -32,7 +36,7 @@ function AffectedContact({ change }: { change: ChangePage['items'][number] }) {
   );
 }
 
-function Changes({ entryId }: { entryId: string }) {
+function Changes({ entryId, photoChange }: { entryId: string; photoChange?: PhotoChange | null }) {
   const { t } = useTranslation();
   const api = useAuditApi();
   const { group } = useGroup();
@@ -81,6 +85,7 @@ function Changes({ entryId }: { entryId: string }) {
   const { data } = state;
   return (
     <div className="flex flex-col gap-3">
+      {photoChange && <p>{t(`images.audit.${photoChange}`)}</p>}
       <ul aria-label={t('audit.details.affected')} className="flex flex-col">
         {data.items.map((change) => (
           <AffectedContact key={change.contactId} change={change} />
@@ -108,7 +113,13 @@ function Changes({ entryId }: { entryId: string }) {
  * *Podrobnosti* vnosa (design.md 9.6): `details`/`summary`; spremembe se naložijo ob prvem odprtju, nato kot
  * paginiran seznam prizadetih kontaktov (FR-005-08).
  */
-export function AuditDetails({ entryId }: { entryId: string }) {
+export function AuditDetails({
+  entryId,
+  photoChange,
+}: {
+  entryId: string;
+  photoChange?: PhotoChange | null;
+}) {
   const { t } = useTranslation();
   const summary = useId();
   const [opened, setOpened] = useState(false);
@@ -123,7 +134,7 @@ export function AuditDetails({ entryId }: { entryId: string }) {
       <summary id={summary} className="cursor-pointer font-bold text-primary">
         {t('audit.details.summary')}
       </summary>
-      {opened && <Changes entryId={entryId} />}
+      {opened && <Changes entryId={entryId} photoChange={photoChange} />}
     </details>
   );
 }

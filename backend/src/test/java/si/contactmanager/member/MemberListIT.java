@@ -56,7 +56,16 @@ class MemberListIT extends MemberApiTest {
         assertThat(UUID.fromString((String) first.get("id"))).isEqualTo(members.memberId(f.group(), id(f.owner())));
         assertThat(first.keySet())
                 .containsExactlyInAnyOrder(
-                        "id", "name", "email", "role", "version", "self", "canManage", "updatedBy", "updatedAt");
+                        "id",
+                        "name",
+                        "email",
+                        "role",
+                        "version",
+                        "self",
+                        "canManage",
+                        "updatedBy",
+                        "updatedAt",
+                        "photoRevision");
     }
 
     @Test

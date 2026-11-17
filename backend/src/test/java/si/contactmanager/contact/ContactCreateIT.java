@@ -49,7 +49,8 @@ class ContactCreateIT extends ContactApiTest {
                         "createdAt",
                         "updatedAt",
                         "updatedBy",
-                        "reverted")
+                        "reverted",
+                        "photoRevision")
                 .containsEntry("firstName", "Janez")
                 .containsEntry("lastName", "Novak")
                 .containsEntry("displayName", "Janez Novak")

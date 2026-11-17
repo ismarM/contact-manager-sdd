@@ -115,6 +115,7 @@ describe('firebaseGateway', () => {
         displayName: null,
         emailVerified: true,
         providers: ['google.com', 'password'],
+        hasPhotoUrl: false,
       },
       null,
     ]);

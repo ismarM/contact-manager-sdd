@@ -2,6 +2,7 @@ import { IconAlertTriangle } from '@tabler/icons-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { Avatar } from '../../shared/images/Avatar';
 import { errorAlert, secondaryButton } from '../../shared/ui/styles';
 import { ApiError } from '../../shared/api/client';
 import { useListLanguage } from '../groups/api';
@@ -126,7 +127,10 @@ export function MembersSection() {
             {result.deletedOwner && page === 0 && (
               <tr className="border-b border-border max-sm:block max-sm:py-2">
                 <MemberCell label={t('members.table.member')} className={cell}>
-                  <em className="text-muted-foreground">{t('members.table.deletedUser')}</em>
+                  <span className="inline-flex items-center gap-3">
+                    <Avatar kind="user" name={null} colorSeed="" size={32} alt="" />
+                    <em className="text-muted-foreground">{t('members.table.deletedUser')}</em>
+                  </span>
                 </MemberCell>
                 <MemberCell label={t('members.table.email')} className={cell} />
                 <MemberCell label={t('members.table.role')} className={cell}>

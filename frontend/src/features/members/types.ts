@@ -14,6 +14,8 @@ export interface Member {
   version: number;
   self: boolean;
   canManage: boolean;
+  /** Revizija slike člana (`null` = brez slike, 018). */
+  photoRevision: number | null;
   updatedBy: UserRef | null;
   updatedAt: string | null;
 }

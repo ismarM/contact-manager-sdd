@@ -20,7 +20,8 @@ class MemberRepository {
             "CASE gm.role WHEN 'OWNER' THEN 0 WHEN 'ADMIN' THEN 1 WHEN 'EDITOR' THEN 2 ELSE 3 END";
 
     private static final String SELECT = "SELECT gm.id, u.name, u.email, gm.role, gm.version,"
-            + " gm.user_id = :caller AS self, gm.updated_at, ub.name AS by_name, ub.email AS by_email"
+            + " gm.user_id = :caller AS self, gm.updated_at, ub.name AS by_name, ub.email AS by_email,"
+            + " (SELECT i.revision FROM image i WHERE i.kind = 'USER' AND i.user_id = gm.user_id) AS photo_revision"
             + " FROM group_member gm JOIN app_user u ON u.id = gm.user_id"
             + " LEFT JOIN app_user ub ON ub.id = gm.updated_by WHERE gm.group_id = :group";
 
@@ -152,7 +153,8 @@ class MemberRepository {
                 rs.getLong("version"),
                 rs.getBoolean("self"),
                 byEmail == null ? null : new UserRef(rs.getString("by_name"), byEmail),
-                updatedAt == null ? null : updatedAt.toInstant());
+                updatedAt == null ? null : updatedAt.toInstant(),
+                rs.getObject("photo_revision", Long.class));
     }
 
     /** Vrstica brez izračuna {@code canManage} (ga doda servis z {@link MemberRules}). */
@@ -164,7 +166,8 @@ class MemberRepository {
             long version,
             boolean self,
             UserRef updatedBy,
-            Instant updatedAt) {
+            Instant updatedAt,
+            Long photoRevision) {
 
         Member toMember(Role caller, boolean archived) {
             return new Member(
@@ -176,7 +179,8 @@ class MemberRepository {
                     self,
                     MemberRules.canManage(caller, role, archived),
                     updatedBy,
-                    updatedAt);
+                    updatedAt,
+                    photoRevision);
         }
     }
 }

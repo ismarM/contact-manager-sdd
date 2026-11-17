@@ -97,7 +97,8 @@ class MyDataExportIT extends AccountApiTest {
                         "theme",
                         "phoneFormat",
                         "dateFormat",
-                        "addressFormat");
+                        "addressFormat",
+                        "photo");
         assertThat(profile.get("name").asString()).isEqualTo("Pia Kos");
         assertThat(profile.get("email").asString()).isEqualTo(email(pia));
         assertThat(instant(profile.get("registeredAt")))

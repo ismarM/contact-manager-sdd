@@ -19,7 +19,8 @@ public record CompareContact(
         String company,
         String country,
         List<Attribute> attributes,
-        List<String> tags) {
+        List<String> tags,
+        Long photoRevision) {
     /** Stanje brez razčlenjenega naslova (pred 016): {@code addressParts} je {@code null}. */
     public CompareContact(
             UUID id,
@@ -33,7 +34,8 @@ public record CompareContact(
             String company,
             String country,
             List<Attribute> attributes,
-            List<String> tags) {
+            List<String> tags,
+            Long photoRevision) {
         this(
                 id,
                 version,
@@ -47,6 +49,7 @@ public record CompareContact(
                 company,
                 country,
                 attributes,
-                tags);
+                tags,
+                photoRevision);
     }
 }

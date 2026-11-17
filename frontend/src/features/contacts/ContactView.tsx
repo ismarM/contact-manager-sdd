@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 
+import { Avatar } from '../../shared/images/Avatar';
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
 import {
@@ -138,9 +139,22 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
           {t('contacts.view.back')}
         </Link>
       )}
-      <h2 id={`contact-${contact.id}`} className="text-2xl font-bold break-words">
-        {contact.displayName}
-      </h2>
+      <div className="flex min-w-0 items-center gap-4">
+        <Avatar
+          kind="contact"
+          name={contact.displayName}
+          colorSeed={contact.id}
+          size={64}
+          alt=""
+          photo={{
+            path: `/groups/${group.id}/contacts/${contact.id}/photo`,
+            revision: contact.photoRevision,
+          }}
+        />
+        <h2 id={`contact-${contact.id}`} className="min-w-0 text-2xl font-bold break-words">
+          {contact.displayName}
+        </h2>
+      </div>
 
       {contact.reverted && <RevertedBadge info={contact.reverted} />}
 

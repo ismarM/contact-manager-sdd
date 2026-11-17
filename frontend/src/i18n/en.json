@@ -113,7 +113,7 @@
     "themeDark": "Dark",
     "data": {
       "heading": "My data",
-      "description": "The export contains your personal data, group memberships, received and sent invitations and the groups you own. It does not contain contacts or audit trails.",
+      "description": "The export contains your personal data, profile picture, group memberships, received and sent invitations and the groups you own. It does not contain contacts or audit trails.",
       "download": "Download my data (JSON)",
       "success": "Your data has been downloaded.",
       "error": "Your data could not be prepared. Please try again.",
@@ -822,7 +822,13 @@
       "ATTRIBUTE_TYPE_two": "changed the type of the key “{{key}}” from {{before}} to {{after}} ({{count}} contacts)",
       "ATTRIBUTE_TYPE_few": "changed the type of the key “{{key}}” from {{before}} to {{after}} ({{count}} contacts)",
       "ATTRIBUTE_TYPE_other": "changed the type of the key “{{key}}” from {{before}} to {{after}} ({{count}} contacts)",
-      "ATTRIBUTE_TYPE_generic": "changed the type of an attribute key"
+      "ATTRIBUTE_TYPE_generic": "changed the type of an attribute key",
+      "PHOTO_ADDED": "added a contact picture",
+      "PHOTO_ADDED_named": "added a picture to contact {{name}}",
+      "PHOTO_REPLACED": "replaced a contact picture",
+      "PHOTO_REPLACED_named": "replaced the picture of contact {{name}}",
+      "PHOTO_REMOVED": "removed a contact picture",
+      "PHOTO_REMOVED_named": "removed the picture of contact {{name}}"
     },
     "filters": {
       "toggle": "Filters",
@@ -1802,6 +1808,83 @@
       "text": "The API is versioned in the path (/v1). New optional fields are not an incompatible change – a program should ignore unknown fields. A removed or renamed field or a changed meaning means a new version; the existing one stays unchanged.",
       "changes": "Changes",
       "v1": "Version 1: groups and contacts (read, create, change, delete)."
+    }
+  },
+  "images": {
+    "profile": {
+      "heading": "Profile picture",
+      "description": "The picture is shown in the account menu and in the member lists of your groups.",
+      "uploaded": "The picture is saved.",
+      "removed": "The picture is removed."
+    },
+    "avatar": "Avatar: {{name}}",
+    "deletedUser": "Deleted user",
+    "upload": "Upload picture",
+    "replace": "Replace picture",
+    "remove": "Remove picture",
+    "removeDialog": {
+      "title": "Remove the picture?",
+      "body": "The picture will be removed and can no longer be shown. Initials will be shown instead.",
+      "confirm": "Remove picture",
+      "cancel": "Cancel"
+    },
+    "dialog": {
+      "title": "Picture",
+      "choose": "Choose a file",
+      "dropHint": "or drag and drop it here (JPEG, PNG or WebP)",
+      "dropActive": "Drop the file here",
+      "loading": "Reading the picture…",
+      "cropLabel": "Crop the picture",
+      "cropHint": "Arrow keys move the picture, plus and minus change the zoom, Home resets the crop.",
+      "cropFrameCircle": "Round frame: the part of the picture that will be visible",
+      "cropFrameSquare": "Square frame: the part of the picture that will be visible",
+      "zoom": "Zoom",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "zoomValue": "Zoom {{percent}} %",
+      "moved": "Picture moved: {{direction}}",
+      "reset": "Crop reset",
+      "left": "left",
+      "right": "right",
+      "up": "up",
+      "down": "down",
+      "save": "Save picture",
+      "saving": "Uploading picture…",
+      "cancel": "Cancel",
+      "retry": "Try again",
+      "otherFile": "Choose another file"
+    },
+    "errors": {
+      "INVALID_IMAGE": "The file is not a valid picture. Choose a JPEG, PNG or WebP picture.",
+      "IMAGE_TOO_LARGE": "The picture is too large. Choose a smaller picture.",
+      "FILE_TOO_LARGE": "The file is too large. Choose a smaller file.",
+      "RATE_LIMITED": "Too many attempts. Wait a moment and try again.",
+      "GOOGLE_PHOTO_UNAVAILABLE": "The picture of the Google account cannot be used.",
+      "generic": "The picture could not be saved. Try again.",
+      "VERSION_CONFLICT": "The data was changed in the meantime. Reload the page and try again.",
+      "GROUP_ARCHIVED": "The group is archived, so the picture cannot be changed."
+    },
+    "audit": {
+      "ADDED": "Contact picture added",
+      "REPLACED": "Contact picture replaced",
+      "REMOVED": "Contact picture removed",
+      "notRestorable": "This entry changed only the picture. Restoring does not change pictures, so there is nothing to restore."
+    },
+    "group": {
+      "heading": "Group picture",
+      "description": "The picture appears in group lists, in the group header and in the group switcher.",
+      "uploaded": "The group picture is saved.",
+      "removed": "The group picture is removed."
+    },
+    "contact": {
+      "heading": "Contact picture",
+      "uploaded": "The contact picture is saved.",
+      "removed": "The contact picture is removed.",
+      "hint": "You can add or change the picture once the contact is saved."
+    },
+    "google": {
+      "use": "Use my Google account picture",
+      "done": "The Google account picture is saved."
     }
   }
 }

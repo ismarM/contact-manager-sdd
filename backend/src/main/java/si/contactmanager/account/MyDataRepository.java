@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +58,17 @@ class MyDataRepository {
                                 known(PhoneFormat.class, rs.getString("phone_format")),
                                 known(DateFormat.class, rs.getString("date_format")),
                                 known(AddressFormat.class, rs.getString("address_format")))))
+                .optional();
+    }
+
+    /** Lastna profilna slika, največja različica do 512 (018, FR-018-18); prazno, če slike ni. */
+    Optional<MyData.Photo> photo(long user) {
+        return jdbc.sql("SELECT v.content_type, v.data FROM image i JOIN image_variant v ON v.image_id = i.id"
+                        + " WHERE i.kind = 'USER' AND i.user_id = :user AND v.size ="
+                        + " (SELECT max(m.size) FROM image_variant m WHERE m.image_id = i.id AND m.size <= 512)")
+                .param("user", user)
+                .query((rs, row) -> new MyData.Photo(
+                        rs.getString("content_type"), Base64.getEncoder().encodeToString(rs.getBytes("data"))))
                 .optional();
     }
 

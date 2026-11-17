@@ -24,7 +24,8 @@ public record ContactDetail(
         Instant createdAt,
         Instant updatedAt,
         UserRef updatedBy,
-        RevertInfo reverted) {
+        RevertInfo reverted,
+        Long photoRevision) {
     /** Stanje brez razčlenjenega naslova (pred 016): {@code addressParts} je {@code null}. */
     public ContactDetail(
             UUID id,
@@ -42,7 +43,8 @@ public record ContactDetail(
             Instant createdAt,
             Instant updatedAt,
             UserRef updatedBy,
-            RevertInfo reverted) {
+            RevertInfo reverted,
+            Long photoRevision) {
         this(
                 id,
                 firstName,
@@ -60,6 +62,7 @@ public record ContactDetail(
                 createdAt,
                 updatedAt,
                 updatedBy,
-                reverted);
+                reverted,
+                photoRevision);
     }
 }

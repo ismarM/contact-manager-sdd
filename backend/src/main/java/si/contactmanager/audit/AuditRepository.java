@@ -28,7 +28,7 @@ class AuditRepository {
     private static final String ENTRY_SELECT =
             "SELECT e.id, e.created_at, u.name AS actor_name, u.email AS actor_email, e.action, e.contact_count,"
                     + " e.contact_name, t.id AS target_id, t.created_at AS target_at, e.target_initial, e.attribute_key,"
-                    + " e.type_before, e.type_after, e.api_key_name"
+                    + " e.type_before, e.type_after, e.api_key_name, e.photo_change"
                     + " FROM audit_entry e LEFT JOIN app_user u ON u.id = e.actor_id"
                     + " LEFT JOIN audit_entry t ON t.id = e.target_entry_id";
 
@@ -67,10 +67,13 @@ class AuditRepository {
             List<ContactChange> changes,
             UUID targetEntry,
             boolean targetInitial) {
-        return insert(group, actor, action, changes, targetEntry, targetInitial, null, null, null);
+        return insert(group, actor, action, changes, targetEntry, targetInitial, null, null, null, null);
     }
 
-    /** Kot {@code insert}, z ključem in tipoma pred/po za vnos {@code ATTRIBUTE_TYPE} (016); sicer vsi trije {@code null}. */
+    /**
+     * Kot {@code insert}, s ključem in tipoma pred/po za vnos {@code ATTRIBUTE_TYPE} (016; sicer vsi trije {@code null})
+     * in dejstvom spremembe slike (018; sicer {@code null}).
+     */
     UUID insert(
             UUID group,
             long actor,
@@ -80,7 +83,8 @@ class AuditRepository {
             boolean targetInitial,
             String attributeKey,
             String typeBefore,
-            String typeAfter) {
+            String typeAfter,
+            PhotoChange photoChange) {
         UUID id = jdbc.sql("SELECT uuidv7()").query(UUID.class).single();
         long seq = jdbc.sql("INSERT INTO audit_head (group_id, last_seq, last_entry_id) VALUES (:group, 1, :id)"
                         + " ON CONFLICT (group_id) DO UPDATE SET last_seq = audit_head.last_seq + 1,"
@@ -93,9 +97,10 @@ class AuditRepository {
                 ? changes.get(0).displayName()
                 : null;
         jdbc.sql("INSERT INTO audit_entry (id, group_id, seq, actor_id, action, contact_count, contact_name,"
-                        + " target_entry_id, target_initial, attribute_key, type_before, type_after, api_key_name)"
+                        + " target_entry_id, target_initial, attribute_key, type_before, type_after, api_key_name,"
+                        + " photo_change)"
                         + " VALUES (:id, :group, :seq, :actor, :action, :count, :name, :target, :initial, :akey,"
-                        + " :tbefore, :tafter, :apiKey)")
+                        + " :tbefore, :tafter, :apiKey, :photo)")
                 .param("id", id)
                 .param("group", group)
                 .param("seq", seq)
@@ -112,6 +117,7 @@ class AuditRepository {
                 .param(
                         "apiKey",
                         ApiKeyPrincipal.current().map(ApiKeyPrincipal::keyName).orElse(null))
+                .param("photo", photoChange == null ? null : photoChange.name())
                 .update();
         // Večvrstični stavki (unnest) po AUDIT_CHUNK vrstic: en klic na kos namesto na spremembo (SC-002).
         for (int from = 0; from < changes.size(); from += AUDIT_CHUNK) {
@@ -372,6 +378,7 @@ class AuditRepository {
     private static AuditEntry entry(ResultSet rs, int row) throws SQLException {
         String email = rs.getString("actor_email");
         UUID target = rs.getObject("target_id", UUID.class);
+        String photoChange = rs.getString("photo_change");
         return new AuditEntry(
                 rs.getObject("id", UUID.class),
                 rs.getTimestamp("created_at").toInstant(),
@@ -387,6 +394,7 @@ class AuditRepository {
                 rs.getString("attribute_key"),
                 rs.getString("type_before"),
                 rs.getString("type_after"),
-                rs.getString("api_key_name"));
+                rs.getString("api_key_name"),
+                photoChange == null ? null : PhotoChange.valueOf(photoChange));
     }
 }

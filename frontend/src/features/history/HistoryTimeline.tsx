@@ -93,9 +93,12 @@ function EventItem({
       contactCount: event.action === 'MERGE' ? event.entryContactCount : 1,
       contactName: null,
       targetInitial: event.targetInitial,
+      photoChange: event.photoChange,
     },
     { anonymous: true },
   );
+  // 018: vnos, ki je spremenil samo sliko, ni obnovljiv (slike obnova ne spreminja).
+  const photoOnly = Boolean(event.photoChange) && event.fields.length === 0;
   const picked = picks.some((pick) => pick.ref === event.entryId);
   const viewLabel = `${t('history.event.viewVersion')}: ${when}`;
   const compareLabel = `${t('history.event.compareCurrent')}: ${when}`;
@@ -142,6 +145,7 @@ function EventItem({
       </p>
       <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <ChangeKindLabel kind={event.kind} />
+        {event.photoChange && <span>{t(`images.audit.${event.photoChange}`)}</span>}
         {fieldNames && (
           <span className="break-words">
             {t('history.event.changedFields', { fields: fieldNames })}
@@ -149,6 +153,7 @@ function EventItem({
         )}
       </p>
       {event.fields.length > 0 && <EventDetails event={event} contactId={contactId} />}
+      {photoOnly && <p className="text-muted-foreground">{t('images.audit.notRestorable')}</p>}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         {event.hasVersion && (
           <Link to={`${base}/history/${event.entryId}`} aria-label={viewLabel} className={link}>
@@ -182,7 +187,7 @@ function EventItem({
             {t('history.event.select')}
           </label>
         )}
-        {canRestore && event.hasVersion && !isCurrent && (
+        {canRestore && event.hasVersion && !isCurrent && !photoOnly && (
           <button
             type="button"
             className={secondaryButton}

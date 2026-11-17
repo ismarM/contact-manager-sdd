@@ -8,6 +8,7 @@ import { AppPasswordsSection } from './AppPasswordsSection';
 import { DeleteAccountSection } from './DeleteAccountSection';
 import { DisplayFormatSection } from './DisplayFormatSection';
 import { MyDataSection } from './MyDataSection';
+import { ProfilePhotoSection } from './ProfilePhotoSection';
 import { SignInMethodsSection } from './SignInMethodsSection';
 import type { Theme } from './preferences';
 
@@ -46,6 +47,8 @@ export function AccountPage() {
           <dd className="break-all">{profile.email}</dd>
         </dl>
       </section>
+
+      <ProfilePhotoSection />
 
       <section aria-labelledby="account-appearance" className="flex flex-col gap-4">
         <h2 id="account-appearance" className="text-xl font-bold">

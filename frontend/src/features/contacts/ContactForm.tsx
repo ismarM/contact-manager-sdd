@@ -17,6 +17,7 @@ import { fieldErrors } from '../groups/api';
 import { useGroup } from '../groups/groupContext';
 import { conflictCurrent, type FailureKey, failureKey, useContactsApi, useKeyLookup } from './api';
 import { ContactConflictAlert } from './ContactConflictAlert';
+import { ContactPhotoSection } from './ContactPhotoSection';
 import { AttributeTransferDialog, type TransferRequest } from './AttributeTransfer';
 import { CountryField } from './CountryField';
 import { SuggestInput } from './SuggestInput';
@@ -258,6 +259,14 @@ export function ContactForm({
   const summaryRef = useRef<HTMLDivElement>(null);
   const [focusSummary, setFocusSummary] = useState(0);
   const leaving = useRef(false);
+  // Zaključena iskanja ključa ne smejo posodobiti obrazca po odmontaži (pozni zapis stanja).
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const dirty = serialize(values) !== baseline;
   const base = `/groups/${group.id}/contacts`;
   const search = location.search;
@@ -399,6 +408,7 @@ export function ContactForm({
   /** Ključ skupine ima svoj tip (FR-016-01): vrstica ga prevzame in izbira tipa se zaklene; nov ključ ostane prost. */
   const lookupKey = async (id: string, text: string) => {
     const found = await keyLookup(text);
+    if (!mounted.current) return;
     setValues((current) => ({
       ...current,
       attributes: current.attributes.map((row) => {
@@ -744,6 +754,8 @@ export function ContactForm({
           }}
         />
       )}
+
+      <ContactPhotoSection contact={contact} version={version} onVersion={setVersion} />
 
       <form
         aria-labelledby={labelledBy}

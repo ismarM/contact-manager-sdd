@@ -11,6 +11,8 @@ export interface Profile {
   email: string;
   language: Language | null;
   theme: Theme | null;
+  /** Revizija profilne slike (`null` = brez slike); strežnik jo vrne pri vsakem profilu (018). */
+  photoRevision: number | null;
   /** 016: prikazne sheme (`null` ali odsoten = privzeto). */
   phoneFormat?: PhoneFormat | null;
   dateFormat?: DateFormat | null;
@@ -63,6 +65,10 @@ export interface AuthContextValue {
   changeTheme: (theme: Theme | null) => void;
   /** Izbire ni bilo mogoče shraniti v račun (FR-001-19 c). */
   saveFailed: boolean;
+  /** Po nalaganju ali odstranitvi lastne slike (018): avatar povsod sledi novi reviziji. */
+  setPhotoRevision: (photoRevision: number | null) => void;
+  /** 018: prijavljeni račun Google ima sliko, ki jo je mogoče prevzeti (`POST /api/me/photo/google`). */
+  hasGooglePhoto: boolean;
   dismissSaveFailed: () => void;
 }
 

@@ -48,6 +48,7 @@ export function toAuthUser(user: User): AuthUser {
     displayName: user.displayName,
     emailVerified: user.emailVerified,
     providers: user.providerData.map((info) => info.providerId).filter(isProvider),
+    hasPhotoUrl: Boolean(user.photoURL),
   };
 }
 

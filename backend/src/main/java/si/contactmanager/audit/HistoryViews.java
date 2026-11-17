@@ -37,7 +37,8 @@ final class HistoryViews {
             AuditEntry.Target target,
             boolean targetInitial,
             MergedInto mergedInto,
-            String apiKeyName) {}
+            String apiKeyName,
+            PhotoChange photoChange) {}
 
     record ContactInfo(
             UUID id, String displayName, Status status, Long version, UUID lastEntryId, boolean hasInitial) {}

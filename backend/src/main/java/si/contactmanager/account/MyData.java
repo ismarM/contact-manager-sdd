@@ -16,7 +16,10 @@ public record MyData(
         List<AppPassword> appPasswords,
         List<ApiKey> apiKeys) {
 
-    /** Nastavitve vmesnika (001) in oblike zapisa (016, FR-016-17); {@code null} = privzeto. */
+    /**
+     * Profil: nastavitve vmesnika (001), oblike zapisa (016, FR-016-17; {@code null} = privzeto) in lastna profilna
+     * slika ({@code photo}, 018, FR-018-18; {@code null} = brez slike). Slike kontaktov in skupin niso del izvoza.
+     */
     public record Profile(
             String name,
             String email,
@@ -25,7 +28,24 @@ public record MyData(
             String theme,
             String phoneFormat,
             String dateFormat,
-            String addressFormat) {}
+            String addressFormat,
+            Photo photo) {
+
+        public Profile(
+                String name,
+                String email,
+                Instant registeredAt,
+                String language,
+                String theme,
+                String phoneFormat,
+                String dateFormat,
+                String addressFormat) {
+            this(name, email, registeredAt, language, theme, phoneFormat, dateFormat, addressFormat, null);
+        }
+    }
+
+    /** Obdelana slika (različica 512) kot base64. */
+    public record Photo(String contentType, String base64) {}
 
     public record Membership(String groupTitle, String role, Instant joinedAt, String state) {}
 

@@ -29,7 +29,9 @@ class ProfileRepository {
 
     private static final String RETURNING = ", updated_at = now()"
             + " RETURNING name, email, language, theme, phone_format, date_format, address_format,"
-            + " (xmax = 0) AS created";
+            + " (xmax = 0) AS created,"
+            + " (SELECT i.revision FROM image i WHERE i.kind = 'USER' AND i.user_id = app_user.id)"
+            + " AS photo_revision";
 
     /** Ime in e-naslov iz žetona, izbira naprave samo v prazna polja profila (FR-001-19 b). */
     private static final String SYNC = INSERT
@@ -114,7 +116,8 @@ class ProfileRepository {
                 Theme.fromCode(row.getString("theme")).orElse(null),
                 DisplayFormat.read(PhoneFormat.class, row.getString("phone_format")),
                 DisplayFormat.read(DateFormat.class, row.getString("date_format")),
-                DisplayFormat.read(AddressFormat.class, row.getString("address_format")));
+                DisplayFormat.read(AddressFormat.class, row.getString("address_format")),
+                row.getObject("photo_revision", Long.class));
         return new Result(profile, row.getBoolean("created"));
     }
 }

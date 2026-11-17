@@ -31,6 +31,17 @@ public class AuditLog {
     }
 
     /**
+     * Sprememba slike kontakta (018, FR-018-10): vnos {@code UPDATE} z istim stanjem polj prej in potem (verzija se
+     * poveča) in dejstvom {@code photoChange}; vsebina slike ni v sledi.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public UUID recordPhoto(UUID groupId, long actorId, ContactChange change, PhotoChange photoChange) {
+        validate(AuditAction.UPDATE, List.of(change));
+        return repository.insert(
+                groupId, actorId, AuditAction.UPDATE, List.of(change), null, false, null, null, null, photoChange);
+    }
+
+    /**
      * Zapiše vnos spremembe tipa ključa atributa (016, FR-016-26): ključ, tip pred in po ter ena sprememba na kontakt
      * s ključem (stanji {@code before} in {@code after}). Brez obdajajoče transakcije vrže izjemo.
      */
@@ -62,7 +73,8 @@ public class AuditLog {
                 false,
                 attributeKey,
                 typeBefore,
-                typeAfter);
+                typeAfter,
+                null);
     }
 
     /** Zapis vnosa rollbacka (samo {@code RollbackService}). */

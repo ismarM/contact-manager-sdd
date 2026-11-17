@@ -7,6 +7,8 @@ export interface AuthUser {
   uid: string;
   email: string | null;
   displayName: string | null;
+  /** 018: račun Google ima sliko (samo boolean; naslov slike se v vmesniku ne uporablja ne pošilja). */
+  hasPhotoUrl?: boolean;
   /** E-naslov je potrjen (FR-017-02); zaledje brez tega vrne 403 EMAIL_NOT_VERIFIED. */
   emailVerified: boolean;
   /** Povezani ponudniki prijave (FR-017-09). */

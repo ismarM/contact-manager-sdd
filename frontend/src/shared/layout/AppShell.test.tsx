@@ -34,9 +34,15 @@ describe('AppShell', () => {
 
     const banner = await screen.findByRole('banner');
     expect(within(banner).getByRole('link', { name: 'Kontakti' })).toHaveAttribute('href', '/');
+    // Dostopno ime gumba je »Meni računa« (getByRole z imenom to že zahteva), ne začetnice.
     const menuButton = within(banner).getByRole('button', { name: 'Meni računa' });
-    // WCAG 2.5.3: brez vidnega besedila, ki ga ni v dostopnem imenu (CR-01, D-24).
-    expect(menuButton.textContent).toBe('');
+    expect(menuButton).toHaveAccessibleName('Meni računa');
+    // Avatar je okras (alt=""): začetnice so vsebina pseudoelementa (brez besedila v DOM-u, WCAG 2.5.3), dostopno ime
+    // ostane »Meni računa« (CR-01, D-24).
+    expect(within(menuButton).queryByRole('img')).not.toBeInTheDocument();
+    expect(within(menuButton).queryByText('AN')).not.toBeInTheDocument();
+    expect(menuButton.firstElementChild).toHaveAttribute('data-initials', 'AN');
+    expect(menuButton.firstElementChild).toHaveAttribute('aria-hidden', 'true');
     expect(screen.getByRole('main')).toBeInTheDocument();
   });
 

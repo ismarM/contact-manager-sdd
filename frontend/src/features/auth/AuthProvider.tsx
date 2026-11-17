@@ -8,6 +8,7 @@ import {
   createAuthFetchBlob,
 } from '../../shared/api/authFetch';
 import { ApiError } from '../../shared/api/client';
+import { imageCache } from '../../shared/images/imageCache';
 import {
   applyTheme,
   type Language,
@@ -39,6 +40,7 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
   const [theme, setTheme] = useState<Theme | null>(() => readStoredTheme());
   const [saveFailed, setSaveFailed] = useState(false);
   const [exitTo, setExitTo] = useState<string | null>(null);
+  const [hasGooglePhoto, setHasGooglePhoto] = useState(false);
 
   const statusRef = useRef<AuthStatus>('unknown');
   /** Pričakovan prehod v »odjavljen«, ki ga je sprožila ta aplikacija (ne drug zavihek). */
@@ -53,6 +55,8 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
 
   const clearSession = useCallback(() => {
     generation.current += 1;
+    // Odjava, izguba seje, izbris računa: nobenega blob URL-ja slik ne sme ostati (018, plan.md dopolnitev 4).
+    imageCache.clear();
     setProfile(null);
     setSaveFailed(false);
     updateStatus('signedOut');
@@ -129,6 +133,8 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
 
   const synchronize = useCallback(async () => {
     const current = ++generation.current;
+    // Zamenjava uporabnika: slike prejšnjega uporabnika ne smejo ostati.
+    imageCache.clear();
     updateStatus('syncing');
     try {
       const synced = await authFetch<Profile>('/me', {
@@ -157,6 +163,7 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
 
   const onAuthChange = useCallback(
     (next: AuthUser | null) => {
+      setHasGooglePhoto(next?.hasPhotoUrl === true);
       const previous = userRef.current;
       userRef.current = next;
       setUser(next);
@@ -314,6 +321,10 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
     [i18n, savePreferences],
   );
 
+  const setPhotoRevision = useCallback((photoRevision: number | null) => {
+    setProfile((current) => (current ? { ...current, photoRevision } : current));
+  }, []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       status,
@@ -341,6 +352,8 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
       changeLanguage,
       changeTheme,
       saveFailed,
+      setPhotoRevision,
+      hasGooglePhoto,
       dismissSaveFailed: () => setSaveFailed(false),
     }),
     [
@@ -368,6 +381,8 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
       changeLanguage,
       changeTheme,
       saveFailed,
+      setPhotoRevision,
+      hasGooglePhoto,
     ],
   );
 

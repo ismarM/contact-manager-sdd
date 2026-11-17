@@ -49,7 +49,7 @@ export function AuditEntryItem({
         </span>
       </p>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <AuditDetails entryId={entry.id} />
+        <AuditDetails entryId={entry.id} photoChange={entry.photoChange} />
         {onRestore && (
           <button type="button" className={secondaryButton} onClick={onRestore}>
             {t('audit.list.rollbackButton')}

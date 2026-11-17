@@ -55,6 +55,8 @@ export interface ContactDetail extends ContactInput {
   updatedBy: UserRef | null;
   /** 005: oznaka *Povrnjeno*; neobvezno, da testni podatki 004 ostanejo nespremenjeni. */
   reverted?: RevertInfo | null;
+  /** 018: revizija slike kontakta; `null`/odsotno = brez slike. */
+  photoRevision?: number | null;
 }
 
 export interface ContactSummary {
@@ -68,6 +70,7 @@ export interface ContactSummary {
   version: number;
   /** 005: kontakt ima oznako *Povrnjeno*; neobvezno kot zgoraj. */
   reverted?: boolean;
+  photoRevision?: number | null;
 }
 
 export interface ContactPage {

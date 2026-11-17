@@ -1,9 +1,11 @@
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { Avatar } from '../../shared/images/Avatar';
 import { focusRing, primaryButton } from '../../shared/ui/styles';
+import { useGroup } from '../groups/groupContext';
 import { COMPARE_LIMIT } from './duplicateRouting';
-import type { DuplicateGroup } from './types';
+import type { DuplicateContact, DuplicateGroup } from './types';
 
 /**
  * Kartica skupine dvojnikov (FR-011-07, FR-011-21): razlog ujemanja, vsi kontakti (prvih 10 gre v primerjavo, preostali
@@ -17,11 +19,25 @@ export function DuplicateCard({
   onCompare: () => void;
 }) {
   const { t } = useTranslation();
+  const { group: current } = useGroup();
   const titleId = useId();
   const moreId = useId();
   const [expanded, setExpanded] = useState(false);
   const first = group.contacts.slice(0, COMPARE_LIMIT);
   const more = group.contacts.slice(COMPARE_LIMIT);
+  const avatar = (contact: DuplicateContact) => (
+    <Avatar
+      kind="contact"
+      name={contact.displayName}
+      colorSeed={contact.id}
+      size={24}
+      alt=""
+      photo={{
+        path: `/groups/${current.id}/contacts/${contact.id}/photo`,
+        revision: contact.photoRevision,
+      }}
+    />
+  );
 
   return (
     <li
@@ -34,13 +50,15 @@ export function DuplicateCard({
       {/* Pravi seznam: preostali kontakti imajo atribut `hidden`, dokler jih gumb »Še N kontaktov« ne razkrije. */}
       <ul id={moreId} aria-label={t('duplicates.contactsList')} className="flex flex-col gap-1">
         {first.map((contact) => (
-          <li key={contact.id} className="break-words">
-            {contact.displayName}
+          <li key={contact.id} className="flex items-center gap-2 break-words">
+            {avatar(contact)}
+            <span>{contact.displayName}</span>
           </li>
         ))}
         {more.map((contact) => (
-          <li key={contact.id} hidden={!expanded} className="break-words">
-            {contact.displayName}
+          <li key={contact.id} hidden={!expanded} className="flex items-center gap-2 break-words">
+            {avatar(contact)}
+            <span>{contact.displayName}</span>
           </li>
         ))}
       </ul>

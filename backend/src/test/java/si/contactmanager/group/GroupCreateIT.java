@@ -52,7 +52,8 @@ class GroupCreateIT extends ApiTest {
                         "canDelete",
                         "version",
                         "updatedAt",
-                        "updatedBy")
+                        "updatedBy",
+                        "photoRevision")
                 .containsEntry("title", "Projekt FERI")
                 .containsEntry("description", "Kontakti projekta")
                 .containsEntry("color", "mah")
