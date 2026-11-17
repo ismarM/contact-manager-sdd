@@ -13,8 +13,10 @@ import {
 } from '../../../shared/ui/dialog';
 import {
   errorAlert,
+  ghostButton,
   primaryButton,
   secondaryButton,
+  softButton,
   warningAlert,
 } from '../../../shared/ui/styles';
 import { fileNameTitle } from '../export/exportFileName';
@@ -97,7 +99,7 @@ export function QrShareDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger className={secondaryButton}>
+      <DialogTrigger className={softButton}>
         <IconQrcode aria-hidden="true" size={20} stroke={1.75} />
         {t('contacts.qrShare.button')}
       </DialogTrigger>
@@ -138,7 +140,7 @@ export function QrShareDialog({
               {t('contacts.vcard.download')}
             </button>
           )}
-          <DialogClose className={secondaryButton}>{t('contacts.qrShare.close')}</DialogClose>
+          <DialogClose className={ghostButton}>{t('contacts.qrShare.close')}</DialogClose>
         </div>
       </DialogContent>
     </Dialog>

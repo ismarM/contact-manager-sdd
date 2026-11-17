@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Dialog, DialogClose, DialogContent, DialogTitle } from '../../shared/ui/dialog';
-import { primaryButton, secondaryButton } from '../../shared/ui/styles';
+import { ghostButton, primaryButton } from '../../shared/ui/styles';
 import { useAuditTime } from './formatTime';
 
 /** Cilj rollbacka: vnos (njegov čas) ali *Začetno stanje* (`null`). */
@@ -51,7 +51,7 @@ export function RollbackDialog({
         </DialogTitle>
         <p>{target ? t('audit.rollback.text', { time: when }) : t('audit.initial.text')}</p>
         <div className="flex flex-wrap justify-end gap-3">
-          <DialogClose ref={cancel} className={secondaryButton}>
+          <DialogClose ref={cancel} className={ghostButton}>
             {t('audit.rollback.cancel')}
           </DialogClose>
           <button

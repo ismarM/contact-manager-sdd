@@ -453,12 +453,16 @@
       "company": "Podjetje",
       "country": "Država",
       "historyHeading": "Zgodovina",
-      "historyLink": "Zgodovina kontakta"
+      "historyLink": "Zgodovina kontakta",
+      "fields": "Kontakt",
+      "meta": "Dodano {{created}} · nazadnje urejeno {{updated}}, {{who}}",
+      "historyText": "Vsaka sprememba tega kontakta, starejše različice in obnovitev različice."
     },
     "gone": "Tega kontakta ni več – medtem ga je nekdo izbrisal.",
     "form": {
       "newHeading": "Nov kontakt",
       "editHeading": "Uredi kontakt",
+      "backToContact": "Nazaj na kontakt",
       "basic": "Osnovni podatki",
       "attributesLegend": "Dodatni atributi",
       "tagsLegend": "Značke",
@@ -1257,6 +1261,8 @@
     "none": "Ni predlogov"
   },
   "import": {
+    "fileSection": "Datoteka",
+    "cancel": "Prekliči",
     "heading": "Uvoz kontaktov",
     "screenXlsx": "Uvoz iz Excela",
     "screenVcf": "Uvoz iz vizitk",
@@ -1278,6 +1284,8 @@
       "failed": "Datoteke ni bilo mogoče prebrati. Poskusi znova."
     },
     "mapping": {
+      "keyHeader": "Ključ atributa",
+      "typeHeader": "Tip ključa",
       "heading": "Preslikava stolpcev",
       "column": "Stolpec",
       "target": "Uvozi v",

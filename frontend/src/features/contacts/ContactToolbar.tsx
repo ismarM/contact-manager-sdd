@@ -2,7 +2,7 @@ import { IconFilter, IconSearch, IconSortAscending, IconSortDescending } from '@
 import { memo, type RefObject, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { secondaryButton, textInput } from '../../shared/ui/styles';
+import { ghostButton, secondaryButton, softButton, textInput } from '../../shared/ui/styles';
 import { useGroup } from '../groups/groupContext';
 import { useContactsApi } from './api';
 import { type AppliedFilter, type ContactQuery, countFilters, fieldLabel } from './contactQuery';
@@ -134,7 +134,7 @@ export function ContactToolbar({
           type="button"
           aria-expanded={open}
           aria-controls={open ? panelId : undefined}
-          className={secondaryButton}
+          className={softButton}
           onClick={() => setOpen(!open)}
         >
           <IconFilter aria-hidden="true" size={20} stroke={1.75} />
@@ -143,7 +143,7 @@ export function ContactToolbar({
             : t('contacts.filters.button')}
         </button>
         <div className="flex items-center gap-2">
-          <label htmlFor={sortId} className="font-bold">
+          <label htmlFor={sortId} className="text-sm font-bold">
             {t('contacts.sort.label')}
           </label>
           <select
@@ -193,7 +193,7 @@ export function ContactToolbar({
         {(applied.length > 0 || query.q !== '') && (
           <button
             type="button"
-            className={secondaryButton}
+            className={`${ghostButton} text-primary`}
             onClick={() => {
               onClear();
               searchRef.current?.focus();
@@ -204,7 +204,11 @@ export function ContactToolbar({
         )}
       </div>
 
-      {total !== null && <p role="status">{t('contacts.search.count', { count: total })}</p>}
+      {total !== null && (
+        <p role="status" className="text-sm text-muted-foreground tabular-nums">
+          {t('contacts.search.count', { count: total })}
+        </p>
+      )}
     </div>
   );
 }

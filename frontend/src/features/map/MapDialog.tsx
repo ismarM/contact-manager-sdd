@@ -2,7 +2,13 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { DialogClose, DialogContent, DialogTitle } from '../../shared/ui/dialog';
-import { errorAlert, focusRing, secondaryButton, warningAlert } from '../../shared/ui/styles';
+import {
+  errorAlert,
+  focusRing,
+  ghostButton,
+  secondaryButton,
+  warningAlert,
+} from '../../shared/ui/styles';
 import { useAuth } from '../auth/authContext';
 import { useUiLanguage } from '../contacts/useUiLanguage';
 import { type AddressLocation, fetchAddressLocation, fetchMapTile } from './api';
@@ -177,7 +183,7 @@ export function MapDialog({
       )}
 
       <div className="flex flex-wrap gap-3">
-        <DialogClose className={secondaryButton}>{t('map.close')}</DialogClose>
+        <DialogClose className={ghostButton}>{t('map.close')}</DialogClose>
       </div>
     </DialogContent>
   );

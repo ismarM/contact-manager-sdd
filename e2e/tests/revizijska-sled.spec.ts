@@ -192,7 +192,7 @@ test('FR-005-09 SC-004: iz pogleda kontakta odpre povezava sled, filtrirano po k
   await expectNoAxeViolations(page);
 });
 
-test('FR-005-11 FR-005-12 FR-005-16 FR-005-19: admin povrne skupino na vnos dodajanja s tipkovnico – obvestilo, nov vnos, obnovljen kontakt z oznako Povrnjeno', async ({
+test('FR-005-11 FR-005-12 FR-005-16 FR-005-19: admin povrne skupino na vnos dodajanja s tipkovnico – obvestilo, nov vnos, obnovljen kontakt brez oznake Povrnjeno', async ({
   page,
 }) => {
   await signedIn(page);
@@ -223,14 +223,11 @@ test('FR-005-11 FR-005-12 FR-005-16 FR-005-19: admin povrne skupino na vnos doda
   expect(contactRow(janez)?.revertedEntryId).toBe(latestEntryId(groupId));
 
   await page.goto(`/groups/${groupId}/contacts/${janez}`);
-  const marker = details(page).getByRole('group', { name: 'Povrnjeno' });
-  await marker.click();
-  await expect(marker.getByRole('link', { name: 'Odpri vnos povrnitve' })).toHaveAttribute(
-    'href',
-    new RegExp(`/groups/${groupId}/audit/[0-9a-f-]{36}$`),
-  );
+  // FR-020-20: kartica po rollbacku nima značke ali opombe »Povrnjeno«; podatek je viden v sledi (vnos povrnitve).
+  await expect(details(page).getByRole('group', { name: 'Povrnjeno' })).toHaveCount(0);
+  await expect(details(page).getByText(/Povrnjeno|Povrnil/)).toHaveCount(0);
   await expectNoAxeViolations(page);
-  await marker.getByRole('link', { name: 'Odpri vnos povrnitve' }).click();
+  await page.goto(`/groups/${groupId}/audit/${latestEntryId(groupId)}`);
   await expect(
     page.getByRole('heading', { level: 2, name: 'Vnos revizijske sledi' }),
   ).toBeVisible();

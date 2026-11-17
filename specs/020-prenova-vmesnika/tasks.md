@@ -121,14 +121,14 @@ description: "Naloge: Prenova vmesnika (Kartoteka v2) – ena izvedba, testi zno
 
 **Goal**: preglednica, plavajoča vrstica izbora, lepljiva plošča, kartica po platnu. **Independent Test**: iskanje, filtri, izbor, množične akcije, ogled, urejanje, izbris delujejo kot prej pri 360, 768, 1280 px.
 
-- [ ] T047 FR-020-17 — `ContactList`: semantična preglednica (lepljiva glava, začetnice/slika, ime, največ tri značke + »+N«), zlaganje v kartice po širini vsebnika < 640 px (R-08) (frontend/src/features/contacts/ContactList.tsx)
-- [ ] T048 FR-020-21 — Plavajoča vrstica izbora (»Izbrano: N« + akcije) in izbrana vrstica z barvo in označenim potrditvenim poljem (frontend/src/features/contacts/selection/)
-- [ ] T049 [P] FR-020-17, FR-020-22 — `ContactToolbar`, `FilterChips`, `FilterPanel`, paginacija v jeziku v2 (čipi z »Odstrani filter …«, mehki gumbi) (frontend/src/features/contacts/)
-- [ ] T050 FR-020-18 — `ContactsPage`: od 1280 px plošča ob seznamu `sticky` z lastnim pomikom, pod 1280 px stran kontakta, na telefonu primarna akcija v spodnji vrstici akcij (frontend/src/features/contacts/ContactsPage.tsx)
-- [ ] T051 FR-020-19 — `ContactView`: trak barve skupine (6 px v plošči), 64 px avatar/začetnice, ime, »Dodal … · nazadnje urejeno …«, *Uredi kontakt* (primarno) pred *Izbriši kontakt* (tiho, nevarno), *Deli s kodo QR*, *Prenesi vizitko*, polja po skupinah, atributi, značke, razdelek *Zgodovina* s povezavama na zgodovino kontakta in revizijsko sled s filtrom `contact`; akcije po vlogi/stanju (frontend/src/features/contacts/ContactView.tsx)
-- [ ] T052 FR-020-20 — Odstrani `RevertedBadge.tsx` in prikaz `contact.reverted` na kartici (podatek ostane v API in sledi); posodobi `ContactReverted.test.tsx`: kartica po rollbacku in obnovi nima značke ali opombe, podatek je viden v sledi/zgodovini (frontend/src/features/contacts/)
-- [ ] T053 [P] FR-020-17 … -21 — FE testi: preglednica ↔ kartice, izbor, kartica po vlogah (VIEWER, arhivirana: akcij ni), vrstni red akcij, povezavi zgodovine, vitest-axe (frontend/src/features/contacts/*.test.tsx)
-- [ ] T054 FR-020-17 … -21 — E2E: `kontakti.spec.ts`, `iskanje.spec.ts`, `mnozicno-urejanje.spec.ts` (izbor, plavajoča vrstica, plošča pri 1280 px, kartica), axe (e2e/tests/)
+- [x] T047 FR-020-17 — `ContactList`: semantična preglednica (lepljiva glava, začetnice/slika, ime, največ tri značke + »+N«), zlaganje v kartice po širini vsebnika < 640 px (R-08) (frontend/src/features/contacts/ContactList.tsx)
+- [x] T048 FR-020-21 — Plavajoča vrstica izbora (»Izbrano: N« + akcije) in izbrana vrstica z barvo in označenim potrditvenim poljem (frontend/src/features/contacts/selection/)
+- [x] T049 [P] FR-020-17, FR-020-22 — `ContactToolbar`, `FilterChips`, `FilterPanel`, paginacija v jeziku v2 (čipi z »Odstrani filter …«, mehki gumbi) (frontend/src/features/contacts/)
+- [x] T050 FR-020-18 — `ContactsPage`: od 1280 px plošča ob seznamu `sticky` z lastnim pomikom, pod 1280 px stran kontakta, na telefonu primarna akcija v spodnji vrstici akcij (frontend/src/features/contacts/ContactsPage.tsx)
+- [x] T051 FR-020-19 — `ContactView`: trak barve skupine (6 px v plošči), 64 px avatar/začetnice, ime, »Dodal … · nazadnje urejeno …«, *Uredi kontakt* (primarno) pred *Izbriši kontakt* (tiho, nevarno), *Deli s kodo QR*, *Prenesi vizitko*, polja po skupinah, atributi, značke, razdelek *Zgodovina* s povezavama na zgodovino kontakta in revizijsko sled s filtrom `contact`; akcije po vlogi/stanju (frontend/src/features/contacts/ContactView.tsx)
+- [x] T052 FR-020-20 — Odstrani `RevertedBadge.tsx` in prikaz `contact.reverted` na kartici (podatek ostane v API in sledi); posodobi `ContactReverted.test.tsx`: kartica po rollbacku in obnovi nima značke ali opombe, podatek je viden v sledi/zgodovini (frontend/src/features/contacts/)
+- [x] T053 [P] FR-020-17 … -21 — FE testi: preglednica ↔ kartice, izbor, kartica po vlogah (VIEWER, arhivirana: akcij ni), vrstni red akcij, povezavi zgodovine, vitest-axe (frontend/src/features/contacts/*.test.tsx)
+- [x] T054 FR-020-17 … -21 — E2E: `kontakti.spec.ts`, `iskanje.spec.ts`, `mnozicno-urejanje.spec.ts` (izbor, plavajoča vrstica, plošča pri 1280 px, kartica), axe (e2e/tests/)
 
 ---
 
@@ -138,10 +138,10 @@ description: "Naloge: Prenova vmesnika (Kartoteka v2) – ena izvedba, testi zno
 
 ### Paket A – obrazec, uvoz, zgodovina
 
-- [ ] T055 FR-020-22 — `ContactFormPage`/`ContactForm` (+ `ContactPhotoSection`, `TagInput`, `SuggestInput`, atributi) po platnu (frontend/src/features/contacts/)
-- [ ] T056 [P] FR-020-22 — `ImportPage`/`ImportMenu` (koraki, preslikava, rezultat) (frontend/src/features/import/)
-- [ ] T057 [P] FR-020-22 — `ContactHistoryPage`, `VersionPage`, primerjava različic (`history/ComparePage`), `DeletedContactsPage`, `HistoryTimeline` (frontend/src/features/history/)
-- [ ] T058 FR-020-22 — FE testi in E2E (`kontakti`, `uvoz-izvoz`, `izvoz-excel`, zgodovina) za zaslone paketa; axe (frontend/src/features/{contacts,import,history}/, e2e/tests/)
+- [x] T055 FR-020-22 — `ContactFormPage`/`ContactForm` (+ `ContactPhotoSection`, `TagInput`, `SuggestInput`, atributi) po platnu (frontend/src/features/contacts/)
+- [x] T056 [P] FR-020-22 — `ImportPage`/`ImportMenu` (koraki, preslikava, rezultat) (frontend/src/features/import/)
+- [x] T057 [P] FR-020-22 — `ContactHistoryPage`, `VersionPage`, primerjava različic (`history/ComparePage`), `DeletedContactsPage`, `HistoryTimeline` (frontend/src/features/history/)
+- [x] T058 FR-020-22 — FE testi in E2E (`kontakti`, `uvoz-izvoz`, `izvoz-excel`, zgodovina) za zaslone paketa; axe (frontend/src/features/{contacts,import,history}/, e2e/tests/)
 
 ### Paket B – dvojniki, revizija, atributi
 
@@ -160,10 +160,10 @@ description: "Naloge: Prenova vmesnika (Kartoteka v2) – ena izvedba, testi zno
 
 ### Paket D – dialogi
 
-- [ ] T068 FR-020-23 — Nevarni dialogi (naslov je vprašanje, telo pove posledico, gumb ponovi dejanje, fokus na *Prekliči*): izbris kontakta, izbris/arhiviranje skupine, izbris računa, preklic API ključa, odstranitev člana, zavrnitev/umik povabila, *Lastnik ne more zapustiti*, rollback, obnova (`RestoreDialog`), sprememba tipa ključa (`ChangeTypeDialog`), obvestilo o konfliktu (frontend/src/features/**/*Dialog.tsx)
-- [ ] T069 FR-020-22, FR-020-23 — Dialogi obrazcev: nova skupina, množično urejanje, nov API ključ, ustvarjen ključ, geslo za aplikacijo, vklop prijave z geslom, združevanje (`MergeDialog`) (frontend/src/features/**)
-- [ ] T070 FR-020-22, FR-020-23 — Dialogi slike (izbira, obrezovanje: `ImageUploadDialog`, `CropCanvas`), zemljevid in približni zemljevid (`MapDialog`), koda QR (deljenje, branje) (frontend/src/shared/images/, features/map/, features/contacts/qr/)
-- [ ] T071 FR-020-23, FR-020-27 — FE testi dialogov: začetni fokus, spodnja ploskev pod 640 px, zaprtje z Esc, vitest-axe; E2E odprtje enega dialoga na vrsto pri 360 in 1280 px (frontend/src/**/*Dialog*.test.tsx, e2e/tests/)
+- [x] T068 FR-020-23 — Nevarni dialogi (naslov je vprašanje, telo pove posledico, gumb ponovi dejanje, fokus na *Prekliči*): izbris kontakta, izbris/arhiviranje skupine, izbris računa, preklic API ključa, odstranitev člana, zavrnitev/umik povabila, *Lastnik ne more zapustiti*, rollback, obnova (`RestoreDialog`), sprememba tipa ključa (`ChangeTypeDialog`), obvestilo o konfliktu (frontend/src/features/**/*Dialog.tsx)
+- [x] T069 FR-020-22, FR-020-23 — Dialogi obrazcev: nova skupina, množično urejanje, nov API ključ, ustvarjen ključ, geslo za aplikacijo, vklop prijave z geslom, združevanje (`MergeDialog`) (frontend/src/features/**)
+- [x] T070 FR-020-22, FR-020-23 — Dialogi slike (izbira, obrezovanje: `ImageUploadDialog`, `CropCanvas`), zemljevid in približni zemljevid (`MapDialog`), koda QR (deljenje, branje) (frontend/src/shared/images/, features/map/, features/contacts/qr/)
+- [x] T071 FR-020-23, FR-020-27 — FE testi dialogov: začetni fokus, spodnja ploskev pod 640 px, zaprtje z Esc, vitest-axe; E2E odprtje enega dialoga na vrsto pri 360 in 1280 px (frontend/src/**/*Dialog*.test.tsx, e2e/tests/)
 
 ---
 

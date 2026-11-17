@@ -1,7 +1,8 @@
+import { IconPhoto, IconTrash } from '@tabler/icons-react';
 import { type ReactNode, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { primaryButton, secondaryButton } from '../ui/styles';
+import { ghostButton, primaryButton, secondaryButton } from '../ui/styles';
 import type { CropShape } from './CropCanvas';
 import { ImageUploadDialog } from './ImageUploadDialog';
 import { RemoveImageDialog } from './RemoveImageDialog';
@@ -70,14 +71,16 @@ export function PhotoControls({
               className={hasPhoto ? secondaryButton : primaryButton}
               onClick={(event) => open('upload', event.currentTarget)}
             >
+              <IconPhoto aria-hidden="true" size={20} stroke={1.75} />
               {hasPhoto ? t('images.replace') : t('images.upload')}
             </button>
             {hasPhoto && (
               <button
                 type="button"
-                className={secondaryButton}
+                className={`${ghostButton} text-destructive`}
                 onClick={(event) => open('remove', event.currentTarget)}
               >
+                <IconTrash aria-hidden="true" size={20} stroke={1.75} />
                 {t('images.remove')}
               </button>
             )}

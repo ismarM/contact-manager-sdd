@@ -453,12 +453,16 @@
       "company": "Company",
       "country": "Country",
       "historyHeading": "History",
-      "historyLink": "Contact history"
+      "historyLink": "Contact history",
+      "fields": "Contact",
+      "meta": "Added {{created}} · last edited {{updated}} by {{who}}",
+      "historyText": "Every change to this contact, older versions and restoring a version."
     },
     "gone": "This contact no longer exists – someone deleted it in the meantime.",
     "form": {
       "newHeading": "New contact",
       "editHeading": "Edit contact",
+      "backToContact": "Back to contact",
       "basic": "Basic details",
       "attributesLegend": "Additional attributes",
       "tagsLegend": "Tags",
@@ -1257,6 +1261,8 @@
     "none": "No suggestions"
   },
   "import": {
+    "fileSection": "File",
+    "cancel": "Cancel",
     "heading": "Import contacts",
     "screenXlsx": "Import from Excel",
     "screenVcf": "Import from business cards",
@@ -1278,6 +1284,8 @@
       "failed": "The file could not be read. Try again."
     },
     "mapping": {
+      "keyHeader": "Attribute key",
+      "typeHeader": "Key type",
       "heading": "Column mapping",
       "column": "Column",
       "target": "Import into",

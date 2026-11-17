@@ -4,6 +4,7 @@ import {
   IconArrowsSort,
   IconArrowUp,
   IconDots,
+  IconPlus,
 } from '@tabler/icons-react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +22,7 @@ import {
 import {
   errorAlert,
   focusRing,
+  ghostButton,
   primaryButton,
   secondaryButton,
   warningAlert,
@@ -270,16 +272,16 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
   return (
     <section
       aria-labelledby={headingId}
-      className={`flex min-w-0 flex-col gap-4 ${selection.count > 0 ? 'pb-[var(--selection-bar-height,14rem)] sm:pb-0' : ''}`}
+      className={`flex min-w-0 flex-col gap-4 ${selection.count > 0 ? 'pb-[calc(var(--selection-bar-height,14rem)_+_var(--k-bottom-bar-h))] sm:pb-[var(--selection-bar-height,6rem)]' : ''}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <h2 id={headingId} ref={heading} tabIndex={-1} className="text-xl font-bold outline-none">
+          <h2 id={headingId} ref={heading} tabIndex={-1} className="text-lg font-bold outline-none">
             {t('contacts.heading')}
           </h2>
           <Link
             to={`/groups/${group.id}/deleted-contacts`}
-            className={`text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`}
+            className={`text-sm text-primary underline decoration-1 underline-offset-[3px] hover:text-primary-hover ${focusRing}`}
           >
             {t('contacts.deletedLink')}
           </Link>
@@ -290,6 +292,7 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
             <QrScanDialog />
             {data && data.total > 0 && (
               <Link to={`${base}/new${link}`} className={primaryButton}>
+                <IconPlus aria-hidden="true" size={20} stroke={1.75} />
                 {t('contacts.newContact')}
               </Link>
             )}
@@ -402,125 +405,128 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
 
       {data && data.total > 0 && (
         <>
-          <div
-            role="region"
-            aria-labelledby={captionId}
-            aria-busy={loading || searchPending ? 'true' : undefined}
-            tabIndex={0}
-            className={`contacts-list overflow-x-auto ${focusRing}`}
-          >
-            <table className="w-full border-collapse text-left">
-              <caption id={captionId} className="sr-only">
-                {t('contacts.list.caption', { group: group.title })}
-              </caption>
-              <thead className="sticky top-0 bg-card">
-                <tr>
-                  <td data-select-all className="w-10 border-b border-border p-2">
-                    <SelectAllOnPage
-                      inputRef={selectAllBox}
-                      state={selection.pageState(pageIds)}
-                      onChange={(selected) => {
-                        setSelectionNotice(
-                          selection.setPage(pageIds, selected) === 'limit' ? 'limit' : null,
-                        );
-                      }}
-                    />
-                  </td>
-                  <SortHeader
-                    field="lastName"
-                    label={t('contacts.list.name')}
-                    query={query}
-                    onSort={sortBy}
-                  />
-                  <SortHeader
-                    field="email"
-                    label={t('contacts.list.email')}
-                    query={query}
-                    onSort={sortBy}
-                  />
-                  <SortHeader
-                    field="phone"
-                    label={t('contacts.list.phone')}
-                    query={query}
-                    onSort={sortBy}
-                  />
-                  <th scope="col" className="border-b border-border p-2">
-                    {t('contacts.list.tags')}
-                  </th>
-                  {editable && (
-                    <th scope="col" className="border-b border-border p-2">
-                      <span className="sr-only">{t('contacts.list.actions')}</span>
-                    </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {data.items.map((contact) => (
-                  <tr
-                    key={contact.id}
-                    aria-current={contact.id === selectedId ? 'true' : undefined}
-
-                    className={`h-12 border-b border-border hover:bg-muted aria-[current=true]:bg-selected ${selection.isSelected(contact.id) ? 'bg-selected' : ''}`}
-                  >
-                    <td data-select className="p-2">
-                      <SelectContact
-                        name={contact.displayName}
-                        checked={selection.isSelected(contact.id)}
-                        onChange={() => {
+          <div className="contacts-list">
+            <div
+              role="region"
+              aria-labelledby={captionId}
+              aria-busy={loading || searchPending ? 'true' : undefined}
+              tabIndex={0}
+              className={`overflow-x-auto rounded-md border border-border bg-card ${focusRing}`}
+            >
+              <table className="w-full border-collapse text-left">
+                <caption id={captionId} className="sr-only">
+                  {t('contacts.list.caption', { group: group.title })}
+                </caption>
+                <thead className="sticky top-0 z-[1] bg-muted text-sm text-muted-foreground">
+                  <tr>
+                    <td data-select-all className="w-12 border-b border-border p-2">
+                      <SelectAllOnPage
+                        inputRef={selectAllBox}
+                        state={selection.pageState(pageIds)}
+                        onChange={(selected) => {
                           setSelectionNotice(
-                            selection.toggle(contact.id) === 'limit' ? 'limit' : null,
+                            selection.setPage(pageIds, selected) === 'limit' ? 'limit' : null,
                           );
                         }}
                       />
                     </td>
-                    <th scope="row" className="p-2 font-bold break-words">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <Avatar
-                          kind="contact"
-                          name={contact.displayName}
-                          colorSeed={contact.id}
-                          size={32}
-                          alt=""
-                          photo={{
-                            path: `/groups/${group.id}/contacts/${contact.id}/photo`,
-                            revision: contact.photoRevision,
-                          }}
-                        />
-                        <Link
-                          to={`${base}/${contact.id}${link}`}
-                          className={`text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`}
-                        >
-                          {contact.displayName}
-                        </Link>
-                      </div>
-                      {contact.reverted && (
-                        <span className="ml-2 rounded-md border border-border px-2 py-0.5 text-sm text-muted-foreground">
-                          {t('contacts.reverted.badge')}
-                        </span>
-                      )}
+                    <SortHeader
+                      field="lastName"
+                      label={t('contacts.list.name')}
+                      query={query}
+                      onSort={sortBy}
+                    />
+                    <SortHeader
+                      field="email"
+                      label={t('contacts.list.email')}
+                      query={query}
+                      onSort={sortBy}
+                    />
+                    <SortHeader
+                      field="phone"
+                      label={t('contacts.list.phone')}
+                      query={query}
+                      onSort={sortBy}
+                    />
+                    <th scope="col" className="border-b border-border p-2">
+                      {t('contacts.list.tags')}
                     </th>
-                    <td data-label={t('contacts.list.email')} className="p-2 break-all">
-                      {contact.email}
-                    </td>
-                    <td data-label={t('contacts.list.phone')} className="p-2">
-                      {contact.phone ? format.phone(contact.phone) : contact.phone}
-                    </td>
-                    <td data-label={t('contacts.list.tags')} className="p-2">
-                      {contact.tags.length > 0 && <TagChips tags={contact.tags} />}
-                    </td>
                     {editable && (
-                      <td data-actions className="p-2 text-right">
-                        <RowActions
-                          contact={contact}
-                          editTo={`${base}/${contact.id}/edit${link}`}
-                          onDelete={() => setRemoving(contact)}
-                        />
-                      </td>
+                      <th scope="col" className="border-b border-border p-2">
+                        <span className="sr-only">{t('contacts.list.actions')}</span>
+                      </th>
                     )}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {data.items.map((contact) => (
+                    <tr
+                      key={contact.id}
+                      aria-current={contact.id === selectedId ? 'true' : undefined}
+
+                      className={`h-14 border-b border-border last:border-b-0 hover:bg-muted aria-[current=true]:bg-selected ${selection.isSelected(contact.id) ? 'bg-selected' : ''}`}
+                    >
+                      <td data-select className="p-2">
+                        <SelectContact
+                          name={contact.displayName}
+                          checked={selection.isSelected(contact.id)}
+                          onChange={() => {
+                            setSelectionNotice(
+                              selection.toggle(contact.id) === 'limit' ? 'limit' : null,
+                            );
+                          }}
+                        />
+                      </td>
+                      <th scope="row" className="p-2 font-bold break-words">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <Avatar
+                            kind="contact"
+                            name={contact.displayName}
+                            colorSeed={contact.id}
+                            size={32}
+                            alt=""
+                            photo={{
+                              path: `/groups/${group.id}/contacts/${contact.id}/photo`,
+                              revision: contact.photoRevision,
+                            }}
+                          />
+                          <Link
+                            to={`${base}/${contact.id}${link}`}
+                            className={`text-foreground underline-offset-[3px] hover:text-primary hover:underline ${focusRing}`}
+                          >
+                            {contact.displayName}
+                          </Link>
+                        </div>
+                      </th>
+                      <td
+                        data-label={t('contacts.list.email')}
+                        className="p-2 break-all text-muted-foreground"
+                      >
+                        {contact.email}
+                      </td>
+                      <td
+                        data-label={t('contacts.list.phone')}
+                        className="p-2 text-muted-foreground tabular-nums"
+                      >
+                        {contact.phone ? format.phone(contact.phone) : contact.phone}
+                      </td>
+                      <td data-label={t('contacts.list.tags')} className="p-2">
+                        {contact.tags.length > 0 && <TagChips tags={contact.tags} />}
+                      </td>
+                      {editable && (
+                        <td data-actions className="p-2 text-right">
+                          <RowActions
+                            contact={contact}
+                            editTo={`${base}/${contact.id}/edit${link}`}
+                            onDelete={() => setRemoving(contact)}
+                          />
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
           <SectionPagination
             label={t('contacts.pagination.label')}
@@ -588,7 +594,7 @@ function TagChips({ tags }: { tags: string[] }) {
   return (
     <span className="inline-flex flex-wrap gap-1">
       {tags.slice(0, VISIBLE_TAGS).map((tag) => (
-        <span key={tag} className="rounded-sm bg-muted px-2 py-0.5 text-sm">
+        <span key={tag} className="rounded-xs bg-muted px-2 py-0.5 text-sm text-foreground">
           {tag}
         </span>
       ))}
@@ -616,7 +622,7 @@ function RowActions({
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger
         aria-label={t('contacts.list.rowActions', { name: contact.displayName })}
-        className={`${secondaryButton} px-2`}
+        className={`${ghostButton} px-2`}
       >
         <IconDots aria-hidden="true" size={20} stroke={1.75} />
       </DropdownMenuTrigger>
