@@ -1,7 +1,7 @@
 import { IconAlertTriangle, IconClockExclamation } from '@tabler/icons-react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Navigate, useSearchParams } from 'react-router';
+import { Link, Navigate, useSearchParams } from 'react-router';
 
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
 import { LanguageButtons } from '../../shared/ui/LanguageButtons';
@@ -87,6 +87,12 @@ export function LoginPage() {
           {t('login.signIn')}
         </button>
       </div>
+      <Link
+        to="/api-docs"
+        className="inline-flex min-h-11 items-center text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      >
+        {t('login.apiDocsLink')}
+      </Link>
       <LanguageButtons onChange={changeLanguage} />
     </main>
   );

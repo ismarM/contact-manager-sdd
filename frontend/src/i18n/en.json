@@ -1656,6 +1656,8 @@
       "roleAny": "any",
       "rolePublic": "public",
       "permissionNone": "not required",
+      "permissionRead": "read or write",
+      "permissionWrite": "read and write",
       "archived": "In an archived group only reading is allowed (writing returns 409 GROUP_ARCHIVED)."
     },
     "examples": {

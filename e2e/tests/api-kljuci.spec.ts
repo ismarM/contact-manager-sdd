@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 
@@ -123,4 +125,41 @@ test('FR-019-10, -12: ključ WRITE ustvari, spremeni in izbriše kontakt, sled i
   }
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);
+});
+
+test('FR-019-14, -15: neprijavljen odpre stran API s prijave, prenese opis, kopira primer', async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.goto('/login');
+  await page.getByRole('link', { name: t('login.apiDocsLink') }).click();
+
+  await expect(page).toHaveURL(/\/api-docs$/);
+  await expect(page.getByRole('heading', { level: 1, name: t('apiDocs.heading') })).toBeVisible();
+  await expect(page.getByRole('main')).toContainText(t('apiDocs.security.noCors'));
+  await expectNoHorizontalScroll(page);
+  await expectNoAxeViolations(page);
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('link', { name: t('apiDocs.download') }).click();
+  const download = await downloadPromise;
+  const path = await download.path();
+  const description = JSON.parse(readFileSync(path, 'utf-8')) as {
+    openapi: string;
+    paths: Record<string, unknown>;
+  };
+  expect(description.openapi).toMatch(/^3\.1/);
+  expect(Object.keys(description.paths)).toContain('/v1/groups');
+
+  // Tipkovnica: gumb Kopiraj je dosegljiv s Tab in deluje z Enter.
+  const copy = page.getByRole('button', { name: /^Kopiraj/ }).first();
+  await page.keyboard.press('Tab');
+  await copy.focus();
+  await expect(copy).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByText(t('apiDocs.copied')).first()).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('/v1/groups');
+  await expectNoHorizontalScroll(page);
+  await expectNoAxeViolations(page);
 });

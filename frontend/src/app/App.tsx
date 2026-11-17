@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { createBrowserRouter, Route, RouterProvider, Routes } from 'react-router';
 
 import { AccountPage } from '../features/account/AccountPage';
+import { ApiDocsPage } from '../features/api-docs/ApiDocsPage';
 import type { AuthGateway } from '../features/auth/AuthGateway';
 import { AuthProvider } from '../features/auth/AuthProvider';
 import { DisplayFormatsProvider } from '../features/formats/DisplayFormatsProvider';
@@ -31,6 +32,7 @@ function AppRoutes({ gateway }: { gateway: AuthGateway }) {
       <DisplayFormatsProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/api-docs" element={<ApiDocsPage />} />
           <Route
             element={
               <RequireAuth>

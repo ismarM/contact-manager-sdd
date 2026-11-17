@@ -1656,6 +1656,8 @@
       "roleAny": "katerakoli",
       "rolePublic": "javno",
       "permissionNone": "ni potreben",
+      "permissionRead": "branje ali pisanje",
+      "permissionWrite": "branje in pisanje",
       "archived": "V arhivirani skupini je dovoljeno samo branje (pisanje vrne 409 GROUP_ARCHIVED)."
     },
     "examples": {

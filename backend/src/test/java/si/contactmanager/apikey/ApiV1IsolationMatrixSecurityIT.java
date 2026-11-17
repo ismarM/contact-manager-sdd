@@ -432,4 +432,31 @@ class ApiV1IsolationMatrixSecurityIT extends ApiV1Test {
         assertThat(contacts.count(s.group())).isEqualTo(1);
         assertThat(contacts.count(other)).isEqualTo(1);
     }
+
+    // --- GET /v1/openapi.json (T029) ---
+
+    @Test
+    void openApiDescriptionIsPublicForEveryCallerWithoutCorsAndNotCountedInStatistics() throws Exception {
+        Scenario s = scenario();
+        String valid = keyFor(s, Who.OWNER, Permission.READ, s.group());
+        List<String> callers = new ArrayList<>();
+        callers.add(null);
+        callers.add(valid);
+        for (Unauthenticated actor : Unauthenticated.values()) {
+            callers.add(invalidKey(actor, s));
+        }
+
+        for (String key : callers) {
+            Map<String, String> headers = new java.util.HashMap<>(key == null ? Map.of() : Http.bearer(key));
+            headers.put("Origin", "https://tuj.example");
+            HttpResponse<String> response = Http.send("GET", url("/v1/openapi.json"), headers);
+
+            assertThat(response.statusCode()).isEqualTo(200);
+            assertThat(response.headers().firstValue("Content-Type").orElse("")).startsWith("application/json");
+            assertThat(response.headers().firstValue("Access-Control-Allow-Origin")).isEmpty();
+            assertThat(json(response.body())).containsEntry("openapi", "3.1.0");
+        }
+        assertThat(jdbc.queryForObject("select count(*) from api_key_usage", Integer.class))
+                .isZero();
+    }
 }
