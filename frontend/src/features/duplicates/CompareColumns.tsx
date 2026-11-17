@@ -68,7 +68,7 @@ export function CompareColumns({
               key={contact.id}
               role="group"
               aria-labelledby={nameId}
-              className="flex min-w-0 flex-col items-start gap-2 rounded-md border border-border bg-card p-3"
+              className="flex min-w-0 flex-col items-start gap-2 rounded-md border border-border bg-card p-4"
             >
               <span className="flex min-w-0 items-center gap-2">
                 <Avatar
@@ -87,7 +87,7 @@ export function CompareColumns({
                 </span>
               </span>
               {index === 0 && (
-                <span className="rounded-md bg-selected px-2 py-0.5 text-sm font-bold">
+                <span className="rounded-full bg-selected px-2.5 py-0.5 text-sm font-medium text-primary">
                   {t('duplicates.compare.kept')}
                 </span>
               )}

@@ -18,7 +18,7 @@ export function MergePreview({ result }: { result: MergeResultInput }) {
   return (
     <section
       aria-labelledby={titleId}
-      className="flex flex-col gap-3 rounded-md border border-border bg-card p-4"
+      className="flex flex-col gap-3 rounded-md border border-border bg-card p-5"
     >
       <h3 id={titleId} className="text-lg font-bold">
         {t('duplicates.compare.preview')}
@@ -52,7 +52,10 @@ export function MergePreview({ result }: { result: MergeResultInput }) {
             ) : (
               <ul className="flex flex-wrap gap-2">
                 {result.tags.map((tag) => (
-                  <li key={tag} className="rounded-md bg-muted px-2 py-0.5 text-sm break-all">
+                  <li
+                    key={tag}
+                    className="rounded-full bg-selected px-3 py-0.5 text-sm break-all text-primary"
+                  >
                     {tag}
                   </li>
                 ))}

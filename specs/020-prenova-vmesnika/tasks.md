@@ -145,10 +145,10 @@ description: "Naloge: Prenova vmesnika (Kartoteka v2) – ena izvedba, testi zno
 
 ### Paket B – dvojniki, revizija, atributi
 
-- [ ] T059 [P] FR-020-22 — `DuplicatesPage`, `DuplicateCard`, `ComparePage`, `MergePreview` (frontend/src/features/duplicates/)
-- [ ] T060 [P] FR-020-22 — `AuditPage`, `AuditEntryPage`, `AuditFilters`, `AuditEntryItem`, `ChangeTable`, `InitialStateItem` (frontend/src/features/audit/)
-- [ ] T061 [P] FR-020-22 — `GroupAttributesPage`, `TypeConflictList` (frontend/src/features/attributes/)
-- [ ] T062 FR-020-22 — FE testi in E2E (`dvojniki`, `revizijska-sled`, `napredna-revizija`, `tipizirani-atributi`, `pametni-atributi`), axe (frontend/src/features/{duplicates,audit,attributes}/, e2e/tests/)
+- [x] T059 [P] FR-020-22 — `DuplicatesPage`, `DuplicateCard`, `ComparePage`, `MergePreview` (frontend/src/features/duplicates/)
+- [x] T060 [P] FR-020-22 — `AuditPage`, `AuditEntryPage`, `AuditFilters`, `AuditEntryItem`, `ChangeTable`, `InitialStateItem` (frontend/src/features/audit/)
+- [x] T061 [P] FR-020-22 — `GroupAttributesPage`, `TypeConflictList` (frontend/src/features/attributes/)
+- [x] T062 FR-020-22 — FE testi in E2E (`dvojniki`, `revizijska-sled`, `napredna-revizija`, `tipizirani-atributi`, `pametni-atributi`), axe (frontend/src/features/{duplicates,audit,attributes}/, e2e/tests/)
 
 ### Paket C – nastavitve, člani, povabila, račun, API
 

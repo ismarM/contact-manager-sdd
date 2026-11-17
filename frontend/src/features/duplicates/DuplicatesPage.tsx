@@ -39,7 +39,7 @@ export function DuplicatesPage() {
   return (
     <section
       aria-labelledby={headingId}
-      className="mx-auto flex w-full max-w-[70ch] flex-col gap-4 px-4 py-6"
+      className="mx-auto flex w-full max-w-[1120px] flex-col gap-6 px-4 py-6"
     >
       <h2 id={headingId} ref={heading} tabIndex={-1} className="text-xl font-bold outline-none">
         {t('duplicates.heading')}

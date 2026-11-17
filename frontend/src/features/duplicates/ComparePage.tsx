@@ -314,7 +314,7 @@ export function ComparePage() {
   return (
     <section
       aria-labelledby={status === 'loading' ? undefined : headingId}
-      className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-6"
+      className="mx-auto flex w-full max-w-[1120px] flex-col gap-6 px-4 py-6"
     >
       {status !== 'loading' && (
         <div className="flex flex-wrap items-center justify-between gap-3">

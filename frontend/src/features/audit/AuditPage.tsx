@@ -183,7 +183,7 @@ export function AuditPage() {
   return (
     <section
       aria-labelledby={headingId}
-      className="mx-auto flex w-full max-w-[70ch] flex-col gap-4 px-4 py-6"
+      className="mx-auto flex w-full max-w-[880px] flex-col gap-4 px-4 py-6"
     >
       <h2 id={headingId} ref={heading} tabIndex={-1} className="text-xl font-bold outline-none">
         {t('audit.list.heading')}
@@ -258,7 +258,10 @@ export function AuditPage() {
 
       {data && data.total > 0 && (
         <>
-          <ol aria-label={t('audit.list.entries')} className="flex flex-col divide-y divide-border">
+          <ol
+            aria-label={t('audit.list.entries')}
+            className="flex flex-col divide-y divide-border rounded-md border border-border bg-card px-5"
+          >
             {data.items.map((entry) => (
               <AuditEntryItem
                 key={entry.id}

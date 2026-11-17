@@ -112,8 +112,13 @@ export function DuplicateResults({
 
       {!failed && data && data.groups.length > 0 && (
         <>
-          <p role="status">{t('duplicates.resultsCount', { count: data.total })}</p>
-          <ul aria-label={t('duplicates.groupsList')} className="flex flex-col gap-4">
+          <p role="status" className="text-lg font-bold">
+            {t('duplicates.resultsCount', { count: data.total })}
+          </p>
+          <ul
+            aria-label={t('duplicates.groupsList')}
+            className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+          >
             {data.groups.map((group) => (
               <DuplicateCard
                 key={group.contacts[0]?.id}

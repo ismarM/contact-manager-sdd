@@ -58,7 +58,7 @@ export function AuditEntryPage({ entryId }: { entryId: string }) {
   return (
     <section
       aria-labelledby={headingId}
-      className="mx-auto flex w-full max-w-[70ch] flex-col gap-4 px-4 py-6"
+      className="mx-auto flex w-full max-w-[880px] flex-col gap-4 px-4 py-6"
     >
       <h2 id={headingId} className="text-xl font-bold">
         {t('audit.entry.heading')}

@@ -10,7 +10,7 @@ export function DuplicatesUnavailable({ group }: { group: GroupDetail }) {
   return (
     <section
       aria-labelledby="duplicates-unavailable"
-      className="mx-auto flex w-full max-w-[70ch] flex-col gap-4 px-4 py-6"
+      className="mx-auto flex w-full max-w-[1120px] flex-col gap-4 px-4 py-6"
     >
       <h2 id="duplicates-unavailable" className="text-xl font-bold">
         {t('duplicates.heading')}
