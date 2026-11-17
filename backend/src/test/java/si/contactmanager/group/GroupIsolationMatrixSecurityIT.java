@@ -184,7 +184,7 @@ class GroupIsolationMatrixSecurityIT extends ApiTest {
         assertThat(fixtures.groupCount()).isEqualTo(groupsBefore);
     }
 
-    @ParameterizedTest(name = "GET /api/groups/{id} na trajno arhivirani skupini, {0}")
+    @ParameterizedTest(name = "GET /api/groups/<id> na trajno arhivirani skupini, {0}")
     @MethodSource("readers")
     @Tag("FR-020-06")
     @Tag("FR-020-08")
