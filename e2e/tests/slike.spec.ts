@@ -250,7 +250,7 @@ test('FR-018-09 FR-018-10 FR-018-12: slika kontakta – naloži, zamenjaj, odstr
   await expectNoAxeViolations(page);
 
   // Shranjevanje polj po spremembi slike ne sproži lažnega konflikta verzij.
-  await page.getByRole('textbox', { name: 'Telefon' }).fill('01 234 567');
+  await page.getByRole('textbox', { name: 'Telefon' }).fill('+386 1 234 56 78');
   await page.getByRole('button', { name: 'Shrani kontakt' }).click();
   await expect(page).toHaveURL(new RegExp(`/groups/${groupId}/contacts/${contactId}$`));
   await expect(page.getByRole('alert')).toHaveCount(0);
