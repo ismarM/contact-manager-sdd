@@ -1,17 +1,21 @@
-import { IconAlertTriangle, IconCheck } from '@tabler/icons-react';
-import { type FormEvent, useId, useState } from 'react';
+import { IconAlertTriangle, IconCheck, IconKey, IconLock } from '@tabler/icons-react';
+import { type FormEvent, type ReactNode, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { Callout } from '../../shared/ui/Callout';
 import {
-  errorAlert,
+  card,
   fieldError,
+  ghostButton,
   primaryButton,
   secondaryButton,
+  softButton,
   textInput,
   warningAlert,
 } from '../../shared/ui/styles';
 import { authErrorKey } from '../auth/authErrorKey';
 import { useAuth } from '../auth/authContext';
+import { GoogleLogo } from '../auth/GoogleLogo';
 import { AuthField, ErrorSummary, useAuthForm } from '../auth/AuthForm';
 
 type Mode = 'idle' | 'password' | 'google' | 'change';
@@ -133,19 +137,33 @@ export function SignInMethodsSection() {
   };
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-3">
-      <h2 id={headingId} className="text-xl font-bold">
+    <section aria-labelledby={headingId} className={`${card} flex flex-col gap-4 p-4 md:p-6`}>
+      <h2 id={headingId} className="text-xl font-semibold">
         {t('account.methods.heading')}
       </h2>
-      <ul className="flex flex-col gap-1">
-        <li>
-          {t('account.methods.google')}:{' '}
-          {t(hasGoogle ? 'account.methods.linked' : 'account.methods.notLinked')}
-        </li>
-        <li>
-          {t('account.methods.password')}:{' '}
-          {t(hasPassword ? 'account.methods.linked' : 'account.methods.notLinked')}
-        </li>
+      <ul className={`${card} flex flex-col divide-y divide-border`}>
+        <MethodRow
+          icon={<GoogleLogo />}
+          name={t('account.methods.google')}
+          linked={hasGoogle}
+          linkedLabel={t('account.methods.linked')}
+          notLinkedLabel={t('account.methods.notLinked')}
+        />
+        <MethodRow
+          icon={
+            <IconLock
+              aria-hidden="true"
+              size={20}
+              stroke={1.75}
+              className="text-muted-foreground"
+            />
+          }
+          name={t('account.methods.password')}
+          linked={hasPassword}
+          linkedLabel={t('account.methods.linked')}
+          notLinkedLabel={t('account.methods.notLinked')}
+          description={!hasPassword ? t('account.methods.passwordIntro') : undefined}
+        />
       </ul>
 
       <div role="status" className="text-foreground">
@@ -162,25 +180,19 @@ export function SignInMethodsSection() {
           </p>
         )}
       </div>
-      {failure && (
-        <div role="alert" className={errorAlert}>
-          <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
-          <span>{failure}</span>
-        </div>
-      )}
+      {failure && <Callout tone="error">{failure}</Callout>}
 
-      {mode === 'idle' && !hasPassword && (
-        <p className="text-muted-foreground">{t('account.methods.passwordIntro')}</p>
-      )}
       {mode === 'idle' && (
         <div className="flex flex-wrap gap-3">
           {hasPassword && (
             <button type="button" className={secondaryButton} onClick={() => open('change')}>
+              <IconKey aria-hidden="true" size={20} stroke={1.75} />
               {t('account.methods.changePassword')}
             </button>
           )}
           {!hasPassword && (
-            <button type="button" className={secondaryButton} onClick={() => open('password')}>
+            <button type="button" className={softButton} onClick={() => open('password')}>
+              <IconKey aria-hidden="true" size={20} stroke={1.75} />
               {t('account.methods.addPassword')}
             </button>
           )}
@@ -196,7 +208,7 @@ export function SignInMethodsSection() {
         <form
           noValidate
           onSubmit={(event) => void addPassword(event)}
-          className="flex flex-col gap-4"
+          className="flex flex-col gap-5 rounded-md border border-border p-5"
         >
           <div role="note" className={warningAlert}>
             <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
@@ -261,7 +273,7 @@ export function SignInMethodsSection() {
             <button type="submit" className={primaryButton} aria-busy={busy} aria-disabled={busy}>
               {t('account.methods.addPasswordSubmit')}
             </button>
-            <button type="button" className={secondaryButton} onClick={() => open('idle')}>
+            <button type="button" className={ghostButton} onClick={() => open('idle')}>
               {t('account.methods.cancel')}
             </button>
           </div>
@@ -272,10 +284,10 @@ export function SignInMethodsSection() {
         <form
           noValidate
           onSubmit={(event) => void submitChange(event)}
-          className="flex flex-col gap-4"
+          className="flex flex-col gap-5 rounded-md border border-border p-5"
         >
           <div className="flex flex-col gap-1">
-            <label htmlFor={ids.current} className="font-bold">
+            <label htmlFor={ids.current} className="font-medium">
               {t('account.methods.currentPassword')}
             </label>
             <input
@@ -332,7 +344,7 @@ export function SignInMethodsSection() {
             <button type="submit" className={primaryButton} aria-busy={busy} aria-disabled={busy}>
               {t('account.methods.changePasswordSubmit')}
             </button>
-            <button type="button" className={secondaryButton} onClick={() => open('idle')}>
+            <button type="button" className={ghostButton} onClick={() => open('idle')}>
               {t('account.methods.cancel')}
             </button>
           </div>
@@ -343,11 +355,11 @@ export function SignInMethodsSection() {
         <form
           noValidate
           onSubmit={(event) => void addGoogle(event)}
-          className="flex flex-col gap-4"
+          className="flex flex-col gap-5 rounded-md border border-border p-5"
         >
           <p className="text-muted-foreground">{t('account.methods.reauthPassword')}</p>
           <div className="flex flex-col gap-1">
-            <label htmlFor={ids.current} className="font-bold">
+            <label htmlFor={ids.current} className="font-medium">
               {t('account.methods.currentPassword')}
             </label>
             <input
@@ -371,12 +383,50 @@ export function SignInMethodsSection() {
             <button type="submit" className={primaryButton} aria-busy={busy} aria-disabled={busy}>
               {t('account.methods.addGoogleSubmit')}
             </button>
-            <button type="button" className={secondaryButton} onClick={() => open('idle')}>
+            <button type="button" className={ghostButton} onClick={() => open('idle')}>
               {t('account.methods.cancel')}
             </button>
           </div>
         </form>
       )}
     </section>
+  );
+}
+
+/** Vrstica prijavne metode: ikona, ime (»Ime: stanje« je v besedilu v tem vrstnem redu), značka stanja in razlaga. */
+function MethodRow({
+  icon,
+  name,
+  linked,
+  linkedLabel,
+  notLinkedLabel,
+  description,
+}: {
+  icon: ReactNode;
+  name: string;
+  linked: boolean;
+  linkedLabel: string;
+  notLinkedLabel: string;
+  description?: string;
+}) {
+  return (
+    <li className="grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-x-3 px-4 py-3">
+      <span className="row-span-2 grid place-items-center self-center">{icon}</span>
+      <span className="col-start-2 font-semibold">
+        {name}
+        <span className="sr-only">: </span>
+      </span>
+      <span
+        className={`col-start-3 row-span-2 row-start-1 inline-flex items-center gap-1 rounded-xs px-2 py-0.5 text-sm ${
+          linked ? 'bg-success-soft text-success' : 'border border-border text-muted-foreground'
+        }`}
+      >
+        {linked && <IconCheck aria-hidden="true" size={16} stroke={1.75} />}
+        {linked ? linkedLabel : notLinkedLabel}
+      </span>
+      {description && (
+        <span className="col-start-2 text-sm text-muted-foreground">{description}</span>
+      )}
+    </li>
   );
 }

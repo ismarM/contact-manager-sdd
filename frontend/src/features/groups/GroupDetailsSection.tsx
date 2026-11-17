@@ -1,4 +1,4 @@
-import { IconAlertTriangle } from '@tabler/icons-react';
+import { IconCheck } from '@tabler/icons-react';
 import { type FormEvent, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -7,7 +7,8 @@ import { ApiError } from '../../shared/api/client';
 import { Avatar } from '../../shared/images/Avatar';
 import { useImageApi } from '../../shared/images/imageApi';
 import { PhotoControls } from '../../shared/images/PhotoControls';
-import { errorAlert, primaryButton } from '../../shared/ui/styles';
+import { Callout } from '../../shared/ui/Callout';
+import { card, primaryButton } from '../../shared/ui/styles';
 import { failureKey, fieldErrors, useGroupsApi } from './api';
 import { COLOR_SWATCH } from './colors';
 import { ConflictAlert } from './ConflictAlert';
@@ -35,16 +36,11 @@ export function GroupDetailsSection() {
   const canEdit = (group.role === 'OWNER' || group.role === 'ADMIN') && !group.archived;
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-4">
-      <h2 id={headingId} className="text-xl font-bold">
+    <section aria-labelledby={headingId} className={`${card} flex flex-col gap-6 p-4 md:p-6`}>
+      <h2 id={headingId} className="text-xl font-semibold">
         {t('groups.details.heading')}
       </h2>
-      {archivedMeanwhile && (
-        <div role="alert" className={errorAlert}>
-          <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
-          <span>{t('groups.details.archived')}</span>
-        </div>
-      )}
+      {archivedMeanwhile && <Callout tone="error">{t('groups.details.archived')}</Callout>}
       <GroupPhotoSection />
       {canEdit ? (
         <DetailsForm
@@ -57,9 +53,9 @@ export function GroupDetailsSection() {
         />
       ) : (
         <dl className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-[max-content_1fr]">
-          <dt className="text-muted-foreground">{t('groups.form.title')}</dt>
+          <dt className="font-medium text-muted-foreground">{t('groups.form.title')}</dt>
           <dd className="break-words">{group.title}</dd>
-          <dt className="text-muted-foreground">{t('groups.form.description')}</dt>
+          <dt className="font-medium text-muted-foreground">{t('groups.form.description')}</dt>
           <dd
             className={
               group.description ? 'break-words whitespace-pre-line' : 'text-muted-foreground'
@@ -67,7 +63,7 @@ export function GroupDetailsSection() {
           >
             {group.description ?? t('groups.details.noDescription')}
           </dd>
-          <dt className="text-muted-foreground">{t('groups.form.color')}</dt>
+          <dt className="font-medium text-muted-foreground">{t('groups.form.color')}</dt>
           <dd className="flex items-center gap-2">
             <span
               aria-hidden="true"
@@ -112,11 +108,15 @@ function GroupPhotoSection() {
   };
 
   return (
-    <div role="group" aria-labelledby={headingId} className="flex flex-col gap-2">
-      <h3 id={headingId} className="font-bold">
+    <div
+      role="group"
+      aria-labelledby={headingId}
+      className="flex flex-col gap-2 rounded-md border border-border p-4"
+    >
+      <h3 id={headingId} className="font-medium">
         {t('images.group.heading')}
       </h3>
-      {canEdit && <p className="text-muted-foreground">{t('images.group.description')}</p>}
+      {canEdit && <p className="text-sm text-muted-foreground">{t('images.group.description')}</p>}
       <PhotoControls
         preview={
           <Avatar
@@ -214,21 +214,17 @@ function DetailsForm({ labelledBy, onArchived }: { labelledBy: string; onArchive
           onSaveMine={() => void save(conflict.version)}
         />
       )}
-      {failure && (
-        <div role="alert" className={errorAlert}>
-          <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
-          <span>{failure}</span>
-        </div>
-      )}
+      {failure && <Callout tone="error">{failure}</Callout>}
       <form
         aria-labelledby={labelledBy}
         noValidate
         onSubmit={submit}
-        className="flex flex-col gap-4"
+        className="flex flex-col gap-6"
       >
         <GroupFormFields values={values} onChange={setValues} errors={errors} />
-        <div>
+        <div className="flex justify-end">
           <button type="submit" className={primaryButton} aria-disabled={saving}>
+            <IconCheck aria-hidden="true" size={20} stroke={1.75} />
             {t('groups.form.save')}
           </button>
         </div>

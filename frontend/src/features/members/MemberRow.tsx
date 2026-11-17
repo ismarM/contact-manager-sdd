@@ -4,6 +4,7 @@ import { Avatar } from '../../shared/images/Avatar';
 import { useGroup } from '../groups/groupContext';
 import { MemberCell } from './MemberCell';
 import { MemberActionsMenu, type MemberDialogKind } from './MemberActionsMenu';
+import { roleChip } from './roleChip';
 import type { Member } from './types';
 
 /**
@@ -23,7 +24,7 @@ export function MemberRow({
   const { group } = useGroup();
   const name = member.name ?? member.email;
   return (
-    <tr className="border-b border-border max-sm:block max-sm:py-2">
+    <tr className="border-t border-border max-sm:block max-sm:py-2">
       <MemberCell label={t('members.table.member')} className={cellClass}>
         <span className="inline-flex items-center gap-3">
           <Avatar
@@ -37,14 +38,26 @@ export function MemberRow({
               revision: member.photoRevision,
             }}
           />
-          <span>{member.self ? `${name} ${t('members.table.you')}` : name}</span>
+          <span className="font-medium">
+            {member.self ? (
+              <>
+                {name}{' '}
+                <span className="font-normal text-muted-foreground">{t('members.table.you')}</span>
+              </>
+            ) : (
+              name
+            )}
+          </span>
         </span>
       </MemberCell>
-      <MemberCell label={t('members.table.email')} className={`${cellClass} break-all`}>
+      <MemberCell
+        label={t('members.table.email')}
+        className={`${cellClass} break-all text-muted-foreground`}
+      >
         {member.email}
       </MemberCell>
       <MemberCell label={t('members.table.role')} className={cellClass}>
-        {t(`roles.${member.role}`)}
+        <span className={roleChip}>{t(`roles.${member.role}`)}</span>
       </MemberCell>
       <MemberCell label={t('members.table.actions')} className={cellClass}>
         {member.canManage && !group.archived && (

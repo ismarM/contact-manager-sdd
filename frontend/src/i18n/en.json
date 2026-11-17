@@ -1058,6 +1058,10 @@
     },
     "page": {
       "heading": "Invitations",
+      "subtitle_one": "{{count}} group has invited you to join.",
+      "subtitle_two": "{{count}} groups have invited you to join.",
+      "subtitle_few": "{{count}} groups have invited you to join.",
+      "subtitle_other": "{{count}} groups have invited you to join.",
       "list": "Received invitations",
       "emptyTitle": "You have no new invitations.",
       "emptyText": "When someone invites you to a group, the invitation will appear here.",
@@ -1085,6 +1089,13 @@
     },
     "invite": {
       "heading": "Invite a member",
+      "placeholder": "name@example.com",
+      "help": "Invite someone who already has an account. They will see the invitation under Invitations.",
+      "roleHint": {
+        "ADMIN": "Manages members",
+        "EDITOR": "Edits contacts",
+        "VIEWER": "Read only"
+      },
       "email": "Email",
       "role": "Role",
       "submit": "Send invitation",
@@ -1204,6 +1215,7 @@
     },
     "transfer": {
       "button": "Transfer ownership",
+      "description": "Choose another member as owner. You will become an admin.",
       "info": "You can transfer ownership once the group has at least one more member.",
       "title": "Transfer ownership of {{group}}?",
       "newOwner": "New owner",
@@ -1675,6 +1687,7 @@
     "requests24h_few": "{{count}} requests in the last 24 hours",
     "requests24h_other": "{{count}} requests in the last 24 hours",
     "usageLink": "Statistics for key {{name}}",
+    "usageShort": "Statistics",
     "status": {
       "ACTIVE": "Active",
       "EXPIRED": "Expired",
@@ -1732,6 +1745,7 @@
       "failed": "The key could not be revoked. Try again."
     },
     "usage": {
+      "legend": "Legend",
       "heading": "Statistics for key {{name}}",
       "back": "Back to My account",
       "periodLegend": "Period",
@@ -1746,6 +1760,7 @@
       "rateLimited": "Rejected by rate limit",
       "chartHeading": "Requests per day",
       "tableCaption": "Requests per day",
+      "tableSummary": "Requests per day (table)",
       "day": "Day",
       "loadFailed": "The statistics could not be loaded. Try again.",
       "retry": "Try again",
@@ -1789,6 +1804,9 @@
       "rights": "On every request, the lesser of the key's permission and your current role in the group applies."
     },
     "operations": {
+      "method": "Method",
+      "path": "Path",
+      "description": "Description",
       "heading": "Operations",
       "caption": "Operations of API version 1",
       "method": "Method",
@@ -1825,6 +1843,9 @@
       "text": "Lists return a page (page, starting at 0) of size size and the total number of results total. The default size is 25, at most 100 for groups; contacts follow the same rules as in the app."
     },
     "errors": {
+      "status": "Status",
+      "code": "Code",
+      "meaning": "Meaning",
       "heading": "Error codes",
       "caption": "API error codes",
       "status": "Status",

@@ -5,6 +5,7 @@ import { Link } from 'react-router';
 import { toast } from 'sonner';
 
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
+import { NoInvitationsIllustration } from '../../shared/ui/illustrations';
 import { errorAlert, focusRing, secondaryButton } from '../../shared/ui/styles';
 import { useGroups } from '../groups/groupsContext';
 import { PAGE_SIZES, SectionPagination } from '../groups/SectionPagination';
@@ -147,10 +148,17 @@ export function InvitationsPage() {
   };
 
   return (
-    <div className="mx-auto flex max-w-[80ch] flex-col gap-6 px-4 py-8">
-      <h1 ref={heading} tabIndex={-1} className="text-2xl font-bold outline-none">
-        {t('invitations.page.heading')}
-      </h1>
+    <div className="flex flex-col gap-6 px-4 py-6 md:gap-8 md:px-8 md:py-8">
+      <header className="flex flex-col gap-1">
+        <h1 ref={heading} tabIndex={-1} className="text-2xl font-semibold outline-none">
+          {t('invitations.page.heading')}
+        </h1>
+        {result && result.total > 0 && (
+          <p className="text-muted-foreground">
+            {t('invitations.page.subtitle', { count: result.total })}
+          </p>
+        )}
+      </header>
       {failure && (
         <div role="alert" className={errorAlert}>
           <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
@@ -168,16 +176,17 @@ export function InvitationsPage() {
         </div>
       )}
       {empty && (
-        <section className="flex flex-col items-start gap-2">
-          <h2 className="text-xl font-bold">{t('invitations.page.emptyTitle')}</h2>
-          <p className="text-muted-foreground">{t('invitations.page.emptyText')}</p>
+        <section className="flex flex-col items-center gap-3 py-8 text-center">
+          <NoInvitationsIllustration size={180} />
+          <h2 className="text-xl font-semibold">{t('invitations.page.emptyTitle')}</h2>
+          <p className="max-w-prose text-muted-foreground">{t('invitations.page.emptyText')}</p>
         </section>
       )}
       {result && result.items.length > 0 && (
         <ul
           aria-label={t('invitations.page.list')}
           aria-busy={loading}
-          className="flex flex-col divide-y divide-border rounded-lg border border-border bg-card"
+          className="flex max-w-3xl flex-col gap-3"
         >
           {result.items.map((invitation) => (
             <InvitationItem

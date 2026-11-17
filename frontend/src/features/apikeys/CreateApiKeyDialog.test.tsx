@@ -86,9 +86,12 @@ describe('Nov API ključ (FR-019-01)', () => {
         name: tr('apiKeys.form.archivedGroup', { title: 'Arhiv 2025' }),
       }),
     ).toBeInTheDocument();
-    expect(within(dialog).getByRole('combobox', { name: apiKeyNames.expiry() })).toHaveDisplayValue(
-      tr('apiKeys.form.expiry90'),
-    );
+    expect(
+      within(within(dialog).getByRole('radiogroup', { name: apiKeyNames.expiry() })).getByRole(
+        'radio',
+        { name: tr('apiKeys.form.expiry90') },
+      ),
+    ).toBeChecked();
     await user.type(within(dialog).getByLabelText(apiKeyNames.name()), '  Nočni izvoz ');
     await user.click(within(dialog).getByRole('checkbox', { name: 'Klub' }));
     await user.click(within(dialog).getByRole('checkbox', { name: 'Zbor' }));
@@ -96,10 +99,7 @@ describe('Nov API ključ (FR-019-01)', () => {
       within(dialog).getByRole('combobox', { name: apiKeyNames.permissionFor('Zbor') }),
       apiKeyNames.permission('WRITE'),
     );
-    await user.selectOptions(
-      within(dialog).getByRole('combobox', { name: apiKeyNames.expiry() }),
-      tr('apiKeys.form.expiry365'),
-    );
+    await user.click(within(dialog).getByRole('radio', { name: tr('apiKeys.form.expiry365') }));
     expect((await axe(container)).violations).toEqual([]);
     await user.click(within(dialog).getByRole('button', { name: apiKeyNames.submit() }));
 
@@ -142,10 +142,7 @@ describe('Nov API ključ (FR-019-01)', () => {
       within(dialog).getByRole('combobox', { name: apiKeyNames.permissionAll() }),
       apiKeyNames.permission('WRITE'),
     );
-    await user.selectOptions(
-      within(dialog).getByRole('combobox', { name: apiKeyNames.expiry() }),
-      tr('apiKeys.form.expiryNever'),
-    );
+    await user.click(within(dialog).getByRole('radio', { name: tr('apiKeys.form.expiryNever') }));
     await user.click(within(dialog).getByRole('button', { name: apiKeyNames.submit() }));
 
     await waitFor(() =>

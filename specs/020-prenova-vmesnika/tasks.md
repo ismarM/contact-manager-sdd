@@ -152,11 +152,11 @@ description: "Naloge: Prenova vmesnika (Kartoteka v2) – ena izvedba, testi zno
 
 ### Paket C – nastavitve, člani, povabila, račun, API
 
-- [ ] T063 [P] FR-020-22 — `SettingsPage`, `GroupDetailsSection`, `GroupManagementSection`, `MembersSection`/`MemberRow`/`MemberActionsMenu`, `PendingInvitationsSection`, `InviteMemberSection` (frontend/src/features/{groups,members,invitations}/)
-- [ ] T064 [P] FR-020-22 — `InvitationsPage`/`InvitationItem` (monogram skupine, sprejmi/zavrni) (frontend/src/features/invitations/)
-- [ ] T065 [P] FR-020-09, FR-020-22 — `AccountPage` in razdelki (profil, tema/jezik/oblika zapisa samo tukaj, načini prijave, gesla za aplikacijo, API ključi, moji podatki, izbris), `ApiKeyUsagePage` in graf (frontend/src/features/{account,apikeys}/)
-- [ ] T066 [P] FR-020-22 — `ApiDocsPage`, `CodeBlock` (javna stran, brez ogrodja aplikacije) (frontend/src/features/api-docs/)
-- [ ] T067 FR-020-22 — FE testi in E2E (`clani`, `povabila`, `moji-podatki`, `api-kljuci`), axe (frontend/src/features/**, e2e/tests/)
+- [x] T063 [P] FR-020-22 — `SettingsPage`, `GroupDetailsSection`, `GroupManagementSection`, `MembersSection`/`MemberRow`/`MemberActionsMenu`, `PendingInvitationsSection`, `InviteMemberSection` (frontend/src/features/{groups,members,invitations}/)
+- [x] T064 [P] FR-020-22 — `InvitationsPage`/`InvitationItem` (monogram skupine, sprejmi/zavrni) (frontend/src/features/invitations/)
+- [x] T065 [P] FR-020-09, FR-020-22 — `AccountPage` in razdelki (profil, tema/jezik/oblika zapisa samo tukaj, načini prijave, gesla za aplikacijo, API ključi, moji podatki, izbris), `ApiKeyUsagePage` in graf (frontend/src/features/{account,apikeys}/)
+- [x] T066 [P] FR-020-22 — `ApiDocsPage`, `CodeBlock` (javna stran, brez ogrodja aplikacije) (frontend/src/features/api-docs/)
+- [x] T067 FR-020-22 — FE testi in E2E (`clani`, `povabila`, `moji-podatki`, `api-kljuci`), axe (frontend/src/features/**, e2e/tests/)
 
 ### Paket D – dialogi
 

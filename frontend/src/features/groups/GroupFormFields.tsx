@@ -36,7 +36,7 @@ export function GroupFormFields({
   return (
     <>
       <div className="flex flex-col gap-1">
-        <label htmlFor={titleId} className="font-bold">
+        <label htmlFor={titleId} className="font-medium">
           {t('groups.form.title')}
         </label>
         <input
@@ -56,7 +56,7 @@ export function GroupFormFields({
         )}
       </div>
       <div className="flex flex-col gap-1">
-        <label htmlFor={descriptionId} className="font-bold">
+        <label htmlFor={descriptionId} className="font-medium">
           {t('groups.form.description')}
         </label>
         <textarea

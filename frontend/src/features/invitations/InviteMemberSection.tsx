@@ -1,16 +1,11 @@
-import { IconAlertTriangle } from '@tabler/icons-react';
+import { IconMail, IconUserPlus } from '@tabler/icons-react';
 import { type FormEvent, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { ApiError } from '../../shared/api/client';
-import {
-  errorAlert,
-  fieldError,
-  focusRing,
-  primaryButton,
-  textInput,
-} from '../../shared/ui/styles';
+import { Callout } from '../../shared/ui/Callout';
+import { card, fieldError, focusRing, softButton, textInput } from '../../shared/ui/styles';
 import { fieldErrors } from '../groups/api';
 import { useGroup } from '../groups/groupContext';
 import { ROLES } from '../groups/types';
@@ -134,27 +129,39 @@ export function InviteMemberSection({ onSent }: { onSent?: () => void }) {
   };
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-4">
-      <h2 id={headingId} className="text-xl font-bold">
-        {t('invitations.invite.heading')}
-      </h2>
-      <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-4">
+    <section aria-labelledby={headingId} className={`${card} flex flex-col gap-5 p-4 md:p-6`}>
+      <div className="flex flex-col gap-1">
+        <h2 id={headingId} className="text-xl font-semibold">
+          {t('invitations.invite.heading')}
+        </h2>
+        <p className="text-sm text-muted-foreground">{t('invitations.invite.help')}</p>
+      </div>
+      <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-5">
         <div className="flex flex-col gap-1">
-          <label htmlFor={emailId} className="font-bold">
+          <label htmlFor={emailId} className="font-medium">
             {t('invitations.invite.email')}
           </label>
-          <input
-            ref={input}
-            id={emailId}
-            type="email"
-            autoComplete="off"
-            aria-required="true"
-            aria-invalid={errors.email ? true : undefined}
-            aria-describedby={errors.email ? emailError : undefined}
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className={textInput}
-          />
+          <span className="relative flex items-center">
+            <IconMail
+              aria-hidden="true"
+              size={20}
+              stroke={1.75}
+              className="pointer-events-none absolute left-3 text-muted-foreground"
+            />
+            <input
+              ref={input}
+              id={emailId}
+              type="email"
+              autoComplete="off"
+              placeholder={t('invitations.invite.placeholder')}
+              aria-required="true"
+              aria-invalid={errors.email ? true : undefined}
+              aria-describedby={errors.email ? emailError : undefined}
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className={`${textInput} pl-10`}
+            />
+          </span>
           {errors.email && (
             <p id={emailError} className={fieldError}>
               {t(`invitations.invite.errors.${errors.email}`)}
@@ -168,25 +175,41 @@ export function InviteMemberSection({ onSent }: { onSent?: () => void }) {
           aria-invalid={errors.role ? true : undefined}
           className="flex flex-col gap-1"
         >
-          <legend id={roleLegend} className="mb-1 font-bold">
+          <legend id={roleLegend} className="mb-2 font-medium">
             {t('invitations.invite.role')}
           </legend>
-          <div className="flex flex-wrap gap-x-6">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             {offered.map((option) => (
-              <label
+              <div
                 key={option}
-                className="flex min-h-11 items-center gap-2 pointer-coarse:min-h-12"
+                className={`relative flex min-h-11 items-start gap-3 rounded-sm border p-3 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring ${
+                  role === option
+                    ? 'border-primary bg-selected'
+                    : 'border-input bg-card hover:bg-muted'
+                }`}
               >
                 <input
+                  id={`${roleName}-${option}`}
                   type="radio"
                   name={roleName}
                   value={option}
                   checked={role === option}
                   onChange={() => setRole(option)}
-                  className={`size-5 accent-primary ${focusRing}`}
+                  aria-describedby={`${roleName}-${option}-hint`}
+                  className={`mt-0.5 size-5 accent-primary ${focusRing}`}
                 />
-                {t(`roles.${option}`)}
-              </label>
+                <span className="flex flex-col">
+                  <label
+                    htmlFor={`${roleName}-${option}`}
+                    className="cursor-pointer font-semibold after:absolute after:inset-0"
+                  >
+                    {t(`roles.${option}`)}
+                  </label>
+                  <span id={`${roleName}-${option}-hint`} className="text-sm text-muted-foreground">
+                    {t(`invitations.invite.roleHint.${option}`)}
+                  </span>
+                </span>
+              </div>
             ))}
           </div>
           {errors.role && (
@@ -195,17 +218,11 @@ export function InviteMemberSection({ onSent }: { onSent?: () => void }) {
             </p>
           )}
         </fieldset>
-        {alert && (
-          <div role="alert" className={errorAlert}>
-            <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
-            <span>{alert}</span>
-          </div>
-        )}
-        <div>
-          <button type="submit" className={primaryButton} aria-disabled={busy}>
-            {t('invitations.invite.submit')}
-          </button>
-        </div>
+        {alert && <Callout tone="error">{alert}</Callout>}
+        <button type="submit" className={`${softButton} self-start`} aria-disabled={busy}>
+          <IconUserPlus aria-hidden="true" size={20} stroke={1.75} />
+          {t('invitations.invite.submit')}
+        </button>
       </form>
     </section>
   );

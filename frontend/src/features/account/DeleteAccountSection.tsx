@@ -1,10 +1,12 @@
-import { IconAlertTriangle } from '@tabler/icons-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
 import { ApiError } from '../../shared/api/client';
-import { errorAlert, secondaryButton } from '../../shared/ui/styles';
+import { Callout } from '../../shared/ui/Callout';
+import { Monogram } from '../../shared/ui/Monogram';
+import { card, secondaryButton, textLink } from '../../shared/ui/styles';
+import { useGroups } from '../groups/groupsContext';
 import { useAuth } from '../auth/authContext';
 import { useMyDataApi } from './api';
 import { DeleteAccountDialog } from './DeleteAccountDialog';
@@ -24,6 +26,7 @@ export function DeleteAccountSection() {
   const { t } = useTranslation();
   const api = useMyDataApi();
   const { accountDeleted } = useAuth();
+  const { groups } = useGroups();
   const [blockers, setBlockers] = useState<Blockers>({ state: 'loading' });
   const heading = useRef<HTMLHeadingElement>(null);
   const focusHeading = useRef(false);
@@ -73,16 +76,16 @@ export function DeleteAccountSection() {
   const onDeleted = (outcome: DeletionOutcome) => void accountDeleted(outcome === 'pending');
 
   return (
-    <section aria-labelledby="account-delete" className="flex flex-col gap-3">
+    <section aria-labelledby="account-delete" className={`${card} flex flex-col gap-4 p-4 md:p-6`}>
       <h2
         id="account-delete"
         ref={heading}
         tabIndex={-1}
-        className="text-xl font-bold outline-none"
+        className="text-xl font-semibold outline-none"
       >
         {t('account.delete.heading')}
       </h2>
-      <p>{t('account.delete.consequences')}</p>
+      <p className="max-w-prose text-muted-foreground">{t('account.delete.consequences')}</p>
       {blockers.state === 'loading' && (
         <p role="status" className="text-muted-foreground">
           {t('account.delete.loading')}
@@ -90,37 +93,46 @@ export function DeleteAccountSection() {
       )}
       {blockers.state === 'failed' && (
         <div className="flex flex-col items-start gap-2">
-          <div role="alert" className={errorAlert}>
-            <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
-            <span>{t('account.delete.blockersError')}</span>
-          </div>
+          <Callout tone="error" className="self-stretch">
+            {t('account.delete.blockersError')}
+          </Callout>
           <button type="button" onClick={retry} className={secondaryButton}>
             {t('account.delete.retry')}
           </button>
         </div>
       )}
       {blockers.state === 'ready' && blockers.changed && blockers.groups.length > 0 && (
-        <div role="alert" className={errorAlert}>
-          <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
-          <span>{t('account.delete.ownsActiveGroups')}</span>
-        </div>
+        <Callout tone="error">{t('account.delete.ownsActiveGroups')}</Callout>
       )}
       {blockers.state === 'ready' && blockers.groups.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <ul
-            aria-label={t('account.delete.blockersHeading')}
-            className="flex list-disc flex-col gap-1 pl-6"
-          >
-            {blockers.groups.map((group) => (
-              <li key={group.id}>
-                <Link to={`/groups/${group.id}`} className="text-primary underline">
-                  {group.title}
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <p>{t('account.delete.blockersHint')}</p>
-        </div>
+        <Callout tone="warning" announce={false}>
+          <div className="flex flex-col gap-3">
+            <p className="font-semibold">{t('account.delete.blockersHeading')}</p>
+            <ul aria-label={t('account.delete.blockersHeading')} className="flex flex-col gap-1.5">
+              {blockers.groups.map((group) => {
+                const known = groups.find((entry) => entry.id === group.id);
+                return (
+                  <li key={group.id} className="flex items-center gap-2.5">
+                    <Monogram
+                      title={group.title}
+                      color={known?.color ?? 'tinta'}
+                      size={24}
+                      photo={
+                        known?.photoRevision == null
+                          ? undefined
+                          : { path: `/groups/${group.id}/photo`, revision: known.photoRevision }
+                      }
+                    />
+                    <Link to={`/groups/${group.id}`} className={textLink}>
+                      {group.title}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="text-sm">{t('account.delete.blockersHint')}</p>
+          </div>
+        </Callout>
       )}
       {blockers.state === 'ready' && blockers.groups.length === 0 && (
         <div>

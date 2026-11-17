@@ -5,7 +5,7 @@ import { AVATAR_CLASS, avatarColorFor, initials } from './avatarColor';
 import type { PhotoSize } from './photoTypes';
 import { useProtectedImage } from './useProtectedImage';
 
-export type AvatarSize = 24 | 32 | 40 | 64 | 128;
+export type AvatarSize = 24 | 32 | 40 | 64 | 96 | 128;
 
 export interface AvatarProps {
   kind: 'user' | 'contact' | 'group';
@@ -27,6 +27,7 @@ const BOX: Record<AvatarSize, string> = {
   32: 'size-8',
   40: 'size-10',
   64: 'size-16',
+  96: 'size-24',
   128: 'size-32',
 };
 /** Velikost besedila ≈ 40 % premera. */
@@ -35,6 +36,7 @@ const TEXT: Record<AvatarSize, string> = {
   32: 'text-xs',
   40: 'text-base',
   64: 'text-2xl',
+  96: 'text-4xl',
   128: 'text-5xl',
 };
 
@@ -43,7 +45,7 @@ const sizeFor = (size: AvatarSize): PhotoSize => (size <= 40 ? 96 : 256);
 
 /**
  * Avatar (design.md 4.2; FR-018-21): slika, sicer začetnice (največ 2) v barvi iz osmih barv skupin kot besedilo z
- * robom 1 px na `surface`. Izbrisan uporabnik ima nevtralno ikono. Krog (uporabnik, kontakt) ali zaobljen kvadrat (skupina); velikosti 24, 32, 40, 64, 128 px.
+ * robom 1 px na `surface`. Izbrisan uporabnik ima nevtralno ikono. Krog (uporabnik, kontakt) ali zaobljen kvadrat (skupina); velikosti 24, 32, 40, 64, 96, 128 px.
  */
 export function Avatar({ kind, name, colorSeed, size, photo, src, alt }: AvatarProps) {
   const { src: loadedSrc, attach } = useProtectedImage(

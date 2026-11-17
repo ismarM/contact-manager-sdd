@@ -1,4 +1,4 @@
-import { IconAlertTriangle } from '@tabler/icons-react';
+import { IconPhoto, IconTrash } from '@tabler/icons-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -7,7 +7,8 @@ import { Avatar } from '../../shared/images/Avatar';
 import type { ImageErrorCode } from '../../shared/images/photoTypes';
 import { ImageUploadDialog } from '../../shared/images/ImageUploadDialog';
 import { RemoveImageDialog } from '../../shared/images/RemoveImageDialog';
-import { errorAlert, primaryButton, secondaryButton } from '../../shared/ui/styles';
+import { Callout } from '../../shared/ui/Callout';
+import { ghostButton, primaryButton, secondaryButton } from '../../shared/ui/styles';
 import { useAuth } from '../auth/authContext';
 
 type Dialog = 'upload' | 'remove' | null;
@@ -54,20 +55,25 @@ export function ProfilePhotoSection() {
   };
 
   return (
-    <section aria-labelledby="account-photo" className="flex flex-col gap-3">
-      <h2 id="account-photo" className="text-xl font-bold">
-        {t('images.profile.heading')}
-      </h2>
-      <p className="text-muted-foreground">{t('images.profile.description')}</p>
-      <div className="flex flex-wrap items-center gap-4">
-        <Avatar
-          kind="user"
-          name={profile.name ?? profile.email}
-          colorSeed={profile.email}
-          size={128}
-          photo={{ path: '/me/photo', revision: profile.photoRevision }}
-        />
-        <div className="flex flex-wrap gap-3">
+    <section
+      aria-labelledby="account-photo"
+      className="flex flex-wrap items-center gap-5 border-t border-border pt-5"
+    >
+      <Avatar
+        kind="user"
+        name={profile.name ?? profile.email}
+        colorSeed={profile.email}
+        size={96}
+        photo={{ path: '/me/photo', revision: profile.photoRevision }}
+      />
+      <div className="flex min-w-56 flex-1 flex-col gap-3">
+        <div>
+          <h3 id="account-photo" className="font-medium">
+            {t('images.profile.heading')}
+          </h3>
+          <p className="text-sm text-muted-foreground">{t('images.profile.description')}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             ref={uploadButton}
@@ -78,12 +84,13 @@ export function ProfilePhotoSection() {
               setDialog('upload');
             }}
           >
+            <IconPhoto aria-hidden="true" size={20} stroke={1.75} />
             {hasPhoto ? t('images.replace') : t('images.upload')}
           </button>
           {hasGooglePhoto && (
             <button
               type="button"
-              className={secondaryButton}
+              className={`${ghostButton} text-primary`}
               aria-disabled={googleBusy}
               onClick={() => void adoptGoogle()}
             >
@@ -93,25 +100,21 @@ export function ProfilePhotoSection() {
           {hasPhoto && (
             <button
               type="button"
-              className={secondaryButton}
+              className={`${ghostButton} text-destructive`}
               onClick={(event) => {
                 trigger.current = event.currentTarget;
                 setMessage(null);
                 setDialog('remove');
               }}
             >
+              <IconTrash aria-hidden="true" size={20} stroke={1.75} />
               {t('images.remove')}
             </button>
           )}
         </div>
+        {message && <p role="status">{message}</p>}
+        {googleFailure && <Callout tone="error">{t(`images.errors.${googleFailure}`)}</Callout>}
       </div>
-      {message && <p role="status">{message}</p>}
-      {googleFailure && (
-        <div role="alert" className={errorAlert}>
-          <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
-          <span>{t(`images.errors.${googleFailure}`)}</span>
-        </div>
-      )}
 
       <ImageUploadDialog
         open={dialog === 'upload'}

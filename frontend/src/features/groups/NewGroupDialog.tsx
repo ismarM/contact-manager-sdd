@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../../shared/ui/dialog';
-import { errorAlert, primaryButton, secondaryButton } from '../../shared/ui/styles';
+import { errorAlert, ghostButton, primaryButton } from '../../shared/ui/styles';
 import { failureKey, fieldErrors, useGroupsApi } from './api';
 import { GroupFormFields, type GroupFormState } from './GroupFormFields';
 import { serverFieldError, type GroupValidation, validateGroupInput } from './groupValidation';
@@ -93,7 +93,7 @@ export function NewGroupDialog({ className = primaryButton }: { className?: stri
         <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-4">
           <GroupFormFields values={values} onChange={setValues} errors={errors} />
           <div className="flex flex-wrap justify-end gap-3">
-            <DialogClose className={secondaryButton}>{t('groups.form.cancel')}</DialogClose>
+            <DialogClose className={ghostButton}>{t('groups.form.cancel')}</DialogClose>
             <button type="submit" className={primaryButton} aria-disabled={saving}>
               {t('groups.form.create')}
             </button>

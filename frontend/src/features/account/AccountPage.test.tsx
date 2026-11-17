@@ -151,13 +151,12 @@ describe('AccountPage – Moji podatki in Izbris računa', () => {
     await i18n.changeLanguage('sl');
   });
 
-  it('FR-012-01 FR-012-05 FR-014-21 FR-019-01: razdelki si sledijo Profil → Profilna slika → Videz → Oblika zapisa → Prijavne metode → Moji podatki → Gesla za aplikacijo → API ključi → Izbris računa → Odjava', async () => {
+  it('FR-012-01 FR-012-05 FR-014-21 FR-019-01: razdelki si sledijo Profil (s Profilno sliko kot podrazdelkom) → Videz → Oblika zapisa → Prijavne metode → Moji podatki → Gesla za aplikacijo → API ključi → Izbris računa → Odjava', async () => {
     renderAccountApp();
 
     await screen.findByRole('heading', { level: 1, name: 'Moj račun' });
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
       'Profil',
-      'Profilna slika',
       'Videz',
       'Oblika zapisa',
       'Prijavne metode',
@@ -166,6 +165,7 @@ describe('AccountPage – Moji podatki in Izbris računa', () => {
       apiKeyNames.section(),
       'Izbris računa',
     ]);
+    expect(screen.getByRole('heading', { level: 3, name: 'Profilna slika' })).toBeInTheDocument();
     const regions = [
       screen.getByRole('heading', { level: 2, name: 'Moji podatki' }),
       screen.getByRole('heading', { level: 2, name: 'Izbris računa' }),

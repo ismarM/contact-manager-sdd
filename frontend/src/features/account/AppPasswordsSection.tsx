@@ -1,4 +1,4 @@
-import { IconAlertTriangle } from '@tabler/icons-react';
+import { IconChevronDown, IconCopy, IconDeviceDesktop, IconPlus } from '@tabler/icons-react';
 import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -11,12 +11,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../../shared/ui/dialog';
+import { Callout } from '../../shared/ui/Callout';
 import {
+  card,
   dangerButton,
-  errorAlert,
   fieldError,
+  focusRing,
+  ghostButton,
   primaryButton,
   secondaryButton,
+  softButton,
   textInput,
 } from '../../shared/ui/styles';
 import { useAuth } from '../auth/authContext';
@@ -91,33 +95,50 @@ export function AppPasswordsSection() {
   const reload = useCallback(() => setReloads((n) => n + 1), []);
 
   return (
-    <section aria-labelledby="account-app-passwords" className="flex flex-col gap-3">
-      <h2 id="account-app-passwords" className="text-xl font-bold">
-        {t('account.appPasswords.heading')}
-      </h2>
-      <p>{t('account.appPasswords.description')}</p>
+    <section
+      aria-labelledby="account-app-passwords"
+      className={`${card} flex flex-col gap-4 p-4 md:p-6`}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex min-w-60 flex-1 flex-col gap-1">
+          <h2 id="account-app-passwords" className="text-xl font-semibold">
+            {t('account.appPasswords.heading')}
+          </h2>
+          <p className="max-w-prose text-sm text-muted-foreground">
+            {t('account.appPasswords.description')}
+          </p>
+        </div>
+        <CreateDialog create={api.create} onCreated={reload} />
+      </div>
       {loadFailed && (
-        <div role="alert" className={errorAlert}>
-          <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
-          <span className="flex flex-wrap items-center gap-3">
-            {t('account.appPasswords.loadFailed')}
+        <Callout
+          tone="error"
+          action={
             <button type="button" className={secondaryButton} onClick={reload}>
               {t('account.appPasswords.retry')}
             </button>
-          </span>
-        </div>
+          }
+        >
+          {t('account.appPasswords.loadFailed')}
+        </Callout>
       )}
       {items && items.length === 0 && <p>{t('account.appPasswords.empty')}</p>}
       {items && items.length > 0 && (
-        <ul aria-label={t('account.appPasswords.list')} className="flex flex-col gap-2">
+        <ul
+          aria-label={t('account.appPasswords.list')}
+          className={`${card} flex flex-col divide-y divide-border`}
+        >
           {items.map((item) => (
-            <li
-              key={item.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-3"
-            >
-              <div className="flex flex-col">
-                <span className="font-bold">{item.name}</span>
-                <span className="text-muted-foreground">
+            <li key={item.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+              <IconDeviceDesktop
+                aria-hidden="true"
+                size={20}
+                stroke={1.75}
+                className="text-muted-foreground"
+              />
+              <div className="flex min-w-0 flex-1 basis-48 flex-col">
+                <span className="font-semibold break-words">{item.name}</span>
+                <span className="text-sm text-muted-foreground">
                   {t('account.appPasswords.created', {
                     date: date.format(new Date(item.createdAt)),
                   })}
@@ -141,22 +162,34 @@ export function AppPasswordsSection() {
           ))}
         </ul>
       )}
-      <CreateDialog create={api.create} onCreated={reload} />
-      <section aria-labelledby="account-carddav-help" className="flex flex-col gap-2">
-        <h3 id="account-carddav-help" className="text-lg font-bold">
-          {t('account.appPasswords.help.heading')}
-        </h3>
-        <ol className="list-decimal pl-6">
-          <li>{t('account.appPasswords.help.step1')}</li>
-          <li>{t('account.appPasswords.help.step2')}</li>
-          <li>
-            {t('account.appPasswords.help.step3', {
-              server: davServer(),
-              username: profile?.email ?? '',
-            })}
-          </li>
-        </ol>
-        <p className="text-muted-foreground">{t('account.appPasswords.help.https')}</p>
+      <section aria-labelledby="account-carddav-help" className="border-t border-border pt-3">
+        <details className="group">
+          <summary
+            id="account-carddav-help"
+            className={`inline-flex min-h-8 cursor-pointer list-none items-center gap-1.5 rounded-sm font-medium ${focusRing}`}
+          >
+            <IconChevronDown
+              aria-hidden="true"
+              size={16}
+              stroke={1.75}
+              className="group-open:rotate-180"
+            />
+            {t('account.appPasswords.help.heading')}
+          </summary>
+          <div className="mt-3 flex flex-col gap-2">
+            <ol className="list-decimal pl-6">
+              <li>{t('account.appPasswords.help.step1')}</li>
+              <li>{t('account.appPasswords.help.step2')}</li>
+              <li>
+                {t('account.appPasswords.help.step3', {
+                  server: davServer(),
+                  username: profile?.email ?? '',
+                })}
+              </li>
+            </ol>
+            <p className="text-muted-foreground">{t('account.appPasswords.help.https')}</p>
+          </div>
+        </details>
       </section>
     </section>
   );
@@ -222,29 +255,37 @@ function CreateDialog({
         }
       }}
     >
-      <DialogTrigger className={`${primaryButton} self-start`}>
+      <DialogTrigger className={softButton}>
+        <IconPlus aria-hidden="true" size={20} stroke={1.75} />
         {t('account.appPasswords.create')}
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent wide className="gap-5">
         {created ? (
           <>
             <DialogTitle>
               {t('account.appPasswords.createdTitle', { name: created.name })}
             </DialogTitle>
-            <p role="status">{t('account.appPasswords.showOnce')}</p>
-            <dl className="grid grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-2">
+            <Callout tone="warning" role="status">
+              {t('account.appPasswords.showOnce')}
+            </Callout>
+            <dl className="flex flex-col gap-3.5">
               <CopyRow label={t('account.appPasswords.server')} value={davServer()} />
               <CopyRow label={t('account.appPasswords.username')} value={created.username} />
-              <CopyRow label={t('account.appPasswords.password')} value={created.password} mono />
+              <CopyRow
+                label={t('account.appPasswords.password')}
+                value={created.password}
+                mono
+                soft
+              />
             </dl>
-            <DialogClose className={`${secondaryButton} self-start`}>
-              {t('account.appPasswords.close')}
-            </DialogClose>
+            <div className="flex justify-end">
+              <DialogClose className={primaryButton}>{t('account.appPasswords.close')}</DialogClose>
+            </div>
           </>
         ) : (
           <form
             noValidate
-            className="flex flex-col gap-4"
+            className="flex flex-col gap-5"
             onSubmit={(event) => {
               event.preventDefault();
               void submit();
@@ -252,7 +293,7 @@ function CreateDialog({
           >
             <DialogTitle>{t('account.appPasswords.create')}</DialogTitle>
             <div className="flex flex-col gap-1">
-              <label htmlFor={nameId} className="font-bold">
+              <label htmlFor={nameId} className="font-medium">
                 {t('account.appPasswords.nameLabel')}
               </label>
               <input
@@ -269,18 +310,12 @@ function CreateDialog({
                 </p>
               )}
             </div>
-            {failure && (
-              <p role="alert" className={errorAlert}>
-                {failure}
-              </p>
-            )}
-            <div className="flex flex-wrap gap-3">
+            {failure && <Callout tone="error">{failure}</Callout>}
+            <div className="flex flex-wrap justify-end gap-2">
+              <DialogClose className={ghostButton}>{t('account.appPasswords.cancel')}</DialogClose>
               <button type="submit" className={primaryButton} aria-disabled={busy}>
                 {t('account.appPasswords.createSubmit')}
               </button>
-              <DialogClose className={secondaryButton}>
-                {t('account.appPasswords.cancel')}
-              </DialogClose>
             </div>
           </form>
         )}
@@ -289,26 +324,41 @@ function CreateDialog({
   );
 }
 
-function CopyRow({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+function CopyRow({
+  label,
+  value,
+  mono = false,
+  soft = false,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  soft?: boolean;
+}) {
   const { t } = useTranslation();
   return (
-    <>
-      <dt className="font-bold">{label}</dt>
-      <dd className={`break-all ${mono ? 'font-mono' : ''}`}>{value}</dd>
-      <dd>
+    <div className="flex flex-col gap-1">
+      <dt className="font-medium">{label}</dt>
+      <dd className="flex gap-2">
+        <span
+          className={`${textInput} flex min-w-0 flex-1 items-center break-all ${mono ? 'font-mono' : ''}`}
+        >
+          {value}
+        </span>
         <button
           type="button"
-          className={secondaryButton}
+          className={`${soft ? softButton : secondaryButton} aspect-square px-0`}
+          aria-label={t('account.appPasswords.copy', { what: label })}
           onClick={() => {
             void navigator.clipboard
               ?.writeText(value)
               .then(() => toast(t('account.appPasswords.copied')));
           }}
         >
-          {t('account.appPasswords.copy', { what: label })}
+          <IconCopy aria-hidden="true" size={20} stroke={1.75} />
         </button>
       </dd>
-    </>
+    </div>
   );
 }
 
@@ -352,19 +402,15 @@ function RevokeDialog({
         setFailure(null);
       }}
     >
-      <DialogTrigger className={secondaryButton}>
+      <DialogTrigger className={`${ghostButton} text-destructive`}>
         {t('account.appPasswords.revoke', { name: item.name })}
       </DialogTrigger>
       <DialogContent>
         <DialogTitle>{t('account.appPasswords.revokeTitle', { name: item.name })}</DialogTitle>
         <p>{t('account.appPasswords.revokeBody')}</p>
-        {failure && (
-          <p role="alert" className={errorAlert}>
-            {failure}
-          </p>
-        )}
-        <div className="flex flex-wrap gap-3">
-          <DialogClose className={secondaryButton}>{t('account.appPasswords.cancel')}</DialogClose>
+        {failure && <Callout tone="error">{failure}</Callout>}
+        <div className="flex flex-wrap justify-end gap-2">
+          <DialogClose className={ghostButton}>{t('account.appPasswords.cancel')}</DialogClose>
           <button
             type="button"
             className={dangerButton}

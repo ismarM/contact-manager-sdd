@@ -7,12 +7,11 @@ import {
   PHONE_FORMATS,
 } from '../formats/types';
 import { useDisplayFormats } from '../formats/displayFormatsContext';
-import { errorAlert } from '../../shared/ui/styles';
+import { Callout } from '../../shared/ui/Callout';
+import { card, focusRing } from '../../shared/ui/styles';
 
-const radio =
-  'size-5 accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring';
+const radio = `size-5 accent-primary ${focusRing}`;
 const option = 'flex min-h-11 items-center gap-3 pointer-coarse:min-h-12';
-const fieldset = 'flex flex-col gap-1 rounded-md border border-border p-4';
 
 type Group = 'phone' | 'date' | 'address';
 
@@ -28,14 +27,16 @@ export function DisplayFormatSection() {
   const { formats, change, saveStatus } = useDisplayFormats();
 
   return (
-    <section aria-labelledby="account-formats" className="flex flex-col gap-4">
-      <h2 id="account-formats" className="text-xl font-bold">
-        {t('account.formats.heading')}
-      </h2>
-      <p className="text-muted-foreground">{t('account.formats.description')}</p>
+    <section aria-labelledby="account-formats" className={`${card} flex flex-col gap-5 p-4 md:p-6`}>
+      <div>
+        <h2 id="account-formats" className="text-xl font-semibold">
+          {t('account.formats.heading')}
+        </h2>
+        <p className="text-sm text-muted-foreground">{t('account.formats.description')}</p>
+      </div>
       {GROUPS.map(({ group, field, values }) => (
-        <fieldset key={group} className={fieldset}>
-          <legend className="px-1 font-bold">{t(`account.formats.${group}.label`)}</legend>
+        <fieldset key={group} className="flex flex-col">
+          <legend className="mb-2 font-medium">{t(`account.formats.${group}.label`)}</legend>
           {values.map((value, index) => (
             <label key={value} className={option}>
               <input
@@ -53,11 +54,7 @@ export function DisplayFormatSection() {
         </fieldset>
       ))}
       <div role="status">{saveStatus === 'saved' && <p>{t('account.formats.saved')}</p>}</div>
-      {saveStatus === 'failed' && (
-        <p role="alert" className={errorAlert}>
-          {t('account.formats.failed')}
-        </p>
-      )}
+      {saveStatus === 'failed' && <Callout tone="error">{t('account.formats.failed')}</Callout>}
     </section>
   );
 }

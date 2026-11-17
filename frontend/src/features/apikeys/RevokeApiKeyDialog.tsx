@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../../shared/ui/dialog';
-import { dangerButton, errorAlert, secondaryButton } from '../../shared/ui/styles';
+import { dangerButton, errorAlert, ghostButton } from '../../shared/ui/styles';
 import type { ApiKey } from './types';
 
 /**
@@ -60,7 +60,7 @@ export function RevokeApiKeyDialog({
         setFailure(null);
       }}
     >
-      <DialogTrigger className={secondaryButton}>
+      <DialogTrigger className={`${ghostButton} text-destructive`}>
         {t('apiKeys.revoke.button', { name: apiKey.name })}
       </DialogTrigger>
       <DialogContent
@@ -81,7 +81,7 @@ export function RevokeApiKeyDialog({
           </div>
         )}
         <div className="flex flex-wrap justify-end gap-3">
-          <DialogClose ref={cancel} className={secondaryButton}>
+          <DialogClose ref={cancel} className={ghostButton}>
             {t('apiKeys.revoke.cancel')}
           </DialogClose>
           <button

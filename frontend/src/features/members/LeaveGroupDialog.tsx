@@ -1,4 +1,4 @@
-import { IconAlertTriangle } from '@tabler/icons-react';
+import { IconAlertTriangle, IconArrowsExchange } from '@tabler/icons-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -11,7 +11,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../../shared/ui/dialog';
-import { dangerButton, errorAlert, secondaryButton } from '../../shared/ui/styles';
+import {
+  dangerButton,
+  errorAlert,
+  ghostButton,
+  primaryButton,
+  secondaryButton,
+} from '../../shared/ui/styles';
 import { useGroup } from '../groups/groupContext';
 import { useGroups } from '../groups/groupsContext';
 import { useMemberCount, useMembersApi } from './api';
@@ -111,7 +117,7 @@ export function LeaveGroupDialog({
           </div>
         )}
         <div className="flex flex-wrap justify-end gap-3">
-          <DialogClose ref={cancel} className={secondaryButton}>
+          <DialogClose ref={cancel} className={ghostButton}>
             {isOwner ? t('members.leave.owner.close') : t('members.leave.cancel')}
           </DialogClose>
           {!isOwner && (
@@ -127,12 +133,13 @@ export function LeaveGroupDialog({
           {canTransfer && onTransfer && (
             <button
               type="button"
-              className={secondaryButton}
+              className={primaryButton}
               onClick={() => {
                 handOver.current = onTransfer;
                 setOpen(false);
               }}
             >
+              <IconArrowsExchange aria-hidden="true" size={20} stroke={1.75} />
               {t('members.transfer.button')}
             </button>
           )}

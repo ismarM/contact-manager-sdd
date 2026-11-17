@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { Dialog, DialogClose, DialogContent, DialogTitle } from '../../shared/ui/dialog';
-import { dangerButton, errorAlert, secondaryButton } from '../../shared/ui/styles';
+import { dangerButton, errorAlert, ghostButton } from '../../shared/ui/styles';
 import { useGroup } from '../groups/groupContext';
 import { useMembersApi } from './api';
 import { memberFailure } from './memberMessages';
@@ -89,7 +89,7 @@ function RemoveMemberDialogBody({
           </div>
         )}
         <div className="flex flex-wrap justify-end gap-3">
-          <DialogClose ref={cancel} className={secondaryButton}>
+          <DialogClose ref={cancel} className={ghostButton}>
             {t('members.remove.cancel')}
           </DialogClose>
           <button

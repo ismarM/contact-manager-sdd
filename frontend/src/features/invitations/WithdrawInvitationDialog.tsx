@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../../shared/ui/dialog';
-import { dangerButton, focusRing, secondaryButton } from '../../shared/ui/styles';
+import { dangerButton, ghostButton } from '../../shared/ui/styles';
 import { useInvitationsApi } from './api';
 import type { OutgoingInvitation } from './types';
 
@@ -60,7 +60,7 @@ export function WithdrawInvitationDialog({
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
       <DialogTrigger
-        className={`min-h-11 rounded-md px-2 font-bold text-primary underline decoration-1 underline-offset-[3px] hover:bg-muted pointer-coarse:min-h-12 ${focusRing}`}
+        className={`${ghostButton} text-destructive`}
         aria-label={t('invitations.pending.withdrawName', { email })}
       >
         {t('invitations.pending.withdraw')}
@@ -78,7 +78,7 @@ export function WithdrawInvitationDialog({
         <DialogTitle>{t('invitations.withdrawDialog.title', { email })}</DialogTitle>
         <p>{t('invitations.withdrawDialog.text')}</p>
         <div className="flex flex-wrap justify-end gap-3">
-          <DialogClose ref={cancel} className={secondaryButton}>
+          <DialogClose ref={cancel} className={ghostButton}>
             {t('invitations.withdrawDialog.cancel')}
           </DialogClose>
           <button

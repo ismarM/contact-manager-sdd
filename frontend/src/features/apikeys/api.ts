@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
 import { useAuth } from '../auth/authContext';
-import type { ArchivedGroups, GroupPage } from '../groups/types';
+import type { ArchivedGroups, GroupColor, GroupPage } from '../groups/types';
 import type { ApiKey, ApiKeyCreate, ApiKeyCreated, ApiKeyUsage } from './types';
 
 // Odjemalec upravljanja API ključev 019 (plan.md – Public Interfaces, contracts/openapi.yaml).
@@ -11,6 +11,8 @@ export interface SelectableGroup {
   id: string;
   title: string;
   archived: boolean;
+  color?: GroupColor;
+  photoRevision?: number | null;
 }
 
 /** Največ skupin na stran seznama skupin (`size` ≤ 100); ključ ima lahko največ 50 skupin. */
@@ -42,8 +44,20 @@ export function useApiKeysApi() {
           authFetch<ArchivedGroups>(`/groups/archived?${query}`, { signal }),
         ]);
         const groups: SelectableGroup[] = [
-          ...active.items.map((group) => ({ id: group.id, title: group.title, archived: false })),
-          ...archived.items.map((group) => ({ id: group.id, title: group.title, archived: true })),
+          ...active.items.map((group) => ({
+            id: group.id,
+            title: group.title,
+            archived: false,
+            color: group.color,
+            photoRevision: group.photoRevision,
+          })),
+          ...archived.items.map((group) => ({
+            id: group.id,
+            title: group.title,
+            archived: true,
+            color: group.color,
+            photoRevision: group.photoRevision,
+          })),
         ];
         return groups.sort((a, b) => a.title.localeCompare(b.title, lang));
       },

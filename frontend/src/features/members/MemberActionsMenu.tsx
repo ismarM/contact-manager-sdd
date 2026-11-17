@@ -1,4 +1,4 @@
-import { IconDotsVertical } from '@tabler/icons-react';
+import { IconDoorExit, IconDotsVertical, IconUsers } from '@tabler/icons-react';
 import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -55,14 +55,17 @@ export function MemberActionsMenu({
               onAction('role', member, trigger.current);
             }}
           >
+            <IconUsers aria-hidden="true" size={20} stroke={1.75} />
             {t('members.menu.changeRole')}
           </DropdownMenuItem>
           <DropdownMenuItem
+            className="text-destructive"
             onSelect={() => {
               opening.current = true;
               onAction('remove', member, trigger.current);
             }}
           >
+            <IconDoorExit aria-hidden="true" size={20} stroke={1.75} />
             {t('members.menu.remove')}
           </DropdownMenuItem>
         </DropdownMenuContent>
