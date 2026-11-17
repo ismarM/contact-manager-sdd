@@ -243,7 +243,7 @@ describe('ContactSelection', () => {
     await actionBar();
 
     gateway.emitSignedOut();
-    await user.click(await screen.findByRole('button', { name: 'Prijava z Googlom' }));
+    await user.click(await screen.findByRole('button', { name: 'Nadaljuj z Googlom' }));
 
     await listReady();
     noActionBar();

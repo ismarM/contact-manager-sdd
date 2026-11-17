@@ -26,7 +26,7 @@ export async function completeGooglePopup(popup: Page, user: TestUser): Promise<
     await popup.getByRole('button', { name: 'Add new account' }).click();
     await popup.getByLabel('Email', { exact: true }).fill(user.email);
     await popup.getByLabel('Display name', { exact: true }).fill(user.name);
-    const submit = popup.getByRole('button', { name: /Continue with Google/ });
+    const submit = popup.getByRole('button', { name: /Sign in with Google/ });
     await expect(submit).toBeEnabled();
     await submit.click();
   }
