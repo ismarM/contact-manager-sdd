@@ -103,11 +103,11 @@ description: "Tasks for 019-api-kljuci (po zgodbah, testi znotraj vsake naloge/z
 
 **Independent Test**: uspešne, neveljavne zahteve → točna števila po dnevih in izidu, ločeno po ključih.
 
-- [ ] T032 [US5] FR-019-20 – `apikey/ApiUsageFilter` + `ApiUsageRepository` (upsert po uri v ločeni kratki transakciji po odgovoru; `last_used_at`; razvrstitev po R-06; 401 se ne šteje; napaka štetja ne spremeni odgovora) in `requestsLast24h` v seznamu ključev; unit `UsageOutcomeTest`; `ApiUsageIT` (40 branj + 5 pisanj + 3 napake → točna števila, dva ključa ločena, neveljaven/preklican ključ ne šteje, vidno takoj po zahtevi, 24 ur čez polnoč)
-- [ ] T033 [US5] FR-019-20 – `GET /api/me/api-keys/{keyId}/usage?days=7|30` v `ApiKeyController` (dnevi po `stats-zone`, manjkajoči dnevi 0, skupna števila, 400 za drugo obdobje); IT v `ApiUsageIT`
-- [ ] T034 [US5] FR-019-20 – Matrika `ApiKeyManagementSecurityIT`: `GET /api/me/api-keys/{keyId}/usage` (401 ×3, 401 z API ključem – tudi lastnim, 404 tuj/neobstoječ/neveljaven id, 200 lastnik, 200 preklican in potekel ključ ≤ 90 dni)
-- [ ] T035 [US5] FR-019-21 – `apikey/ApiKeyPurgeJob` (`@Scheduled`, R-07) z `Clock`; `ApiKeyPurgeIT` (preklican/potekel > 90 dni izbrisan s statistiko, ≤ 90 dni ostane, ura starejša od 90 dni izbrisana, aktiven ključ ostane)
-- [ ] T036 [P] [US5] FR-019-20 – FE `ApiKeyUsagePage` (pot `/account/api-keys/:keyId` v `App.tsx`; 404 → »Te strani ni«), `UsageChart` (SVG/CSS stolpci iz žetonov, `aria-hidden` z enakovredno tabelo: dan, uspešne, napake, zavrnitve), izbira obdobja 7/30, skupna števila; število 24 ur na seznamu; testi RTL + MSW + vitest-axe
+- [x] T032 [US5] FR-019-20 – `apikey/ApiUsageFilter` + `ApiUsageRepository` (upsert po uri v ločeni kratki transakciji po odgovoru; `last_used_at`; razvrstitev po R-06; 401 se ne šteje; napaka štetja ne spremeni odgovora) in `requestsLast24h` v seznamu ključev; unit `UsageOutcomeTest`; `ApiUsageIT` (40 branj + 5 pisanj + 3 napake → točna števila, dva ključa ločena, neveljaven/preklican ključ ne šteje, vidno takoj po zahtevi, 24 ur čez polnoč)
+- [x] T033 [US5] FR-019-20 – `GET /api/me/api-keys/{keyId}/usage?days=7|30` v `ApiKeyController` (dnevi po `stats-zone`, manjkajoči dnevi 0, skupna števila, 400 za drugo obdobje); IT v `ApiUsageIT`
+- [x] T034 [US5] FR-019-20 – Matrika `ApiKeyManagementSecurityIT`: `GET /api/me/api-keys/{keyId}/usage` (401 ×3, 401 z API ključem – tudi lastnim, 404 tuj/neobstoječ/neveljaven id, 200 lastnik, 200 preklican in potekel ključ ≤ 90 dni)
+- [x] T035 [US5] FR-019-21 – `apikey/ApiKeyPurgeJob` (`@Scheduled`, R-07) z `Clock`; `ApiKeyPurgeIT` (preklican/potekel > 90 dni izbrisan s statistiko, ≤ 90 dni ostane, ura starejša od 90 dni izbrisana, aktiven ključ ostane)
+- [x] T036 [P] [US5] FR-019-20 – FE `ApiKeyUsagePage` (pot `/account/api-keys/:keyId` v `App.tsx`; 404 → »Te strani ni«), `UsageChart` (SVG/CSS stolpci iz žetonov, `aria-hidden` z enakovredno tabelo: dan, uspešne, napake, zavrnitve), izbira obdobja 7/30, skupna števila; število 24 ur na seznamu; testi RTL + MSW + vitest-axe
 - [ ] T037 [US5] FR-019-20 – E2E v `e2e/tests/api-kljuci.spec.ts`: nekaj zahtev s ključem → statistika (tabela) pokaže števila; axe (360, 1280)
 
 **Checkpoint**: US5 deluje; `./verify.sh quick` zelen.

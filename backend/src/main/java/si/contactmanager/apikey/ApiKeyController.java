@@ -13,10 +13,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import si.contactmanager.account.UserDirectory;
 import si.contactmanager.shared.error.NotFoundException;
 import si.contactmanager.shared.error.UnauthenticatedException;
+import si.contactmanager.shared.error.ValidationError;
+import si.contactmanager.shared.error.ValidationException;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -54,16 +57,40 @@ class ApiKeyController {
                 .body(created);
     }
 
-    @DeleteMapping("/{keyId}")
-    ResponseEntity<Void> revoke(@AuthenticationPrincipal Jwt jwt, @PathVariable String keyId) {
+    /** Statistika uporabe ključa (FR-019-20): {@code days} je 7 (privzeto) ali 30, sicer 400. */
+    @GetMapping("/{keyId}/usage")
+    ResponseEntity<ApiKeyService.UsageView> usage(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String keyId,
+            @RequestParam(name = "days", required = false) String days) {
         long user = users.find(jwt).orElseThrow(UnauthenticatedException::new);
-        UUID id;
+        UUID id = parseId(keyId);
+        int period = parseDays(days);
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.usage(user, id, period));
+    }
+
+    private static int parseDays(String days) {
+        if (days == null) {
+            return 7;
+        }
+        if (days.equals("7") || days.equals("30")) {
+            return Integer.parseInt(days);
+        }
+        throw new ValidationException(List.of(new ValidationError.FieldError("days", "INVALID_VALUE")));
+    }
+
+    private static UUID parseId(String keyId) {
         try {
-            id = UUID.fromString(keyId);
+            return UUID.fromString(keyId);
         } catch (IllegalArgumentException e) {
             throw new NotFoundException();
         }
-        service.revoke(user, id);
+    }
+
+    @DeleteMapping("/{keyId}")
+    ResponseEntity<Void> revoke(@AuthenticationPrincipal Jwt jwt, @PathVariable String keyId) {
+        long user = users.find(jwt).orElseThrow(UnauthenticatedException::new);
+        service.revoke(user, parseId(keyId));
         return ResponseEntity.noContent().build();
     }
 }

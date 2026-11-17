@@ -200,4 +200,71 @@ class ApiKeyManagementSecurityIT extends ApiTest {
                         "select revoked_at is not null from api_key where id = ?", Boolean.class, own.id()))
                 .isTrue();
     }
+
+    // --- GET /api/me/api-keys/{keyId}/usage (FR-019-20) ---
+
+    private String usagePath(UUID key) {
+        return KEYS + "/" + key + "/usage";
+    }
+
+    static Stream<Arguments> usageUnauthenticated() {
+        return Stream.of("none", "garbage", "forged", "expired", "apiKey", "ownApiKey")
+                .map(Arguments::of);
+    }
+
+    @ParameterizedTest(name = "GET usage s prijavo {0} → 401")
+    @MethodSource("usageUnauthenticated")
+    void usageWithoutValidFirebaseSignInIs401(String kind) throws Exception {
+        Key existing = keys.create(anaId, "Obstoječi", ALL_READ);
+        String credential = kind.equals("ownApiKey") ? existing.token() : credential(kind);
+
+        HttpResponse<String> response = send("GET", usagePath(existing.id()), credential, null);
+
+        assertThat(response.statusCode()).isEqualTo(401);
+        assertThat(JSON.readTree(response.body()).get("code").asString()).isEqualTo("UNAUTHENTICATED");
+    }
+
+    @ParameterizedTest(name = "GET usage tujega ključa → 404 ({0})")
+    @ValueSource(strings = {"foreign", "missing", "invalid"})
+    void usageOfForeignMissingOrInvalidKeyIs404(String kind) throws Exception {
+        SignedIn bor = registeredUser("Bor Statistika");
+        Key foreign = keys.create(keys.userId(bor.uid()), "Borov", ALL_READ);
+        String id = switch (kind) {
+            case "foreign" -> foreign.id().toString();
+            case "missing" -> UUID.randomUUID().toString();
+            default -> "ni-uuid";
+        };
+
+        HttpResponse<String> response = send("GET", KEYS + "/" + id + "/usage", ana.idToken(), null);
+
+        assertThat(response.statusCode()).isEqualTo(404);
+        assertThat(response.body()).doesNotContain("totals");
+    }
+
+    @ParameterizedTest(name = "GET usage lastnega ključa ({0}) → 200")
+    @ValueSource(strings = {"active", "revoked", "expired"})
+    void ownerReadsUsageOfActiveRevokedAndExpiredKeys(String kind) throws Exception {
+        Key key = switch (kind) {
+            case "revoked" -> keys.revoked(anaId, ALL_READ);
+            case "expired" -> keys.expired(anaId, ALL_READ);
+            default -> keys.create(anaId, "Aktiven", ALL_READ);
+        };
+
+        HttpResponse<String> response = send("GET", usagePath(key.id()), ana.idToken(), null);
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        JsonNode body = JSON.readTree(response.body());
+        assertThat(body.get("days").asInt()).isEqualTo(7);
+        assertThat(body.get("perDay")).hasSize(7);
+        assertThat(body.get("totals").get("total").asInt()).isZero();
+    }
+
+    @Test
+    void usageOfAKeyEndedMoreThan90DaysAgoIs404() throws Exception {
+        Key key = keys.create(anaId, "Star", ALL_READ);
+        jdbc.update("update api_key set revoked_at = now() - interval '91 days' where id = ?", key.id());
+
+        assertThat(send("GET", usagePath(key.id()), ana.idToken(), null).statusCode())
+                .isEqualTo(404);
+    }
 }

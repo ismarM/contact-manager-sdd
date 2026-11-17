@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 
 import { useAuth } from '../auth/authContext';
 import type { ArchivedGroups, GroupSections } from '../groups/types';
-import type { ApiKey, ApiKeyCreate, ApiKeyCreated } from './types';
+import type { ApiKey, ApiKeyCreate, ApiKeyCreated, ApiKeyUsage } from './types';
 
 // Odjemalec upravljanja API ključev 019 (plan.md – Public Interfaces, contracts/openapi.yaml).
 
@@ -29,6 +29,11 @@ export function useApiKeysApi() {
         }),
       revoke: (keyId: string) =>
         authFetch<void>(`/me/api-keys/${encodeURIComponent(keyId)}`, { method: 'DELETE' }),
+      /** Statistika uporabe ključa za 7 ali 30 dni (FR-019-20). */
+      usage: (keyId: string, days: 7 | 30, signal?: AbortSignal) =>
+        authFetch<ApiKeyUsage>(`/me/api-keys/${encodeURIComponent(keyId)}/usage?days=${days}`, {
+          signal,
+        }),
       /** Aktivne skupine (vse vloge) in arhivirane, po naslovu. */
       groups: async (lang: 'sl' | 'en', signal?: AbortSignal): Promise<SelectableGroup[]> => {
         const query = `size=${GROUP_PAGE}&lang=${lang}`;

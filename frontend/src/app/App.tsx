@@ -3,6 +3,7 @@ import { createBrowserRouter, Route, RouterProvider, Routes } from 'react-router
 
 import { AccountPage } from '../features/account/AccountPage';
 import { ApiDocsPage } from '../features/api-docs/ApiDocsPage';
+import { ApiKeyUsagePage } from '../features/apikeys/ApiKeyUsagePage';
 import type { AuthGateway } from '../features/auth/AuthGateway';
 import { AuthProvider } from '../features/auth/AuthProvider';
 import { DisplayFormatsProvider } from '../features/formats/DisplayFormatsProvider';
@@ -46,6 +47,7 @@ function AppRoutes({ gateway }: { gateway: AuthGateway }) {
             <Route path="groups/:groupId/*" element={<GroupLayout />} />
             <Route path="invitations" element={<InvitationsPage />} />
             <Route path="account" element={<AccountPage />} />
+            <Route path="account/api-keys/:keyId" element={<ApiKeyUsagePage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>

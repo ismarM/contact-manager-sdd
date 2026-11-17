@@ -1,7 +1,10 @@
 package si.contactmanager.apikey;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -57,14 +60,32 @@ class ApiKeyService {
     /** Nov ključ: {@code token} se pokaže samo enkrat. */
     record Created(KeyView key, String token) {}
 
+    /** Števila zahtev po izidu; {@code day} je {@code null} pri skupnih številih (izpuščeno v JSON). */
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    record DayView(LocalDate day, long total, long readOk, long writeOk, long errors, long rateLimited) {}
+
+    record UsageView(int days, DayView totals, List<DayView> perDay) {}
+
     private final ApiKeyRepository repository;
     private final ApiKeyTokens tokens;
     private final GroupAccess access;
+    private final ApiUsageRepository usage;
+    private final ApiKeyProperties properties;
+    private final Clock clock;
 
-    ApiKeyService(ApiKeyRepository repository, ApiKeyTokens tokens, GroupAccess access) {
+    ApiKeyService(
+            ApiKeyRepository repository,
+            ApiKeyTokens tokens,
+            GroupAccess access,
+            ApiUsageRepository usage,
+            ApiKeyProperties properties,
+            Clock clock) {
         this.repository = repository;
         this.tokens = tokens;
         this.access = access;
+        this.usage = usage;
+        this.properties = properties;
+        this.clock = clock;
     }
 
     List<KeyView> list(long user) {
@@ -112,6 +133,52 @@ class ApiKeyService {
         if (!repository.revoke(user, id)) {
             throw new NotFoundException();
         }
+    }
+
+    /**
+     * Statistika ključa za {@code days} (7 ali 30) dni, ki se končajo danes po {@code api-keys.stats-zone}: števila po
+     * dnevih (manjkajoči dnevi 0, od najstarejšega) in skupna števila (FR-019-20). Tuj, neobstoječ ali pred več kot
+     * 90 dnevi končan ključ → 404.
+     */
+    UsageView usage(long user, UUID id, int days) {
+        if (!repository.visible(user, id)) {
+            throw new NotFoundException();
+        }
+        ZoneId zone = properties.statsZone();
+        LocalDate today = LocalDate.now(clock.withZone(zone));
+        LocalDate first = today.minusDays(days - 1L);
+        Map<LocalDate, long[]> byDay = new LinkedHashMap<>();
+        for (LocalDate day = first; !day.isAfter(today); day = day.plusDays(1)) {
+            byDay.put(day, new long[4]);
+        }
+        for (ApiUsageRepository.HourRow row :
+                usage.hours(id, first.atStartOfDay(zone).toInstant())) {
+            long[] counts = byDay.get(row.hour().atZone(zone).toLocalDate());
+            if (counts != null) {
+                counts[0] += row.readOk();
+                counts[1] += row.writeOk();
+                counts[2] += row.errors();
+                counts[3] += row.rateLimited();
+            }
+        }
+        long[] totals = new long[4];
+        List<DayView> perDay = new java.util.ArrayList<>();
+        byDay.forEach((day, c) -> {
+            for (int i = 0; i < 4; i++) {
+                totals[i] += c[i];
+            }
+            perDay.add(new DayView(day, c[0] + c[1] + c[2] + c[3], c[0], c[1], c[2], c[3]));
+        });
+        return new UsageView(
+                days,
+                new DayView(
+                        null,
+                        totals[0] + totals[1] + totals[2] + totals[3],
+                        totals[0],
+                        totals[1],
+                        totals[2],
+                        totals[3]),
+                perDay);
     }
 
     private static KeyView view(ApiKeyRepository.Row row, List<ApiKeyRepository.GroupRow> groups, Instant now) {

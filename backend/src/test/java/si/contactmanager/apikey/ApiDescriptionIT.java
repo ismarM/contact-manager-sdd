@@ -40,7 +40,8 @@ class ApiDescriptionIT extends ApiTest {
 
         assertThat(document.get("openapi").asString()).startsWith("3.1");
         assertThat(document.get("info").get("version").asString()).isEqualTo("1");
-        assertThat(document.get("components").get("securitySchemes").get("apiKey")).isNotNull();
+        assertThat(document.get("components").get("securitySchemes").get("apiKey"))
+                .isNotNull();
     }
 
     @Test
@@ -59,7 +60,9 @@ class ApiDescriptionIT extends ApiTest {
                     : info.getPathPatternsCondition().getPatternValues();
             for (String pattern : patterns) {
                 if (pattern.startsWith("/v1/")) {
-                    info.getMethodsCondition().getMethods().forEach(method -> actual.add(method.name() + " " + pattern));
+                    info.getMethodsCondition()
+                            .getMethods()
+                            .forEach(method -> actual.add(method.name() + " " + pattern));
                 }
             }
         }
@@ -71,12 +74,17 @@ class ApiDescriptionIT extends ApiTest {
     @Test
     void everyOperationDocumentsUnauthenticatedExceptTheDescriptionItself() throws Exception {
         JsonNode paths = description().get("paths");
-        paths.propertyNames().forEach(path -> paths.get(path).propertyNames().forEach(method -> {
-            JsonNode responses = paths.get(path).get(method).get("responses");
-            if (!path.equals("/v1/openapi.json")) {
-                assertThat(responses.has("401")).as(method + " " + path + " 401").isTrue();
-                assertThat(responses.has("429")).as(method + " " + path + " 429").isTrue();
-            }
-        }));
+        paths.propertyNames()
+                .forEach(path -> paths.get(path).propertyNames().forEach(method -> {
+                    JsonNode responses = paths.get(path).get(method).get("responses");
+                    if (!path.equals("/v1/openapi.json")) {
+                        assertThat(responses.has("401"))
+                                .as(method + " " + path + " 401")
+                                .isTrue();
+                        assertThat(responses.has("429"))
+                                .as(method + " " + path + " 429")
+                                .isTrue();
+                    }
+                }));
     }
 }

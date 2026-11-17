@@ -163,3 +163,54 @@ test('FR-019-14, -15: neprijavljen odpre stran API s prijave, prenese opis, kopi
   await expectNoHorizontalScroll(page);
   await expectNoAxeViolations(page);
 });
+
+test('FR-019-20: zahteve s ključem se vidijo v statistiki (tabela) in na seznamu', async ({
+  page,
+  request,
+}) => {
+  await page.goto('/');
+  await signIn(page, uniqueUser('Ana Statistika'));
+  await createGroup(page, { title: 'Klub' });
+  await page.goto('/account');
+  const token = await createApiKey(page, {
+    name: 'Nočni izvoz',
+    groups: ['Klub'],
+    permission: 'READ',
+  });
+  for (let i = 0; i < 3; i += 1) {
+    expect((await callV1(request, 'GET', '/groups', token)).status()).toBe(200);
+  }
+  expect(
+    (
+      await callV1(request, 'GET', '/groups/0193c4a2-7a1f-7c3e-9b1a-000000000000/contacts', token)
+    ).status(),
+  ).toBe(404);
+  expect((await callV1(request, 'GET', '/groups', 'cmk_ni-zeton')).status()).toBe(401);
+
+  await page.reload();
+  const item = keyList(page).getByRole('listitem').filter({ hasText: 'Nočni izvoz' });
+  await expect(item).toContainText(t('apiKeys.requests24h_few', { count: '4' }));
+  await item.getByRole('link', { name: t('apiKeys.usageLink', { name: 'Nočni izvoz' }) }).click();
+
+  await expect(
+    page.getByRole('heading', {
+      level: 1,
+      name: t('apiKeys.usage.heading', { name: 'Nočni izvoz' }),
+    }),
+  ).toBeVisible();
+  const totals = page.getByRole('region', { name: t('apiKeys.usage.totals') });
+  await expect(totals).toContainText(`${t('apiKeys.usage.total')}4`);
+  await expect(totals).toContainText(`${t('apiKeys.usage.successful')}3`);
+  await expect(totals).toContainText(`${t('apiKeys.usage.errors')}1`);
+  const table = page.getByRole('table', { name: t('apiKeys.usage.tableCaption') });
+  await expect(table.getByRole('row')).toHaveCount(8);
+  await expectNoHorizontalScroll(page);
+  await expectNoAxeViolations(page);
+
+  await page.getByRole('radio', { name: t('apiKeys.usage.period30') }).check();
+  await expect(table.getByRole('row')).toHaveCount(31);
+  await expectNoAxeViolations(page);
+
+  await page.goto('/account/api-keys/0193c4a2-7a1f-7c3e-9b1a-000000000000');
+  await expect(page.getByRole('heading', { name: t('notFound.heading') })).toBeVisible();
+});

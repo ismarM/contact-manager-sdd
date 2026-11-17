@@ -2,12 +2,14 @@ package si.contactmanager.apikey;
 
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.time.Clock;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -25,15 +27,28 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code /api} ({@code SecurityConfig}) za vse ostalo.
  */
 @Configuration
+@EnableScheduling
 @EnableConfigurationProperties(ApiKeyProperties.class)
 public class ApiSecurityConfig {
 
     private static final ErrorResponse UNAUTHENTICATED = new ErrorResponse("UNAUTHENTICATED");
 
+    /** Ura za štetje zahtev in čiščenje (teste nadomesti s fiksno uro). */
+    @Bean
+    Clock apiKeyClock() {
+        return Clock.systemUTC();
+    }
+
     @Bean
     @Order(2)
     SecurityFilterChain apiKeyFilterChain(
-            HttpSecurity http, JsonMapper json, ApiKeyTokens tokens, ApiKeyRepository keys) throws Exception {
+            HttpSecurity http,
+            JsonMapper json,
+            ApiKeyTokens tokens,
+            ApiKeyRepository keys,
+            ApiUsageRepository usage,
+            Clock clock)
+            throws Exception {
         AuthenticationEntryPoint unauthenticated = (request, response, exception) -> unauthenticated(response, json);
         return http.securityMatcher("/v1/**")
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -44,6 +59,7 @@ public class ApiSecurityConfig {
                 .logout(AbstractHttpConfigurer::disable)
                 .requestCache(AbstractHttpConfigurer::disable)
                 .addFilterBefore(new ApiKeyAuthenticationFilter(tokens, keys), AnonymousAuthenticationFilter.class)
+                .addFilterAfter(new ApiUsageFilter(usage, clock), ApiKeyAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth.requestMatchers(HttpMethod.GET, "/v1/openapi.json")
                         .permitAll()
                         .anyRequest()

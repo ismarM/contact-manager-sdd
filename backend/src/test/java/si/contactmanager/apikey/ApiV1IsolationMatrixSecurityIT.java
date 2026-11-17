@@ -438,7 +438,8 @@ class ApiV1IsolationMatrixSecurityIT extends ApiV1Test {
     @Test
     void openApiDescriptionIsPublicForEveryCallerWithoutCorsAndNotCountedInStatistics() throws Exception {
         Scenario s = scenario();
-        String valid = keyFor(s, Who.OWNER, Permission.READ, s.group());
+        Key validKey = keys().forGroups(s.id(Who.OWNER), Permission.READ, s.group());
+        String valid = validKey.token();
         List<String> callers = new ArrayList<>();
         callers.add(null);
         callers.add(valid);
@@ -453,10 +454,15 @@ class ApiV1IsolationMatrixSecurityIT extends ApiV1Test {
 
             assertThat(response.statusCode()).isEqualTo(200);
             assertThat(response.headers().firstValue("Content-Type").orElse("")).startsWith("application/json");
-            assertThat(response.headers().firstValue("Access-Control-Allow-Origin")).isEmpty();
+            assertThat(response.headers().firstValue("Access-Control-Allow-Origin"))
+                    .isEmpty();
             assertThat(json(response.body())).containsEntry("openapi", "3.1.0");
         }
-        assertThat(jdbc.queryForObject("select count(*) from api_key_usage", Integer.class))
+        assertThat(jdbc.queryForObject(
+                        "select count(*) from api_key_usage where key_id = ?", Integer.class, validKey.id()))
                 .isZero();
+        assertThat(jdbc.queryForObject(
+                        "select last_used_at is null from api_key where id = ?", Boolean.class, validKey.id()))
+                .isTrue();
     }
 }

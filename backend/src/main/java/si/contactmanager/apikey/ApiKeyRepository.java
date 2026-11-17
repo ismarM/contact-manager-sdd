@@ -71,6 +71,18 @@ class ApiKeyRepository {
                 .list();
     }
 
+    /** Ključ obstaja, pripada uporabniku in ni končan pred več kot 90 dnevi (kot seznam; FR-019-21). */
+    boolean visible(long user, UUID id) {
+        return jdbc.sql("SELECT count(*) FROM api_key k WHERE k.id = :id AND k.user_id = :user"
+                                + " AND (least(k.revoked_at, k.expires_at) IS NULL"
+                                + "      OR least(k.revoked_at, k.expires_at) > now() - interval '90 days')")
+                        .param("id", id)
+                        .param("user", user)
+                        .query(Integer.class)
+                        .single()
+                > 0;
+    }
+
     /** Skupine ključev po id-ju ključa, razvrščene po naslovu. */
     Map<UUID, List<GroupRow>> groups(Collection<UUID> keys) {
         Map<UUID, List<GroupRow>> result = new LinkedHashMap<>();
