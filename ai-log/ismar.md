@@ -255,3 +255,9 @@ Predlogi za pohitritev (iz zgornjih meritev):
 - **pregled-testov** (enkrat): popravljeno – asercija svežega žetona pri izbrisu, `\` v iskanju, odveč asercija; naloga T031 uskajena s kodo. Ostalo svetovalno (odprto): produkcijska pot `signUp` brez avtomatskega testa, ohlapen IT registracije z obstoječim e-naslovom, sočasni trk UID.
 - **Spremenjeni obstoječi testi**: `AccountPage.test.tsx`, `DeleteAccountDialog.test.tsx`, `LeaveGroup.test.tsx`, `LoginPage.test.tsx`, `AppShell.test.tsx`, `moji-podatki.spec.ts`, `clani.spec.ts`.
 - **Čas faz**: `.verify/timing-017.log` (ni v Gitu). `quick` 160 s, `backend` 373 s, `e2e` 347 s – zeleni.
+
+## 017 – incident: dodajanje gesla je zaklenilo uporabnika (2026-11-17)
+- **Napaka** (razvijalec, pravi Firebase): po *Dodaj geslo* je `accounts:signUp` z `idToken` postavil `emailVerified=false` za ves račun; zaledje je zavrnilo tudi Google prijavo, sporočila pa nihče ni poslal. Emulator tega ne posnema, zato testi napake niso ujeli (T024 je bil ravno ta preizkus).
+- **Povrnitev dostopa**: read-only branje računa (emailVerified=false, google.com+password, UID nespremenjen, aktiven), nato s soglasjem razvijalca samo `emailVerified=true` za ta UID prek Admin REST; ponovno branje: UID, ponudnika in `validSince` nespremenjeni.
+- **Popravek**: opozorilo in izrecno soglasje PRED dodajanjem; sporočilo se pošlje takoj, še pred preklopom na zaslon potrditve; zaslon potrditve pojasni, kaj se je zgodilo; ponovno pošiljanje; `EmailVerifiedFilter` nespremenjen. Testi: gateway (vrstni red mail → poslušalci), FE, IT (admin reset v emulatorju), E2E (Google → geslo → potrditev → Google prijava → skupine).
+- **Ostaja**: preizkus s pravim Firebase na ločenem testnem Google računu (razvijalec).
