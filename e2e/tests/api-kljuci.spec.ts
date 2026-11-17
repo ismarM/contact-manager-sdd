@@ -125,7 +125,9 @@ test('FR-019-10, -12: ključ WRITE ustvari, spremeni in izbriše kontakt, sled i
 
   await page.goto(`/groups/${groupId}/audit`);
   const entries = page.getByRole('list', { name: t('audit.list.entries') }).getByRole('listitem');
-  await expect(entries).toHaveCount(3);
+  // Tri vnosi sledi + zadnji element seznama »Začetno stanje« (brez filtrov na zadnji strani).
+  await expect(entries).toHaveCount(4);
+  await expect(entries.last()).toContainText(t('audit.initial.heading'));
   const label = t('audit.source.viaApiKey', { name: 'Nočni izvoz' });
   for (let i = 0; i < 3; i++) {
     await expect(entries.nth(i)).toContainText(label);
