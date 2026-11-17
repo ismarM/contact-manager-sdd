@@ -65,7 +65,7 @@ class RestoreConcurrencyIT extends HistoryApiTest {
     }
 
     private Map<String, Object> bigEdit(Map<String, Object> detail) {
-        Map<String, Object> values = withPhone(detail, "031 999 999");
+        Map<String, Object> values = withPhone(detail, "+38631999999");
         values.put("tags", List.of("vip"));
         return values;
     }
@@ -74,7 +74,7 @@ class RestoreConcurrencyIT extends HistoryApiTest {
     @Tag("FR-015-13")
     void twoSimultaneousRestoresOfTheSameContactOnlyOneSucceeds() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         Map<String, Object> edited = update(s, Who.EDITOR, idOf(a), bigEdit(a), versionOf(a));
         UUID first = entryIds(s).get(0);
         int entries = audit.count(s.group());
@@ -93,7 +93,7 @@ class RestoreConcurrencyIT extends HistoryApiTest {
     @Tag("FR-015-13")
     void twoSimultaneousRestoresOfADeletedContactOnlyOneSucceeds() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         remove(s, Who.EDITOR, idOf(a), versionOf(a));
         Map<String, Object> history = history(s, Who.VIEWER, idOf(a), "");
         String last = (String) asObject(history.get("contact")).get("lastEntryId");
@@ -120,7 +120,7 @@ class RestoreConcurrencyIT extends HistoryApiTest {
     @Tag("FR-015-13")
     void aRestoreAndAnEditOfTheSameContactNeverBothUseTheSameVersion() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         Map<String, Object> edited = update(s, Who.EDITOR, idOf(a), bigEdit(a), versionOf(a));
         UUID first = entryIds(s).get(0);
         int entries = audit.count(s.group());
@@ -130,7 +130,7 @@ class RestoreConcurrencyIT extends HistoryApiTest {
                 () -> put(
                         contactPath(s.group(), idOf(a)),
                         s.token(Who.ADMIN),
-                        body(withVersion(withPhone(edited, "031 555 555"), versionOf(edited))))));
+                        body(withVersion(withPhone(edited, "+38631555555"), versionOf(edited))))));
 
         assertThat(count(responses, 201) + count(responses, 200)).isEqualTo(1);
         assertThat(count(responses, 409)).isEqualTo(1);
@@ -143,7 +143,7 @@ class RestoreConcurrencyIT extends HistoryApiTest {
     @Tag("FR-015-17")
     void aRestoreAndAGroupRollbackAreSerializedWithoutDeadlockOrCorruptedChain() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         Map<String, Object> edited = update(s, Who.EDITOR, idOf(a), bigEdit(a), versionOf(a));
         List<UUID> entries = entryIds(s);
         UUID latest = audit.latestEntryId(s.group());
@@ -156,7 +156,7 @@ class RestoreConcurrencyIT extends HistoryApiTest {
         assertThat(count(responses, 201)).isGreaterThanOrEqualTo(1);
         // Kontakt ima eno veljavno stanje: obnovljeno ali po rollbacku je telefon prvotni (vnos 0 je tudi cilj
         // rollbacka).
-        assertThat(audit.contactState(idOf(a)).get("phone")).isEqualTo("01 111 111");
+        assertThat(audit.contactState(idOf(a)).get("phone")).isEqualTo("+38690111111");
         assertChainIsConsistent(s.group());
     }
 }

@@ -1,3 +1,4 @@
+import type { Address, AttributeType } from '../attributes/types';
 import type { CompareContact, MergeResultInput } from './types';
 
 // Čisti model tabele razlik (research R-12): vrstice, privzete izbire, unija značk, izločitev, rezultat in odjemalska
@@ -7,6 +8,21 @@ export type FieldName =
   'firstName' | 'lastName' | 'company' | 'address' | 'country' | 'email' | 'phone';
 
 /** Ena možna vrednost vrstice: različna vrednost (`null` = »(prazno)«) in kontakti, ki jo imajo. */
+/**
+ * Razčlenjen naslov je v možnostih vrstice zapisan kot niz z oznako (možnosti se primerjajo kot nizi, 016): oznaka je
+ * kontrolni znak, ki ga uporabnikovo besedilo ne vsebuje.
+ */
+const PARTS_MARK = 'parts:';
+export const encodeParts = (address: Address): string => PARTS_MARK + JSON.stringify(address);
+export function decodeParts(value: string | null): Address | null {
+  if (value === null || !value.startsWith(PARTS_MARK)) return null;
+  try {
+    return JSON.parse(value.slice(PARTS_MARK.length)) as Address;
+  } catch {
+    return null;
+  }
+}
+
 export interface RowOption {
   value: string | null;
   contactIds: string[];
@@ -18,6 +34,8 @@ export interface CompareRow {
   /** Ime polja ali ključ atributa (zapis iz prvega kontakta, ki ga ima). */
   label: string;
   kind: 'field' | 'attribute';
+  /** Atribut: tip ključa za prikaz vrednosti (016). */
+  type?: AttributeType;
   options: RowOption[];
 }
 
@@ -60,6 +78,8 @@ export const MAX_ATTRIBUTES = 50;
 const attributeKey = (key: string) => `attr:${key.toLowerCase()}`;
 const blankToNull = (value: string | null | undefined) =>
   value === null || value === undefined || value === '' ? null : value;
+const attributeCell = (attribute: CompareContact['attributes'][number] | undefined) =>
+  attribute?.parts ? encodeParts(attribute.parts) : blankToNull(attribute?.value);
 
 /** Vse vrstice (polja, nato atributi po prvem pojavu ključa) z različnimi vrednostmi po vrstnem redu kontaktov. */
 function allRows(contacts: CompareContact[]): CompareRow[] {
@@ -69,6 +89,7 @@ function allRows(contacts: CompareContact[]): CompareRow[] {
     label: string,
     kind: CompareRow['kind'],
     read: (c: CompareContact) => string | null,
+    type?: AttributeType,
   ) => {
     const options: RowOption[] = [];
     for (const contact of contacts) {
@@ -77,20 +98,30 @@ function allRows(contacts: CompareContact[]): CompareRow[] {
       if (existing) existing.contactIds.push(contact.id);
       else options.push({ value, contactIds: [contact.id] });
     }
-    rows.push({ key, label, kind, options });
+    rows.push({ key, label, kind, options, ...(type ? { type } : {}) });
   };
   for (const field of FIELDS)
-    build(field, field, 'field', (contact) => blankToNull(contact[field]));
+    build(field, field, 'field', (contact) =>
+      field === 'address' && contact.addressParts
+        ? encodeParts(contact.addressParts)
+        : blankToNull(contact[field]),
+    );
   const seen = new Set<string>();
   for (const contact of contacts) {
     for (const attribute of contact.attributes) {
       const key = attributeKey(attribute.key);
       if (seen.has(key)) continue;
       seen.add(key);
-      build(key, attribute.key, 'attribute', (other) =>
-        blankToNull(
-          other.attributes.find((candidate) => attributeKey(candidate.key) === key)?.value,
-        ),
+      const type = contacts
+        .flatMap((c) => c.attributes)
+        .find((candidate) => attributeKey(candidate.key) === key && candidate.type)?.type;
+      build(
+        key,
+        attribute.key,
+        'attribute',
+        (other) =>
+          attributeCell(other.attributes.find((candidate) => attributeKey(candidate.key) === key)),
+        type,
       );
     }
   }
@@ -183,20 +214,24 @@ export function buildResult(
     const row = rows.find((candidate) => candidate.key === name);
     return row ? chosen(row) : null;
   };
-  const attributes: { key: string; value: string }[] = [];
+  const attributes: MergeResultInput['attributes'] = [];
   for (const row of rows.filter((candidate) => candidate.kind === 'attribute')) {
     const value = chosen(row);
     if (value === null) continue;
     const owner = contacts
       .flatMap((contact) => contact.attributes)
-      .find((attribute) => attributeKey(attribute.key) === row.key && attribute.value === value);
-    attributes.push({ key: owner?.key ?? row.label, value });
+      .find(
+        (attribute) =>
+          attributeKey(attribute.key) === row.key && attributeCell(attribute) === value,
+      );
+    const parts = decodeParts(value);
+    attributes.push({ key: owner?.key ?? row.label, ...(parts ? { parts } : { value }) });
   }
   return {
     firstName: field('firstName'),
     lastName: field('lastName'),
     company: field('company'),
-    address: field('address'),
+    ...addressResult(field('address')),
     country: field('country'),
     email: field('email'),
     phone: field('phone'),
@@ -205,6 +240,11 @@ export function buildResult(
       selection.tags.some((checked) => checked.toLowerCase() === tag.toLowerCase()),
     ),
   };
+}
+
+function addressResult(value: string | null): Pick<MergeResultInput, 'address' | 'addressParts'> {
+  const parts = decodeParts(value);
+  return parts ? { address: null, addressParts: parts } : { address: value };
 }
 
 export function validateResult(result: MergeResultInput): ResultError[] {

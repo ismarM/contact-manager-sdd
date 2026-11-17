@@ -17,6 +17,7 @@ export const names = {
   read: () => tr('import.read'),
   targetFor: (column: string) => tr('import.mapping.targetFor', { column }),
   keyFor: (column: string) => tr('import.mapping.keyFor', { column }),
+  typeFor: (column: string) => tr('import.mapping.typeFor', { column }),
   target: (target: string) => tr(`import.mapping.targets.${target}`),
   confirm: (count: number) => tr('import.confirm', { count }),
   countryFor: (text: string) => tr('import.countries.choose', { text }),

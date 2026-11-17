@@ -48,7 +48,7 @@ describe('AuditPage', () => {
     expect(items[24]).toHaveTextContent('Kontakt 016');
     const sections = within(screen.getByRole('navigation', { name: 'Razdelki skupine' }));
     const links = sections.getAllByRole('link').map((link) => link.textContent);
-    expect(links).toEqual(['Kontakti', 'Revizijska sled', 'Nastavitve']);
+    expect(links).toEqual(['Kontakti', 'Revizijska sled', 'Atributi skupine', 'Nastavitve']);
     expect(sections.getByRole('link', { name: 'Revizijska sled' })).toHaveAttribute(
       'aria-current',
       'page',

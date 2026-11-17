@@ -2,3 +2,10 @@
 # Vsaka izjema (allowlist) zahteva komentar "utišanje: <razlog>" ob vnosu (konstitucija VII).
 [extend]
 useDefault = true
+
+# API ključ (019, FR-019-17): cmk_ + podpisan JWT; privzeta pravila JWT ob predponi ne zaznajo zanesljivo.
+[[rules]]
+id = "contact-manager-api-key"
+description = "Contact Manager API key (cmk_ + JWT)"
+regex = '''cmk_eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'''
+keywords = ["cmk_eyj"]

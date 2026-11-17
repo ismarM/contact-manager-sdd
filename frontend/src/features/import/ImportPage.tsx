@@ -17,9 +17,12 @@ import {
   textInput,
   warningAlert,
 } from '../../shared/ui/styles';
+import { ATTRIBUTE_TYPES, type AttributeType } from '../attributes/types';
+import { typeNameKey } from '../attributes/typeNames';
 import { canEditContacts } from '../contacts/contactRouting';
 import { allCountries, countryName } from '../contacts/countries';
 import { useUiLanguage } from '../contacts/useUiLanguage';
+import { useFormatters } from '../formats/useFormatters';
 import { useGroup } from '../groups/groupContext';
 import { useImportApi } from './api';
 import { type MappingError, mappingErrors, TARGETS, toCandidates } from './mapping';
@@ -176,6 +179,7 @@ export function ImportPage() {
         firstName: candidate.firstName,
         lastName: candidate.lastName,
         address: candidate.address,
+        ...(candidate.addressParts ? { addressParts: candidate.addressParts } : {}),
         email: candidate.email,
         phone: candidate.phone,
         company: candidate.company,
@@ -499,6 +503,33 @@ function MappingTable({
                   />
                 </div>
               )}
+              {item.target === 'ATTRIBUTE' && (
+                <div className="flex min-w-40 flex-col gap-1">
+                  <label htmlFor={`${prefix}-${item.column}-type`} className="font-bold">
+                    {t('import.mapping.typeFor', { column: header })}
+                  </label>
+                  <select
+                    id={`${prefix}-${item.column}-type`}
+                    value={item.type ?? ''}
+                    onChange={(event) =>
+                      update(item.column, {
+                        type:
+                          event.target.value === ''
+                            ? undefined
+                            : (event.target.value as AttributeType),
+                      })
+                    }
+                    className={`${textInput} h-11 w-auto`}
+                  >
+                    <option value="">{t('import.mapping.typeAuto')}</option>
+                    {ATTRIBUTE_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {t(typeNameKey(type))}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               {error && (
                 <p id={errorId} className={`${fieldError} basis-full`}>
                   {t(`import.mapping.${error}`)}
@@ -572,6 +603,7 @@ function PreviewRowView({
   onDecision: (decision: Decision) => void;
 }) {
   const { t } = useTranslation();
+  const format = useFormatters();
   const name = [candidate.firstName, candidate.lastName].filter(Boolean).join(' ');
   return (
     <tr className="border-b border-border align-top">
@@ -582,11 +614,15 @@ function PreviewRowView({
       <td className="p-2">
         <ul className="flex flex-col gap-0.5">
           {[
+            candidate.addressParts ? format.address(candidate.addressParts) : candidate.address,
             candidate.email,
             candidate.phone,
             candidate.company,
             candidate.countryText,
-            ...candidate.attributes.map((attribute) => `${attribute.key}: ${attribute.value}`),
+            ...candidate.attributes.map(
+              (attribute) =>
+                `${attribute.key}: ${attribute.parts ? format.address(attribute.parts) : attribute.value}`,
+            ),
             candidate.tags.length > 0 ? candidate.tags.join(', ') : null,
           ]
             .filter((value): value is string => value != null && value !== '')

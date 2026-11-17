@@ -16,6 +16,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import si.contactmanager.ContactManagerApplication;
+import si.contactmanager.support.ApiKeySigningSecret;
 import si.contactmanager.support.FirebaseEmulatorContainer;
 import si.contactmanager.support.FirebaseEmulatorContainer.SignedIn;
 import si.contactmanager.support.Http;
@@ -67,7 +68,8 @@ class IdentityDeletionRestartIT {
                         "identity-deletion.lease=5s",
                         "identity-deletion.request-timeout=2s",
                         "identity-deletion.connect-timeout=1s",
-                        "identity-deletion.tombstone-retention=2h")
+                        "identity-deletion.tombstone-retention=2h",
+                        "api-keys.signing-secret=" + ApiKeySigningSecret.VALUE)
                 .map(argument -> "--" + argument)
                 .toArray(String[]::new);
         return new SpringApplicationBuilder(ContactManagerApplication.class).run(arguments);

@@ -6,6 +6,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import si.contactmanager.account.DisplayFormat.AddressFormat;
+import si.contactmanager.account.DisplayFormat.Choice;
+import si.contactmanager.account.DisplayFormat.DateFormat;
+import si.contactmanager.account.DisplayFormat.PhoneFormat;
 import si.contactmanager.shared.error.ValidationError.FieldError;
 import si.contactmanager.shared.error.ValidationException;
 import tools.jackson.core.JacksonException;
@@ -14,11 +18,12 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Branje telesa {@code {"language": …, "theme": …}} (contracts/openapi.yaml – Preferences): obe polji obvezni,
- * {@code null} dovoljen, druga polja niso dovoljena. Vse napake se zberejo v en {@code 400 VALIDATION_FAILED}.
+ * {@code null} dovoljen; neobvezne so oblike zapisa {@code phoneFormat}, {@code dateFormat}, {@code addressFormat}
+ * (manjka = nespremenjeno, {@code null} = privzeto, 016); druga polja niso dovoljena. Vse napake se zberejo v en {@code 400 VALIDATION_FAILED}.
  */
 final class PreferencesParser {
 
-    private static final Set<String> FIELDS = Set.of("language", "theme");
+    private static final Set<String> FIELDS = Set.of("language", "theme", "phoneFormat", "dateFormat", "addressFormat");
 
     private final JsonMapper json;
 
@@ -44,10 +49,13 @@ final class PreferencesParser {
         }
         Language language = read(root, "language", Language::fromCode, errors);
         Theme theme = read(root, "theme", Theme::fromCode, errors);
+        Choice<PhoneFormat> phone = readOptional(root, "phoneFormat", PhoneFormat.class, errors);
+        Choice<DateFormat> date = readOptional(root, "dateFormat", DateFormat.class, errors);
+        Choice<AddressFormat> address = readOptional(root, "addressFormat", AddressFormat.class, errors);
         if (!errors.isEmpty()) {
             throw new ValidationException(errors);
         }
-        return new Preferences(language, theme);
+        return new Preferences(language, theme, phone, date, address);
     }
 
     private static <T> T read(
@@ -66,6 +74,23 @@ final class PreferencesParser {
             return null;
         }
         return parsed.get();
+    }
+
+    private static <E extends Enum<E>> Choice<E> readOptional(
+            JsonNode root, String field, Class<E> type, List<FieldError> errors) {
+        if (!root.has(field)) {
+            return Choice.absent();
+        }
+        JsonNode value = root.get(field);
+        if (value.isNull()) {
+            return Choice.of(null);
+        }
+        Optional<E> parsed = value.isString() ? DisplayFormat.parse(type, value.asString()) : Optional.empty();
+        if (parsed.isEmpty()) {
+            errors.add(new FieldError(field, "INVALID_VALUE"));
+            return Choice.absent();
+        }
+        return Choice.of(parsed.get());
     }
 
     private static ValidationException invalid(String field, String code) {

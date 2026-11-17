@@ -66,7 +66,16 @@ export function LoginPage() {
         : null;
 
   return (
-    <AuthCard>
+    <AuthCard
+      footer={
+        <Link
+          to="/api-docs"
+          className="inline-flex min-h-11 items-center text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          {t('login.apiDocsLink')}
+        </Link>
+      }
+    >
       <p className="mt-3 text-muted-foreground">{t('login.tagline')}</p>
       {deletedNotice && (
         <p role="status" className="mt-6 rounded-md border-l-4 border-border bg-muted p-3">

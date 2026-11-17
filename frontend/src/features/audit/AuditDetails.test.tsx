@@ -26,7 +26,12 @@ const EDIT_CHANGES = [
   contactChange({
     fields: [
       { field: 'PHONE', key: null, before: '01 234 5678', after: '031 123 456' },
-      { field: 'ATTRIBUTE', key: 'kompetenca', before: null, after: 'web dev' },
+      {
+        field: 'ATTRIBUTE',
+        key: 'kompetenca',
+        before: null,
+        after: { type: 'OTHER', value: 'web dev' },
+      },
       { field: 'TAGS', key: null, before: ['vip', 'konferenca2025'], after: ['konferenca2025'] },
     ],
   }),

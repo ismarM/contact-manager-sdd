@@ -1,3 +1,4 @@
+import type { Address, AttributeType } from '../attributes/types';
 import type { Attribute } from '../contacts/types';
 import type { CardCandidate } from '../contacts/qr/vcardTypes';
 
@@ -9,6 +10,11 @@ export type MappingTarget =
   | 'FIRST_NAME'
   | 'LAST_NAME'
   | 'ADDRESS'
+  | 'ADDRESS_STREET'
+  | 'ADDRESS_EXTRA'
+  | 'ADDRESS_POSTAL_CODE'
+  | 'ADDRESS_CITY'
+  | 'ADDRESS_REGION'
   | 'EMAIL'
   | 'PHONE'
   | 'COUNTRY'
@@ -21,6 +27,11 @@ export interface ColumnMapping {
   column: number;
   target: MappingTarget;
   key: string | null;
+  /**
+   * 016: tip novega ključa (samo `ATTRIBUTE`); manjkajoč = samodejno (tip obstoječega ključa, nov ključ je *Drugo*).
+   * Odjemalec ga ne pošlje strežniku v preslikavi, ampak v atributu kandidata.
+   */
+  type?: AttributeType;
 }
 
 export interface ImportSheet {
@@ -65,6 +76,8 @@ export interface ImportContact {
   firstName: string | null;
   lastName: string | null;
   address: string | null;
+  /** 016: deli naslova iz vizitke (`ADR` po delih); `address` je tedaj `null`. */
+  addressParts?: Address | null;
   email: string | null;
   phone: string | null;
   company: string | null;

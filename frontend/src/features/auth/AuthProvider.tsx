@@ -11,6 +11,7 @@ import { ApiError } from '../../shared/api/client';
 import {
   applyTheme,
   type Language,
+  readStoredFormats,
   readStoredLanguage,
   readStoredTheme,
   storeLanguage,
@@ -133,7 +134,11 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
       const synced = await authFetch<Profile>('/me', {
         method: 'PUT',
         headers: JSON_HEADERS,
-        body: JSON.stringify({ language: readStoredLanguage(), theme: readStoredTheme() }),
+        body: JSON.stringify({
+          language: readStoredLanguage(),
+          theme: readStoredTheme(),
+          ...readStoredFormats(),
+        }),
       });
       if (current !== generation.current) return;
       applyProfilePreferences(synced);

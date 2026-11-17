@@ -5,6 +5,7 @@ import {
   buildResult,
   buildRows,
   canExclude,
+  decodeParts,
   defaultChoices,
   excludeContact,
   keptContact,
@@ -344,5 +345,52 @@ describe('mergeModel – validateResult', () => {
     expect(validateResult(emptyResult({ attributes: attributes(51) }))).toEqual([
       { field: 'attributes', code: 'TOO_MANY', excess: 1 },
     ]);
+  });
+});
+
+describe('mergeModel – tipi in razčlenjeni naslovi (016, FR-016-26)', () => {
+  const home = { street: 'Trg 1', city: 'Ljubljana', country: 'SI' };
+  const work = { street: 'Cesta 2', city: 'Maribor', country: 'SI' };
+  const X = compareContact({
+    n: 1,
+    firstName: 'Ana',
+    lastName: 'Kos',
+    attributes: [{ key: 'Domov', type: 'ADDRESS', parts: home }],
+  });
+  const Y = compareContact({
+    n: 2,
+    firstName: 'Ana',
+    lastName: 'Kos',
+    attributes: [{ key: 'Domov', type: 'ADDRESS', parts: work }],
+  });
+
+  it('deli naslova so različni možnosti vrstice, tip ključa je v vrstici', () => {
+    const row = buildRows([X, Y]).rows.find((candidate) => candidate.key === 'attr:domov');
+
+    expect(row?.type).toBe('ADDRESS');
+    expect(row?.options).toHaveLength(2);
+    expect(row?.options.map((option) => decodeParts(option.value))).toEqual([home, work]);
+  });
+
+  it('izbrana možnost z deli gre v rezultat kot parts, ne kot besedilo', () => {
+    const rows = buildRows([X, Y]).rows;
+    const row = rows.find((candidate) => candidate.key === 'attr:domov');
+    const selection = defaultChoices([X, Y]);
+    selection.values['attr:domov'] = row?.options[1]?.value ?? null;
+
+    const result = buildResult([X, Y], selection);
+
+    expect(result.attributes).toEqual([{ key: 'Domov', parts: work }]);
+  });
+
+  it('razčlenjen predefiniran naslov gre v addressParts, address je null', () => {
+    const P = compareContact({ n: 1, firstName: 'Ana', lastName: 'Kos', addressParts: home });
+    const Q = compareContact({ n: 2, firstName: 'Ana', lastName: 'Kos', address: 'Drugje 5' });
+    const selection = defaultChoices([P, Q]);
+
+    const result = buildResult([P, Q], selection);
+
+    expect(result.addressParts).toEqual(home);
+    expect(result.address).toBeNull();
   });
 });

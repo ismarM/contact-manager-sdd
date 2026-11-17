@@ -82,6 +82,12 @@ export function GroupHeader({ group, focusTitle }: { group: GroupDetail; focusTi
           {t('groups.header.audit')}
         </NavLink>
         <NavLink
+          to={`/groups/${group.id}/attributes`}
+          className={`-mb-px border-b-4 border-transparent px-1 pb-2 font-bold aria-[current=page]:border-primary ${focusRing}`}
+        >
+          {t('attributes.heading')}
+        </NavLink>
+        <NavLink
           to={`/groups/${group.id}/settings`}
           className={`-mb-px border-b-4 border-transparent px-1 pb-2 font-bold aria-[current=page]:border-primary ${focusRing}`}
         >

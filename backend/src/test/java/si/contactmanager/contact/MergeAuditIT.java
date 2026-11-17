@@ -43,7 +43,7 @@ class MergeAuditIT extends MergeApiTest {
                 "Izbrana",
                 "Ulica 1",
                 "izbrana@primer.si",
-                "031 111 222",
+                "+38631111222",
                 List.of(attribute("oddelek", "IT"), attribute("mesto", "Maribor")),
                 List.of("vip", "b"));
     }
@@ -116,7 +116,7 @@ class MergeAuditIT extends MergeApiTest {
                 .containsEntry("lastName", "Prva")
                 .containsEntry("email", "ana@primer.si")
                 .containsEntry("version", 0);
-        assertThat(keptBefore.get("attributes")).isEqualTo(List.of(attribute("oddelek", "IT")));
+        assertThat(keptBefore.get("attributes")).isEqualTo(List.of(typed("oddelek", "IT")));
         assertThat(keptBefore.get("tags")).isEqualTo(List.of("vip"));
         Map<String, Object> keptAfter = asObject(kept.get("after"));
         assertThat(keptAfter)
@@ -124,10 +124,9 @@ class MergeAuditIT extends MergeApiTest {
                 .containsEntry("lastName", "Izbrana")
                 .containsEntry("address", "Ulica 1")
                 .containsEntry("email", "izbrana@primer.si")
-                .containsEntry("phone", "031 111 222")
+                .containsEntry("phone", "+38631111222")
                 .containsEntry("version", 1);
-        assertThat(keptAfter.get("attributes"))
-                .isEqualTo(List.of(attribute("oddelek", "IT"), attribute("mesto", "Maribor")));
+        assertThat(keptAfter.get("attributes")).isEqualTo(List.of(typed("oddelek", "IT"), typed("mesto", "Maribor")));
         assertThat(keptAfter.get("tags")).isEqualTo(List.of("vip", "b"));
 
         Map<String, Object> removedB = changes.get(1);
@@ -219,5 +218,10 @@ class MergeAuditIT extends MergeApiTest {
         assertThat(merges.get(0).get("contact_count")).isEqualTo(2);
         assertThat(contacts.exists(uuid(b))).isFalse();
         assertThat(contacts.version(uuid(a))).isEqualTo(1);
+    }
+
+    /** Atribut v posnetku sledi (016): vsebuje tip ključa. */
+    private static Map<String, String> typed(String key, String value) {
+        return Map.of("key", key, "type", "OTHER", "value", value);
     }
 }

@@ -26,7 +26,12 @@ final class DuplicateGroups {
         Map<String, List<DuplicateCandidate>> byKey = new LinkedHashMap<>();
         for (DuplicateCandidate candidate : ordered) {
             Optional<String> key = DuplicateKeys.key(
-                    category, candidate.firstName(), candidate.lastName(), candidate.email(), candidate.phone());
+                    category,
+                    candidate.firstName(),
+                    candidate.lastName(),
+                    candidate.email(),
+                    candidate.phone(),
+                    candidate.country());
             key.ifPresent(
                     k -> byKey.computeIfAbsent(k, ignored -> new ArrayList<>()).add(candidate));
         }

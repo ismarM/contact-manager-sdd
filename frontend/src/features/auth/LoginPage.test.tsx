@@ -36,6 +36,15 @@ describe('LoginPage', () => {
     );
   });
 
+  it('FR-019-14: prijava ima povezavo na javno stran API, ki vodi na /api-docs', async () => {
+    renderApp('/login');
+
+    expect(await screen.findByRole('link', { name: i18n.t('login.apiDocsLink') })).toHaveAttribute(
+      'href',
+      '/api-docs',
+    );
+  });
+
   it('FR-001-02: uspešna prijava sinhronizira profil in vodi na začetno stran', async () => {
     const api = mockProfileApi();
     const { user } = renderApp('/login');

@@ -31,14 +31,14 @@ class ContactHistoryIT extends HistoryApiTest {
     @Tag("FR-015-06")
     void theTimelineListsEveryChangeOfTheContactNewestFirstWithActorKindAndChangedFields() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
-        create(s, Who.EDITOR, contactInput("Bojan", "Drugi", "01 222 222"));
-        Map<String, Object> second = update(s, Who.ADMIN, idOf(a), withPhone(a, "031 999 999"), versionOf(a));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
+        create(s, Who.EDITOR, contactInput("Bojan", "Drugi", "+38690222222"));
+        Map<String, Object> second = update(s, Who.ADMIN, idOf(a), withPhone(a, "+38631999999"), versionOf(a));
         update(
                 s,
                 Who.EDITOR,
                 idOf(a),
-                edited(second, "031 999 999", List.of(Map.of("key", "oddelek", "value", "IT")), List.of("vip")),
+                edited(second, "+38631999999", List.of(Map.of("key", "oddelek", "value", "IT")), List.of("vip")),
                 versionOf(second));
 
         Map<String, Object> history = history(s, Who.VIEWER, idOf(a), "");
@@ -53,8 +53,8 @@ class ContactHistoryIT extends HistoryApiTest {
         assertThat(newestFields).extracting(f -> f.get("field")).containsExactly("ATTRIBUTE", "TAGS");
         assertThat(asObjects(items.get(1).get("fields"))).singleElement().satisfies(f -> {
             assertThat(f.get("field")).isEqualTo("PHONE");
-            assertThat(f.get("before")).isEqualTo("01 111 111");
-            assertThat(f.get("after")).isEqualTo("031 999 999");
+            assertThat(f.get("before")).isEqualTo("+38690111111");
+            assertThat(f.get("after")).isEqualTo("+38631999999");
         });
         assertThat(items).allSatisfy(e -> assertThat(e.get("entryId")).isNotNull());
         Map<String, Object> contact = asObject(history.get("contact"));
@@ -69,8 +69,8 @@ class ContactHistoryIT extends HistoryApiTest {
     @Tag("FR-015-18")
     void aBulkEntryShowsOnlyTheChangeOfThisContactAndLinksToTheWholeEntry() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
-        Map<String, Object> b = create(s, Who.EDITOR, contactInput("Bojan", "Drugi", "01 222 222"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
+        Map<String, Object> b = create(s, Who.EDITOR, contactInput("Bojan", "Drugi", "+38690222222"));
         List<ContactChange> changes = new java.util.ArrayList<>();
         for (Map<String, Object> contact : List.of(a, b)) {
             ContactState before = snapshots.snapshot(s.group(), idOf(contact));
@@ -79,7 +79,7 @@ class ContactHistoryIT extends HistoryApiTest {
                     before.lastName(),
                     before.address(),
                     before.email(),
-                    "031 000 000",
+                    "+38631000000",
                     before.company(),
                     before.country(),
                     before.attributes(),
@@ -101,7 +101,7 @@ class ContactHistoryIT extends HistoryApiTest {
         assertThat(newest.get("displayName")).isEqualTo("Bojan Drugi");
         assertThat(asObjects(newest.get("fields"))).singleElement().satisfies(f -> {
             assertThat(f.get("field")).isEqualTo("PHONE");
-            assertThat(f.get("after")).isEqualTo("031 000 000");
+            assertThat(f.get("after")).isEqualTo("+38631000000");
         });
     }
 
@@ -109,8 +109,8 @@ class ContactHistoryIT extends HistoryApiTest {
     @Tag("FR-015-07")
     void aDeletedContactKeepsItsHistoryAndEndsWithTheRemoval() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
-        Map<String, Object> updated = update(s, Who.EDITOR, idOf(a), withPhone(a, "031 999 999"), versionOf(a));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
+        Map<String, Object> updated = update(s, Who.EDITOR, idOf(a), withPhone(a, "+38631999999"), versionOf(a));
         remove(s, Who.EDITOR, idOf(a), versionOf(updated));
 
         Map<String, Object> history = history(s, Who.VIEWER, idOf(a), "");
@@ -129,8 +129,8 @@ class ContactHistoryIT extends HistoryApiTest {
     @Tag("FR-015-07")
     void aMergedAwayContactShowsWhereItWasMergedAndTheKeeperShowsTheMerge() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> keeper = create(s, Who.EDITOR, contactInput("Ana", "Ohranjena", "01 111 111"));
-        Map<String, Object> removed = create(s, Who.EDITOR, contactInput("Ana", "Odstranjena", "01 111 111"));
+        Map<String, Object> keeper = create(s, Who.EDITOR, contactInput("Ana", "Ohranjena", "+38690111111"));
+        Map<String, Object> removed = create(s, Who.EDITOR, contactInput("Ana", "Odstranjena", "+38690111111"));
         mergeInto(s, idOf(keeper), idOf(removed), s.id(Who.EDITOR));
 
         Map<String, Object> removedHistory = history(s, Who.VIEWER, idOf(removed), "");
@@ -167,14 +167,14 @@ class ContactHistoryIT extends HistoryApiTest {
     @Tag("FR-015-05")
     void thePageSizeIsLimitedToTheCommonVocabularyAndPagingWorks() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         Map<String, Object> current = a;
         for (int i = 0; i < 26; i++) {
             current = update(
                     s,
                     Who.EDITOR,
                     idOf(a),
-                    withPhone(current, "031 000 " + String.format("%03d", i)),
+                    withPhone(current, "+38631000" + String.format("%03d", i)),
                     versionOf(current));
         }
 
@@ -196,8 +196,8 @@ class ContactHistoryIT extends HistoryApiTest {
         UUID old = contacts.insert(s.group(), s.id(Who.OWNER), "Izpred", "Beleženja");
         Map<String, Object> detail =
                 json(get(contactPath(s.group(), old), s.token(Who.VIEWER)).body());
-        Map<String, Object> changed = update(s, Who.EDITOR, old, withPhone(detail, "031 123 456"), versionOf(detail));
-        update(s, Who.EDITOR, old, withPhone(changed, "031 777 777"), versionOf(changed));
+        Map<String, Object> changed = update(s, Who.EDITOR, old, withPhone(detail, "+38631123456"), versionOf(detail));
+        update(s, Who.EDITOR, old, withPhone(changed, "+38631777777"), versionOf(changed));
         List<UUID> entries = entryIds(s);
 
         Map<String, Object> initial = json(
@@ -209,10 +209,10 @@ class ContactHistoryIT extends HistoryApiTest {
 
         assertThat(asObject(initial.get("state")).get("phone")).isNull();
         assertThat(initial.get("createdAt")).isNull();
-        assertThat(asObject(afterFirst.get("state")).get("phone")).isEqualTo("031 123 456");
+        assertThat(asObject(afterFirst.get("state")).get("phone")).isEqualTo("+38631123456");
         assertThat(afterFirst.get("ref")).isEqualTo(entries.get(0).toString());
         assertThat(afterFirst.get("action")).isEqualTo("UPDATE");
-        assertThat(asObject(current.get("state")).get("phone")).isEqualTo("031 777 777");
+        assertThat(asObject(current.get("state")).get("phone")).isEqualTo("+38631777777");
         assertThat(history(s, Who.VIEWER, old, "").get("contact"))
                 .extracting(c -> asObject(c).get("hasInitial"))
                 .isEqualTo(true);
@@ -222,8 +222,8 @@ class ContactHistoryIT extends HistoryApiTest {
     @Tag("FR-015-08")
     void aVersionOfAnotherContactOrAnEntryWithoutAStateIsNotFound() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
-        Map<String, Object> b = create(s, Who.EDITOR, contactInput("Bojan", "Drugi", "01 222 222"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
+        Map<String, Object> b = create(s, Who.EDITOR, contactInput("Bojan", "Drugi", "+38690222222"));
         UUID entryOfB = entryIds(s).get(1);
         remove(s, Who.EDITOR, idOf(b), versionOf(b));
         UUID removal = entryIds(s).get(2);
@@ -253,7 +253,7 @@ class ContactHistoryIT extends HistoryApiTest {
     @Tag("FR-015-09")
     void comparingTwoVersionsListsBasicFieldsAttributesAndTags() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> inputA = contactInput("Ana", "Prva", "01 111 111");
+        Map<String, Object> inputA = contactInput("Ana", "Prva", "+38690111111");
         inputA.put("tags", List.of("vip"));
         Map<String, Object> a = create(s, Who.EDITOR, inputA);
         update(
@@ -262,7 +262,7 @@ class ContactHistoryIT extends HistoryApiTest {
                 idOf(a),
                 edited(
                         a,
-                        "031 999 999",
+                        "+38631999999",
                         List.of(Map.of("key", "kompetenca", "value", "web dev")),
                         List.of("konferenca")),
                 versionOf(a));
@@ -293,7 +293,7 @@ class ContactHistoryIT extends HistoryApiTest {
     @Tag("FR-015-09")
     void comparingAVersionWithItselfOrWithMissingParametersIsRejected() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         UUID entry = entryIds(s).get(0);
         String path = comparePath(s.group(), idOf(a));
 
@@ -311,7 +311,7 @@ class ContactHistoryIT extends HistoryApiTest {
     @Tag("FR-015-18")
     void anEntryOfAnUnknownKindIsStillShownWithItsChangedFields() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         UUID entry = entryIds(s).get(0);
         jdbc.update("alter table audit_entry disable trigger audit_entry_immutable");
         try {
@@ -331,9 +331,10 @@ class ContactHistoryIT extends HistoryApiTest {
                     .isEqualTo(200);
         } finally {
             jdbc.update("update audit_entry set action = 'CREATE' where id = ?", entry);
-            // Unija vseh vrst dejanj po V12 (014 doda IMPORT); vrstice IMPORT iz drugih testov morajo ostati veljavne.
+            // Unija vseh vrst dejanj po V13 (014 doda IMPORT, 016 ATTRIBUTE_TYPE); vrstice IMPORT iz drugih testov
+            // morajo ostati veljavne.
             jdbc.update("alter table audit_entry add constraint audit_entry_action_check check (action in"
-                    + " ('CREATE', 'UPDATE', 'DELETE', 'MERGE', 'ROLLBACK', 'RESTORE', 'IMPORT'))");
+                    + " ('CREATE', 'UPDATE', 'DELETE', 'MERGE', 'ROLLBACK', 'RESTORE', 'IMPORT', 'ATTRIBUTE_TYPE'))");
             jdbc.update("alter table audit_entry enable trigger audit_entry_immutable");
         }
     }

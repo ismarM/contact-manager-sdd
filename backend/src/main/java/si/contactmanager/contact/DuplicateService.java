@@ -33,9 +33,16 @@ class DuplicateService {
     private final ContactSnapshots snapshots;
     private final AuditLog audit;
     private final CanonicalForms canonical;
+    private final TypedAttributes typed;
     private final MergeInputParser parser = new MergeInputParser();
 
-    DuplicateService(ContactRepository contacts, ContactSnapshots snapshots, AuditLog audit, CanonicalForms canonical) {
+    DuplicateService(
+            ContactRepository contacts,
+            ContactSnapshots snapshots,
+            AuditLog audit,
+            CanonicalForms canonical,
+            TypedAttributes typed) {
+        this.typed = typed;
         this.canonical = canonical;
         this.contacts = contacts;
         this.snapshots = snapshots;
@@ -119,6 +126,26 @@ class DuplicateService {
                     .toList());
         }
         ContactInput result = canonical.input(group, parsed.value(), storedKeys, storedTags);
+        // Vrednosti po tipu (016, FR-016-26): e-naslov, telefon in atributi; vrednosti, ki jih vključeni kontakti že
+        // hranijo, ostanejo dobesedne (FR-016-09).
+        ContactService.Predefined predefined = ContactService.normalizePredefined(
+                result,
+                before.values().stream().map(ContactState::email).toList(),
+                before.values().stream().map(ContactState::phone).toList());
+        List<si.contactmanager.shared.error.ValidationError.FieldError> typeErrors =
+                new ArrayList<>(predefined.errors().stream()
+                        .map(e -> new si.contactmanager.shared.error.ValidationError.FieldError(
+                                "result." + e.field(), e.code()))
+                        .toList());
+        TypedAttributes.Resolution resolved = typed.resolve(
+                group, predefined.input().attributes(), List.of(), storedAttributes, result.country(), true);
+        resolved.errors()
+                .forEach(e -> typeErrors.add(new si.contactmanager.shared.error.ValidationError.FieldError(
+                        "result." + e.field(), e.code())));
+        if (!typeErrors.isEmpty()) {
+            throw new ValidationException(typeErrors);
+        }
+        result = predefined.input().withAttributes(resolved.attributes());
 
         List<UUID> ordered = new ArrayList<>(ids);
         ordered.sort(

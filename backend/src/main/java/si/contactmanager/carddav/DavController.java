@@ -507,6 +507,7 @@ class DavController {
                         s.firstName(),
                         s.lastName(),
                         s.address(),
+                        s.addressParts(),
                         s.email(),
                         s.phone(),
                         s.company(),

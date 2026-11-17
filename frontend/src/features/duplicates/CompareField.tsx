@@ -4,8 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { focusRing } from '../../shared/ui/styles';
 import { countryName } from '../contacts/countries';
 import { useUiLanguage } from '../contacts/useUiLanguage';
+import { useFormatters } from '../formats/useFormatters';
 import { contactName, gridFor, startAt } from './CompareColumns';
-import type { CompareRow } from './mergeModel';
+import { decodeParts, type CompareRow } from './mergeModel';
 import type { CompareContact } from './types';
 
 /**
@@ -33,17 +34,20 @@ export function CompareField({
 }) {
   const { t } = useTranslation();
   const language = useUiLanguage();
+  const format = useFormatters();
   const prefix = useId();
   const errorId = `${id}-error`;
   const legend =
     row.kind === 'field' ? t(`duplicates.compare.fields.${row.key as 'firstName'}`) : row.label;
   // Država je v podatkih koda ISO; prikaz je ime v jeziku vmesnika (FR-013-06).
-  const display = (option: string | null) =>
-    option === null
-      ? t('duplicates.compare.emptyValue')
-      : row.key === 'country'
-        ? countryName(option, language)
-        : option;
+  const display = (option: string | null) => {
+    if (option === null) return t('duplicates.compare.emptyValue');
+    const parts = decodeParts(option);
+    if (parts) return format.address(parts, true);
+    if (row.key === 'country') return countryName(option, language);
+    if (row.key === 'phone') return format.phone(option);
+    return row.kind === 'attribute' ? format.byType(row.type, option) : option;
+  };
 
   return (
     <fieldset

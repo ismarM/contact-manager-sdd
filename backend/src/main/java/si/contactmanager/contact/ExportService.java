@@ -71,14 +71,18 @@ class ExportService {
         for (Contact contact : contacts) {
             Map<String, String> attributes = new HashMap<>();
             for (Attribute attribute : byContact.getOrDefault(contact.id(), List.of())) {
-                attributes.putIfAbsent(attribute.keyNorm(), attribute.value());
+                attributes.putIfAbsent(
+                        attribute.keyNorm(),
+                        attribute.parts() == null
+                                ? attribute.value()
+                                : AddressFormats.text(attribute.parts(), request.language()));
                 headers.putIfAbsent(attribute.keyNorm(), attribute.key());
             }
             rows.add(new ExportRow(
                     contact.id(),
                     contact.firstName(),
                     contact.lastName(),
-                    contact.address(),
+                    address(contact, request.language()),
                     contact.email(),
                     contact.phone(),
                     CountryNames.display(contact.country(), request.language()),
@@ -90,5 +94,22 @@ class ExportService {
                 .map(key -> new ExportWriter.Column(key, headers.getOrDefault(key, key)))
                 .toList();
         return new Prepared(request.language(), columns, rows, skipped);
+    }
+
+    /**
+     * Naslov kontakta v enem stolpcu (FR-016-25): razčlenjen po pravilih države brez vrstice države (ta je v svojem
+     * stolpcu), nerazčlenjen dobesedno.
+     */
+    static String address(Contact contact, String language) {
+        Address parts = contact.addressParts();
+        if (parts == null) {
+            return contact.address();
+        }
+        String text = AddressFormats.text(parts, language);
+        if (parts.country() != null) {
+            int last = text.lastIndexOf('\n');
+            text = last < 0 ? "" : text.substring(0, last);
+        }
+        return text;
     }
 }

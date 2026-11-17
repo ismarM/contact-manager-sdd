@@ -1,3 +1,4 @@
+import type { Address, AttributeType } from '../attributes/types';
 import type { ChangeField } from '../audit/types';
 import type { UserRef } from '../groups/types';
 
@@ -31,6 +32,8 @@ export interface HistoryEvent {
   targetInitial: boolean;
   /** Samo `MERGE` + `REMOVED`: ohranjeni kontakt. */
   mergedInto: { contactId: string; displayName: string } | null;
+  /** 019: ime API ključa, s katerim je bila sprememba narejena; `null` = spletna aplikacija ali izbrisan uporabnik. */
+  apiKeyName?: string | null;
 }
 
 export interface History {
@@ -55,11 +58,14 @@ export interface ContactStateView {
   firstName: string | null;
   lastName: string | null;
   address: string | null;
+  /** 016: razčlenjen naslov (prikaz po shemi); stari posnetki ga nimajo. */
+  addressParts?: Address | null;
   email: string | null;
   phone: string | null;
   company: string | null;
   country: string | null;
-  attributes: { key: string; value: string }[];
+  /** 016: tip ključa ob posnetku; besedilo ali deli naslova. */
+  attributes: { key: string; type?: AttributeType; value?: string; parts?: Address }[];
   tags: string[];
   version: number;
 }

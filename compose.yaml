@@ -30,6 +30,8 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD:-contacts}
       FIREBASE_AUTH_EMULATOR_HOST: auth:9099
       FIREBASE_PROJECT_ID: demo-contact-manager
+      # 019 podpisni ključ API ključev (obvezen, brez privzete vrednosti): openssl rand -base64 32 → .env
+      API_KEY_SIGNING_SECRET: ${API_KEY_SIGNING_SECRET:?nastavi API_KEY_SIGNING_SECRET v .env (openssl rand -base64 32)}
     depends_on:
       db:
         condition: service_healthy

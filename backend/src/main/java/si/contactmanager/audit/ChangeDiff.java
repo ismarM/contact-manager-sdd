@@ -36,14 +36,14 @@ final class ChangeDiff {
         return fields;
     }
 
-    private static String value(ContactState state, Field field) {
+    private static Object value(ContactState state, Field field) {
         if (state == null) {
             return null;
         }
         return switch (field) {
             case FIRST_NAME -> state.firstName();
             case LAST_NAME -> state.lastName();
-            case ADDRESS -> state.address();
+            case ADDRESS -> state.addressParts() != null ? state.addressParts() : state.address();
             case EMAIL -> state.email();
             case PHONE -> state.phone();
             case COUNTRY -> state.country();
@@ -52,22 +52,23 @@ final class ChangeDiff {
         };
     }
 
-    private static void scalar(List<ChangeField> fields, Field field, String before, String after) {
+    private static void scalar(List<ChangeField> fields, Field field, Object before, Object after) {
         if (!Objects.equals(before, after)) {
             fields.add(new ChangeField(field, null, before, after));
         }
     }
 
+    /** Atribut: tip, vrednost in deli (016, FR-016-26); sprememba samo tipa je prav tako sprememba atributa. */
     private static void attributes(List<ChangeField> fields, List<Attribute> before, List<Attribute> after) {
-        Map<String, String> was = new LinkedHashMap<>();
-        before.forEach(a -> was.put(a.key(), a.value()));
-        Map<String, String> is = new LinkedHashMap<>();
-        after.forEach(a -> is.put(a.key(), a.value()));
+        Map<String, AttributeValue> was = new LinkedHashMap<>();
+        before.forEach(a -> was.put(a.key(), AttributeValue.of(a)));
+        Map<String, AttributeValue> is = new LinkedHashMap<>();
+        after.forEach(a -> is.put(a.key(), AttributeValue.of(a)));
         Set<String> keys = new LinkedHashSet<>(was.keySet());
         keys.addAll(is.keySet());
         for (String key : keys) {
-            String b = was.get(key);
-            String a = is.get(key);
+            AttributeValue b = was.get(key);
+            AttributeValue a = is.get(key);
             if (!Objects.equals(b, a)) {
                 fields.add(new ChangeField(Field.ATTRIBUTE, key, b, a));
             }

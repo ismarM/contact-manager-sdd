@@ -36,7 +36,7 @@ class VcardMappingTest {
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
     @ParameterizedTest
-    @ValueSource(strings = {"qp-21", "phone-30", "fn-only-40"})
+    @ValueSource(strings = {"qp-21", "phone-30", "fn-only-40", "typed-50"})
     void sharedCasesAreReadAsExpected(String name) throws Exception {
         Map<String, Object> expected = JSON.readValue(resource("cases/" + name + ".json"), new TypeReference<>() {});
 
@@ -81,6 +81,7 @@ class VcardMappingTest {
                 "Žan",
                 "Čeh",
                 "Vrstica 1\nVrstica 2; tretja, četrta",
+                null,
                 "zan@primer.si",
                 "@386",
                 "-Podjetje",
@@ -106,7 +107,7 @@ class VcardMappingTest {
     @Test
     void theCountryNameIsInTheRequestedLanguage() {
         VcardContact contact =
-                new VcardContact(null, null, "Ana", null, null, null, null, null, "AT", List.of(), List.of());
+                new VcardContact(null, null, "Ana", null, null, null, null, null, null, "AT", List.of(), List.of());
 
         assertThat(VcardWriter.write(List.of(contact), "sl")).contains("Avstrija");
         assertThat(VcardWriter.write(List.of(contact), "en")).contains("Austria");
@@ -136,6 +137,7 @@ class VcardMappingTest {
                 c.firstName(),
                 c.lastName(),
                 c.address(),
+                c.addressParts(),
                 c.email(),
                 c.phone(),
                 c.company(),

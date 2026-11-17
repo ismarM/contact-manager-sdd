@@ -26,13 +26,14 @@ class ExportRepository {
             String firstName,
             String lastName,
             String address,
+            Address addressParts,
             String email,
             String phone,
             String country,
             String company) {}
 
     /** Atribut kontakta z izvirnim zapisom ključa. */
-    record Attribute(UUID contactId, String key, String keyNorm, String value) {}
+    record Attribute(UUID contactId, String key, String keyNorm, String value, Address parts) {}
 
     private final JdbcClient jdbc;
 
@@ -44,8 +45,8 @@ class ExportRepository {
     List<Contact> rows(UUID group, Collection<UUID> ids, ContactQuery order) {
         Map<String, Object> parameters = new LinkedHashMap<>();
         String orderBy = ContactSearch.orderBy(order, parameters);
-        var statement = jdbc.sql("SELECT c.id, c.first_name, c.last_name, c.address, c.email, c.phone, c.country,"
-                        + " c.company FROM contact c"
+        var statement = jdbc.sql("SELECT c.id, c.first_name, c.last_name, c.address,"
+                        + " c.address_parts::text AS address_parts, c.email, c.phone, c.country, c.company FROM contact c"
                         + " WHERE c.group_id = :group AND c.id IN (:ids) ORDER BY " + orderBy)
                 .param("group", group)
                 .param("ids", List.copyOf(ids));
@@ -58,6 +59,7 @@ class ExportRepository {
                         rs.getString("first_name"),
                         rs.getString("last_name"),
                         rs.getString("address"),
+                        AddressJson.read(rs.getString("address_parts")),
                         rs.getString("email"),
                         rs.getString("phone"),
                         rs.getString("country"),
@@ -69,14 +71,15 @@ class ExportRepository {
     List<Attribute> attributes(Collection<UUID> ids) {
         List<Attribute> all = new ArrayList<>();
         for (List<UUID> chunk : chunks(ids)) {
-            all.addAll(jdbc.sql("SELECT contact_id, key, key_norm, value FROM contact_attribute"
+            all.addAll(jdbc.sql("SELECT contact_id, key, key_norm, value, parts::text AS parts FROM contact_attribute"
                             + " WHERE contact_id IN (:ids) ORDER BY contact_id, position")
                     .param("ids", chunk)
                     .query((rs, n) -> new Attribute(
                             rs.getObject("contact_id", UUID.class),
                             rs.getString("key"),
                             rs.getString("key_norm"),
-                            rs.getString("value")))
+                            rs.getString("value"),
+                            AddressJson.read(rs.getString("parts"))))
                     .list());
         }
         return all;

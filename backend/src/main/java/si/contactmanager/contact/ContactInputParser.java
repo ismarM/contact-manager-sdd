@@ -52,12 +52,22 @@ public final class ContactInputParser {
             "telefon",
             "phone");
 
-    private static final Set<String> CREATE_FIELDS =
-            Set.of("firstName", "lastName", "address", "email", "phone", "company", "country", "attributes", "tags");
+    private static final Set<String> CREATE_FIELDS = Set.of(
+            "firstName",
+            "lastName",
+            "address",
+            "addressParts",
+            "email",
+            "phone",
+            "company",
+            "country",
+            "attributes",
+            "tags");
     private static final Set<String> UPDATE_FIELDS = Set.of(
             "firstName",
             "lastName",
             "address",
+            "addressParts",
             "email",
             "phone",
             "company",
@@ -67,12 +77,22 @@ public final class ContactInputParser {
             "version");
 
     /** Rezultat: {@code input} je {@code null} ob kateri koli napaki; {@code version} je {@code null}, če ga ni. */
-    public record Parsed(ContactInput input, Long version, List<FieldError> errors) {
+    public record Parsed(ContactInput input, Long version, List<FieldError> errors, List<AttributeExtra> extras) {
+
+        public Parsed(ContactInput input, Long version, List<FieldError> errors) {
+            this(input, version, errors, List.of());
+        }
 
         public boolean valid() {
             return errors.isEmpty();
         }
     }
+
+    /**
+     * Podatki vrstice atributa, ki jih {@link Attribute} ne nosi (016): zahtevani tip ({@code null}: ni naveden) in
+     * dobesedna vrednost brez obreza (za tip opombe). Seznam v {@link Parsed} je poravnan z {@code input.attributes()}.
+     */
+    public record AttributeExtra(AttributeType type, String raw) {}
 
     private final JsonMapper json;
 
@@ -129,6 +149,11 @@ public final class ContactInputParser {
             errors.add(new FieldError("lastName", "REQUIRED"));
         }
         String address = text(root, "address", ADDRESS_MAX, errors);
+        Address addressParts = parts(root.get("addressParts"), "addressParts", errors);
+        if (address != null && addressParts != null) {
+            // Natanko ena oblika naslova (016, R-04): nerazčlenjeno besedilo ali deli.
+            errors.add(new FieldError("addressParts", "INVALID_VALUE"));
+        }
         String email = text(root, "email", EMAIL_MAX, errors);
         if (email != null && !hasError(errors, "email") && !EMAIL.matcher(email).matches()) {
             errors.add(new FieldError("email", "INVALID_VALUE"));
@@ -142,13 +167,15 @@ public final class ContactInputParser {
         if (country != null && !hasError(errors, "country") && !CountryNames.isValid(country)) {
             errors.add(new FieldError("country", "INVALID_VALUE"));
         }
-        List<Attribute> attributes = attributes(root, errors);
+        List<AttributeExtra> extras = new ArrayList<>();
+        List<Attribute> attributes = attributes(root, errors, extras);
         List<String> tags = tags(root, errors);
         Long version = update ? version(root, errors) : null;
         ContactInput input = errors.isEmpty()
-                ? new ContactInput(firstName, lastName, address, email, phone, company, country, attributes, tags)
+                ? new ContactInput(
+                        firstName, lastName, address, addressParts, email, phone, company, country, attributes, tags)
                 : null;
-        return new Parsed(input, version, List.copyOf(errors));
+        return new Parsed(input, version, List.copyOf(errors), List.copyOf(extras));
     }
 
     /** Neobvezno besedilno polje: obrezano, prazno = {@code null}; naslov s poenotenimi prelomi vrstic. */
@@ -171,7 +198,7 @@ public final class ContactInputParser {
         return value;
     }
 
-    private static List<Attribute> attributes(JsonNode root, List<FieldError> errors) {
+    private static List<Attribute> attributes(JsonNode root, List<FieldError> errors, List<AttributeExtra> extrasOut) {
         JsonNode node = root.get("attributes");
         if (node == null || node.isNull()) {
             return List.of();
@@ -181,6 +208,7 @@ public final class ContactInputParser {
             return List.of();
         }
         List<Attribute> attributes = new ArrayList<>();
+        List<AttributeExtra> extras = new ArrayList<>();
         Set<String> keys = new HashSet<>();
         int index = 0;
         for (JsonNode row : node) {
@@ -191,28 +219,43 @@ public final class ContactInputParser {
                 continue;
             }
             for (Map.Entry<String, JsonNode> property : row.properties()) {
-                if (!property.getKey().equals("key") && !property.getKey().equals("value")) {
+                if (!property.getKey().equals("key")
+                        && !property.getKey().equals("value")
+                        && !property.getKey().equals("type")
+                        && !property.getKey().equals("parts")) {
                     errors.add(new FieldError(prefix + "." + property.getKey(), "UNKNOWN_FIELD"));
                 }
             }
             String key = rowText(row, "key", prefix, errors);
             String value = rowText(row, "value", prefix, errors);
+            AttributeType requested = requestedType(row, prefix, errors);
+            Address parts = parts(row.get("parts"), prefix + ".parts", errors);
+            String raw = row.get("value") != null && row.get("value").isString()
+                    ? row.get("value").asString()
+                    : "";
+            boolean hasParts = row.get("parts") != null && !row.get("parts").isNull();
+            if (hasParts && parts == null) {
+                // Neveljavni deli: napake so že zapisane ob delih.
+                checkKey(key, prefix, keys, errors);
+                continue;
+            }
+            if (parts != null) {
+                // Razčlenjen naslov (016): vrednost ni dovoljena hkrati z deli; tip preveri razreševanje tipov.
+                if (value == null || !value.isEmpty()) {
+                    errors.add(new FieldError(prefix + ".value", "INVALID_VALUE"));
+                } else if (requested != null && requested != AttributeType.ADDRESS) {
+                    errors.add(new FieldError(prefix + ".type", "INVALID_VALUE"));
+                }
+                checkKey(key, prefix, keys, errors);
+                attributes.add(new Attribute(key, AttributeType.ADDRESS, null, parts));
+                extras.add(new AttributeExtra(requested, raw));
+                continue;
+            }
             if (key != null && key.isEmpty() && value != null && value.isEmpty()) {
                 // Popolnoma prazna vrstica se ne shrani (Edge Cases).
                 continue;
             }
-            if (key != null) {
-                String normalized = normalize(key);
-                if (key.isEmpty()) {
-                    errors.add(new FieldError(prefix + ".key", "REQUIRED"));
-                } else if (length(key) > KEY_MAX) {
-                    errors.add(new FieldError(prefix + ".key", "TOO_LONG"));
-                } else if (RESERVED_KEYS.contains(SPACES.matcher(normalized).replaceAll(" "))) {
-                    errors.add(new FieldError(prefix + ".key", "RESERVED_KEY"));
-                } else if (!keys.add(normalized)) {
-                    errors.add(new FieldError(prefix + ".key", "DUPLICATE"));
-                }
-            }
+            checkKey(key, prefix, keys, errors);
             if (value != null) {
                 if (value.isEmpty()) {
                     errors.add(new FieldError(prefix + ".value", "REQUIRED"));
@@ -221,13 +264,95 @@ public final class ContactInputParser {
                 }
             }
             attributes.add(new Attribute(key, value));
+            extras.add(new AttributeExtra(requested, raw));
         }
         if (attributes.size() > ATTRIBUTES_MAX) {
             errors.add(new FieldError("attributes", "TOO_MANY"));
         }
-        return List.copyOf(attributes.stream()
-                .filter(a -> a.key() != null && a.value() != null)
-                .toList());
+        List<Attribute> kept = new ArrayList<>();
+        for (int i = 0; i < attributes.size(); i++) {
+            Attribute a = attributes.get(i);
+            if (a.key() != null && (a.value() != null || a.parts() != null)) {
+                kept.add(a);
+                extrasOut.add(extras.get(i));
+            }
+        }
+        return List.copyOf(kept);
+    }
+
+    /** Ključ vrstice: obvezen, do 50 znakov, ne ime predefiniranega polja, edinstven ne glede na velikost črk. */
+    private static void checkKey(String key, String prefix, Set<String> keys, List<FieldError> errors) {
+        if (key == null) {
+            return;
+        }
+        String normalized = normalize(key);
+        if (key.isEmpty()) {
+            errors.add(new FieldError(prefix + ".key", "REQUIRED"));
+        } else if (length(key) > KEY_MAX) {
+            errors.add(new FieldError(prefix + ".key", "TOO_LONG"));
+        } else if (RESERVED_KEYS.contains(SPACES.matcher(normalized).replaceAll(" "))) {
+            errors.add(new FieldError(prefix + ".key", "RESERVED_KEY"));
+        } else if (!keys.add(normalized)) {
+            errors.add(new FieldError(prefix + ".key", "DUPLICATE"));
+        }
+    }
+
+    private static final Set<String> ADDRESS_FIELDS =
+            Set.of("street", "extra", "postalCode", "city", "region", "country");
+
+    /**
+     * Deli naslova (016, R-04): objekt z nizi {@code street}, {@code extra}, {@code postalCode}, {@code city},
+     * {@code region}, {@code country}; manjkajoč ali {@code null} = {@code null}. Neznano polje je
+     * {@code UNKNOWN_FIELD}, ne-niz {@code INVALID_VALUE}. Meje in normalizacijo preveri {@link TypedValues}.
+     */
+    static Address parts(JsonNode node, String field, List<FieldError> errors) {
+        if (node == null || node.isNull()) {
+            return null;
+        }
+        if (!node.isObject()) {
+            errors.add(new FieldError(field, "INVALID_VALUE"));
+            return null;
+        }
+        int before = errors.size();
+        Map<String, String> values = new java.util.HashMap<>();
+        for (Map.Entry<String, JsonNode> property : node.properties()) {
+            String name = property.getKey();
+            JsonNode value = property.getValue();
+            if (!ADDRESS_FIELDS.contains(name)) {
+                errors.add(new FieldError(field + "." + name, "UNKNOWN_FIELD"));
+            } else if (value.isString()) {
+                values.put(name, value.asString());
+            } else if (!value.isNull()) {
+                errors.add(new FieldError(field + "." + name, "INVALID_VALUE"));
+            }
+        }
+        if (errors.size() > before) {
+            return null;
+        }
+        return new Address(
+                values.get("street"),
+                values.get("extra"),
+                values.get("postalCode"),
+                values.get("city"),
+                values.get("region"),
+                values.get("country"));
+    }
+
+    /** Neobvezen {@code type} vrstice: ime tipa; neznano ali ne-niz je {@code INVALID_VALUE} (016). */
+    private static AttributeType requestedType(JsonNode row, String prefix, List<FieldError> errors) {
+        JsonNode node = row.get("type");
+        if (node == null || node.isNull()) {
+            return null;
+        }
+        if (node.isString()) {
+            for (AttributeType type : AttributeType.values()) {
+                if (type.name().equals(node.asString())) {
+                    return type;
+                }
+            }
+        }
+        errors.add(new FieldError(prefix + ".type", "INVALID_VALUE"));
+        return null;
     }
 
     /** Besedilo v vrstici atributa: obrezano, manjkajoče = prazno; ne-niz je napaka ({@code null}). */

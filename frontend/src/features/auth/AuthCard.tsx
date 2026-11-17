@@ -10,7 +10,16 @@ import { useAuth } from './authContext';
  * Kartica strani prijave, registracije, potrditve in ponastavitve (design.md 9.1): bela kartica na sredini (največ
  * 400 px), pod njo preklop jezika. Odzivna od 320 px (FR-017-22).
  */
-export function AuthCard({ heading, children }: { heading?: string; children: ReactNode }) {
+export function AuthCard({
+  heading,
+  footer,
+  children,
+}: {
+  heading?: string;
+  /** Povezava pod kartico (npr. dokumentacija API na prijavi, 019). */
+  footer?: ReactNode;
+  children: ReactNode;
+}) {
   const { t } = useTranslation();
   const { changeLanguage } = useAuth();
   return (
@@ -32,6 +41,7 @@ export function AuthCard({ heading, children }: { heading?: string; children: Re
         )}
         {children}
       </div>
+      {footer}
       <LanguageButtons onChange={changeLanguage} />
     </main>
   );

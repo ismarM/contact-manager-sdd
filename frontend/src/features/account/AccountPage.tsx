@@ -2,9 +2,11 @@ import { useTranslation } from 'react-i18next';
 
 import type { Language } from '../../i18n/language';
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
+import { ApiKeysSection } from '../apikeys/ApiKeysSection';
 import { useAuth } from '../auth/authContext';
 import { AppPasswordsSection } from './AppPasswordsSection';
 import { DeleteAccountSection } from './DeleteAccountSection';
+import { DisplayFormatSection } from './DisplayFormatSection';
 import { MyDataSection } from './MyDataSection';
 import { SignInMethodsSection } from './SignInMethodsSection';
 import type { Theme } from './preferences';
@@ -83,11 +85,15 @@ export function AccountPage() {
         </fieldset>
       </section>
 
+      <DisplayFormatSection />
+
       <SignInMethodsSection />
 
       <MyDataSection />
 
       <AppPasswordsSection />
+
+      <ApiKeysSection />
 
       <DeleteAccountSection />
 

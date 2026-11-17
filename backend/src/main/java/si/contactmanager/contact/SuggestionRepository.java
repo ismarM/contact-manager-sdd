@@ -27,7 +27,28 @@ class SuggestionRepository {
 
     /** Ključi atributov v kanonični obliki po številu kontaktov; rezervirana imena so izločena. */
     List<Suggestion> keys(UUID group, String q) {
-        return aggregated("contact_attribute", "key", "key_norm", group, q, true);
+        List<Suggestion> items = aggregated("contact_attribute", "key", "key_norm", group, q, true);
+        if (items.isEmpty()) {
+            return items;
+        }
+        // Tip ključa v skupini (016); ključ brez vrstice je tipa OTHER.
+        List<String> norms =
+                items.stream().map(s -> ContactInputParser.normalize(s.text())).toList();
+        java.util.Map<String, AttributeType> types = new java.util.HashMap<>();
+        jdbc.sql("SELECT key_norm, type FROM attribute_key WHERE group_id = :group AND key_norm IN (:norms)")
+                .param("group", group)
+                .param("norms", norms)
+                .query((rs, n) -> {
+                    types.put(rs.getString("key_norm"), AttributeType.valueOf(rs.getString("type")));
+                    return null;
+                })
+                .list();
+        return items.stream()
+                .map(s -> new Suggestion(
+                        s.text(),
+                        s.count(),
+                        types.getOrDefault(ContactInputParser.normalize(s.text()), AttributeType.OTHER)))
+                .toList();
     }
 
     /** Značke v kanonični obliki po številu kontaktov. */

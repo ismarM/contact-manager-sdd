@@ -279,8 +279,8 @@ class ContactReadIT extends ContactApiTest {
                 .containsEntry(
                         "attributes",
                         List.of(
-                                Map.of("key", "kompetenca", "value", "web dev"),
-                                Map.of("key", "Oddelek", "value", "IT")))
+                                Map.of("key", "kompetenca", "type", "OTHER", "value", "web dev"),
+                                Map.of("key", "Oddelek", "type", "OTHER", "value", "IT")))
                 .containsEntry("tags", List.of("ne_obveščaj", "konferenca2025"))
                 .containsEntry("version", 0);
         assertThat(detail.get("createdAt")).isInstanceOf(String.class);

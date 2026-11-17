@@ -75,7 +75,7 @@ class BulkDeleteIT extends BulkApiTest {
     void aDeletedContactCanBeRestoredByARollbackToTheEntryRightBeforeTheDeletion() throws Exception {
         Scenario s = scenario();
         Map<String, Object> input = input("Janez", "Novak");
-        input.put("phone", "01 234 567");
+        input.put("phone", "+38690234567");
         input.put("tags", List.of("vip", "konferenca2025"));
         input.put("attributes", List.of(Map.of("key", "Oddelek", "value", "IT")));
         UUID a = UUID.fromString((String) createViaApi(s, input).get("id"));
@@ -93,7 +93,7 @@ class BulkDeleteIT extends BulkApiTest {
         assertThat(contacts.exists(b)).isTrue();
         Map<String, Object> row = contacts.row(a);
         assertThat(row.get("first_name")).isEqualTo(restoredA.get("first_name"));
-        assertThat(row.get("phone")).isEqualTo("01 234 567");
+        assertThat(row.get("phone")).isEqualTo("+38690234567");
         assertThat(contacts.tagsOf(a)).containsExactly("vip", "konferenca2025");
         assertThat(contacts.attributesOf(a)).containsExactly(Map.of("key", "Oddelek", "value", "IT"));
     }

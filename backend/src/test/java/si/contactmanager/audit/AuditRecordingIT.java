@@ -33,7 +33,7 @@ class AuditRecordingIT extends AuditApiTest {
     private static Map<String, Object> janez() {
         Map<String, Object> input = input("Janez", "Novak");
         input.put("email", "janez@primer.si");
-        input.put("phone", "01 234 567");
+        input.put("phone", "+38690234567");
         input.put("attributes", List.of(Map.of("key", "Oddelek", "value", "IT")));
         input.put("tags", List.of("vip", "konferenca2025"));
         return input;
@@ -68,7 +68,7 @@ class AuditRecordingIT extends AuditApiTest {
         Map<String, Object> created = create(s, Who.EDITOR, janez());
         UUID id = idOf(created);
         Map<String, Object> changed = valuesOf(created);
-        changed.put("phone", "031 111 222");
+        changed.put("phone", "+38631111222");
         changed.put(
                 "attributes",
                 List.of(Map.of("key", "Oddelek", "value", "IT"), Map.of("key", "kompetenca", "value", "web dev")));
@@ -93,8 +93,8 @@ class AuditRecordingIT extends AuditApiTest {
                 .containsEntry("firstName", "Janez")
                 .containsEntry("lastName", "Novak")
                 .containsEntry("email", "janez@primer.si")
-                .containsEntry("phone", "01 234 567")
-                .containsEntry("attributes", List.of(Map.of("key", "Oddelek", "value", "IT")))
+                .containsEntry("phone", "+38690234567")
+                .containsEntry("attributes", List.of(Map.of("key", "Oddelek", "type", "OTHER", "value", "IT")))
                 .containsEntry("tags", List.of("vip", "konferenca2025"))
                 .containsEntry("version", 0);
         assertThat(((Number) afterCreate.get("updatedById")).longValue()).isEqualTo(s.id(Who.EDITOR));
@@ -102,24 +102,24 @@ class AuditRecordingIT extends AuditApiTest {
         Map<String, Object> edit =
                 audit.changes((UUID) entries.get(1).get("id")).get(0);
         assertThat(asObject(edit.get("before")))
-                .containsEntry("phone", "01 234 567")
+                .containsEntry("phone", "+38690234567")
                 .containsEntry("tags", List.of("vip", "konferenca2025"))
                 .containsEntry("version", 0);
         assertThat(asObject(edit.get("after")))
-                .containsEntry("phone", "031 111 222")
+                .containsEntry("phone", "+38631111222")
                 .containsEntry("tags", List.of("konferenca2025"))
                 .containsEntry(
                         "attributes",
                         List.of(
-                                Map.of("key", "Oddelek", "value", "IT"),
-                                Map.of("key", "kompetenca", "value", "web dev")))
+                                Map.of("key", "Oddelek", "type", "OTHER", "value", "IT"),
+                                Map.of("key", "kompetenca", "type", "OTHER", "value", "web dev")))
                 .containsEntry("version", 1);
 
         Map<String, Object> delete =
                 audit.changes((UUID) entries.get(2).get("id")).get(0);
         assertThat(delete.get("after")).isNull();
         assertThat(asObject(delete.get("before")))
-                .containsEntry("phone", "031 111 222")
+                .containsEntry("phone", "+38631111222")
                 .containsEntry("version", 1);
         assertThat(audit.latestEntryId(s.group())).isEqualTo(entries.get(2).get("id"));
     }
@@ -133,13 +133,13 @@ class AuditRecordingIT extends AuditApiTest {
         UUID other = groups.createGroup(s.id(Who.OWNER), "Skupina B");
         UUID foreign = contacts.insert(other, s.id(Who.OWNER), "Tuj", "Kontakt");
         Map<String, Object> changed = valuesOf(created);
-        changed.put("phone", "031 111 222");
+        changed.put("phone", "+38631111222");
         update(s, Who.EDITOR, id, changed, versionOf(created));
         int before = audit.count(s.group());
         assertThat(before).isEqualTo(2);
 
         Map<String, Object> other2 = valuesOf(created);
-        other2.put("phone", "040 999 888");
+        other2.put("phone", "+38640999888");
         List<HttpResponse<String>> rejected = new ArrayList<>();
         // 409 VERSION_CONFLICT: zastarela verzija z drugačnimi vrednostmi.
         rejected.add(put(contactPath(s.group(), id), s.token(Who.EDITOR), body(withVersion(other2, 0))));
@@ -175,7 +175,7 @@ class AuditRecordingIT extends AuditApiTest {
         Map<String, Object> created = create(s, Who.EDITOR, janez());
         UUID id = idOf(created);
         Map<String, Object> changed = valuesOf(created);
-        changed.put("phone", "031 111 222");
+        changed.put("phone", "+38631111222");
         update(s, Who.EDITOR, id, changed, versionOf(created));
         assertThat(audit.count(s.group())).isEqualTo(2);
 

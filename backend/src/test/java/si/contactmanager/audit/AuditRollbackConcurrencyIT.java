@@ -67,12 +67,12 @@ class AuditRollbackConcurrencyIT extends AuditApiTest {
     @Tag("FR-005-14")
     void aLatestEntryIdThatIsNoLongerTheNewestIsAConflictWhateverTheNewerEntryConcerns() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         UUID target = (UUID) audit.entries(s.group()).get(0).get("id");
-        update(s, Who.EDITOR, idOf(a), contactValues(a, "02 222 222"), versionOf(a));
+        update(s, Who.EDITOR, idOf(a), contactValues(a, "+38690222221"), versionOf(a));
         UUID seen = audit.latestEntryId(s.group());
         // Drug član medtem naredi vnos o drugem kontaktu (ki ga filter odjemalca ne bi pokazal).
-        create(s, Who.ADMIN, contactInput("Bojan", "Drugi", "01 222 222"));
+        create(s, Who.ADMIN, contactInput("Bojan", "Drugi", "+38690222222"));
         UUID newest = audit.latestEntryId(s.group());
         int entries = audit.count(s.group());
 
@@ -97,9 +97,9 @@ class AuditRollbackConcurrencyIT extends AuditApiTest {
     @Tag("FR-005-14")
     void twoAdminsConfirmingTheSameRollbackGiveExactlyOneSuccess() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         UUID target = (UUID) audit.entries(s.group()).get(0).get("id");
-        update(s, Who.EDITOR, idOf(a), contactValues(a, "02 222 222"), versionOf(a));
+        update(s, Who.EDITOR, idOf(a), contactValues(a, "+38690222221"), versionOf(a));
         UUID latest = audit.latestEntryId(s.group());
 
         List<HttpResponse<String>> results = concurrently(
@@ -118,9 +118,9 @@ class AuditRollbackConcurrencyIT extends AuditApiTest {
     @Tag("FR-005-13")
     void aConcurrentEditAndARollbackAreSerialised() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         UUID target = (UUID) audit.entries(s.group()).get(0).get("id");
-        Map<String, Object> second = update(s, Who.EDITOR, idOf(a), contactValues(a, "02 222 222"), versionOf(a));
+        Map<String, Object> second = update(s, Who.EDITOR, idOf(a), contactValues(a, "+38690222221"), versionOf(a));
         UUID latest = audit.latestEntryId(s.group());
 
         List<HttpResponse<String>> results = concurrently(List.of(
@@ -128,7 +128,7 @@ class AuditRollbackConcurrencyIT extends AuditApiTest {
                 () -> put(
                         contactPath(s.group(), idOf(a)),
                         s.token(Who.EDITOR),
-                        body(withVersion(contactValues(second, "03 333 333"), versionOf(second))))));
+                        body(withVersion(contactValues(second, "+38690333334"), versionOf(second))))));
 
         HttpResponse<String> rolledBack = results.get(0);
         HttpResponse<String> edited = results.get(1);
@@ -149,9 +149,9 @@ class AuditRollbackConcurrencyIT extends AuditApiTest {
     @Tag("FR-005-13")
     void aConcurrentArchiveAndARollbackNeverChangeAnArchivedGroup() throws Exception {
         Scenario s = scenario();
-        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "01 111 111"));
+        Map<String, Object> a = create(s, Who.EDITOR, contactInput("Ana", "Prva", "+38690111111"));
         UUID target = (UUID) audit.entries(s.group()).get(0).get("id");
-        update(s, Who.EDITOR, idOf(a), contactValues(a, "02 222 222"), versionOf(a));
+        update(s, Who.EDITOR, idOf(a), contactValues(a, "+38690222221"), versionOf(a));
         UUID latest = audit.latestEntryId(s.group());
 
         List<HttpResponse<String>> results = concurrently(List.of(
@@ -163,7 +163,7 @@ class AuditRollbackConcurrencyIT extends AuditApiTest {
         if (rolledBack.statusCode() == 409) {
             assertThat(json(rolledBack.body())).containsEntry("code", "GROUP_ARCHIVED");
             assertThat(audit.count(s.group())).isEqualTo(2);
-            assertThat(contacts.row(idOf(a)).get("phone")).isEqualTo("02 222 222");
+            assertThat(contacts.row(idOf(a)).get("phone")).isEqualTo("+38690222221");
         } else {
             assertThat(rolledBack.statusCode()).isEqualTo(201);
             assertThat(audit.count(s.group())).isEqualTo(3);

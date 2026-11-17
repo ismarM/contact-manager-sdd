@@ -75,7 +75,7 @@ class MergeConcurrencyIT extends MergeApiTest {
         Map<String, Object> b = contactOf(s, "B");
         Map<String, Object> values = input("Ana", "A");
         values.put("email", EMAIL);
-        values.put("phone", "031 999 888");
+        values.put("phone", "+38631999888");
 
         List<HttpResponse<String>> responses = concurrently(List.of(
                 () -> merge(
@@ -98,7 +98,7 @@ class MergeConcurrencyIT extends MergeApiTest {
         } else {
             assertThat(codeOf(merged)).isEqualTo("VERSION_CONFLICT");
             assertThat(contacts.exists(uuid(b))).isTrue();
-            assertThat(contacts.row(uuid(a)).get("phone")).isEqualTo("031 999 888");
+            assertThat(contacts.row(uuid(a)).get("phone")).isEqualTo("+38631999888");
             assertThat(auditEntries(s.group(), "MERGE")).isEmpty();
         }
     }
@@ -174,7 +174,7 @@ class MergeConcurrencyIT extends MergeApiTest {
         UUID target = audit.latestEntryId(s.group());
         Map<String, Object> values = input("Ana", "A");
         values.put("email", EMAIL);
-        values.put("phone", "031 999 888");
+        values.put("phone", "+38631999888");
         HttpResponse<String> edit = put(
                 contactPath(s.group(), a.get("id")),
                 s.token(Who.EDITOR),
