@@ -8,6 +8,7 @@ import {
   primaryButton,
   secondaryButton,
   textInput,
+  warningAlert,
 } from '../../shared/ui/styles';
 import { authErrorKey } from '../auth/authErrorKey';
 import { useAuth } from '../auth/authContext';
@@ -27,6 +28,8 @@ export function SignInMethodsSection() {
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [done, setDone] = useState<'password' | 'google' | null>(null);
+  const [understood, setUnderstood] = useState(false);
+  const [understoodError, setUnderstoodError] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [currentError, setCurrentError] = useState<string | null>(null);
   const form = useAuthForm('register', ['password', 'passwordConfirm']);
@@ -48,6 +51,8 @@ export function SignInMethodsSection() {
     setDone(null);
     setCurrentPassword('');
     setCurrentError(null);
+    setUnderstood(false);
+    setUnderstoodError(false);
   };
 
   const fail = (error: unknown, onCredentials?: (message: string) => void) => {
@@ -58,6 +63,11 @@ export function SignInMethodsSection() {
 
   const addPassword = async (event: FormEvent) => {
     if (busy || !form.validate(event)) return;
+    if (!understood) {
+      setUnderstoodError(true);
+      return;
+    }
+    setUnderstoodError(false);
     setBusy(true);
     setFailure(null);
     try {
@@ -149,6 +159,10 @@ export function SignInMethodsSection() {
           onSubmit={(event) => void addPassword(event)}
           className="flex flex-col gap-4"
         >
+          <div role="note" className={warningAlert}>
+            <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
+            <p>{t('account.methods.verifyWarning', { email: user.email ?? '' })}</p>
+          </div>
           <p className="text-muted-foreground">{t('account.methods.reauthGoogle')}</p>
           <AuthField
             id={`${ids.password}-email`}
@@ -189,6 +203,20 @@ export function SignInMethodsSection() {
               fieldIds={{ password: ids.password, passwordConfirm: ids.passwordConfirm }}
               summaryRef={form.summaryRef}
             />
+          )}
+          <label className="flex min-h-11 items-start gap-3">
+            <input
+              type="checkbox"
+              checked={understood}
+              onChange={(event) => setUnderstood(event.target.checked)}
+              className="mt-1 size-5 accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            />
+            {t('account.methods.verifyUnderstood')}
+          </label>
+          {understoodError && (
+            <p className={fieldError} role="alert">
+              {t('account.methods.verifyUnderstoodRequired')}
+            </p>
           )}
           <div className="flex flex-wrap gap-3">
             <button type="submit" className={primaryButton} aria-busy={busy} aria-disabled={busy}>

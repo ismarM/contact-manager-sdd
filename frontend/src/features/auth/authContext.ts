@@ -41,6 +41,8 @@ export interface AuthContextValue {
   reauthenticate: (password?: string) => Promise<string>;
   /** Doda geslo Google računu (FR-017-09); po ponovni avtentikaciji; vrže `SignInError`. */
   linkPassword: (password: string) => Promise<void>;
+  /** Po dodajanju gesla je Firebase ponastavil potrditev e-naslova: zaslon potrditve to pojasni. */
+  linkedNeedsVerification: boolean;
   /** Doda Google računu z geslom (FR-017-09); vrže `SignInError`. */
   linkGoogle: () => Promise<void>;
   signOut: () => Promise<void>;

@@ -87,14 +87,35 @@ public final class FirebaseEmulatorContainer extends GenericContainer<FirebaseEm
     /**
      * Doda geslo obstoječemu računu (017, research R-03) kot aplikacija v emulatorju: {@code accounts:update} z
      * {@code idToken}, e-naslovom računa in geslom (emulator EEP ne posnema in {@code accounts:signUp} z {@code idToken}
-     * zavrne z EMAIL_EXISTS; pri pravem projektu z EEP aplikacija uporabi {@code signUp}). Vrne {@code localId}.
+     * zavrne z EMAIL_EXISTS; pri pravem projektu z EEP aplikacija uporabi {@code signUp}). Pravi Firebase ob dodajanju
+     * gesla postavi {@code emailVerified=false} (potrjeno pri pravem projektu); emulator tega ne stori, zato ga test
+     * posnema z {@link #resetEmailVerification(String)}. Vrne {@code localId}.
      */
     public String linkPassword(String idToken, String email, String password) throws IOException, InterruptedException {
         return post(
                         "accounts:update",
-                        Map.of("idToken", idToken, "email", email, "password", password, "returnSecureToken", true))
+                        Map.of(
+                                "idToken", idToken,
+                                "email", email,
+                                "password", password,
+                                "returnSecureToken", true))
                 .get("localId")
                 .asString();
+    }
+
+    /** Kot pravi Firebase ob dodajanju gesla: administrator postavi {@code emailVerified=false} (samo za ta UID). */
+    public void resetEmailVerification(String uid) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder(URI.create(
+                        baseUrl() + "/identitytoolkit.googleapis.com/v1/projects/" + PROJECT_ID + "/accounts:update"))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer owner")
+                .POST(HttpRequest.BodyPublishers.ofString(
+                        JSON.writeValueAsString(Map.of("localId", uid, "emailVerified", false))))
+                .build();
+        HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new IllegalStateException("accounts:update (admin) failed: " + response.body());
+        }
     }
 
     /** Prijava z e-naslovom in geslom; nov ID žeton odraža trenutno stanje računa (npr. potrjen e-naslov). */

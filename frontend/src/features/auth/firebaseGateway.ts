@@ -209,7 +209,12 @@ export function createFirebaseGateway(auth: Auth = createAuth()): AuthGateway {
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idToken, email, password, returnSecureToken: true }),
+            body: JSON.stringify({
+              idToken,
+              email,
+              password,
+              returnSecureToken: true,
+            }),
           },
         );
       } catch (error) {
@@ -242,7 +247,17 @@ export function createFirebaseGateway(auth: Auth = createAuth()): AuthGateway {
         throw toSignInError(error);
       }
       const result = toAuthUser(linked);
+      // Dodajanje gesla lahko izbriše potrditev e-naslova (celotnega računa, tudi za Google). Sporočilo pošljemo
+      // PREDEN poslušalci preklopijo na zaslon potrditve; neuspeh ne prekine povezovanja (uporabnik ga ponovi tam).
+      if (!result.emailVerified) {
+        try {
+          await sendEmailVerification(linked);
+        } catch {
+          // Gumb *Ponovno pošlji* na zaslonu potrditve.
+        }
+      }
       for (const listener of [...listeners]) listener(result);
+      return { verificationRequired: !result.emailVerified };
     },
     async linkGoogle() {
       const user = current();

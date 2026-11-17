@@ -223,7 +223,12 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
   );
 
   const resendVerification = useCallback(() => gateway.sendVerificationEmail(), [gateway]);
-  const confirmVerification = useCallback(() => gateway.refreshVerification(), [gateway]);
+  const [linkedNeedsVerification, setLinkedNeedsVerification] = useState(false);
+  const confirmVerification = useCallback(async () => {
+    const verified = await gateway.refreshVerification();
+    if (verified) setLinkedNeedsVerification(false);
+    return verified;
+  }, [gateway]);
   const sendPasswordReset = useCallback(
     (email: string) => gateway.sendPasswordReset(email),
     [gateway],
@@ -233,10 +238,18 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
     [gateway],
   );
 
-  const linkPassword = useCallback((password: string) => gateway.linkPassword(password), [gateway]);
+  const linkPassword = useCallback(
+    async (password: string) => {
+      const result = await gateway.linkPassword(password);
+      if (result.verificationRequired) setLinkedNeedsVerification(true);
+    },
+    [gateway],
+  );
+
   const linkGoogle = useCallback(() => gateway.linkGoogle(), [gateway]);
 
   const signOut = useCallback(async () => {
+    setLinkedNeedsVerification(false);
     expectingSignOut.current = true;
     setExitTo('/login');
     clearSession();
@@ -308,6 +321,7 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
       sendPasswordReset,
       reauthenticate,
       linkPassword,
+      linkedNeedsVerification: linkedNeedsVerification && status === 'unverified',
       linkGoogle,
       signOut,
       accountDeleted,
@@ -333,6 +347,7 @@ export function AuthProvider({ gateway, children }: { gateway: AuthGateway; chil
       sendPasswordReset,
       reauthenticate,
       linkPassword,
+      linkedNeedsVerification,
       linkGoogle,
       signOut,
       accountDeleted,

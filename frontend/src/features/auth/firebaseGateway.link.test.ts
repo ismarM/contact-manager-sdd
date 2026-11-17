@@ -12,6 +12,7 @@ const sdk = vi.hoisted(() => ({
   reload: vi.fn(),
   signOut: vi.fn(),
   linkWithCredential: vi.fn(),
+  sendEmailVerification: vi.fn(),
 }));
 
 vi.mock('firebase/app', () => ({ initializeApp: vi.fn() }));
@@ -29,7 +30,7 @@ vi.mock('firebase/auth', () => ({
   reload: sdk.reload,
   signOut: sdk.signOut,
   createUserWithEmailAndPassword: vi.fn(),
-  sendEmailVerification: vi.fn(),
+  sendEmailVerification: sdk.sendEmailVerification,
   sendPasswordResetEmail: vi.fn(),
   reauthenticateWithCredential: vi.fn(),
   reauthenticateWithPopup: vi.fn(),
@@ -114,6 +115,59 @@ describe('firebaseGateway – povezovanje', () => {
       'ana@primer.si',
       'testno-geslo',
     );
+  });
+
+  it('FR-017-11: ponastavljena potrditev → sporočilo se pošlje PRED obvestilom poslušalcev in rezultat zahteva potrditev', async () => {
+    const order: string[] = [];
+    const { gateway, auth } = setup(fakeUser());
+    gateway.onChange(() => order.push('listener'));
+    reply(200, { localId: 'uid-ana' });
+    sdk.signInWithEmailAndPassword.mockImplementation(() => {
+      auth.currentUser = fakeUser({
+        emailVerified: false,
+        providerData: [{ providerId: 'google.com' }, { providerId: 'password' }],
+      });
+      return Promise.resolve();
+    });
+    sdk.sendEmailVerification.mockImplementation(() => {
+      order.push('mail');
+      return Promise.resolve();
+    });
+
+    await expect(gateway.linkPassword('testno-geslo')).resolves.toEqual({
+      verificationRequired: true,
+    });
+
+    expect(order).toEqual(['mail', 'listener']);
+  });
+
+  it('FR-017-11: potrditev ostane → sporočilo se ne pošlje, verificationRequired=false', async () => {
+    const { gateway, auth } = setup(fakeUser());
+    reply(200, { localId: 'uid-ana' });
+    sdk.signInWithEmailAndPassword.mockImplementation(() => {
+      auth.currentUser = fakeUser();
+      return Promise.resolve();
+    });
+
+    await expect(gateway.linkPassword('testno-geslo')).resolves.toEqual({
+      verificationRequired: false,
+    });
+    expect(sdk.sendEmailVerification).not.toHaveBeenCalled();
+  });
+
+  it('FR-017-11: neuspelo pošiljanje sporočila ne prekine povezovanja (ponovno pošiljanje na zaslonu potrditve)', async () => {
+    const { gateway, auth, seen } = setup(fakeUser());
+    reply(200, { localId: 'uid-ana' });
+    sdk.signInWithEmailAndPassword.mockImplementation(() => {
+      auth.currentUser = fakeUser({ emailVerified: false });
+      return Promise.resolve();
+    });
+    sdk.sendEmailVerification.mockRejectedValue(new Error('too many'));
+
+    await expect(gateway.linkPassword('testno-geslo')).resolves.toEqual({
+      verificationRequired: true,
+    });
+    expect(seen[0]).toMatchObject({ emailVerified: false });
   });
 
   it('FR-017-10: pravi projekt (z EEP): accounts:signUp z idToken na identitytoolkit.googleapis.com, ne accounts:update', async () => {

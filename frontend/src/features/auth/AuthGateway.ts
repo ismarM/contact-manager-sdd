@@ -76,7 +76,7 @@ export interface AuthGateway {
    * Firebase UID, brez novega profila; po povezovanju gateway uporabnika znova prijavi z geslom in obvesti poslušalce
    * (`providers` vsebuje `password`). Ob neujemanju UID odjavi in vrže `failed`.
    */
-  linkPassword(password: string): Promise<void>;
+  linkPassword(password: string): Promise<{ verificationRequired: boolean }>;
   /** Doda Google računu z geslom (pojavno okno); Google račun drugega uporabnika → `credential-in-use`. */
   linkGoogle(): Promise<void>;
   signOut(): Promise<void>;

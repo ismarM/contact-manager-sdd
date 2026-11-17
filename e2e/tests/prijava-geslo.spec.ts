@@ -205,8 +205,9 @@ test('FR-017-08 SC-002: Google prijava obstoječega uporabnika ohrani skupine, n
 
 const methods = (page: Page) => page.getByRole('region', { name: 'Prijavne metode' });
 
-test('FR-017-09 FR-017-10 FR-017-11: Google uporabnik doda geslo, se odjavi in vstopi z geslom – iste skupine, en profil; registracija z istim e-naslovom ne ustvari drugega', async ({
+test('FR-017-09 FR-017-10 FR-017-11: Google uporabnik doda geslo – opozorilo vnaprej, potrditveno sporočilo, vstop z Googlom in geslom, iste skupine, en profil', async ({
   page,
+  request,
 }) => {
   const user = uniqueUser('Gaja Google');
   const password = testPassword();
@@ -217,26 +218,67 @@ test('FR-017-09 FR-017-10 FR-017-11: Google uporabnik doda geslo, se odjavi in v
   await page.goto('/account');
   await expect(methods(page)).toContainText('E-naslov in geslo: ni povezano');
 
+  // Pravi Firebase (EEP) ob dodajanju gesla ponastavi potrditev e-naslova; emulator tega ne stori sam, zato
+  // administrator takoj po odgovoru postavi emailVerified=false (samo za ta UID).
+  await page.route('**/accounts:update*', async (route) => {
+    const response = await route.fetch();
+    const body = (await response.json()) as { localId?: string };
+    if (body.localId) {
+      const reset = await request.post(
+        '/identitytoolkit.googleapis.com/v1/projects/demo-contact-manager/accounts:update',
+        {
+          headers: { Authorization: 'Bearer owner' },
+          data: { localId: body.localId, emailVerified: false },
+        },
+      );
+      expect(reset.ok()).toBe(true);
+    }
+    await route.fulfill({ response });
+  });
+
   await methods(page).getByRole('button', { name: 'Dodaj geslo' }).click();
   await expect(methods(page).getByLabel(N.email, { exact: true })).toHaveAttribute('readonly', '');
   await expect(methods(page).getByLabel(N.email, { exact: true })).toHaveValue(user.email);
+  await expect(methods(page).getByRole('note')).toContainText(
+    'po dodajanju gesla zahteva, da znova potrdiš e-naslov',
+  );
   await expectNoAxeViolations(page);
   await methods(page).getByLabel(N.password, { exact: true }).fill(password);
   await methods(page).getByLabel(N.passwordConfirm, { exact: true }).fill(password);
+  await methods(page)
+    .getByRole('checkbox', { name: /imam dostop do svojega e-poštnega predala/ })
+    .check();
   await reauthenticateWithGoogle(page, user, () =>
     methods(page).getByRole('button', { name: 'Dodaj geslo' }).click(),
   );
 
-  await expect(methods(page).getByRole('status')).toContainText('Geslo je dodano.');
-  await expect(methods(page)).toContainText('E-naslov in geslo: povezano');
+  // Uporabnik ni zaklenjen brez pojasnila: zaslon potrditve pove, kaj se je zgodilo, sporočilo je že poslano.
+  await expect(page.getByRole('heading', { level: 1, name: N.verifyHeading })).toBeVisible();
+  await expect(page.getByRole('main')).toContainText('Račun, skupine in podatki so nespremenjeni.');
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);
   expect(userExists(user.email)).toBe(true);
+  await page.getByRole('button', { name: N.verifyResend }).click();
+  await expect(page.getByRole('status')).toHaveText(N.verifySent);
+
+  await verifyEmailFromInbox(request, user.email);
+  await page.getByRole('button', { name: N.verifyConfirm }).click();
+  await expect(accountMenu(page)).toBeVisible();
+  await page.unroute('**/accounts:update*');
+  await page.goto('/account');
+  await expect(methods(page)).toContainText('E-naslov in geslo: povezano');
+  await signOut(page);
+
+  // Regresija: obstoječi Google uporabnik po dodajanju gesla in odjavi znova vstopi z Googlom in vidi skupine.
+  await signIn(page, user);
+  await expect(accountMenu(page)).toBeVisible();
+  await expect(
+    page.getByRole('main').getByRole('link', { name: 'Skupina pred geslom' }),
+  ).toBeVisible();
   await signOut(page);
 
   await page.goto('/login');
   await signInWithPassword(page, user.email, password);
-
   await expect(accountMenu(page)).toBeVisible();
   await expect(
     page.getByRole('main').getByRole('link', { name: 'Skupina pred geslom' }),

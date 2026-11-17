@@ -80,7 +80,8 @@
       "confirm": "Potrdil sem",
       "signOut": "Odjava",
       "sent": "Sporočilo za potrditev je poslano.",
-      "notYet": "E-naslov še ni potrjen. Odpri povezavo v sporočilu in poskusi znova."
+      "notYet": "E-naslov še ni potrjen. Odpri povezavo v sporočilu in poskusi znova.",
+      "afterLinking": "Geslo je dodano. Zaradi varnosti Firebase zahteva ponovno potrditev e-naslova, zato smo ti pravkar poslali novo sporočilo na {{email}}. Odpri povezavo v njem in izberi »Potrdil sem«. Račun, skupine in podatki so nespremenjeni."
     },
     "forgot": {
       "documentTitle": "Pozabljeno geslo – Kontakti",
@@ -192,7 +193,10 @@
       "reauthPassword": "Za povezovanje Googla vpiši svoje trenutno geslo.",
       "currentPassword": "Trenutno geslo",
       "passwordAdded": "Geslo je dodano. Odslej se lahko prijaviš z Googlom ali z geslom.",
-      "googleAdded": "Google je povezan. Odslej se lahko prijaviš z Googlom ali z geslom."
+      "googleAdded": "Google je povezan. Odslej se lahko prijaviš z Googlom ali z geslom.",
+      "verifyWarning": "Pozor: Firebase po dodajanju gesla zahteva, da znova potrdiš e-naslov. Do potrditve do aplikacije ne boš imel dostopa – tudi z Googlom. Takoj po dodajanju ti pošljemo sporočilo na {{email}}; v njem odpri povezavo.",
+      "verifyUnderstood": "Razumem in imam dostop do svojega e-poštnega predala.",
+      "verifyUnderstoodRequired": "Potrdi, da razumeš, da boš moral znova potrditi e-naslov."
     }
   },
   "roles": {

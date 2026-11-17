@@ -80,7 +80,8 @@
       "confirm": "I have verified",
       "signOut": "Sign out",
       "sent": "The verification email has been sent.",
-      "notYet": "Your email is not verified yet. Open the link in the email and try again."
+      "notYet": "Your email is not verified yet. Open the link in the email and try again.",
+      "afterLinking": "Password added. For security Firebase requires your email to be confirmed again, so we have just sent a new message to {{email}}. Open the link in it and choose “I have verified”. Your account, groups and data are unchanged."
     },
     "forgot": {
       "documentTitle": "Forgot password – Contacts",
@@ -192,7 +193,10 @@
       "reauthPassword": "Enter your current password to link Google.",
       "currentPassword": "Current password",
       "passwordAdded": "Password added. You can now sign in with Google or with the password.",
-      "googleAdded": "Google linked. You can now sign in with Google or with the password."
+      "googleAdded": "Google linked. You can now sign in with Google or with the password.",
+      "verifyWarning": "Heads up: after you add a password, Firebase requires you to confirm your email again. Until then you cannot use the app – not even with Google. We send a message to {{email}} right after adding it; open the link in it.",
+      "verifyUnderstood": "I understand and I have access to my mailbox.",
+      "verifyUnderstoodRequired": "Confirm that you understand you will have to verify your email again."
     }
   },
   "roles": {

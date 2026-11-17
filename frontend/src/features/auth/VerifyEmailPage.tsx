@@ -18,7 +18,14 @@ type Notice = { kind: 'status' | 'alert'; text: string };
  */
 export function VerifyEmailPage() {
   const { t } = useTranslation();
-  const { status, user, resendVerification, confirmVerification, signOut } = useAuth();
+  const {
+    status,
+    user,
+    resendVerification,
+    confirmVerification,
+    signOut,
+    linkedNeedsVerification,
+  } = useAuth();
   const [params] = useSearchParams();
   const [notice, setNotice] = useState<Notice | null>(null);
   const [busy, setBusy] = useState(false);
@@ -53,6 +60,11 @@ export function VerifyEmailPage() {
 
   return (
     <AuthCard heading={t('auth.verify.heading')}>
+      {linkedNeedsVerification && (
+        <p className="mt-3 rounded-md border-l-4 border-border bg-muted p-3">
+          {t('auth.verify.afterLinking', { email: user?.email ?? '' })}
+        </p>
+      )}
       <p className="mt-3">{t('auth.verify.intro', { email: user?.email ?? '' })}</p>
       {notice?.kind === 'alert' && <AuthAlert>{notice.text}</AuthAlert>}
       <p

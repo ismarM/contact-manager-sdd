@@ -57,7 +57,12 @@ export interface AuthFake extends AuthGateway {
 }
 
 export function createAuthFake(
-  options: { user?: AuthUser | null; initialStateKnown?: boolean } = {},
+  options: {
+    user?: AuthUser | null;
+    initialStateKnown?: boolean;
+    /** Dodajanje gesla ponastavi potrditev e-naslova kot pri pravem Firebase (EEP); privzeto da. */
+    linkResetsVerification?: boolean;
+  } = {},
 ): AuthFake {
   let user: AuthUser | null = options.user ?? null;
   let known = options.initialStateKnown ?? true;
@@ -65,6 +70,7 @@ export function createAuthFake(
   let nextError: SignInErrorCode | null = null;
   let tokenFails = false;
   let freshToken = false;
+  const resetsVerification = options.linkResetsVerification ?? true;
   let signOutCalls = 0;
   let signInCalls = 0;
   let verificationEmails = 0;
@@ -209,8 +215,14 @@ export function createAuthFake(
         user: { ...user, providers: [...new Set([...user.providers, 'password' as const])] },
       });
       user = accounts.get(user.email.toLowerCase())!.user;
+      const reset = resetsVerification;
+      if (reset) {
+        user = { ...user, emailVerified: false };
+        accounts.get(user.email!.toLowerCase())!.verified = false;
+        verificationEmails += 1;
+      }
       notify();
-      return Promise.resolve();
+      return Promise.resolve({ verificationRequired: reset });
     },
     linkGoogle() {
       links.push('google');

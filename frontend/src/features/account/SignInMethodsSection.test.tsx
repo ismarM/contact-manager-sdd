@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 
 import { i18n } from '../../i18n';
-import { createAuthFake } from '../../test/authFake';
+import { ANA, createAuthFake } from '../../test/authFake';
 import { accountRegion, renderAccountApp } from '../../test/myDataApi';
 
 const REGION = 'Prijavne metode';
@@ -30,12 +30,71 @@ describe('SignInMethodsSection (FR-017-09, -10, -11)', () => {
     expect((await axe(document.body)).violations).toEqual([]);
   });
 
-  it('dodajanje gesla: ponovna avtentikacija z Googlom, nato povezovanje; seznam se osveži', async () => {
-    const { user, gateway } = renderAccountApp();
-    const region = await accountRegion(REGION);
+  const warning = /po dodajanju gesla zahteva, da znova potrdiš e-naslov/;
+
+  async function fillNewPassword(
+    user: ReturnType<typeof renderAccountApp>['user'],
+    region: HTMLElement,
+    agree = true,
+  ) {
     await user.click(within(region).getByRole('button', { name: 'Dodaj geslo' }));
     await user.type(within(region).getByLabelText('Geslo'), 'geslo-12345678');
     await user.type(within(region).getByLabelText('Ponovi geslo'), 'geslo-12345678');
+    if (agree) {
+      await user.click(
+        within(region).getByRole('checkbox', { name: /imam dostop do svojega e-poštnega predala/ }),
+      );
+    }
+  }
+
+  it('FR-017-11: opozorilo o ponovni potrditvi je vidno PRED dodajanjem, brez soglasja se ne zgodi nič', async () => {
+    const { user, gateway } = renderAccountApp();
+    const region = await accountRegion(REGION);
+    await fillNewPassword(user, region, false);
+    expect(within(region).getByRole('note')).toHaveTextContent(warning);
+    expect((await axe(document.body)).violations).toEqual([]);
+
+    await user.click(within(region).getByRole('button', { name: 'Dodaj geslo' }));
+
+    expect(await within(region).findByRole('alert')).toHaveTextContent('Potrdi, da razumeš');
+    expect(gateway.reauthentications).toHaveLength(0);
+    expect(gateway.links).toHaveLength(0);
+  });
+
+  it('FR-017-11: dodajanje gesla ponastavi potrditev → zaslon potrditve z razlago, sporočilo poslano, po potrditvi vstop z istim UID', async () => {
+    const { user, gateway } = renderAccountApp();
+    const region = await accountRegion(REGION);
+    await fillNewPassword(user, region);
+    const mailsBefore = gateway.verificationEmails;
+
+    await user.click(within(region).getByRole('button', { name: 'Dodaj geslo' }));
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Potrdi e-naslov' })).toBeVisible();
+    expect(screen.getByRole('main')).toHaveTextContent(
+      'Račun, skupine in podatki so nespremenjeni.',
+    );
+    expect(gateway.reauthentications).toEqual(['google']);
+    expect(gateway.links).toEqual(['password']);
+    expect(gateway.verificationEmails).toBe(mailsBefore + 1);
+    expect(gateway.currentUser?.uid).toBe('uid-ana');
+    expect((await axe(document.body)).violations).toEqual([]);
+
+    await user.click(screen.getByRole('button', { name: 'Ponovno pošlji' }));
+    expect(gateway.verificationEmails).toBe(mailsBefore + 2);
+
+    gateway.verifyEmail('ana@primer.si');
+    await user.click(screen.getByRole('button', { name: 'Potrdil sem' }));
+    await waitFor(() => expect(screen.getByRole('region', { name: REGION })).toBeVisible());
+    expect(screen.getByRole('region', { name: REGION })).toHaveTextContent(
+      'E-naslov in geslo: povezano',
+    );
+  });
+
+  it('dodajanje gesla brez ponastavitve potrditve: seznam se osveži, ostanemo na strani', async () => {
+    const gateway = createAuthFake({ user: ANA, linkResetsVerification: false });
+    const { user } = renderAccountApp({}, { gateway });
+    const region = await accountRegion(REGION);
+    await fillNewPassword(user, region);
 
     await user.click(within(region).getByRole('button', { name: 'Dodaj geslo' }));
 
@@ -44,10 +103,9 @@ describe('SignInMethodsSection (FR-017-09, -10, -11)', () => {
         'E-naslov in geslo: povezano',
       ),
     );
-    expect(gateway.reauthentications).toEqual(['google']);
-    expect(gateway.links).toEqual(['password']);
-    expect(await within(region).findByRole('status')).toHaveTextContent('Geslo je dodano.');
-    expect(gateway.currentUser?.uid).toBe('uid-ana');
+    expect(
+      await within(screen.getByRole('region', { name: REGION })).findByRole('status'),
+    ).toHaveTextContent('Geslo je dodano.');
   });
 
   it('prekratko geslo in neujemanje: napake ob poljih, nobenega klica ponudniku', async () => {
@@ -56,6 +114,7 @@ describe('SignInMethodsSection (FR-017-09, -10, -11)', () => {
     await user.click(within(region).getByRole('button', { name: 'Dodaj geslo' }));
     await user.type(within(region).getByLabelText('Geslo'), 'kratko');
     await user.type(within(region).getByLabelText('Ponovi geslo'), 'drugo');
+    await user.click(within(region).getByRole('checkbox'));
 
     await user.click(within(region).getByRole('button', { name: 'Dodaj geslo' }));
 
@@ -72,6 +131,7 @@ describe('SignInMethodsSection (FR-017-09, -10, -11)', () => {
     await user.click(within(region).getByRole('button', { name: 'Dodaj geslo' }));
     await user.type(within(region).getByLabelText('Geslo'), 'geslo-12345678');
     await user.type(within(region).getByLabelText('Ponovi geslo'), 'geslo-12345678');
+    await user.click(within(region).getByRole('checkbox'));
     gateway.failNextSignIn('cancelled');
 
     await user.click(within(region).getByRole('button', { name: 'Dodaj geslo' }));

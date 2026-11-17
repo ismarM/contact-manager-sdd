@@ -24,7 +24,7 @@ class LinkPasswordIdentityIT extends ApiTest {
     private static final String GESLO = "geslo-12345678";
 
     @Test
-    void linkingPasswordKeepsUidProfileAndMemberships() throws Exception {
+    void linkingPasswordKeepsUidProfileAndMembershipsButRequiresVerificationAgain() throws Exception {
         SignedIn google = registeredUser("Ana Google");
         String email = (String) profileRows(google.uid()).getFirst().get("email");
         GroupFixtures groups = new GroupFixtures(jdbc);
@@ -32,22 +32,36 @@ class LinkPasswordIdentityIT extends ApiTest {
         UUID group = groups.createGroup(userId, "Moja skupina");
         int profiles = profileCount();
 
+        // Pravi Firebase (EEP) ob dodajanju gesla ponastavi potrditev e-naslova: dostop je zaprt, dokler ni znova
+        // potrjen.
         String localId = emulator().linkPassword(google.idToken(), email, GESLO);
+        emulator().resetEmailVerification(google.uid());
         SignedIn withPassword = emulator().signInWithPassword(email, GESLO);
 
         assertThat(localId).isEqualTo(google.uid());
         assertThat(withPassword.uid()).isEqualTo(google.uid());
-        HttpResponse<String> sync = put("/api/me", withPassword.idToken(), null);
+        HttpResponse<String> blocked = put("/api/me", withPassword.idToken(), null);
+        assertThat(blocked.statusCode()).isEqualTo(403);
+        assertThat(json(blocked.body())).containsEntry("code", "EMAIL_NOT_VERIFIED");
+        assertThat(get("/api/groups/" + group, withPassword.idToken()).statusCode())
+                .isEqualTo(403);
+        assertThat(profileCount()).isEqualTo(profiles);
+
+        // Ponovna potrditev (povezava v sporočilu) vrne dostop z istim UID, profilom in članstvi.
+        emulator().verifyEmail(withPassword.idToken(), email);
+        SignedIn verified = emulator().signInWithPassword(email, GESLO);
+        HttpResponse<String> sync = put("/api/me", verified.idToken(), null);
         assertThat(sync.statusCode()).isEqualTo(200);
         Map<String, Object> profile = json(sync.body());
         assertThat(profile).containsEntry("email", email).containsEntry("name", "Ana Google");
         assertThat(profileCount()).isEqualTo(profiles);
         assertThat(profileRows(google.uid())).hasSize(1);
         assertThat(groups.userId(google.uid())).isEqualTo(userId);
-        assertThat(get("/api/groups/" + group, withPassword.idToken()).statusCode())
-                .isEqualTo(200);
-        // Stari Google žeton ostane veljaven in ima isto identiteto.
-        assertThat(put("/api/me", google.idToken(), null).statusCode()).isEqualTo(200);
+        assertThat(get("/api/groups/" + group, verified.idToken()).statusCode()).isEqualTo(200);
+        // Tudi nova Google prijava istega računa (nov žeton) vstopi do skupin.
+        SignedIn again = emulator().signInWithGoogle(email, "Ana Google");
+        assertThat(again.uid()).isEqualTo(google.uid());
+        assertThat(get("/api/groups/" + group, again.idToken()).statusCode()).isEqualTo(200);
     }
 
     @Test
