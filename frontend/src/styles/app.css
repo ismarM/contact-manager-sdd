@@ -376,7 +376,9 @@
 }
 
 /* 6 Gibanje: vstop plasti. Dovoljeno je samo prosojnost, premik do 8 px in merilo 0,98–1; ob zmanjšanem gibanju je
-   trajanje 0 s (blok »prefers-reduced-motion« zgoraj). */
+   trajanje 0 s (blok »prefers-reduced-motion« zgoraj). Plasti z besedilom (dialog, meni) vstopijo samo z merilom –
+   pojemanje prosojnosti bi besedilo med prehodom spustilo pod kontrast 4,5 : 1 (kot pri obvestilih 8.13); prosojnost
+   ostane za ozadje (k-fade-in). */
 @keyframes k-fade-in {
   from {
     opacity: 0;
@@ -384,7 +386,6 @@
 }
 @keyframes k-pop-in {
   from {
-    opacity: 0;
     scale: 0.98;
   }
 }
@@ -393,6 +394,10 @@
 }
 @utility k-pop-in {
   animation: k-pop-in var(--k-duration-slow) var(--k-ease-out);
+}
+/* Meni: isti vstop z merilom v `duration-base` (6: meniji 200 ms, dialogi 320 ms). */
+@utility k-menu-in {
+  animation: k-pop-in var(--k-duration-base) var(--k-ease-out);
 }
 
 /* 8.15 Nalaganje: mirni bloki `sunken` z blagim utripanjem prosojnosti (1,6 s), nikoli bleščeč preliv. */

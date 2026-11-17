@@ -62,7 +62,9 @@ export function VerifyEmailPage() {
   return (
     <AuthLayout heading={t('auth.verify.heading')}>
       {linkedNeedsVerification && (
-        <Callout tone="info">{t('auth.verify.afterLinking', { email: user?.email ?? '' })}</Callout>
+        <Callout tone="info" announce={false}>
+          {t('auth.verify.afterLinking', { email: user?.email ?? '' })}
+        </Callout>
       )}
       <p>{t('auth.verify.intro', { email: user?.email ?? '' })}</p>
       {notice?.kind === 'alert' && <AuthAlert>{notice.text}</AuthAlert>}

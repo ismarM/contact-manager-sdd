@@ -2,7 +2,7 @@ import { IconCopy } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { ghostButton } from '../../shared/ui/styles';
+import { focusRing, ghostButton } from '../../shared/ui/styles';
 
 /**
  * Blok kode (design.md 8.1, FR-019-14): `sunken` kartica z oznako vrste (HTTP, Zahtevek, Odgovor) in gumbom *Kopiraj*
@@ -57,7 +57,13 @@ export function CodeBlock({
           </div>
         )}
       </div>
-      <pre className="overflow-x-auto px-4 pt-1 pb-4 font-mono text-sm text-foreground">
+      {/* Vodoravno drseče območje mora biti dosegljivo s tipkovnico (WCAG 2.1.1, axe scrollable-region-focusable). */}
+      <pre
+        role="region"
+        aria-label={`${label}: ${name}`}
+        tabIndex={0}
+        className={`overflow-x-auto rounded-md px-4 pt-1 pb-4 font-mono text-sm text-foreground ${focusRing}`}
+      >
         <code>{code}</code>
       </pre>
     </div>
