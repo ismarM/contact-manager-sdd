@@ -44,7 +44,13 @@ describe('AppShell', () => {
     mockProfileApi({ profile: { ...ANA_PROFILE, name: null, email: 'bojan@primer.si' } });
     const { user } = renderApp('/', {
       gateway: createAuthFake({
-        user: { uid: 'uid-bojan', email: 'bojan@primer.si', displayName: null },
+        user: {
+          uid: 'uid-bojan',
+          email: 'bojan@primer.si',
+          displayName: null,
+          emailVerified: true,
+          providers: ['google.com'],
+        },
       }),
     });
 

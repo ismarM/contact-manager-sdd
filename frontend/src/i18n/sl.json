@@ -36,6 +36,63 @@
     "accountDeletedPending": "Tvoj račun je izbrisan. Brisanje povezave z Google računom še poteka, zato se z istim Google računom nekaj časa morda ne boš mogel znova registrirati. Poskusi znova čez nekaj minut.",
     "apiDocsLink": "Programski vmesnik (API)"
   },
+  "auth": {
+    "error": {
+      "invalidCredentials": "E-naslov ali geslo ni pravilno.",
+      "emailInUse": "Registracija s tem e-naslovom ni mogoča. Če že imaš račun, se prijavi (z Googlom ali geslom) ali ponastavi geslo; geslo lahko nato dodaš v Mojem računu.",
+      "invalidEmail": "Vpiši veljaven e-naslov, npr. ime@primer.si.",
+      "weakPassword": "Geslo ne ustreza pravilom. Uporabi najmanj 8 znakov.",
+      "tooManyRequests": "Preveč poskusov. Počakaj nekaj minut in poskusi znova.",
+      "requiresRecentLogin": "Za to dejanje se moraš znova prijaviti.",
+      "credentialInUse": "Ta Google račun je že povezan z drugim računom. Povezovanje ni mogoče."
+    },
+    "form": {
+      "email": "E-naslov",
+      "password": "Geslo",
+      "passwordConfirm": "Ponovi geslo",
+      "passwordHint": "Najmanj 8 znakov.",
+      "summary": "Popravi označena polja:",
+      "errors": {
+        "emailRequired": "Vpiši e-naslov.",
+        "emailInvalid": "Vpiši veljaven e-naslov, npr. ime@primer.si.",
+        "passwordRequired": "Vpiši geslo.",
+        "passwordTooShort": "Geslo mora imeti najmanj 8 znakov.",
+        "passwordMismatch": "Gesli se ne ujemata."
+      }
+    },
+    "login": {
+      "or": "ali",
+      "submit": "Prijava z geslom",
+      "forgot": "Pozabljeno geslo?",
+      "register": "Ustvari račun z e-naslovom"
+    },
+    "register": {
+      "documentTitle": "Registracija – Kontakti",
+      "heading": "Ustvari račun",
+      "submit": "Ustvari račun",
+      "haveAccount": "Že imaš račun?",
+      "signIn": "Prijava"
+    },
+    "verify": {
+      "documentTitle": "Potrdi e-naslov – Kontakti",
+      "heading": "Potrdi e-naslov",
+      "intro": "Na {{email}} smo poslali povezavo za potrditev. Odpri jo in nato izberi »Potrdil sem«. Do potrditve podatki aplikacije niso dostopni.",
+      "resend": "Ponovno pošlji",
+      "confirm": "Potrdil sem",
+      "signOut": "Odjava",
+      "sent": "Sporočilo za potrditev je poslano.",
+      "notYet": "E-naslov še ni potrjen. Odpri povezavo v sporočilu in poskusi znova.",
+      "afterLinking": "Geslo je dodano. Zaradi varnosti Firebase zahteva ponovno potrditev e-naslova, zato smo ti pravkar poslali novo sporočilo na {{email}}. Odpri povezavo v njem in izberi »Potrdil sem«. Račun, skupine in podatki so nespremenjeni."
+    },
+    "forgot": {
+      "documentTitle": "Pozabljeno geslo – Kontakti",
+      "heading": "Pozabljeno geslo",
+      "intro": "Vpiši e-naslov računa. Poslali ti bomo povezavo za novo geslo.",
+      "submit": "Pošlji povezavo",
+      "sent": "Če račun s tem e-naslovom obstaja, smo nanj poslali sporočilo s povezavo za novo geslo.",
+      "back": "Nazaj na prijavo"
+    }
+  },
   "shell": {
     "skipLink": "Preskoči na vsebino",
     "accountMenu": "Meni računa",
@@ -77,7 +134,10 @@
       "cancel": "Prekliči",
       "confirm": "Izbriši račun",
       "failed": "Računa ni bilo mogoče izbrisati. Poskusi znova.",
-      "ownsActiveGroups": "Račun ne more biti izbrisan, ker si medtem postal lastnik nearhivirane skupine. Prenesi lastništvo ali arhiviraj te skupine."
+      "ownsActiveGroups": "Račun ne more biti izbrisan, ker si medtem postal lastnik nearhivirane skupine. Prenesi lastništvo ali arhiviraj te skupine.",
+      "passwordLabel": "Za potrditev vpiši svoje geslo",
+      "reauthGoogle": "Pred izbrisom se boš znova prijavil z Googlom.",
+      "reauthRequired": "Za izbris se moraš znova prijaviti. Poskusi znova."
     },
     "appPasswords": {
       "heading": "Gesla za aplikacijo (CardDAV)",
@@ -118,6 +178,32 @@
         "step3": "Vpiši naslov strežnika {{server}}, uporabniško ime {{username}} in geslo za aplikacijo.",
         "https": "Povezava deluje samo prek varne povezave HTTPS."
       }
+    },
+    "methods": {
+      "heading": "Prijavne metode",
+      "google": "Google",
+      "password": "E-naslov in geslo",
+      "linked": "povezano",
+      "notLinked": "ni povezano",
+      "addPassword": "Omogoči prijavo z geslom",
+      "addGoogle": "Dodaj Google",
+      "addPasswordSubmit": "Omogoči prijavo z geslom",
+      "addGoogleSubmit": "Poveži Google",
+      "cancel": "Prekliči",
+      "reauthGoogle": "Za dodajanje gesla se boš najprej znova prijavil z Googlom. Geslo je vezano na ta e-naslov in isti račun.",
+      "reauthPassword": "Za povezovanje Googla vpiši svoje trenutno geslo.",
+      "currentPassword": "Trenutno geslo",
+      "passwordAdded": "Geslo je dodano. Odslej se lahko prijaviš z Googlom ali z geslom.",
+      "googleAdded": "Google je povezan. Odslej se lahko prijaviš z Googlom ali z geslom.",
+      "verifyWarning": "Pozor: Firebase po dodajanju gesla zahteva, da znova potrdiš e-naslov. Do potrditve do aplikacije ne boš imel dostopa – tudi z Googlom. Takoj po dodajanju ti pošljemo sporočilo na {{email}}; v njem odpri povezavo.",
+      "verifyUnderstood": "Razumem in imam dostop do svojega e-poštnega predala.",
+      "verifyUnderstoodRequired": "Potrdi, da razumeš, da boš moral znova potrditi e-naslov.",
+      "passwordIntro": "Neobvezno: poleg Googla se lahko prijavljaš tudi z e-pošto in posebej nastavljenim geslom. Google prijava ostane enaka.",
+      "changePassword": "Spremeni geslo",
+      "changePasswordSubmit": "Spremeni geslo",
+      "newPassword": "Novo geslo",
+      "newPasswordConfirm": "Ponovi novo geslo",
+      "passwordChanged": "Geslo je spremenjeno. Pri naslednji prijavi z geslom uporabi novo geslo."
     },
     "formats": {
       "heading": "Oblika zapisa",
@@ -273,6 +359,19 @@
       "archived": "Skupina je arhivirana.",
       "unarchived": "Skupina je odarhivirana.",
       "deleted": "Skupina je izbrisana."
+    },
+    "search": {
+      "label": "Išči skupine",
+      "rolesLegend": "Vloga",
+      "stateLegend": "Stanje",
+      "active": "Aktivne",
+      "archived": "Arhivirane",
+      "results_one": "{{count}} zadetek",
+      "results_two": "{{count}} zadetka",
+      "results_few": "{{count}} zadetki",
+      "results_other": "{{count}} zadetkov",
+      "none": "Ni zadetkov.",
+      "clear": "Počisti iskanje"
     }
   },
   "notFound": {
@@ -1050,7 +1149,13 @@
       "cancel": "Prekliči",
       "confirm": "Zapusti skupino",
       "ownerInfo": "Kot lastnik lahko skupino zapustiš šele, ko preneseš lastništvo na drugega člana.",
-      "lastMemberInfo": "Kot zadnji član skupine je ne moreš zapustiti, lahko jo le izbrišeš."
+      "lastMemberInfo": "Kot zadnji član skupine je ne moreš zapustiti, lahko jo le izbrišeš.",
+      "owner": {
+        "title": "Skupine {{group}} ne moreš zapustiti",
+        "body": "Kot lastnik lahko skupino zapustiš šele, ko preneseš lastništvo na drugega člana.",
+        "sole": "Kot edini član skupine je ne moreš zapustiti; lahko jo le izbrišeš.",
+        "close": "Zapri"
+      }
     },
     "transfer": {
       "button": "Prenesi lastništvo",

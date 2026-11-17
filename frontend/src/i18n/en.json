@@ -36,6 +36,63 @@
     "accountDeletedPending": "Your account has been deleted. Removing the link to your Google account is still in progress, so you may not be able to register again with the same Google account for a while. Please try again in a few minutes.",
     "apiDocsLink": "Application programming interface (API)"
   },
+  "auth": {
+    "error": {
+      "invalidCredentials": "The email or password is incorrect.",
+      "emailInUse": "You can't create an account with this email. If you already have an account, sign in (with Google or a password) or reset your password; you can then add a password in My account.",
+      "invalidEmail": "Enter a valid email address, e.g. name@example.com.",
+      "weakPassword": "The password doesn't meet the rules. Use at least 8 characters.",
+      "tooManyRequests": "Too many attempts. Wait a few minutes and try again.",
+      "requiresRecentLogin": "Sign in again to do this.",
+      "credentialInUse": "This Google account is already linked to another account. It cannot be linked."
+    },
+    "form": {
+      "email": "Email",
+      "password": "Password",
+      "passwordConfirm": "Repeat password",
+      "passwordHint": "At least 8 characters.",
+      "summary": "Fix the marked fields:",
+      "errors": {
+        "emailRequired": "Enter your email.",
+        "emailInvalid": "Enter a valid email address, e.g. name@example.com.",
+        "passwordRequired": "Enter your password.",
+        "passwordTooShort": "The password must have at least 8 characters.",
+        "passwordMismatch": "The passwords don't match."
+      }
+    },
+    "login": {
+      "or": "or",
+      "submit": "Sign in with password",
+      "forgot": "Forgot password?",
+      "register": "Create an account with email"
+    },
+    "register": {
+      "documentTitle": "Create account – Contacts",
+      "heading": "Create account",
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in"
+    },
+    "verify": {
+      "documentTitle": "Verify your email – Contacts",
+      "heading": "Verify your email",
+      "intro": "We sent a verification link to {{email}}. Open it, then choose “I have verified”. Until then, the app's data is not available.",
+      "resend": "Resend",
+      "confirm": "I have verified",
+      "signOut": "Sign out",
+      "sent": "The verification email has been sent.",
+      "notYet": "Your email is not verified yet. Open the link in the email and try again.",
+      "afterLinking": "Password added. For security Firebase requires your email to be confirmed again, so we have just sent a new message to {{email}}. Open the link in it and choose “I have verified”. Your account, groups and data are unchanged."
+    },
+    "forgot": {
+      "documentTitle": "Forgot password – Contacts",
+      "heading": "Forgot password",
+      "intro": "Enter your account email. We'll send you a link to set a new password.",
+      "submit": "Send link",
+      "sent": "If an account with this email exists, we've sent it a link to set a new password.",
+      "back": "Back to sign in"
+    }
+  },
   "shell": {
     "skipLink": "Skip to content",
     "accountMenu": "Account menu",
@@ -77,7 +134,10 @@
       "cancel": "Cancel",
       "confirm": "Delete account",
       "failed": "Your account could not be deleted. Please try again.",
-      "ownsActiveGroups": "Your account cannot be deleted because you have become the owner of an active group. Transfer ownership or archive these groups."
+      "ownsActiveGroups": "Your account cannot be deleted because you have become the owner of an active group. Transfer ownership or archive these groups.",
+      "passwordLabel": "Enter your password to confirm",
+      "reauthGoogle": "Before deleting, you will sign in again with Google.",
+      "reauthRequired": "You need to sign in again to delete the account. Try again."
     },
     "appPasswords": {
       "heading": "App passwords (CardDAV)",
@@ -118,6 +178,32 @@
         "step3": "Enter the server address {{server}}, the username {{username}} and the app password.",
         "https": "The connection works only over a secure HTTPS connection."
       }
+    },
+    "methods": {
+      "heading": "Sign-in methods",
+      "google": "Google",
+      "password": "Email and password",
+      "linked": "linked",
+      "notLinked": "not linked",
+      "addPassword": "Enable password sign-in",
+      "addGoogle": "Add Google",
+      "addPasswordSubmit": "Enable password sign-in",
+      "addGoogleSubmit": "Link Google",
+      "cancel": "Cancel",
+      "reauthGoogle": "To add a password you will first sign in again with Google. The password is tied to this email address and the same account.",
+      "reauthPassword": "Enter your current password to link Google.",
+      "currentPassword": "Current password",
+      "passwordAdded": "Password added. You can now sign in with Google or with the password.",
+      "googleAdded": "Google linked. You can now sign in with Google or with the password.",
+      "verifyWarning": "Heads up: after you add a password, Firebase requires you to confirm your email again. Until then you cannot use the app – not even with Google. We send a message to {{email}} right after adding it; open the link in it.",
+      "verifyUnderstood": "I understand and I have access to my mailbox.",
+      "verifyUnderstoodRequired": "Confirm that you understand you will have to verify your email again.",
+      "passwordIntro": "Optional: besides Google you can also sign in with your email and a separate password. Google sign-in stays the same.",
+      "changePassword": "Change password",
+      "changePasswordSubmit": "Change password",
+      "newPassword": "New password",
+      "newPasswordConfirm": "Repeat new password",
+      "passwordChanged": "Password changed. Use the new password the next time you sign in with a password."
     },
     "formats": {
       "heading": "Format",
@@ -273,6 +359,19 @@
       "archived": "Group archived.",
       "unarchived": "Group unarchived.",
       "deleted": "Group deleted."
+    },
+    "search": {
+      "label": "Search groups",
+      "rolesLegend": "Role",
+      "stateLegend": "State",
+      "active": "Active",
+      "archived": "Archived",
+      "results_one": "{{count}} result",
+      "results_two": "{{count}} results",
+      "results_few": "{{count}} results",
+      "results_other": "{{count}} results",
+      "none": "No results.",
+      "clear": "Clear search"
     }
   },
   "notFound": {
@@ -1050,7 +1149,13 @@
       "cancel": "Cancel",
       "confirm": "Leave group",
       "ownerInfo": "As the owner you can leave the group only after transferring ownership to another member.",
-      "lastMemberInfo": "As the last member you cannot leave the group, you can only delete it."
+      "lastMemberInfo": "As the last member you cannot leave the group, you can only delete it.",
+      "owner": {
+        "title": "You cannot leave {{group}}",
+        "body": "As the owner you can leave the group only after transferring ownership to another member.",
+        "sole": "As the only member you cannot leave the group; you can only delete it.",
+        "close": "Close"
+      }
     },
     "transfer": {
       "button": "Transfer ownership",

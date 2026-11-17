@@ -16,6 +16,24 @@ describe('signInErrorCode', () => {
     expect(signInErrorCode(firebaseCode, true)).toBe(expected);
   });
 
+  it.each([
+    ['auth/invalid-credential', 'invalid-credentials'],
+    ['auth/invalid-login-credentials', 'invalid-credentials'],
+    ['auth/user-not-found', 'invalid-credentials'],
+    ['auth/wrong-password', 'invalid-credentials'],
+    ['auth/email-already-in-use', 'email-in-use'],
+    ['auth/invalid-email', 'invalid-email'],
+    ['auth/weak-password', 'weak-password'],
+    ['auth/password-does-not-meet-requirements', 'weak-password'],
+    ['auth/too-many-requests', 'too-many-requests'],
+    ['auth/requires-recent-login', 'requires-recent-login'],
+  ] as const)(
+    'FR-017-06: koda %s → %s (ena koda za vse neuspešne prijave z geslom)',
+    (code, expected) => {
+      expect(signInErrorCode(code, true)).toBe(expected);
+    },
+  );
+
   it.each(['auth/internal-error', 'auth/popup-closed-by-user', undefined])(
     'FR-001-04: brez povezave (navigator.onLine === false) je vzrok vedno »offline« (%s)',
     (firebaseCode) => {

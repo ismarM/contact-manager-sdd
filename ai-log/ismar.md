@@ -247,3 +247,22 @@ Predlogi za pohitritev (iz zgornjih meritev):
 - **aria-current**: razdelek *Kontakti* je bil na `deleted-contacts` neoznačen → `GroupHeader` označi *Kontakti* tudi na poteh `contacts/*` in `deleted-contacts`; testa (Vitest + e2e).
 - **Usklajenost z 014**: brez sprememb; pravilo preštevilčenja migracije in unije `CHECK` ostane v plan.md/PR.
 - Preverjanja po popravkih: `quick` 138 s, `backend` 319 s, `e2e` 274 s (vsi zeleni).
+
+## 017 – prijava z geslom in skupine (2026-11-16)
+- **Veja**: `email-geslo-skupine`. Naročeno: Email/Password poleg Googla (registracija, prijava, potrditev, ponastavitev, povezovanje, ponovna avtentikacija), iskanje in filtri skupin, zapusti skupino za lastnika. Narejeno: US1–US6 (T001–T061 razen ročnih T024 in preizkusa dostopnosti).
+- **Odločitev razvijalca**: razvijalec je sprejel razširitev §5 in odstranil blokado T001; predlog konstitucije 3.3.0 je v PR, Patrikova potrditev po §7 ni zabeležena (odstopanje v opisu PR).
+- **Težave**: (1) prvi zagon seje je prekinila omejitev porabe; delo se je nadaljevalo iz zgodovine. (2) Emulator ne podpira `accounts:signUp` z `idToken` (EMAIL_EXISTS) → v emulatorju `accounts:update`, pri pravem projektu `signUp` (T024 ročno). (3) Povezovanje je sprožilo ponovno sinhronizacijo in izgubo sporočila o uspehu → `AuthProvider` preskoči sinhronizacijo za istega uporabnika. (4) gitleaks je ustavil commit zaradi testnega gesla. (5) Obstoječi E2E izbrisa računa so potrebovali pojavno okno Googla (ponovna avtentikacija).
+- **pregled-testov** (enkrat): popravljeno – asercija svežega žetona pri izbrisu, `\` v iskanju, odveč asercija; naloga T031 uskajena s kodo. Ostalo svetovalno (odprto): produkcijska pot `signUp` brez avtomatskega testa, ohlapen IT registracije z obstoječim e-naslovom, sočasni trk UID.
+- **Spremenjeni obstoječi testi**: `AccountPage.test.tsx`, `DeleteAccountDialog.test.tsx`, `LeaveGroup.test.tsx`, `LoginPage.test.tsx`, `AppShell.test.tsx`, `moji-podatki.spec.ts`, `clani.spec.ts`.
+- **Čas faz**: `.verify/timing-017.log` (ni v Gitu). `quick` 160 s, `backend` 373 s, `e2e` 347 s – zeleni.
+
+## 017 – incident: dodajanje gesla je zaklenilo uporabnika (2026-11-17)
+- **Napaka** (razvijalec, pravi Firebase): po *Dodaj geslo* je `accounts:signUp` z `idToken` postavil `emailVerified=false` za ves račun; zaledje je zavrnilo tudi Google prijavo, sporočila pa nihče ni poslal. Emulator tega ne posnema, zato testi napake niso ujeli (T024 je bil ravno ta preizkus).
+- **Povrnitev dostopa**: read-only branje računa (emailVerified=false, google.com+password, UID nespremenjen, aktiven), nato s soglasjem razvijalca samo `emailVerified=true` za ta UID prek Admin REST; ponovno branje: UID, ponudnika in `validSince` nespremenjeni.
+- **Popravek**: opozorilo in izrecno soglasje PRED dodajanjem; sporočilo se pošlje takoj, še pred preklopom na zaslon potrditve; zaslon potrditve pojasni, kaj se je zgodilo; ponovno pošiljanje; `EmailVerifiedFilter` nespremenjen. Testi: gateway (vrstni red mail → poslušalci), FE, IT (admin reset v emulatorju), E2E (Google → geslo → potrditev → Google prijava → skupine).
+- **Ostaja**: preizkus s pravim Firebase na ločenem testnem Google računu (razvijalec).
+
+## 017 – zaključne UX izboljšave avtentikacije (2026-11-17)
+- **Obstajalo**: *Pozabljeno geslo?* na prijavi in stran `/forgot-password` z nevtralnim potrdilom (T015); povezovanje gesla z opozorilom in potrditvenim sporočilom. Ni bilo spremembe gesla; izraz »Dodaj geslo« je bil tehničen.
+- **Dodano**: *Omogoči prijavo z geslom* / *Enable password sign-in* s kratkim pojasnilom (neobvezno); *Spremeni geslo* samo za uporabnike z geslom (ponovna avtentikacija s trenutnim geslom, `updatePassword` v Firebase SDK, politika ≥ 8, jasne napake); logika prikaza: samo Google / samo geslo / oba. Varni linking flow nespremenjen. Dnevniki: gesla se nikjer ne beležijo (fake beleži samo dolžine).
+- **Testi**: gateway (`updatePassword`, napake, neuspel refresh žetona), RTL + axe za vse tri kombinacije ponudnikov in napake, pozabljeno geslo (omejitev pogostosti, angleščina), E2E spremembe gesla. FR-017-24 dodan v spec/tasks (T070).

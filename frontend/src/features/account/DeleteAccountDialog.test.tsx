@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 
 import { i18n } from '../../i18n';
+import { createAuthFake } from '../../test/authFake';
 import {
   accountRegion,
   blockingGroup,
@@ -121,7 +122,8 @@ describe('DeleteAccountDialog – potrditev izbrisa z vpisom e-naslova', () => {
     await waitFor(() => expect(api.deletionRequests()).toHaveLength(1));
     const request = api.deletionRequests()[0];
     expect(request?.method).toBe('POST');
-    expect(request?.authorization).toBe('Bearer token-uid-ana');
+    // 017: po ponovni avtentikaciji zahtevek nosi svež žeton (FR-017-12)
+    expect(request?.authorization).toBe('Bearer token-uid-ana-fresh');
     const body = request?.body as { email: string };
     expect(Object.keys(body)).toEqual(['email']);
     expect(body.email.trim().toLowerCase()).toBe('ana@primer.si');
@@ -267,4 +269,104 @@ describe('DeleteAccountDialog – potrditev izbrisa z vpisom e-naslova', () => {
       expect((await axe(document.body)).violations).toEqual([]);
     },
   );
+});
+
+describe('DeleteAccountDialog – ponovna avtentikacija (FR-017-12)', () => {
+  const passwordLabel = 'Za potrditev vpiši svoje geslo';
+
+  async function passwordUser() {
+    const gateway = createAuthFake();
+    gateway.addPasswordAccount('ana@primer.si', 'geslo-12345678');
+    await gateway.signInWithPassword('ana@primer.si', 'geslo-12345678');
+    return gateway;
+  }
+
+  beforeEach(async () => {
+    await i18n.changeLanguage('sl');
+  });
+
+  it('uporabnik z geslom vidi polje za geslo, izbris pred ponovno avtentikacijo ne gre na strežnik', async () => {
+    const gateway = await passwordUser();
+    const { user, api } = renderAccountApp({}, { gateway });
+    const dialog = await openDeleteDialog(user);
+    await user.type(within(dialog).getByRole('textbox', { name: label }), 'ana@primer.si');
+
+    await user.click(within(dialog).getByRole('button', { name: 'Izbriši račun' }));
+
+    const field = within(dialog).getByLabelText(passwordLabel);
+    expect(field).toHaveAttribute('aria-invalid', 'true');
+    expect(field).toHaveAccessibleDescription('Vpiši geslo.');
+    expect(gateway.reauthentications).toHaveLength(0);
+    expect(api.deletionRequests()).toHaveLength(0);
+  });
+
+  it('napačno geslo: napaka ob polju, nič izbrisano', async () => {
+    const gateway = await passwordUser();
+    const { user, api } = renderAccountApp({}, { gateway });
+    const dialog = await openDeleteDialog(user);
+    await user.type(within(dialog).getByRole('textbox', { name: label }), 'ana@primer.si');
+    await user.type(within(dialog).getByLabelText(passwordLabel), 'napacno-geslo');
+
+    await user.click(within(dialog).getByRole('button', { name: 'Izbriši račun' }));
+
+    const field = await within(dialog).findByLabelText(passwordLabel);
+    await waitFor(() => expect(field).toHaveAttribute('aria-invalid', 'true'));
+    expect(field).toHaveAccessibleDescription('E-naslov ali geslo ni pravilno.');
+    expect(gateway.reauthentications).toEqual(['password']);
+    expect(api.deletionRequests()).toHaveLength(0);
+    expect((await axe(document.body)).violations).toEqual([]);
+  });
+
+  it('pravilno geslo: ponovna avtentikacija, nato izbris', async () => {
+    const gateway = await passwordUser();
+    const { user, api } = renderAccountApp({}, { gateway });
+    const dialog = await openDeleteDialog(user);
+    await user.type(within(dialog).getByRole('textbox', { name: label }), 'ana@primer.si');
+    await user.type(within(dialog).getByLabelText(passwordLabel), 'geslo-12345678');
+
+    await user.click(within(dialog).getByRole('button', { name: 'Izbriši račun' }));
+
+    await waitFor(() => expect(api.deletionRequests()).toHaveLength(1));
+    expect(gateway.reauthentications).toEqual(['password']);
+    // zahtevek nosi žeton, pridobljen po ponovni avtentikaciji (FR-017-12)
+    expect(api.deletionRequests()[0]?.authorization).toMatch(/-fresh$/);
+  });
+
+  it('Google uporabnik: brez polja za geslo, ponovna avtentikacija z Googlom', async () => {
+    const { user, api, gateway } = renderAccountApp();
+    const dialog = await openDeleteDialog(user);
+    expect(within(dialog).queryByLabelText(passwordLabel)).not.toBeInTheDocument();
+    expect(dialog).toHaveTextContent('znova prijavil z Googlom');
+
+    await confirmDeletion(user, dialog);
+
+    await waitFor(() => expect(api.deletionRequests()).toHaveLength(1));
+    expect(gateway.reauthentications).toEqual(['google']);
+    // zahtevek nosi žeton, pridobljen po ponovni avtentikaciji (FR-017-12)
+    expect(api.deletionRequests()[0]?.authorization).toMatch(/-fresh$/);
+  });
+
+  it('preklic pojavnega okna Googla: sporočilo, nič izbrisano', async () => {
+    const { user, api, gateway } = renderAccountApp();
+    const dialog = await openDeleteDialog(user);
+    gateway.failNextSignIn('cancelled');
+
+    await confirmDeletion(user, dialog);
+
+    expect(await within(dialog).findByRole('alert')).toBeVisible();
+    expect(api.deletionRequests()).toHaveLength(0);
+  });
+
+  it('403 REAUTHENTICATION_REQUIRED: sporočilo v dialogu', async () => {
+    const { user } = renderAccountApp({
+      deletion: { status: 403, body: { code: 'REAUTHENTICATION_REQUIRED' } },
+    });
+    const dialog = await openDeleteDialog(user);
+
+    await confirmDeletion(user, dialog);
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+      'Za izbris se moraš znova prijaviti.',
+    );
+  });
 });

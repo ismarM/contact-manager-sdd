@@ -12,19 +12,28 @@ describe('LoginPage', () => {
     await i18n.changeLanguage('sl');
   });
 
-  it('FR-001-01: kartica z besednim znakom in edino kontrolo »Prijava z Googlom«, brez polj', async () => {
+  it('FR-001-01 FR-017-05 FR-017-08: kartica z besednim znakom, »Prijava z Googlom« in obrazcem z geslom', async () => {
+    // Spremenjen obstoječi test (017): stran za prijavo ni več samo gumb Google – dobi e-naslov, geslo in povezavi.
     renderApp('/login');
 
     expect(await screen.findByRole('button', { name: 'Prijava z Googlom' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1, name: 'Kontakti' })).toBeInTheDocument();
-    expect(screen.queryAllByRole('textbox')).toHaveLength(0);
-    expect(screen.queryByLabelText(/geslo|password/i)).not.toBeInTheDocument();
-    // Edina možnost prijave: poleg nje sta le gumba za izbiro jezika pod kartico.
+    expect(screen.getByLabelText(i18n.t('auth.form.email'))).toHaveAttribute('type', 'email');
+    expect(screen.getByLabelText(i18n.t('auth.form.password'))).toHaveAttribute('type', 'password');
     expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual([
       'Prijava z Googlom',
+      i18n.t('auth.login.submit'),
       'Slovenščina',
       'English',
     ]);
+    expect(screen.getByRole('link', { name: i18n.t('auth.login.forgot') })).toHaveAttribute(
+      'href',
+      '/forgot-password',
+    );
+    expect(screen.getByRole('link', { name: i18n.t('auth.login.register') })).toHaveAttribute(
+      'href',
+      '/register',
+    );
   });
 
   it('FR-019-14: prijava ima povezavo na javno stran API, ki vodi na /api-docs', async () => {

@@ -35,6 +35,18 @@ class ApiExceptionHandler {
                 .body(ValidationError.of(List.of(new ValidationError.FieldError("file", "REQUIRED"))));
     }
 
+    /** E-naslov je že pri drugem Firebase UID (017, FR-017-11). */
+    @ExceptionHandler(AccountConflictException.class)
+    ResponseEntity<ErrorResponse> accountConflict() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("ACCOUNT_CONFLICT"));
+    }
+
+    /** Občutljiva operacija s prestarim {@code auth_time} (017, FR-017-12). */
+    @ExceptionHandler(ReauthenticationRequiredException.class)
+    ResponseEntity<ErrorResponse> reauthenticationRequired() {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse("REAUTHENTICATION_REQUIRED"));
+    }
+
     /** Že 10 gesel za aplikacijo (014, FR-014-21). */
     @ExceptionHandler(AppPasswordLimitException.class)
     ResponseEntity<ErrorResponse> appPasswordLimit() {

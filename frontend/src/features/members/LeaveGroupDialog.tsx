@@ -14,24 +14,39 @@ import {
 import { dangerButton, errorAlert, secondaryButton } from '../../shared/ui/styles';
 import { useGroup } from '../groups/groupContext';
 import { useGroups } from '../groups/groupsContext';
-import { useMembersApi } from './api';
+import { useMemberCount, useMembersApi } from './api';
 import { memberFailure } from './memberMessages';
 
 /**
  * Dialog *Zapusti skupino* (design.md 8.11, 13.4; FR-007-06): vprašanje s predmetom, posledica, fokus ob odprtju na
  * *Prekliči*. Po uspehu: seznam skupin (osvežen), obvestilo; napaka ostane v dialogu.
+ *
+ * Lastnik (FR-017-19, -20) dobi pojasnilo brez potrditve zapustitve: *Prenesi lastništvo* (`onTransfer`, odpre obstoječi
+ * dialog prenosa), lastnik-edini član pa *Izbriši skupino* (`onDelete`, odpre obstoječi dialog izbrisa; nič se ne izbriše
+ * neposredno).
  */
-export function LeaveGroupDialog() {
+export function LeaveGroupDialog({
+  onTransfer,
+  onDelete,
+}: {
+  onTransfer?: () => void;
+  onDelete?: () => void;
+}) {
   const { t } = useTranslation();
   const api = useMembersApi();
   const navigate = useNavigate();
   const { group, reload } = useGroup();
   const { refresh } = useGroups();
+  const count = useMemberCount(group.id);
+  const isOwner = group.role === 'OWNER';
+  const canTransfer = isOwner && !group.archived && count !== undefined && count > 1;
+  const sole = isOwner && count !== undefined && count <= 1;
   const [open, setOpen] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const cancel = useRef<HTMLButtonElement>(null);
   const left = useRef(false);
+  const handOver = useRef<(() => void) | undefined>(undefined);
 
   const changeOpen = (next: boolean) => {
     setOpen(next);
@@ -71,11 +86,24 @@ export function LeaveGroupDialog() {
           cancel.current?.focus();
         }}
         onCloseAutoFocus={(event) => {
-          if (left.current) event.preventDefault();
+          if (left.current || handOver.current) event.preventDefault();
+          const next = handOver.current;
+          handOver.current = undefined;
+          if (next) setTimeout(next, 0);
         }}
       >
-        <DialogTitle>{t('members.leave.title', { group: group.title })}</DialogTitle>
-        <p>{t('members.leave.body')}</p>
+        <DialogTitle>
+          {isOwner
+            ? t('members.leave.owner.title', { group: group.title })
+            : t('members.leave.title', { group: group.title })}
+        </DialogTitle>
+        <p>
+          {!isOwner
+            ? t('members.leave.body')
+            : sole
+              ? t('members.leave.owner.sole')
+              : t('members.leave.owner.body')}
+        </p>
         {failure && (
           <div role="alert" className={errorAlert}>
             <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
@@ -84,16 +112,42 @@ export function LeaveGroupDialog() {
         )}
         <div className="flex flex-wrap justify-end gap-3">
           <DialogClose ref={cancel} className={secondaryButton}>
-            {t('members.leave.cancel')}
+            {isOwner ? t('members.leave.owner.close') : t('members.leave.cancel')}
           </DialogClose>
-          <button
-            type="button"
-            className={dangerButton}
-            aria-disabled={busy}
-            onClick={() => void confirm()}
-          >
-            {t('members.leave.confirm')}
-          </button>
+          {!isOwner && (
+            <button
+              type="button"
+              className={dangerButton}
+              aria-disabled={busy}
+              onClick={() => void confirm()}
+            >
+              {t('members.leave.confirm')}
+            </button>
+          )}
+          {canTransfer && onTransfer && (
+            <button
+              type="button"
+              className={secondaryButton}
+              onClick={() => {
+                handOver.current = onTransfer;
+                setOpen(false);
+              }}
+            >
+              {t('members.transfer.button')}
+            </button>
+          )}
+          {sole && group.canDelete && onDelete && (
+            <button
+              type="button"
+              className={secondaryButton}
+              onClick={() => {
+                handOver.current = onDelete;
+                setOpen(false);
+              }}
+            >
+              {t('groups.manage.delete')}
+            </button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
