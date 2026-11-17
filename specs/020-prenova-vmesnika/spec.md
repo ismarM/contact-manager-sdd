@@ -11,6 +11,18 @@
 - oblikovni sistem *Kartoteka, refined* (v2): https://claude.ai/code/artifact/3c27f387-2de3-41da-a88e-d47c39f36e74 – pravila (`README.md`) in žetoni (`tokens.json`, različica `1794925463-fd13`);
 - platno *Contacts — app redesign*: https://claude.ai/code/artifact/3666557c-f681-4357-828f-92c45377c803 – 25 zaslonov (namizje 1440 px in telefon 390 px) in 16 dialogov (različica `1794925188-cb58`).
 
+## Clarifications
+
+### Session 2026-11-17
+
+- Q: Kako se razmerje med platnom/oblikovnim sistemom in obstoječo aplikacijo? → A: Platno in oblikovni sistem sta vodilo, ne vir resnice. Prenova je samo vmesnik: kar aplikacija danes podpira in na platnu manjka, se doda v jeziku oblikovanja; kar platno prikazuje, aplikacija pa ne podpira, se izpusti (razvrščanje skupin, nastavitev gostote preglednice, razdelek revizijske sledi na strani kontakta, polje *Ime* pri registraciji).
+- Q: Se `design.md` zamenja? → A: Da; v tem PR se zamenja z vsebino Kartoteke v2 (odobreno).
+- Q: Značka *Povrnjeno* na kartici kontakta? → A: Odstrani se (FR-020-20); FR-005-19 v `specs/005-*/spec.md` se popravi, podatek se še naprej hrani in je viden v revizijski sledi in zgodovini kontakta.
+- Q: Oblika `GET /api/groups`? → A: En enoten paginiran seznam `{total, page, size, items[]}` z `role` na elementu namesto razdelkov po vlogah; parametri `q`, `role` (ena vloga ali vse), `page`, `size`, `lang`. Vsi klicatelji (FE, MSW, testi zaledja, E2E) se posodobijo v istem PR; vnos v matriki izolacije.
+- Q: Stanje (aktivne/arhivirane) kot filter zbirke? → A: Ne. Stanje je izbira navigacije: *Skupine* (aktivne, `GET /api/groups`) in *Arhivirane* (`GET /api/groups/archived`, brez spremembe). Čipi so samo vloge.
+- Q: Števci v navigaciji? → A: Samo iz obstoječih podatkov: *Skupine* in *Arhivirane* iz `total` (zahteva `size=1`), *Povabila* iz `GET /api/invitations/count`. Če klic spodleti, je postavka brez števca.
+- Q: Druge spremembe zaledja? → A: Ni. Brez migracije.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Novi temelji videza (Priority: P1)
@@ -50,7 +62,7 @@ Uporabnik se orientira prek vitke stranske vrstice z enakovrednimi postavkami *S
 
 ### User Story 3 - Skupine kot ena zbirka kartic (Priority: P2)
 
-Uporabnik vidi vse svoje skupine kot eno zbirko kartic; vloga je značka na vsaki kartici, ne razdelek. Nad zbirko so iskanje, filtri vlog in stanja ter gumb *Nova skupina*. Arhivirane skupine imajo svoj zaslon z enakimi karticami.
+Uporabnik vidi vse svoje skupine kot eno zbirko kartic; vloga je značka na vsaki kartici, ne razdelek. Nad zbirko so iskanje, čipi vlog in gumb *Nova skupina*. Arhivirane skupine imajo svoj zaslon z enakimi karticami.
 
 **Why this priority**: najvidnejša sprememba vedenja seznama; zahteva enotno paginacijo čez vloge.
 
@@ -59,9 +71,9 @@ Uporabnik vidi vse svoje skupine kot eno zbirko kartic; vloga je značka na vsak
 **Acceptance Scenarios**:
 
 1. **[FR-020-10]** **Given** uporabnik s skupinami več vlog, **When** odpre *Skupine*, **Then** vidi eno paginirano zbirko kartic (na namizju mreža, na telefonu vrstice v enem seznamu); vsaka kartica pokaže monogram ali sliko skupine, naziv, opis (ali »Brez opisa«), število kontaktov in značko vloge z dostopnim napisom »Vloga:«; cela kartica je ena povezava na skupino.
-2. **[FR-020-11]** **Given** zbirka skupin, **When** uporabnik vpiše iskalni niz, izbere vlogo med čipi (*Vse vloge*, *Lastnik*, *Admin*, *Urednik*, *Bralec*) ali stanje (*Aktivne*, *Arhivirane*), **Then** so prikazane samo ustrezne skupine, števec in paginacija ustrezata filtriranemu seznamu, stanje je v URL in bralnik zaslona dobi obvestilo o številu zadetkov.
+2. **[FR-020-11]** **Given** zbirka skupin, **When** uporabnik vpiše iskalni niz, ali izbere vlogo med čipi (*Vse vloge*, *Lastnik*, *Admin*, *Urednik*, *Bralec*), **Then** so prikazane samo ustrezne skupine, števec in paginacija ustrezata filtriranemu seznamu, iskalni niz, vloga in stran so v URL in bralnik zaslona dobi obvestilo o številu zadetkov.
 3. **[FR-020-12]** **Given** zaslon *Skupine*, **When** uporabnik izbere *Nova skupina*, **Then** se odpre dialog nove skupine (vedenje 002 nespremenjeno).
-4. **[FR-020-13]** **Given** uporabnik z arhiviranimi skupinami, **When** odpre *Arhivirane* v navigaciji, **Then** vidi enako zbirko in orodno vrstico z značko *Arhivirana* (ali *Trajno arhivirana* z ikono ključavnice) ob znački vloge in pri skupini brez lastnika napis »lastnik: izbrisan uporabnik«.
+4. **[FR-020-13]** **Given** uporabnik z arhiviranimi skupinami, **When** odpre *Arhivirane* v navigaciji, **Then** vidi enako zbirko kartic in orodno vrstico (iskanje, čipi vlog) z značko *Arhivirana* (ali *Trajno arhivirana* z ikono ključavnice) ob znački vloge in pri skupini brez lastnika napis »lastnik: izbrisan uporabnik«.
 
 ---
 
@@ -132,7 +144,7 @@ Uporabnik v praznih in vmesnih trenutkih (ni skupin, ni kontaktov, ni zadetkov, 
 
 ### Negative Scenarios *(mandatory when the feature touches group data)*
 
-Prenova ne spremeni avtorizacije: vsak obstoječi endpoint ohrani svoj vnos v matriki izolacije. Novi ali spremenjeni vmesniki za seznam skupin (FR-020-10, FR-020-11) in števce v navigaciji (FR-020-05) dobijo vnos v matriki.
+Prenova ne spremeni avtorizacije: vsak obstoječi endpoint ohrani svoj vnos v matriki izolacije. Novi ali spremenjeni vmesniki za seznam skupin (FR-020-10, FR-020-11) in števci v navigaciji (FR-020-05) so v matriki izolacije; spremenjeni `GET /api/groups` ima posodobljen vnos.
 
 | FR-ID | Actor / state | Action | Expected result |
 |---|---|---|---|
@@ -162,13 +174,13 @@ Prenova ne spremeni avtorizacije: vsak obstoječi endpoint ohrani svoj vnos v ma
 - **FR-020-02**: Sistem MORA zagotoviti kontrast besedila vsaj 4,5 : 1 in robov kontrolnikov vsaj 3 : 1 na vseh slojih v svetli in temni temi; tema sledi sistemu, razen če je izbrana v *Moj račun*. *(najnižja vloga: —)*
 - **FR-020-03**: Sistem MORA gibanje omejiti na prosojnost, premik do 8 px in povečavo 0,98–1 ter ga pri nastavitvi zmanjšanega gibanja v celoti izklopiti; ponavljajoče se animacije niso dovoljene (izjema: zelo počasen premik vzorca na pozdravni ploskvi prijave, ki se ustavi pri zmanjšanem gibanju in skritem zavihku). *(najnižja vloga: —)*
 - **FR-020-04**: Sistem MORA v načinu vsiljenih barv ohraniti vidne robove slojev, kontrolnikov, izbora in fokusa. *(najnižja vloga: —)*
-- **FR-020-05**: Sistem MORA od 1024 px prikazati stransko navigacijo z besedno znamko, enakovrednimi postavkami *Skupine*, *Arhivirane* in *Povabila* s števci (skupine, arhivirane skupine, nova povabila), kartico *Trenutna skupina* znotraj skupine in postavko računa na dnu; seznam skupin in *Nova skupina* nista v navigaciji. *(najnižja vloga: —, uporabnik)*
+- **FR-020-05**: Sistem MORA od 1024 px prikazati stransko navigacijo z besedno znamko, enakovrednimi postavkami *Skupine*, *Arhivirane* in *Povabila* s števci (skupine, arhivirane skupine, nova povabila; števci iz obstoječih odgovorov, brez števca, če jih ni), kartico *Trenutna skupina* znotraj skupine in postavko računa na dnu; seznam skupin in *Nova skupina* nista v navigaciji. *(najnižja vloga: —, uporabnik)*
 - **FR-020-06**: Sistem MORA v skupini ponuditi kartico *Trenutna skupina* in preklopnik nearhiviranih skupin uporabnika, ki ohrani zavihek, kjer ta obstaja v ciljni skupini. *(najnižja vloga: VIEWER)*
 - **FR-020-07**: Sistem MORA pod 1024 px prikazati navigacijo kot ploskev in pod 640 px kot spodnjo vrstico z natanko štirimi postavkami (*Skupine*, *Arhivirane*, *Povabila*, *Račun*). *(najnižja vloga: —)*
 - **FR-020-08**: Sistem MORA vsak zaslon skupine odpreti z glavo skupine (monogram ali slika, naziv, opis, značka vloge, značka arhiviranosti) in zavihki skupine kot povezavami; na telefonu strnjeno glavo z odpiranjem preklopnika in vodoravno pomičnimi zavihki. *(najnižja vloga: VIEWER)*
 - **FR-020-09**: Sistem MORA nastavitve teme, jezika in oblike zapisa ponuditi samo v *Moj račun* (tudi na zaslonih prijave ostane izbira jezika). *(najnižja vloga: —)*
-- **FR-020-10**: Sistem MORA skupine uporabnika prikazati kot eno paginirano zbirko kartic z značko vloge na vsaki kartici (namesto razdelkov po vlogah), s številom kontaktov in povezavo na skupino; prikazane so samo skupine, katerih član je uporabnik. *(najnižja vloga: —, uporabnik)*
-- **FR-020-11**: Sistem MORA zbirko skupin filtrirati po iskalnem nizu (017), eni vlogi ali vseh vlogah in stanju (aktivne/arhivirane), z enotno paginacijo, števcem zadetkov, stanjem v URL in obvestilom bralniku zaslona. *(najnižja vloga: —, uporabnik)*
+- **FR-020-10**: Sistem MORA skupine uporabnika prikazati kot eno paginirano zbirko kartic z značko vloge na vsaki kartici (namesto razdelkov po vlogah), s številom kontaktov in povezavo na skupino; prikazane so samo skupine, katerih član je uporabnik. `GET /api/groups` vrne enoten paginiran seznam z vlogo na elementu (Clarifications). *(najnižja vloga: —, uporabnik)*
+- **FR-020-11**: Sistem MORA zbirko skupin filtrirati po iskalnem nizu (017), eni vlogi ali vseh vlogah (stanje določa zaslon: *Skupine* ali *Arhivirane*), z enotno paginacijo, števcem zadetkov, iskalnim nizom, vlogo in stranjo v URL in obvestilom bralniku zaslona. *(najnižja vloga: —, uporabnik)*
 - **FR-020-12**: Sistem MORA *Nova skupina* ponuditi kot primarno akcijo zaslona *Skupine*. *(najnižja vloga: —, uporabnik)*
 - **FR-020-13**: Sistem MORA arhivirane skupine prikazati na lastnem zaslonu iz navigacije z enako zbirko in orodno vrstico ter značkami *Arhivirana* / *Trajno arhivirana* in »lastnik: izbrisan uporabnik«. *(najnižja vloga: —, uporabnik)*
 - **FR-020-14**: Sistem MORA zaslona prijave in novega računa izrisati po platnu (pozdravna ploskev z ilustracijo, vrstni red obrazca Google → ločilo → e-pošta in geslo, mobilni pas na vrhu), ob nespremenjenih tokovih 001 in 017. *(najnižja vloga: —)*
@@ -191,7 +203,7 @@ Prenova ne spremeni avtorizacije: vsak obstoječi endpoint ohrani svoj vnos v ma
 
 - **Žetoni oblikovanja**: imenovane vrednosti Kartoteke v2 (barve slojev, besedila, robov, poudarka, stanj in osmih barv skupin v obeh temah; tipografija; razmiki; zaobljenosti; sence; gibanje; velikosti kontrolnikov in vrstic). Edini vir videza.
 - **Povzetek skupine za zbirko**: skupina, kot jo vidi uporabnik – naziv, opis, barva ali slika, število kontaktov, vloga uporabnika, stanje (aktivna, arhivirana, trajno arhivirana, brez lastnika). Brez novih hranjenih podatkov.
-- **Števci navigacije**: število aktivnih skupin, arhiviranih skupin in novih povabil uporabnika; izpeljani, ne hranjeni.
+- **Števci navigacije**: število aktivnih skupin, arhiviranih skupin in novih povabil uporabnika; izpeljani iz `total` in `GET /api/invitations/count`, ne hranjeni.
 
 ## Success Criteria *(mandatory)*
 
@@ -207,10 +219,10 @@ Prenova ne spremeni avtorizacije: vsak obstoječi endpoint ohrani svoj vnos v ma
 
 ## Assumptions
 
-- **Vir resnice**: za vedenje veljajo obstoječe specifikacije 001–019; za videz in postavitev platno, za pravila komponent in žetone oblikovni sistem. Kjer se platno in pravila oblikovnega sistema razhajata (npr. sistem omenja razvrščanje skupin, nastavitev gostote preglednice in sled kontakta neposredno na strani kontakta, platno pa ne), velja platno; te stvari niso v obsegu.
-- **Brez novega vedenja zaledja**, razen kar zahteva enotna zbirka skupin (FR-020-10, FR-020-11) in števci navigacije (FR-020-05); način (obstoječi endpointi ali nov parameter) določi `plan.md`, z vnosom v matriki izolacije za vsak spremenjen endpoint.
+- **Vir resnice**: za vedenje veljajo obstoječe specifikacije 001–019; platno in oblikovni sistem sta vodilo za videz in postavitev, ne vir resnice. Kar aplikacija podpira in platno ne kaže, se izdela v jeziku oblikovanja; kar platno kaže, aplikacija pa ne podpira, je izven obsega: razvrščanje skupin, nastavitev gostote preglednice, razdelek revizijske sledi na strani kontakta (ostaneta povezavi na zgodovino kontakta in na revizijsko sled, filtrirano na kontakt, ki ju aplikacija že ima) in polje *Ime* pri registraciji.
+- **Brez novega vedenja zaledja**, razen enotnega `GET /api/groups` (FR-020-10, FR-020-11); števci navigacije uporabljajo obstoječe endpointe (`GET /api/groups?size=1`, `GET /api/groups/archived?size=1`, `GET /api/invitations/count`).
 - **Brez novih osebnih podatkov ali nastavitev**; tema, jezik in oblika zapisa ostanejo kot v 001 in 016.
-- **Uvajanje po rezinah** (konstitucija §2.5): temelji (US1) → ogrodje (US2, skupaj s posodobljenimi skupnimi pomočniki za teste) → zasloni (US3–US7); vsaka rezina je svoj PR in pusti `main` zelen.
+- **Uvajanje po rezinah** (konstitucija §2.5): temelji (US1) → ogrodje (US2, skupaj s posodobljenimi skupnimi pomočniki za teste) → zasloni (US3–US7); vrstni red rezin ostane, a gre vse v enem PR (odločitev nadzornika pri uvajanju): vsaka rezina je ločena faza in commit, veja je po vsaki fazi zelena (`quick`).
 - **`design.md`** se zamenja z vsebino Kartoteke v2 (načela, barve, tipografija, prostor, oblike, gibanje, ilustracije, komponente, zasloni, prepovedi), ohrani pa poglavja o dostopnosti, besedilih, PWA in implementaciji; sprememba zahteva potrditev obeh razvijalcev (konstitucija §7).
 - Pisave (Atkinson Hyperlegible Next in Mono) in ikone (Tabler) ostanejo; nova knjižnica ni predvidena.
 - Ilustracije se izdelajo kot vektorske risbe iz žetonov po pravilih oblikovnega sistema; fotografij in ustvarjenih slik ni.
