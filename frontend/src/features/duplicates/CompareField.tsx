@@ -54,7 +54,7 @@ export function CompareField({
       id={id}
       tabIndex={error ? -1 : undefined}
       aria-describedby={error ? errorId : undefined}
-      className={`${gridFor(contacts.length)} min-w-0 rounded-md border border-border p-3 outline-none`}
+      className={`${gridFor(contacts.length)} min-w-0 rounded-md border border-border bg-card p-4 outline-none`}
     >
       <legend className="px-1 font-bold break-words">{legend}</legend>
       {readOnly ? (

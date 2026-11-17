@@ -1,7 +1,9 @@
-import { useId, useState } from 'react';
+import { IconSearch } from '@tabler/icons-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { focusRing, primaryButton } from '../../shared/ui/styles';
+import { SegmentedControl } from '../../shared/ui/SegmentedControl';
+import { primaryButton } from '../../shared/ui/styles';
 import { CATEGORIES } from './duplicateRouting';
 import type { DuplicateCategory } from './types';
 
@@ -14,34 +16,33 @@ export function DuplicateSearchForm({
   onSearch: (category: DuplicateCategory) => void;
 }) {
   const { t } = useTranslation();
-  const name = useId();
   const [category, setCategory] = useState<DuplicateCategory>(initial ?? 'name');
 
   return (
     <form
-      className="flex flex-col items-start gap-4"
+      className="flex flex-wrap items-end gap-6 rounded-md border border-border bg-card p-5"
       onSubmit={(event) => {
         event.preventDefault();
         onSearch(category);
       }}
     >
-      <fieldset role="radiogroup" className="flex min-w-0 flex-col gap-1">
-        <legend className="mb-1 font-bold">{t('duplicates.category')}</legend>
-        {CATEGORIES.map((option) => (
-          <label key={option} className="flex min-h-11 items-center gap-3 pointer-coarse:min-h-12">
-            <input
-              type="radio"
-              name={name}
-              value={option}
-              checked={category === option}
-              onChange={() => setCategory(option)}
-              className={`size-5 accent-primary ${focusRing}`}
-            />
-            {t(`duplicates.categories.${option}`)}
-          </label>
-        ))}
-      </fieldset>
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <span className="text-sm font-bold" aria-hidden="true">
+          {t('duplicates.category')}
+        </span>
+        <SegmentedControl
+          label={t('duplicates.category')}
+          value={category}
+          segments={CATEGORIES.map((option) => ({
+            value: option,
+            label: t(`duplicates.categories.${option}`),
+          }))}
+          onChange={setCategory}
+          className="max-w-full flex-wrap self-start"
+        />
+      </div>
       <button type="submit" className={primaryButton}>
+        <IconSearch aria-hidden="true" size={20} stroke={1.75} />
         {t('duplicates.search')}
       </button>
     </form>

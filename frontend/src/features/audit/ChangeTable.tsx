@@ -45,19 +45,28 @@ export function ChangeTable({ change }: { change: ContactChange }) {
   const { t } = useTranslation();
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-left">
+      <table className="w-full border-collapse overflow-hidden rounded-md border border-border text-left text-sm">
         <caption className="sr-only">
           {t('audit.details.caption', { name: change.displayName })}
         </caption>
         <thead>
           <tr>
-            <th scope="col" className="border-b border-border p-2">
+            <th
+              scope="col"
+              className="border-b border-border bg-muted p-2 font-medium text-muted-foreground"
+            >
               {t('audit.details.field')}
             </th>
-            <th scope="col" className="border-b border-border p-2">
+            <th
+              scope="col"
+              className="border-b border-border bg-muted p-2 font-medium text-muted-foreground"
+            >
               {t('audit.details.before')}
             </th>
-            <th scope="col" className="border-b border-border p-2">
+            <th
+              scope="col"
+              className="border-b border-border bg-muted p-2 font-medium text-muted-foreground"
+            >
               {t('audit.details.after')}
             </th>
           </tr>

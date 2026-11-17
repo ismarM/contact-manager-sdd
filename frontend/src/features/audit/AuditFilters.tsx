@@ -2,7 +2,7 @@ import { IconFilter, IconX } from '@tabler/icons-react';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { focusRing, primaryButton, secondaryButton } from '../../shared/ui/styles';
+import { focusRing, primaryButton, secondaryButton, softButton } from '../../shared/ui/styles';
 import { ActorSelect } from './ActorSelect';
 import { AUDIT_ACTIONS, type AuditAction, type AuditFilters as Filters } from './types';
 
@@ -43,7 +43,7 @@ export function AuditFilters({
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
-          className={secondaryButton}
+          className={softButton}
           aria-expanded={open}
           aria-controls={panel}
           onClick={toggle}
@@ -58,7 +58,7 @@ export function AuditFilters({
               key={action}
               type="button"
               aria-label={t('audit.filters.removeAction', { action: label })}
-              className={`inline-flex min-h-11 items-center gap-1 rounded-md border border-border bg-muted px-3 ${focusRing}`}
+              className={`inline-flex min-h-11 items-center gap-1 rounded-full border border-primary bg-selected px-3 text-sm font-medium text-primary ${focusRing}`}
               onClick={() =>
                 onChange({ ...filters, actions: filters.actions.filter((a) => a !== action) })
               }
@@ -74,7 +74,7 @@ export function AuditFilters({
             aria-label={t('audit.filters.removeActor', {
               name: actorName ?? t('audit.filters.unknownActor'),
             })}
-            className={`inline-flex min-h-11 items-center gap-1 rounded-md border border-border bg-muted px-3 ${focusRing}`}
+            className={`inline-flex min-h-11 items-center gap-1 rounded-full border border-primary bg-selected px-3 text-sm font-medium text-primary ${focusRing}`}
             onClick={() => onChange({ ...filters, actor: null })}
           >
             {t('audit.filters.chipActor', { name: actorName ?? t('audit.filters.unknownActor') })}
@@ -87,7 +87,7 @@ export function AuditFilters({
             aria-label={t('audit.filters.removeContact', {
               name: contactName ?? t('audit.filters.unknownContact'),
             })}
-            className={`inline-flex min-h-11 items-center gap-1 rounded-md border border-border bg-muted px-3 ${focusRing}`}
+            className={`inline-flex min-h-11 items-center gap-1 rounded-full border border-primary bg-selected px-3 text-sm font-medium text-primary ${focusRing}`}
             onClick={() => onChange({ ...filters, contact: null })}
           >
             {t('audit.filters.chipContact', {
@@ -98,7 +98,7 @@ export function AuditFilters({
         )}
       </div>
       {open && (
-        <div id={panel} className="flex flex-col gap-3 rounded-md border border-border bg-card p-4">
+        <div id={panel} className="flex flex-col gap-4 rounded-md border border-border bg-card p-5">
           <ActorSelect value={draftActor} onChange={setDraftActor} />
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-1 font-bold">{t('audit.filters.actionLegend')}</legend>

@@ -27,7 +27,7 @@ export function Disclosure({
         aria-expanded={expanded}
         aria-controls={id}
         onClick={() => setOpen(!expanded)}
-        className={`min-h-11 self-start rounded-md px-1 text-left font-bold underline pointer-coarse:min-h-12 ${focusRing}`}
+        className={`min-h-11 self-start rounded-sm px-1 text-left font-bold text-primary underline pointer-coarse:min-h-12 ${focusRing}`}
       >
         {label}
       </button>
