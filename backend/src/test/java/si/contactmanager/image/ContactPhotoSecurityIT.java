@@ -254,6 +254,32 @@ class ContactPhotoSecurityIT extends ImageApiTest {
     }
 
     @Test
+    void invalidFileIsOnlyReportedAfterAccessAndArchiveChecks() throws Exception {
+        Prepared p = prepared(State.ACTIVE);
+        Scenario s = p.s();
+        String path = contactPhotoPath(s.group(), p.contact());
+        byte[] junk = "not an image".getBytes();
+
+        assertThat(send(Endpoint.PUT, path, Map.of(), junk, 0).statusCode()).isEqualTo(401);
+        HttpResponse<String> nonMember = send(Endpoint.PUT, path, Http.bearer(s.token(Who.NON_MEMBER)), junk, 0);
+        assertThat(nonMember.statusCode()).isEqualTo(404);
+        assertThat(nonMember.body()).isEmpty();
+        HttpResponse<String> viewer = send(Endpoint.PUT, path, Http.bearer(s.token(Who.VIEWER)), junk, 0);
+        assertThat(viewer.statusCode()).isEqualTo(403);
+        assertThat(json(viewer.body())).containsEntry("code", "FORBIDDEN");
+        HttpResponse<String> invalid = send(Endpoint.PUT, path, Http.bearer(s.token(Who.EDITOR)), junk, 0);
+        assertThat(invalid.statusCode()).isEqualTo(400);
+        assertThat(fieldErrors(invalid.body())).containsEntry("file", "INVALID_IMAGE");
+
+        groups.archive(s.group());
+        HttpResponse<String> archived = send(Endpoint.PUT, path, Http.bearer(s.token(Who.EDITOR)), junk, 0);
+        assertThat(archived.statusCode()).isEqualTo(409);
+        assertThat(json(archived.body())).containsEntry("code", "GROUP_ARCHIVED");
+        HttpResponse<String> archivedViewer = send(Endpoint.PUT, path, Http.bearer(s.token(Who.VIEWER)), junk, 0);
+        assertThat(archivedViewer.statusCode()).isEqualTo(403);
+    }
+
+    @Test
     void abuseOfTheFilePartIsRejectedWithoutAnyChange() throws Exception {
         Prepared p = prepared(State.ACTIVE);
         Scenario s = p.s();

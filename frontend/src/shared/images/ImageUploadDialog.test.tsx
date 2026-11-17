@@ -46,7 +46,7 @@ describe('ImageUploadDialog', () => {
     const { user, onUpload } = setup();
     await choose(user);
     await screen.findByRole('button', { name: imageText('images.dialog.cropLabel') });
-    const live = document.querySelector('[aria-live="polite"]');
+    const live = screen.getByRole('status');
 
     await user.keyboard('{ArrowLeft}');
     expect(live).toHaveTextContent(
@@ -68,6 +68,49 @@ describe('ImageUploadDialog', () => {
     await waitFor(() => expect(onUpload).toHaveBeenCalledTimes(1));
     expect(decoding.exports.length).toBeGreaterThan(0);
     expect(onUpload.mock.calls[0]?.[0]).toBeInstanceOf(Blob);
+  });
+
+  it('obrezovanje: brez premika je izrez sredinski kvadrat, po premiku in povečavi se izrez spremeni', async () => {
+    // Slika 1600 × 800: sredinski kvadrat je (sx 400, sy 0, stranica 800).
+    const baseline = stubImageDecoding({ width: 1600, height: 800 });
+    const first = setup();
+    await choose(first.user);
+    await first.user.click(await save());
+    await waitFor(() => expect(baseline.draws).toHaveLength(1));
+    const [bsx, bsy, bside] = baseline.draws[0] ?? [];
+    expect([bsx, bsy, bside]).toEqual([400, 0, 800]);
+    first.unmount();
+
+    const moved = stubImageDecoding({ width: 1600, height: 800 });
+    const second = setup();
+    await choose(second.user);
+    await screen.findByRole('button', { name: imageText('images.dialog.cropLabel') });
+    await second.user.keyboard('+');
+    await second.user.keyboard('{ArrowLeft}{ArrowDown}');
+    await second.user.click(await save());
+    await waitFor(() => expect(moved.draws).toHaveLength(1));
+    const [sx, sy, side] = moved.draws[0] ?? [];
+
+    expect(side).toBeLessThan(800);
+    // Ni sredinski izrez povečane slike: premik je izrez res zamaknil.
+    expect(sx).not.toBe((1600 - (side ?? 0)) / 2);
+    expect(sy).not.toBe((800 - (side ?? 0)) / 2);
+    expect([sx, sy, side]).not.toEqual([bsx, bsy, bside]);
+  });
+
+  it('WebP: dialog sprejme image/webp, naložen blob je JPEG ali PNG (brskalnik jo pretvori)', async () => {
+    const decoding = stubImageDecoding();
+    const { user, onUpload } = setup();
+    const input = screen.getByLabelText(imageText('images.dialog.choose'));
+    expect(input.getAttribute('accept')).toContain('image/webp');
+
+    await user.upload(input, imageFile('portret.webp', 'image/webp'));
+    await user.click(await save());
+
+    await waitFor(() => expect(onUpload).toHaveBeenCalledTimes(1));
+    const blob = onUpload.mock.calls[0]?.[0] as Blob;
+    expect(['image/jpeg', 'image/png']).toContain(blob.type);
+    expect(['image/jpeg', 'image/png']).toContain(decoding.exports.at(-1)?.type);
   });
 
   it('prosojen vir se izvozi kot PNG', async () => {

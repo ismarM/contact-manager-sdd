@@ -116,9 +116,9 @@ description: "Naloge za 018 slike (ena prehod: koda in testi skupaj po zgodbah)"
 
 - [X] T090 — `feature-map.md`: vrstica 018 v tabeli funkcionalnosti, kodi `GOOGLE_PHOTO_UNAVAILABLE` (409) in `RATE_LIMITED` (429, opomba v §2.2), pravilo slik v §2.6 (omejitve, ena slika na lastnika) in §2.7 (sprememba slike je vnos `UPDATE` z `photo_change`); `design.md`: kratek razdelek avatar in nalaganje slike (8.17) in posodobitev 9.9 (*Profilna slika*); `docs/decisions/2026-11-16-shramba-slik-v-bazi.md` (če še ni iz T071); spec.md popravi, če se je vedenje spremenilo
 - [X] T091 — Zaledje: izpolni matriko izolacije (pregled, da vsak redek v plan.md *Public Interfaces* ima naloge T034, T042, T056, T081) in `GroupIsolationMatrixSecurityIT`-slog po obstoječem vzorcu
-- [ ] T092 — `./verify.sh quick` zelen; `./verify.sh backend` za IT in matriko; `./verify.sh e2e` (lahko samo `slike.spec.ts` in dimni testi, nato celoten e2e pred PR)
-- [ ] T093 — **Številčenje migracij pred PR** (plan, dopolnitev 5): `git fetch origin`; največja številka v `origin/main`, v vejah/worktreejih 016 in 017 (`git ls-tree -r --name-only <veja> backend/src/main/resources/db/migration`); 018 = največja obstoječa ali načrtovana + 1, preimenuj `V15__slike.sql` po potrebi in posodobi sklice v data-model.md, plan.md; če 016 še nima migracije, to zapiši v PR; opis PR navaja vrstni red 016 → 017 → 018; ponovi preverjanje tik pred oddajo PR
-- [ ] T094 — Uskladitev z `origin/main` (merge main v vejo), `quick` ponovno, lokalni E2E, opis PR (spremenjeni obstoječi testi z razlogom, predpostavke, neodpravljene ugotovitve `pregled-testov`); PR se ne združi
+- [X] T092 — `./verify.sh quick` zelen; `./verify.sh backend` za IT in matriko; `./verify.sh e2e` (lahko samo `slike.spec.ts` in dimni testi, nato celoten e2e pred PR)
+- [X] T093 — **Številčenje migracij pred PR** (plan, dopolnitev 5): `git fetch origin`; največja številka v `origin/main`, v vejah/worktreejih 016 in 017 (`git ls-tree -r --name-only <veja> backend/src/main/resources/db/migration`); 018 = največja obstoječa ali načrtovana + 1, preimenuj `V15__slike.sql` po potrebi in posodobi sklice v data-model.md, plan.md; če 016 še nima migracije, to zapiši v PR; opis PR navaja vrstni red 016 → 017 → 018; ponovi preverjanje tik pred oddajo PR
+- [X] T094 — Uskladitev z `origin/main` (merge main v vejo), `quick` ponovno, lokalni E2E, opis PR (spremenjeni obstoječi testi z razlogom, predpostavke, neodpravljene ugotovitve `pregled-testov`); PR se ne združi
 
 ---
 

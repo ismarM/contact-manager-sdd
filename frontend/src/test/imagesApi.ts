@@ -225,7 +225,7 @@ export function trackBlobUrls(): BlobUrlTracker {
 export interface ImageDecoding {
   /** Vrste in kakovosti izvozov (`toBlob`). */
   exports: { type: string; quality: number | undefined }[];
-  /** Argumenti zadnjega `drawImage` pri izvozu. */
+  /** Izrez pri izvozu, po klicih `drawImage`: [sx, sy, stranica, stranica, 0, 0, izhod, izhod] (brez predogleda). */
   draws: number[][];
 }
 
@@ -257,7 +257,8 @@ export function stubImageDecoding(
     fill: vi.fn(),
     imageSmoothingQuality: 'low',
     drawImage: vi.fn((...args: unknown[]) => {
-      state.draws.push(args.slice(1) as number[]);
+      // Predogled v obrezovalniku riše z 5 argumenti; izvoz z izrezom (9 argumentov).
+      if (args.length === 9) state.draws.push(args.slice(1) as number[]);
     }),
     getImageData: vi.fn((_x: number, _y: number, w: number, h: number) => ({
       data: new Uint8ClampedArray(w * h * 4).fill(options.alpha ? 0 : 255),

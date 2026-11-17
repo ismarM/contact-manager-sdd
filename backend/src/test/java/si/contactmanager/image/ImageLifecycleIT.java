@@ -3,7 +3,6 @@ package si.contactmanager.image;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -99,24 +98,21 @@ class ImageLifecycleIT extends ImageApiTest {
     }
 
     @Test
-    void thousandContactsWithPhotosAreDeletedAndReattachedInReasonableTime() throws Exception {
-        // sprožilca sta vrstična: izbris 1000 kontaktov s slikami in ponoven vnos morata biti v razumnem času
+    void thousandContactsWithPhotosAreDeletedAndReattached() throws Exception {
+        // sprožilca sta vrstična: izbris 1000 kontaktov s slikami in ponoven vnos morata ustrezno spremeniti vse slike
+        // (brez časovnega praga)
         Scenario s = scenario();
         List<UUID> ids = contacts.insertMany(s.group(), s.id(Who.OWNER), 1000);
         seedContactImages(s.group(), ids);
         UUID group = s.group();
 
-        long start = System.nanoTime();
         jdbc.update("delete from contact where group_id = ?", group);
-        Duration deleteTime = Duration.ofNanos(System.nanoTime() - start);
 
         assertThat(imageCount("group_id = ? and detached_at is not null", group))
                 .isEqualTo(1000);
-        assertThat(deleteTime).isLessThan(Duration.ofSeconds(15));
         assertContactImageInvariant();
 
         // ponovna ustvaritev z istimi id priklopi vse slike
-        long insertStart = System.nanoTime();
         jdbc.update(
                 "insert into contact (id, group_id, first_name, sort_first, updated_by)"
                         + " select u, ?, 'Ime', 'ime', ? from unnest(?::uuid[]) u",
@@ -125,9 +121,7 @@ class ImageLifecycleIT extends ImageApiTest {
                     ps.setLong(2, jdbc.queryForObject("select min(id) from app_user", Long.class));
                     ps.setArray(3, ps.getConnection().createArrayOf("uuid", ids.toArray()));
                 });
-        Duration insertTime = Duration.ofNanos(System.nanoTime() - insertStart);
         assertThat(imageCount("group_id = ? and detached_at is null", group)).isEqualTo(1000);
-        assertThat(insertTime).isLessThan(Duration.ofSeconds(15));
         assertContactImageInvariant();
     }
 

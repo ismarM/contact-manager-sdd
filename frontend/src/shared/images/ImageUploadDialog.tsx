@@ -213,7 +213,7 @@ function UploadBody({ shape, title, onUpload }: Pick<Props, 'shape' | 'title' | 
         </>
       )}
 
-      <div aria-live="polite" className="sr-only">
+      <div role="status" aria-live="polite" className="sr-only">
         {announcement}
       </div>
       {busy && <p role="status">{t('images.dialog.saving')}</p>}

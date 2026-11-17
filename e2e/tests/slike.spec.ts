@@ -60,6 +60,8 @@ async function memberPage(browser: Browser, page: Page, groupId: string, name: s
   return { context, page: member, user };
 }
 
+/** Sporočilo o izidu pod gumbi slike (`role="status"`); besedilo iz prevodov. */
+const notice = (page: Page, text: string) => page.getByRole('status').filter({ hasText: text });
 const toast = (page: Page) => page.getByRole('region', { name: 'Obvestila' });
 const photoRegion = (page: Page) => page.getByRole('region', { name: 'Profilna slika' });
 
@@ -111,7 +113,7 @@ test('FR-018-01 FR-018-02 FR-018-20: profilna slika – JPEG, zamenjava s PNG, o
   const loaded = photoLoaded(page, '/api/me/photo');
   await cropWithKeyboardAndSave(page);
   await expect(uploadDialog(page)).toHaveCount(0);
-  await expect(page.getByText('Slika je shranjena.')).toBeVisible();
+  await expect(notice(page, 'Slika je shranjena.')).toBeVisible();
   await loaded;
   await expect(region.getByRole('button', { name: 'Zamenjaj sliko' })).toBeVisible();
   await expect(region.getByRole('button', { name: 'Odstrani sliko' })).toBeVisible();
@@ -122,7 +124,7 @@ test('FR-018-01 FR-018-02 FR-018-20: profilna slika – JPEG, zamenjava s PNG, o
   const replaced = photoLoaded(page, '/api/me/photo');
   await uploadPhoto(page, 'Zamenjaj sliko', PNG);
   await replaced;
-  await expect(page.getByText('Slika je shranjena.')).toBeVisible();
+  await expect(notice(page, 'Slika je shranjena.')).toBeVisible();
 
   // Avatar v meniju računa (iste seje) in v seznamu članov skupine.
   const inMembers = photoLoaded(page, '/members/');
@@ -137,7 +139,7 @@ test('FR-018-01 FR-018-02 FR-018-20: profilna slika – JPEG, zamenjava s PNG, o
   // Odstranitev s potrditvijo; slika ni več na voljo.
   await page.goto('/account');
   await removePhoto(page);
-  await expect(page.getByText('Slika je odstranjena.')).toBeVisible();
+  await expect(notice(page, 'Slika je odstranjena.')).toBeVisible();
   await expect(region.getByRole('button', { name: 'Naloži sliko' })).toBeVisible();
   await expect(region.getByRole('button', { name: 'Odstrani sliko' })).toHaveCount(0);
   expect(await photoStatus(page, '/me/photo')).toBe(404);
@@ -150,7 +152,7 @@ test('FR-018-01 FR-018-14: neveljavna datoteka – trajna napaka v dialogu, star
   await signedIn(page);
   await page.goto('/account');
   await uploadPhoto(page, 'Naloži sliko', PNG);
-  await expect(page.getByText('Slika je shranjena.')).toBeVisible();
+  await expect(notice(page, 'Slika je shranjena.')).toBeVisible();
 
   await photoRegion(page).getByRole('button', { name: 'Zamenjaj sliko' }).click();
   await chooseFile(page, NOT_AN_IMAGE);
@@ -182,7 +184,7 @@ test('FR-018-05 FR-018-06 FR-018-08: slika skupine – admin naloži, bralec vid
   await expectNoAxeViolations(page);
   const loaded = photoLoaded(page, `/api/groups/${groupId}/photo`);
   await uploadPhoto(page, 'Naloži sliko', JPEG);
-  await expect(page.getByText('Slika skupine je shranjena.')).toBeVisible();
+  await expect(notice(page, 'Slika skupine je shranjena.')).toBeVisible();
   await loaded;
   await expect(section.getByRole('button', { name: 'Zamenjaj sliko' })).toBeVisible();
   await expectNoAxeViolations(page);
@@ -209,7 +211,7 @@ test('FR-018-05 FR-018-06 FR-018-08: slika skupine – admin naloži, bralec vid
 
   // Odstranitev slike skupine.
   await removePhoto(page);
-  await expect(page.getByText('Slika skupine je odstranjena.')).toBeVisible();
+  await expect(notice(page, 'Slika skupine je odstranjena.')).toBeVisible();
   expect(await photoStatus(page, `/groups/${groupId}/photo`)).toBe(404);
 
   // Arhivirana skupina: slika je vidna, akcij ni.
@@ -243,7 +245,7 @@ test('FR-018-09 FR-018-10 FR-018-12: slika kontakta – naloži, zamenjaj, odstr
 
   const added = photoLoaded(page, path);
   await uploadPhoto(page, 'Naloži sliko', JPEG);
-  await expect(page.getByText('Slika kontakta je shranjena.')).toBeVisible();
+  await expect(notice(page, 'Slika kontakta je shranjena.')).toBeVisible();
   await added;
   expect(await photoStatus(page, `/groups/${groupId}/contacts/${contactId}/photo`)).toBe(200);
   await uploadPhoto(page, 'Zamenjaj sliko', PNG);
@@ -265,7 +267,7 @@ test('FR-018-09 FR-018-10 FR-018-12: slika kontakta – naloži, zamenjaj, odstr
   // Sled: dodana in zamenjana slika; odstranitev doda še en dogodek.
   await page.goto(`/groups/${groupId}/contacts/${contactId}/edit`);
   await removePhoto(page);
-  await expect(page.getByText('Slika kontakta je odstranjena.')).toBeVisible();
+  await expect(notice(page, 'Slika kontakta je odstranjena.')).toBeVisible();
   await page.goto(`/groups/${groupId}/audit`);
   const entries = page.getByRole('list', { name: 'Vnosi revizijske sledi' });
   await expect(entries).toContainText('dodal(a) sliko kontakta');

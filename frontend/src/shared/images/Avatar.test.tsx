@@ -57,6 +57,7 @@ describe('Avatar', () => {
     );
 
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    // Okras nima vloge, zato ga ni mogoče poiskati po vlogi: preverimo samo skrivanje korena.
     expect(container.firstElementChild).toHaveAttribute('aria-hidden', 'true');
   });
 
