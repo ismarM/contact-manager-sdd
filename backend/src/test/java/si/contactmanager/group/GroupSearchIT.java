@@ -38,8 +38,8 @@ class GroupSearchIT extends ApiTest {
         return json(response.body());
     }
 
-    private static List<Map<String, Object>> sections(Map<String, Object> body) {
-        return JSON.convertValue(body.get("sections"), LIST);
+    private static List<Map<String, Object>> items(Map<String, Object> body) {
+        return JSON.convertValue(body.get("items"), LIST);
     }
 
     private static List<String> titles(Map<String, Object> holder) {
@@ -61,13 +61,12 @@ class GroupSearchIT extends ApiTest {
         Map<String, Object> body = ok("/api/groups?q=" + "%C5%A0olski", ana.idToken());
         long millis = (System.nanoTime() - start) / 1_000_000;
 
-        Map<String, Object> owner = sections(body).getFirst();
-        assertThat(owner).containsEntry("total", 1);
-        assertThat(titles(owner)).containsExactly("Šolski krožek");
+        assertThat(body).containsEntry("total", 1);
+        assertThat(titles(body)).containsExactly("Šolski krožek");
         assertThat(millis).as("SC-005: iskanje pod 300 ms").isLessThan(300);
         Map<String, Object> all = ok("/api/groups?role=OWNER&size=25&page=3&q=skupina", ana.idToken());
-        assertThat(sections(all).getFirst()).containsEntry("total", 100);
-        assertThat(titles(sections(all).getFirst())).hasSize(25).contains("Skupina 075");
+        assertThat(all).containsEntry("total", 100);
+        assertThat(titles(all)).hasSize(25).contains("Skupina 075");
     }
 
     @ParameterizedTest
@@ -79,10 +78,9 @@ class GroupSearchIT extends ApiTest {
         fixtures.createGroup(fixtures.userId(ana.uid()), "Šolski krožek");
         fixtures.createGroup(fixtures.userId(ana.uid()), "Druga");
 
-        Map<String, Object> owner =
-                sections(ok("/api/groups?q=" + q, ana.idToken())).getFirst();
+        Map<String, Object> body = ok("/api/groups?q=" + q, ana.idToken());
 
-        assertThat(titles(owner)).containsExactly("Šolski krožek");
+        assertThat(titles(body)).containsExactly("Šolski krožek");
     }
 
     @Test
@@ -93,15 +91,12 @@ class GroupSearchIT extends ApiTest {
         fixtures.createGroup(anaId, "Navadna");
         fixtures.createGroup(anaId, "Druga skupina");
 
-        assertThat(sections(ok("/api/groups?q=" + "%25", ana.idToken()))).isEmpty();
+        assertThat(items(ok("/api/groups?q=" + "%25", ana.idToken()))).isEmpty();
         fixtures.createGroup(anaId, "Popust 50% in_več \\ konec");
-        assertThat(titles(sections(ok("/api/groups?q=50%25", ana.idToken())).getFirst()))
-                .containsExactly("Popust 50% in_več \\ konec");
-        assertThat(titles(sections(ok("/api/groups?q=in_ve", ana.idToken())).getFirst()))
-                .containsExactly("Popust 50% in_več \\ konec");
-        assertThat(sections(ok("/api/groups?q=_", ana.idToken())).getFirst()).containsEntry("total", 1);
-        assertThat(titles(sections(ok("/api/groups?q=%5C", ana.idToken())).getFirst()))
-                .containsExactly("Popust 50% in_več \\ konec");
+        assertThat(titles(ok("/api/groups?q=50%25", ana.idToken()))).containsExactly("Popust 50% in_več \\ konec");
+        assertThat(titles(ok("/api/groups?q=in_ve", ana.idToken()))).containsExactly("Popust 50% in_več \\ konec");
+        assertThat(ok("/api/groups?q=_", ana.idToken())).containsEntry("total", 1);
+        assertThat(titles(ok("/api/groups?q=%5C", ana.idToken()))).containsExactly("Popust 50% in_več \\ konec");
     }
 
     @Test
@@ -110,9 +105,9 @@ class GroupSearchIT extends ApiTest {
         SignedIn ana = registeredUser("Ana Prazno");
         fixtures.createGroup(fixtures.userId(ana.uid()), "Edina");
 
-        assertThat(sections(ok("/api/groups?q=", ana.idToken()))).hasSize(1);
-        assertThat(sections(ok("/api/groups?q=%20%20", ana.idToken()))).hasSize(1);
-        assertThat(sections(ok("/api/groups?q=nicneobstaja", ana.idToken()))).isEmpty();
+        assertThat(items(ok("/api/groups?q=", ana.idToken()))).hasSize(1);
+        assertThat(items(ok("/api/groups?q=%20%20", ana.idToken()))).hasSize(1);
+        assertThat(items(ok("/api/groups?q=nicneobstaja", ana.idToken()))).isEmpty();
         assertThat(ok("/api/groups/archived?q=nicneobstaja", ana.idToken()))
                 .containsEntry("total", 0)
                 .containsEntry("items", List.of());
@@ -137,7 +132,7 @@ class GroupSearchIT extends ApiTest {
 
     @Test
     @Tag("FR-017-15")
-    void totalCountsMatchesPerRoleAndManyRolesAreCombined() throws Exception {
+    void totalCountsMatchesAcrossRolesAndManyRolesAreCombined() throws Exception {
         SignedIn ana = registeredUser("Ana Vloge");
         SignedIn bojan = registeredUser("Bojan Vloge");
         long anaId = fixtures.userId(ana.uid());
@@ -152,10 +147,11 @@ class GroupSearchIT extends ApiTest {
         fixtures.archive(otherArchived);
         fixtures.archive(viewerArchived);
 
-        List<Map<String, Object>> sections = sections(ok("/api/groups?q=planin", ana.idToken()));
+        Map<String, Object> found = ok("/api/groups?q=planin", ana.idToken());
 
-        assertThat(sections).extracting(s -> s.get("role")).containsExactly("OWNER", "EDITOR");
-        assertThat(sections).extracting(s -> s.get("total")).containsExactly(1, 1);
+        assertThat(found).containsEntry("total", 2);
+        assertThat(items(found)).extracting(i -> i.get("role")).containsExactly("OWNER", "EDITOR");
+        assertThat(ok("/api/groups?q=planin&role=EDITOR", ana.idToken())).containsEntry("total", 1);
         assertThat(ok("/api/groups/archived?q=PLANIN", ana.idToken())).containsEntry("total", 2);
         assertThat(ok("/api/groups/archived?q=planin&role=OWNER", ana.idToken()))
                 .containsEntry("total", 1);
@@ -174,10 +170,10 @@ class GroupSearchIT extends ApiTest {
         UUID secretArchived = fixtures.createGroup(fixtures.userId(bojan.uid()), "Tajni arhiv Zlatorog");
         fixtures.archive(secretArchived);
 
-        assertThat(sections(ok("/api/groups?q=zlatorog", ana.idToken()))).isEmpty();
+        assertThat(items(ok("/api/groups?q=zlatorog", ana.idToken()))).isEmpty();
         assertThat(ok("/api/groups/archived?q=zlatorog", ana.idToken()))
                 .containsEntry("total", 0)
                 .containsEntry("items", List.of());
-        assertThat(sections(ok("/api/groups?q=zlatorog", bojan.idToken()))).hasSize(1);
+        assertThat(items(ok("/api/groups?q=zlatorog", bojan.idToken()))).hasSize(1);
     }
 }

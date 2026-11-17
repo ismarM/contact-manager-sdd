@@ -21,8 +21,8 @@ import si.contactmanager.support.FirebaseEmulatorContainer.SignedIn;
 import tools.jackson.core.type.TypeReference;
 
 /**
- * Seznam mojih nearhiviranih skupin po vlogah {@code GET /api/groups} (FR-002-04, FR-002-05, FR-002-06; plan.md – REST
- * endpoints): vrstni red razdelkov, paginacija po razdelkih, abecedni red po jeziku vmesnika (ICU, D-28).
+ * Seznam mojih nearhiviranih skupin {@code GET /api/groups} (FR-020-10, FR-020-11; 020 plan.md – Public Interfaces): ena
+ * stran čez vse vloge z vlogo na elementu, filter {@code role}, paginacija, abecedni red po jeziku vmesnika (ICU, D-28).
  */
 class GroupListIT extends ApiTest {
 
@@ -35,45 +35,45 @@ class GroupListIT extends ApiTest {
 
     private static final TypeReference<List<Map<String, Object>>> LIST = new TypeReference<>() {};
 
-    private static List<Map<String, Object>> sections(HttpResponse<String> response) {
+    private static Map<String, Object> page(HttpResponse<String> response) {
         assertThat(response.statusCode()).as("status seznama skupin").isEqualTo(200);
-        return JSON.convertValue(json(response.body()).get("sections"), LIST);
+        return json(response.body());
     }
 
-    private static List<Map<String, Object>> items(Map<String, Object> section) {
-        return JSON.convertValue(section.get("items"), LIST);
+    private static List<Map<String, Object>> items(Map<String, Object> page) {
+        return JSON.convertValue(page.get("items"), LIST);
     }
 
-    private static List<String> titles(Map<String, Object> section) {
-        return items(section).stream().map(item -> (String) item.get("title")).toList();
+    private static List<String> titles(Map<String, Object> page) {
+        return items(page).stream().map(item -> (String) item.get("title")).toList();
     }
 
     @Test
-    @Tag("FR-002-05")
-    void userWithoutGroupsGetsNoSections() throws Exception {
+    @Tag("FR-020-10")
+    void userWithoutGroupsGetsEmptyPage() throws Exception {
         SignedIn ana = registeredUser("Ana Novak");
 
         HttpResponse<String> response = get("/api/groups", ana.idToken());
 
         assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(json(response.body())).isEqualTo(Map.of("sections", List.of()));
+        assertThat(json(response.body())).isEqualTo(Map.of("total", 0, "page", 0, "size", 25, "items", List.of()));
     }
 
     @Test
-    @Tag("FR-002-05")
-    void userWithoutProfileGetsNoSections() throws Exception {
+    @Tag("FR-020-10")
+    void userWithoutProfileGetsEmptyPage() throws Exception {
         SignedIn fresh = newGoogleUser("Brez profila");
 
         HttpResponse<String> response = get("/api/groups", fresh.idToken());
 
         assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(json(response.body())).isEqualTo(Map.of("sections", List.of()));
+        assertThat(json(response.body())).isEqualTo(Map.of("total", 0, "page", 0, "size", 25, "items", List.of()));
     }
 
     @Test
-    @Tag("FR-002-04")
-    @Tag("FR-002-06")
-    void groupsAreGroupedByRoleInFixedOrderWithoutArchivedOrForeignGroups() throws Exception {
+    @Tag("FR-020-10")
+    @Tag("FR-020-11")
+    void oneListAcrossRolesSortedByTitleWithoutArchivedOrForeignGroups() throws Exception {
         SignedIn ana = registeredUser("Ana Novak");
         SignedIn bojan = registeredUser("Bojan Kos");
         long anaId = fixtures.userId(ana.uid());
@@ -89,20 +89,14 @@ class GroupListIT extends ApiTest {
         fixtures.archive(archived);
         fixtures.createGroup(bojanId, "Tuja");
 
-        HttpResponse<String> response = get("/api/groups?lang=sl", ana.idToken());
+        Map<String, Object> body = page(get("/api/groups?lang=sl", ana.idToken()));
 
-        assertThat(response.statusCode()).isEqualTo(200);
-        List<Map<String, Object>> sections = sections(response);
-        assertThat(sections).extracting(s -> s.get("role")).containsExactly("OWNER", "ADMIN", "VIEWER");
-        assertThat(sections).extracting(s -> s.get("total")).containsExactly(2, 1, 1);
-        assertThat(sections).extracting(s -> s.get("page")).containsOnly(0);
-        assertThat(sections).extracting(s -> s.get("size")).containsOnly(25);
-        assertThat(titles(sections.get(0))).containsExactly("Alfa", "Beta");
-        assertThat(titles(sections.get(1))).containsExactly("Cvet");
-        assertThat(titles(sections.get(2))).containsExactly("Delta");
-        Map<String, Object> beta = items(sections.get(0)).get(1);
+        assertThat(body).containsEntry("total", 4).containsEntry("page", 0).containsEntry("size", 25);
+        assertThat(titles(body)).containsExactly("Alfa", "Beta", "Cvet", "Delta");
+        assertThat(items(body)).extracting(i -> i.get("role")).containsExactly("OWNER", "OWNER", "ADMIN", "VIEWER");
+        Map<String, Object> beta = items(body).get(1);
         assertThat(beta)
-                .containsOnlyKeys("id", "title", "description", "color", "contactCount", "photoRevision")
+                .containsOnlyKeys("id", "title", "description", "color", "contactCount", "photoRevision", "role")
                 .containsEntry("description", "Opis B")
                 .containsEntry("color", "mah")
                 .containsEntry("contactCount", 0);
@@ -110,54 +104,84 @@ class GroupListIT extends ApiTest {
     }
 
     @Test
-    @Tag("FR-002-04")
-    void eachSectionIsPaginatedSeparately() throws Exception {
+    @Tag("FR-020-11")
+    void roleFilterNarrowsTheListAndTotal() throws Exception {
         SignedIn ana = registeredUser("Ana Novak");
+        SignedIn bojan = registeredUser("Bojan Kos");
         long anaId = fixtures.userId(ana.uid());
+        long bojanId = fixtures.userId(bojan.uid());
+        fixtures.createGroup(anaId, "Moja");
+        UUID editor = fixtures.createGroup(bojanId, "Urejam");
+        fixtures.addMember(editor, anaId, "EDITOR");
+
+        Map<String, Object> body = page(get("/api/groups?role=EDITOR", ana.idToken()));
+
+        assertThat(body).containsEntry("total", 1);
+        assertThat(titles(body)).containsExactly("Urejam");
+        assertThat(items(body).getFirst()).containsEntry("role", "EDITOR");
+    }
+
+    @Test
+    @Tag("FR-020-11")
+    void paginationRunsAcrossRoles() throws Exception {
+        SignedIn ana = registeredUser("Ana Novak");
+        SignedIn bojan = registeredUser("Bojan Kos");
+        long anaId = fixtures.userId(ana.uid());
+        long bojanId = fixtures.userId(bojan.uid());
         for (int i = 1; i <= 30; i++) {
-            fixtures.createGroup(anaId, "Skupina %02d".formatted(i));
+            UUID group = fixtures.createGroup(bojanId, "Skupina %02d".formatted(i));
+            if (i % 2 == 0) {
+                fixtures.addMember(group, anaId, i % 4 == 0 ? "EDITOR" : "VIEWER");
+            } else {
+                fixtures.addMember(group, anaId, "ADMIN");
+            }
         }
 
-        Map<String, Object> first =
-                sections(get("/api/groups?lang=sl", ana.idToken())).getFirst();
-        HttpResponse<String> secondResponse = get("/api/groups?role=OWNER&page=1&lang=sl", ana.idToken());
-        Map<String, Object> second = sections(secondResponse).getFirst();
+        Map<String, Object> first = page(get("/api/groups?lang=sl", ana.idToken()));
+        Map<String, Object> second = page(get("/api/groups?page=1&lang=sl", ana.idToken()));
 
-        assertThat(first)
-                .containsEntry("role", "OWNER")
-                .containsEntry("total", 30)
-                .containsEntry("page", 0);
+        assertThat(first).containsEntry("total", 30).containsEntry("page", 0).containsEntry("size", 25);
         assertThat(items(first)).hasSize(25);
-        assertThat(secondResponse.statusCode()).isEqualTo(200);
-        assertThat(sections(secondResponse)).hasSize(1);
-        assertThat(second).containsEntry("total", 30).containsEntry("page", 1).containsEntry("size", 25);
+        assertThat(second).containsEntry("total", 30).containsEntry("page", 1);
         List<String> all = new ArrayList<>(titles(first));
         all.addAll(titles(second));
         assertThat(all)
                 .containsExactlyElementsOf(IntStream.rangeClosed(1, 30)
                         .mapToObj("Skupina %02d"::formatted)
                         .toList());
+        assertThat(items(first).stream().map(i -> i.get("role")).distinct()).hasSizeGreaterThan(1);
 
-        Map<String, Object> ten =
-                sections(get("/api/groups?size=10&lang=sl", ana.idToken())).getFirst();
+        Map<String, Object> ten = page(get("/api/groups?size=10&lang=sl", ana.idToken()));
         assertThat(items(ten)).hasSize(10);
         assertThat(ten).containsEntry("size", 10).containsEntry("total", 30);
     }
 
     @Test
-    @Tag("FR-002-04")
-    void sectionForARoleWithoutGroupsIsEmpty() throws Exception {
+    @Tag("FR-020-11")
+    void pageBeyondTheEndIsEmptyWithoutRoleFilter() throws Exception {
         SignedIn ana = registeredUser("Ana Novak");
-        fixtures.createGroup(fixtures.userId(ana.uid()), "Samo lastnik");
+        fixtures.createGroup(fixtures.userId(ana.uid()), "Edina");
 
-        HttpResponse<String> response = get("/api/groups?role=EDITOR", ana.idToken());
+        Map<String, Object> body = page(get("/api/groups?page=3", ana.idToken()));
 
-        assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(sections(response)).isEmpty();
+        assertThat(body).containsEntry("total", 1).containsEntry("page", 3);
+        assertThat(items(body)).isEmpty();
     }
 
     @Test
-    @Tag("FR-002-04")
+    @Tag("FR-020-11")
+    void roleWithoutGroupsGivesEmptyPage() throws Exception {
+        SignedIn ana = registeredUser("Ana Novak");
+        fixtures.createGroup(fixtures.userId(ana.uid()), "Samo lastnik");
+
+        Map<String, Object> body = page(get("/api/groups?role=EDITOR", ana.idToken()));
+
+        assertThat(body).containsEntry("total", 0);
+        assertThat(items(body)).isEmpty();
+    }
+
+    @Test
+    @Tag("FR-020-11")
     void titlesAreSortedByTheRulesOfTheInterfaceLanguage() throws Exception {
         SignedIn ana = registeredUser("Ana Novak");
         long anaId = fixtures.userId(ana.uid());
@@ -165,17 +189,15 @@ class GroupListIT extends ApiTest {
             fixtures.createGroup(anaId, title);
         }
 
-        List<String> slovenian =
-                titles(sections(get("/api/groups?lang=sl", ana.idToken())).getFirst());
-        List<String> english =
-                titles(sections(get("/api/groups?lang=en", ana.idToken())).getFirst());
+        List<String> slovenian = titles(page(get("/api/groups?lang=sl", ana.idToken())));
+        List<String> english = titles(page(get("/api/groups?lang=en", ana.idToken())));
 
         assertThat(slovenian).containsExactly("Cesta", "Čebela", "Dom", "Sova", "Šola", "Zebra", "Žaba");
         assertThat(english).containsExactly("Čebela", "Cesta", "Dom", "Šola", "Sova", "Žaba", "Zebra");
     }
 
     @Test
-    @Tag("FR-002-04")
+    @Tag("FR-020-11")
     void equalTitlesArePagedStablyWithoutDuplicatesOrGaps() throws Exception {
         SignedIn ana = registeredUser("Ana Novak");
         long anaId = fixtures.userId(ana.uid());
@@ -186,10 +208,8 @@ class GroupListIT extends ApiTest {
 
         Set<Object> seen = new HashSet<>();
         for (int page = 0; page < 2; page++) {
-            Map<String, Object> section = sections(
-                            get("/api/groups?role=OWNER&page=" + page + "&lang=sl", ana.idToken()))
-                    .getFirst();
-            items(section).forEach(item -> assertThat(seen.add(item.get("id"))).isTrue());
+            Map<String, Object> body = page(get("/api/groups?role=OWNER&page=" + page + "&lang=sl", ana.idToken()));
+            items(body).forEach(item -> assertThat(seen.add(item.get("id"))).isTrue());
         }
         assertThat(seen).hasSize(30);
         assertThat(seen.stream().map(id -> UUID.fromString((String) id)).toList())
@@ -201,12 +221,11 @@ class GroupListIT extends ApiTest {
         "size=0, size",
         "size=101, size",
         "size=abc, size",
-        "page=-1&role=OWNER, page",
+        "page=-1, page",
         "role=OWNERX, role",
         "lang=de, lang",
-        "page=1, page"
     })
-    @Tag("FR-002-04")
+    @Tag("FR-020-11")
     void invalidParametersAreRejected(String query, String field) throws Exception {
         SignedIn ana = registeredUser("Ana Novak");
 

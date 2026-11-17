@@ -19,8 +19,8 @@ description: "Naloge: Prenova vmesnika (Kartoteka v2) – ena izvedba, testi zno
 
 ## Phase 1: Setup
 
-- [ ] T001 — `design.md` zamenjaj z vsebino Kartoteke v2 (R-02): načela, barve, tipografija, prostor, oblike, sence, gibanje, ilustracije, komponente, zasloni, prepovedi; ohrani §10 (dostopnost), §11 (besedila), §12 (PWA), §13 (implementacija, posodobi na `--k-*` v2) in dodaj zgodovino različice v2 (.specify/memory/design.md) FR-020-01
-- [ ] T002 [P] — Popravi `specs/002-skupine/spec.md` (FR-002-04 … -06: razdelki po vlogah → en seznam z značko vloge) in `specs/002-skupine/contracts/openapi.yaml` (`GroupSections` → `GroupPage` iz `contracts/openapi.yaml` te funkcionalnosti) FR-020-10
+- [x] T001 — `design.md` zamenjaj z vsebino Kartoteke v2 (R-02): načela, barve, tipografija, prostor, oblike, sence, gibanje, ilustracije, komponente, zasloni, prepovedi; ohrani §10 (dostopnost), §11 (besedila), §12 (PWA), §13 (implementacija, posodobi na `--k-*` v2) in dodaj zgodovino različice v2 (.specify/memory/design.md) FR-020-01
+- [x] T002 [P] — Popravi `specs/002-skupine/spec.md` (FR-002-04 … -06: razdelki po vlogah → en seznam z značko vloge) in `specs/002-skupine/contracts/openapi.yaml` (`GroupSections` → `GroupPage` iz `contracts/openapi.yaml` te funkcionalnosti) FR-020-10
 
 ---
 
@@ -28,15 +28,15 @@ description: "Naloge: Prenova vmesnika (Kartoteka v2) – ena izvedba, testi zno
 
 ### Paket A – zaledje (`GET /api/groups` in matrika izolacije)
 
-- [ ] T003 FR-020-10, FR-020-11 — `GET /api/groups` vrne `GroupPage {total,page,size,items[role…]}`: `GroupPage` (nov record), `GroupService.list`, `GroupRepository.countGroups`/`pageGroups` (naslov po kolaciji `lang`, nato id; `role` neobvezen; `page` vedno dovoljen), `GroupController`; odstrani `GroupSection`, `GroupSections`, `countByRole`, `pageByRole` (backend/src/main/java/si/contactmanager/group/)
-- [ ] T004 FR-020-10, FR-020-11 — Posodobi IT na novo obliko: `GroupListIT`, `GroupSearchIT`, `GroupCreateIT`, `GroupArchiveIT`, `GroupUnarchiveIT`, `GroupPhotoIT`, `InvitationAcceptIT`, `ContactReadIT`, `GroupFixtures` (najdi z `grep -rln "sections\|GroupSection" backend/src/test`); nov scenarij: ena stran čez vloge, filter `role`, `q`, paginacija čez več vlog, razvrstitev po naslovu
-- [ ] T005 FR-020-10, FR-020-11 — Matrika izolacije **GET /api/groups** (`GroupIsolationMatrixSecurityIT`, posodobi): neprijavljen (brez, neveljaven, potečen žeton) 401; prijavljen vidi samo svoje skupine (tuje skupine in tuji uporabnik z enakim `q` niso razkriti), uporabnik brez profila 200 prazen; neveljavni `role`/`size`/`lang` 400; arhivirane niso v seznamu
-- [ ] T006 [P] FR-020-13, FR-020-05 — Matrika **GET /api/groups/archived** (`ArchiveIsolationMatrixSecurityIT`, preveri ali dopolni): neprijavljen 401 (3 različice), samo lastne arhivirane, nečlan ne vidi tuje, `size=1` vrne pravilen `total`
-- [ ] T007 [P] FR-020-05 — Matrika **GET /api/invitations/count** (obstoječi IT povabil, preveri ali dopolni): neprijavljen 401 (3 različice), samo lastna povabila, uporabnik brez profila `count: 0`
-- [ ] T008 [P] FR-020-06, FR-020-08 — Matrika **GET /api/groups/{groupId}** (`GroupIsolationMatrixSecurityIT`, preveri vnos): neprijavljen 401, nečlan in neobstoječa skupina 404, VIEWER/EDITOR/ADMIN/OWNER 200, arhivirana in trajno arhivirana 200
-- [ ] T009 [P] FR-020-19 — Matrika **PUT /api/groups/{groupId}/contacts/{contactId}** (`ContactIsolationMatrixSecurityIT`, preveri ali dopolni): 401 (3 različice), nečlan in neobstoječ kontakt 404, VIEWER 403, EDITOR/ADMIN/OWNER 2xx, arhivirana in trajno arhivirana 409 GROUP_ARCHIVED
-- [ ] T010 [P] FR-020-19 — Matrika **DELETE /api/groups/{groupId}/contacts/{contactId}** (`ContactIsolationMatrixSecurityIT`, preveri ali dopolni): enaki akterji kot T009 (204 za EDITOR in višje; arhivirana 409 GROUP_ARCHIVED)
-- [ ] T011 [P] FR-020-19 — Matrika **GET /api/groups/{groupId}/audit?contact=** (`AuditIsolationMatrixSecurityIT`, preveri ali dopolni): 401 (3 različice), nečlan 404, VIEWER in višje 200, filter na kontakt tuje skupine ne razkrije vnosov, arhivirana skupina 200
+- [x] T003 FR-020-10, FR-020-11 — `GET /api/groups` vrne `GroupPage {total,page,size,items[role…]}`: `GroupPage` (nov record), `GroupService.list`, `GroupRepository.countGroups`/`pageGroups` (naslov po kolaciji `lang`, nato id; `role` neobvezen; `page` vedno dovoljen), `GroupController`; odstrani `GroupSection`, `GroupSections`, `countByRole`, `pageByRole` (backend/src/main/java/si/contactmanager/group/)
+- [x] T004 FR-020-10, FR-020-11 — Posodobi IT na novo obliko: `GroupListIT`, `GroupSearchIT`, `GroupCreateIT`, `GroupArchiveIT`, `GroupUnarchiveIT`, `GroupPhotoIT`, `InvitationAcceptIT`, `ContactReadIT`, `GroupFixtures` (najdi z `grep -rln "sections\|GroupSection" backend/src/test`); nov scenarij: ena stran čez vloge, filter `role`, `q`, paginacija čez več vlog, razvrstitev po naslovu
+- [x] T005 FR-020-10, FR-020-11 — Matrika izolacije **GET /api/groups** (`GroupIsolationMatrixSecurityIT`, posodobi): neprijavljen (brez, neveljaven, potečen žeton) 401; prijavljen vidi samo svoje skupine (tuje skupine in tuji uporabnik z enakim `q` niso razkriti), uporabnik brez profila 200 prazen; neveljavni `role`/`size`/`lang` 400; arhivirane niso v seznamu
+- [x] T006 [P] FR-020-13, FR-020-05 — Matrika **GET /api/groups/archived** (`ArchiveIsolationMatrixSecurityIT`, preveri ali dopolni): neprijavljen 401 (3 različice), samo lastne arhivirane, nečlan ne vidi tuje, `size=1` vrne pravilen `total`
+- [x] T007 [P] FR-020-05 — Matrika **GET /api/invitations/count** (obstoječi IT povabil, preveri ali dopolni): neprijavljen 401 (3 različice), samo lastna povabila, uporabnik brez profila `count: 0`
+- [x] T008 [P] FR-020-06, FR-020-08 — Matrika **GET /api/groups/{groupId}** (`GroupIsolationMatrixSecurityIT`, preveri vnos): neprijavljen 401, nečlan in neobstoječa skupina 404, VIEWER/EDITOR/ADMIN/OWNER 200, arhivirana in trajno arhivirana 200
+- [x] T009 [P] FR-020-19 — Matrika **PUT /api/groups/{groupId}/contacts/{contactId}** (`ContactIsolationMatrixSecurityIT`, preveri ali dopolni): 401 (3 različice), nečlan in neobstoječ kontakt 404, VIEWER 403, EDITOR/ADMIN/OWNER 2xx, arhivirana in trajno arhivirana 409 GROUP_ARCHIVED
+- [x] T010 [P] FR-020-19 — Matrika **DELETE /api/groups/{groupId}/contacts/{contactId}** (`ContactIsolationMatrixSecurityIT`, preveri ali dopolni): enaki akterji kot T009 (204 za EDITOR in višje; arhivirana 409 GROUP_ARCHIVED)
+- [x] T011 [P] FR-020-19 — Matrika **GET /api/groups/{groupId}/audit?contact=** (`AuditIsolationMatrixSecurityIT`, preveri ali dopolni): 401 (3 različice), nečlan 404, VIEWER in višje 200, filter na kontakt tuje skupine ne razkrije vnosov, arhivirana skupina 200
 
 ### Paket B – odjemalci in skupni pomočniki
 

@@ -4,9 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Collection;
-import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -228,36 +226,31 @@ class GroupRepository {
                 .update();
     }
 
-    /** Število nearhiviranih skupin uporabnika po vlogi (FR-002-04). */
-    Map<Role, Long> countByRole(long user, String q) {
-        Map<Role, Long> counts = new EnumMap<>(Role.class);
-        StatementSpec spec = jdbc.sql("SELECT m.role, count(*) AS total FROM group_member m"
-                + " JOIN contact_group g ON g.id = m.group_id"
-                + " WHERE m.user_id = :user AND g.archived_at IS NULL" + GroupSearch.condition(q) + " GROUP BY m.role");
-        filtered(spec, user, q, List.of()).query((ResultSet rs) -> {
-            while (rs.next()) {
-                counts.put(Role.valueOf(rs.getString("role")), rs.getLong("total"));
-            }
-            return counts;
-        });
-        return counts;
+    /** Število nearhiviranih skupin uporabnika, neobvezno samo v vlogi {@code role} (FR-020-10). */
+    long countGroups(long user, String q, Role role) {
+        List<Role> roles = role == null ? List.of() : List.of(role);
+        StatementSpec spec = jdbc.sql("SELECT count(*) FROM group_member m JOIN contact_group g ON g.id = m.group_id"
+                + " WHERE m.user_id = :user AND g.archived_at IS NULL" + GroupSearch.condition(q)
+                + roleCondition(roles));
+        return filtered(spec, user, q, roles).query(Long.class).single();
     }
 
     /**
-     * Stran razdelka, urejena po naslovu po pravilih jezika (ICU kolacija iz zaprte preslikave, D-28), nato po id za
-     * stabilno paginacijo pri enakih naslovih.
+     * Stran nearhiviranih skupin čez vse vloge, urejena po naslovu po pravilih jezika (ICU kolacija iz zaprte
+     * preslikave, D-28), nato po id za stabilno paginacijo pri enakih naslovih.
      */
-    List<GroupSummary> pageByRole(long user, String q, Role role, Collation collation, int size, int page) {
-        StatementSpec spec = jdbc.sql("SELECT g.id, g.title, g.description, g.color,"
+    List<GroupSummary> pageGroups(long user, String q, Role role, Collation collation, int size, int page) {
+        List<Role> roles = role == null ? List.of() : List.of(role);
+        StatementSpec spec = jdbc.sql("SELECT g.id, g.title, g.description, g.color, m.role,"
                 + " (SELECT count(*) FROM contact k WHERE k.group_id = g.id) AS contacts,"
                 + " (SELECT i.revision FROM image i WHERE i.kind = 'GROUP' AND i.group_id = g.id) AS photo_revision"
                 + " FROM group_member m JOIN contact_group g ON g.id = m.group_id"
-                + " WHERE m.user_id = :user AND m.role = :role AND g.archived_at IS NULL"
+                + " WHERE m.user_id = :user AND g.archived_at IS NULL"
                 + GroupSearch.condition(q)
+                + roleCondition(roles)
                 + " ORDER BY g.title COLLATE " + collation.sqlName() + ", g.id"
                 + " LIMIT :size OFFSET :offset");
-        return filtered(spec, user, q, List.of())
-                .param("role", role.name())
+        return filtered(spec, user, q, roles)
                 .param("size", size)
                 .param("offset", (long) page * size)
                 // Število kontaktov skupine (004, research R-12).
@@ -267,7 +260,8 @@ class GroupRepository {
                         rs.getString("description"),
                         rs.getString("color"),
                         rs.getInt("contacts"),
-                        rs.getObject("photo_revision", Long.class)))
+                        rs.getObject("photo_revision", Long.class),
+                        Role.valueOf(rs.getString("role"))))
                 .list();
     }
 

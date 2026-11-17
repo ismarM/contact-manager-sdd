@@ -34,9 +34,9 @@ class InvitationAcceptIT extends InvitationApiTest {
                         "groupId", group.toString(), "title", "Projekt FERI", "role", "EDITOR", "archived", false));
         assertThat(invitations.memberRole(group, id(invitee))).contains("EDITOR");
         assertThat(invitations.exists(invitation)).isFalse();
-        List<Map<String, Object>> sections = JSON.convertValue(
-                json(get("/api/groups", invitee.idToken()).body()).get("sections"), ROWS);
-        assertThat(sections).extracting(s -> s.get("role")).contains("EDITOR");
+        List<Map<String, Object>> items = JSON.convertValue(
+                json(get("/api/groups", invitee.idToken()).body()).get("items"), ROWS);
+        assertThat(items).extracting(s -> s.get("role")).contains("EDITOR");
         assertThat(get("/api/groups/" + group, invitee.idToken()).statusCode()).isEqualTo(200);
     }
 

@@ -32,11 +32,10 @@ paths:
         "401": { $ref: "#/components/responses/Unauthenticated" }
     get:
       operationId: listMyGroups
-      summary: Moje nearhivirane skupine po vlogah, paginirano po razdelkih (FR-002-04, -05, -06)
+      summary: Moje nearhivirane skupine kot en paginiran seznam z vlogo na elementu (FR-002-04, -05; spremenjeno z 020)
       description: >
-        Brez `role` vrne prvo stran vsakega nepraznega razdelka (OWNER, ADMIN, EDITOR, VIEWER); z `role` in `page` samo
-        izbrani razdelek. Skupine so urejene po naslovu po pravilih jezika `lang`, nato po `id`. Arhiviranih in tujih
-        skupin ni.
+        En seznam čez vse vloge; z `role` samo skupine v tej vlogi. Skupine so urejene po naslovu po pravilih jezika
+        `lang`, nato po `id`. Arhiviranih in tujih skupin ni. Natančna pogodba: specs/020-prenova-vmesnika/contracts.
       parameters:
         - { name: role, in: query, required: false, schema: { $ref: "#/components/schemas/Role" } }
         - { name: page, in: query, required: false, schema: { type: integer, minimum: 0, default: 0 } }
@@ -44,10 +43,10 @@ paths:
         - { name: lang, in: query, required: false, schema: { type: string, enum: [sl, en], default: en } }
       responses:
         "200":
-          description: Razdelki; razdelek brez skupin ni vključen, uporabnik brez skupin dobi `sections: []`.
+          description: Stran skupin; uporabnik brez skupin dobi `items: []` in `total: 0`.
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/GroupSections" }
+              schema: { $ref: "#/components/schemas/GroupPage" }
         "400": { $ref: "#/components/responses/ValidationFailed" }
         "401": { $ref: "#/components/responses/Unauthenticated" }
   /api/groups/{groupId}:
@@ -167,32 +166,26 @@ components:
           description: "null = izbrisan uporabnik."
     GroupSummary:
       type: object
-      required: [id, title, description, color, contactCount]
+      required: [id, title, description, color, contactCount, role]
       properties:
         id: { type: string, format: uuid }
         title: { type: string }
         description: { type: [string, "null"] }
         color: { $ref: "#/components/schemas/Color" }
         contactCount: { type: integer, minimum: 0, description: "Do 004 vedno 0." }
-    GroupSection:
-      type: object
-      required: [role, total, page, size, items]
-      properties:
+        photoRevision: { type: [integer, "null"] }
         role: { $ref: "#/components/schemas/Role" }
-        total: { type: integer, minimum: 1 }
+    GroupPage:
+      type: object
+      required: [total, page, size, items]
+      properties:
+        total: { type: integer, format: int64, minimum: 0 }
         page: { type: integer, minimum: 0 }
         size: { type: integer, minimum: 1, maximum: 100 }
         items:
           type: array
           maxItems: 100
           items: { $ref: "#/components/schemas/GroupSummary" }
-    GroupSections:
-      type: object
-      required: [sections]
-      properties:
-        sections:
-          type: array
-          items: { $ref: "#/components/schemas/GroupSection" }
     Error:
       type: object
       required: [code]

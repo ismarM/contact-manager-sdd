@@ -1,8 +1,6 @@
 package si.contactmanager.group;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -23,9 +21,6 @@ import si.contactmanager.shared.error.VersionConflictException;
 /** Primeri uporabe skupin (plan.md – REST endpoints); dostop preveri {@link GroupAccess} pred klicem. */
 @Service
 class GroupService {
-
-    /** Vrstni red razdelkov (FR-002-04). */
-    private static final List<Role> SECTION_ORDER = List.of(Role.OWNER, Role.ADMIN, Role.EDITOR, Role.VIEWER);
 
     private final GroupRepository groups;
 
@@ -153,18 +148,9 @@ class GroupService {
                         .toList());
     }
 
-    /** Razdelki po vlogi (FR-002-04, FR-002-06): brez {@code role} prva stran vsakega nepraznega razdelka. */
-    GroupSections list(long user, String q, Role role, int page, int size, Collation collation) {
-        Map<Role, Long> counts = groups.countByRole(user, q);
-        List<GroupSection> sections = new ArrayList<>();
-        for (Role sectionRole : SECTION_ORDER) {
-            long total = counts.getOrDefault(sectionRole, 0L);
-            if (total == 0 || (role != null && role != sectionRole)) {
-                continue;
-            }
-            List<GroupSummary> items = groups.pageByRole(user, q, sectionRole, collation, size, page);
-            sections.add(new GroupSection(sectionRole, total, page, size, items));
-        }
-        return new GroupSections(sections);
+    /** Moje nearhivirane skupine kot en seznam z vlogo na elementu (FR-020-10, FR-020-11). */
+    GroupPage list(long user, String q, Role role, int page, int size, Collation collation) {
+        return new GroupPage(
+                groups.countGroups(user, q, role), page, size, groups.pageGroups(user, q, role, collation, size, page));
     }
 }

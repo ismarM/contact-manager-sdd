@@ -56,9 +56,9 @@ class GroupController {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(parsed.input(), users.ensure(jwt)));
     }
 
-    /** Moje nearhivirane skupine po vlogah (FR-002-04, FR-002-05, FR-002-06). */
+    /** Moje nearhivirane skupine kot en seznam z vlogo (FR-020-10, FR-020-11). */
     @GetMapping
-    GroupSections list(
+    GroupPage list(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) String role,
             @RequestParam(required = false) String q,
@@ -71,15 +71,12 @@ class GroupController {
         Integer pageNumber = parseInt(page, 0, 0, Integer.MAX_VALUE, "page", errors);
         Integer pageSize = parseInt(size, DEFAULT_SIZE, 1, MAX_SIZE, "size", errors);
         Collation collation = parseLang(lang, errors);
-        if (sectionRole == null && pageNumber != null && pageNumber != 0) {
-            errors.add(new FieldError("page", "INVALID_VALUE"));
-        }
         if (!errors.isEmpty()) {
             throw new ValidationException(errors);
         }
         return users.find(jwt)
                 .map(user -> service.list(user, search, sectionRole, pageNumber, pageSize, collation))
-                .orElseGet(() -> new GroupSections(List.of()));
+                .orElseGet(() -> new GroupPage(0, pageNumber, pageSize, List.of()));
     }
 
     /** Glava in Podatki skupine (FR-002-07, FR-002-08, FR-002-10); dovoljeno tudi v arhivirani skupini. */

@@ -43,10 +43,10 @@ class GroupUnarchiveIT extends ApiTest {
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(json(response.body())).containsEntry("archived", false);
         assertThat(fixtures.archivedAt(group)).isNull();
-        List<Map<String, Object>> sections =
-                JSON.convertValue(json(get("/api/groups", ana.idToken()).body()).get("sections"), LIST);
-        assertThat(sections).hasSize(1);
-        assertThat(sections.getFirst()).containsEntry("role", "OWNER");
+        List<Map<String, Object>> items =
+                JSON.convertValue(json(get("/api/groups", ana.idToken()).body()).get("items"), LIST);
+        assertThat(items).hasSize(1);
+        assertThat(items.getFirst()).containsEntry("role", "OWNER");
     }
 
     @Test

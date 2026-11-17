@@ -185,4 +185,49 @@ class ContactIsolationMatrixSecurityIT extends ContactApiTest {
         assertThat(contacts.row(foreign)).isEqualTo(rowBefore);
         assertThat(contacts.count(s.group())).isZero();
     }
+
+    @ParameterizedTest(name = "neobstoječ kontakt, {0}")
+    @EnumSource(
+            value = Actor.class,
+            names = {"VIEWER", "EDITOR", "ADMIN", "OWNER"})
+    @Tag("FR-020-19")
+    void aMissingContactIsNotFoundForUpdateAndDelete(Actor actor) throws Exception {
+        Scenario s = scenario();
+        Map<String, String> headers = Http.bearer(s.token(Who.valueOf(actor.name())));
+        String path = contactsPath(s.group());
+        UUID missing = UUID.randomUUID();
+
+        HttpResponse<String> update = send(Endpoint.UPDATE, s.group(), missing, headers, path);
+        HttpResponse<String> remove = send(Endpoint.DELETE, s.group(), missing, headers, path);
+
+        assertThat(update.statusCode()).isEqualTo(404);
+        assertThat(update.body()).isEmpty();
+        assertThat(remove.statusCode()).isEqualTo(404);
+        assertThat(remove.body()).isEmpty();
+    }
+
+    @ParameterizedTest(name = "trajno arhivirana skupina, {0}")
+    @EnumSource(
+            value = Actor.class,
+            names = {"VIEWER", "EDITOR", "ADMIN"})
+    @Tag("FR-020-19")
+    void writesInAPermanentlyArchivedGroupAreRejected(Actor actor) throws Exception {
+        Scenario s = scenario();
+        UUID contact = contacts.insert(s.group(), s.id(Who.OWNER), "Janez", "Novak");
+        groups.makePermanentlyArchived(s.group());
+        Map<String, Object> rowBefore = contacts.row(contact);
+        Map<String, String> headers = Http.bearer(s.token(Who.valueOf(actor.name())));
+        String path = contactsPath(s.group());
+
+        HttpResponse<String> update = send(Endpoint.UPDATE, s.group(), contact, headers, path);
+        HttpResponse<String> remove = send(Endpoint.DELETE, s.group(), contact, headers, path);
+
+        int status = actor == Actor.VIEWER ? 403 : 409;
+        String code = actor == Actor.VIEWER ? "FORBIDDEN" : "GROUP_ARCHIVED";
+        assertThat(update.statusCode()).isEqualTo(status);
+        assertThat(json(update.body())).isEqualTo(Map.of("code", code));
+        assertThat(remove.statusCode()).isEqualTo(status);
+        assertThat(json(remove.body())).isEqualTo(Map.of("code", code));
+        assertThat(contacts.row(contact)).isEqualTo(rowBefore);
+    }
 }

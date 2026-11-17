@@ -24,7 +24,7 @@ import si.contactmanager.support.Tokens;
  * Matrika izolacije endpointov skupine (konstitucija III in §3.1; FR-002-07, FR-002-08, FR-002-10,
  * FR-002-11): {@code GET} in {@code PUT /api/groups/{groupId}} × akter × stanje skupine. Neprijavljen 401, nečlan 404
  * brez telesa, vloga pod najnižjo 403 FORBIDDEN (D-25), pisanje v arhivirani skupini 409 GROUP_ARCHIVED (vloga se
- * preveri pred stanjem, feature-map §2.2). Uporabniška endpointa {@code POST}/{@code GET /api/groups}: 401.
+ * preveri pred stanjem, feature-map §2.2). Uporabniška endpointa {@code POST}/{@code GET /api/groups}: 401; seznam (020): samo lastne nearhivirane skupine.
  */
 @Tag("FR-002-01")
 @Tag("FR-002-04")
@@ -32,6 +32,7 @@ import si.contactmanager.support.Tokens;
 @Tag("FR-002-08")
 @Tag("FR-002-10")
 @Tag("FR-002-11")
+@Tag("FR-020-10")
 class GroupIsolationMatrixSecurityIT extends ApiTest {
 
     enum Actor {
@@ -181,5 +182,82 @@ class GroupIsolationMatrixSecurityIT extends ApiTest {
         assertThat(response.statusCode()).isEqualTo(401);
         assertThat(json(response.body())).isEqualTo(Map.of("code", "UNAUTHENTICATED"));
         assertThat(fixtures.groupCount()).isEqualTo(groupsBefore);
+    }
+
+    @ParameterizedTest(name = "GET /api/groups/{id} na trajno arhivirani skupini, {0}")
+    @MethodSource("readers")
+    @Tag("FR-020-06")
+    @Tag("FR-020-08")
+    void permanentlyArchivedGroupIsReadableByRemainingMembers(Actor actor) throws Exception {
+        GroupFixtures fixtures = new GroupFixtures(jdbc);
+        Map<Actor, SignedIn> users = new EnumMap<>(Actor.class);
+        for (Actor member : List.of(Actor.NON_MEMBER, Actor.VIEWER, Actor.EDITOR, Actor.ADMIN)) {
+            users.put(member, registeredUser(member.name()));
+        }
+        SignedIn former = registeredUser("PREJSNJI");
+        UUID group = fixtures.createGroup(fixtures.userId(former.uid()), "Trajno");
+        for (Actor member : List.of(Actor.VIEWER, Actor.EDITOR, Actor.ADMIN)) {
+            fixtures.addMember(group, fixtures.userId(users.get(member).uid()), member.name());
+        }
+        fixtures.makePermanentlyArchived(group);
+        Map<String, Object> before = fixtures.row(group);
+
+        HttpResponse<String> response = Http.send("GET", url("/api/groups/" + group), headers(actor, users, former));
+
+        if (actor == Actor.NON_MEMBER) {
+            assertThat(response.statusCode()).isEqualTo(404);
+            assertThat(response.body()).isEmpty();
+        } else {
+            assertThat(response.statusCode()).isEqualTo(200);
+            assertThat(json(response.body()))
+                    .containsEntry("role", actor.name())
+                    .containsEntry("archived", true);
+        }
+        assertThat(fixtures.row(group)).isEqualTo(before);
+    }
+
+    static Stream<Actor> readers() {
+        return Stream.of(Actor.NON_MEMBER, Actor.VIEWER, Actor.EDITOR, Actor.ADMIN);
+    }
+
+    @org.junit.jupiter.api.Test
+    @Tag("FR-020-10")
+    @Tag("FR-020-11")
+    void listShowsOnlyOwnNonArchivedGroupsAndNeverRevealsForeignOnes() throws Exception {
+        GroupFixtures fixtures = new GroupFixtures(jdbc);
+        SignedIn ana = registeredUser("Ana Seznam");
+        SignedIn bojan = registeredUser("Bojan Seznam");
+        long anaId = fixtures.userId(ana.uid());
+        long bojanId = fixtures.userId(bojan.uid());
+        fixtures.createGroup(anaId, "Skupnost Ana");
+        fixtures.createGroup(bojanId, "Skupnost Bojan");
+        UUID archived = fixtures.createGroup(anaId, "Skupnost arhiv");
+        fixtures.archive(archived);
+
+        Map<String, Object> mine =
+                json(get("/api/groups?q=skupnost", ana.idToken()).body());
+        Map<String, Object> foreignOnly =
+                json(get("/api/groups?q=skupnost", registeredUser("Cene Brez").idToken())
+                        .body());
+
+        assertThat(mine).containsEntry("total", 1);
+        assertThat(mine.get("items").toString()).contains("Skupnost Ana").doesNotContain("Bojan", "arhiv");
+        assertThat(foreignOnly).containsEntry("total", 0).containsEntry("items", List.of());
+        assertThat(get("/api/groups?q=skupnost", newGoogleUser("Brez profila").idToken())
+                        .body())
+                .contains("\"total\":0");
+    }
+
+    @ParameterizedTest(name = "GET /api/groups?{0} → 400")
+    @org.junit.jupiter.params.provider.ValueSource(
+            strings = {"role=GOST", "size=0", "size=101", "size=abc", "page=-1", "lang=de"})
+    @Tag("FR-020-11")
+    void listRejectsInvalidParameters(String query) throws Exception {
+        SignedIn ana = registeredUser("Ana Parametri");
+
+        HttpResponse<String> response = get("/api/groups?" + query, ana.idToken());
+
+        assertThat(response.statusCode()).isEqualTo(400);
+        assertThat(json(response.body())).containsEntry("code", "VALIDATION_FAILED");
     }
 }
