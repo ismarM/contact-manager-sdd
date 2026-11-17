@@ -22,7 +22,7 @@ describe('zaščitene poti, odjava in potek seje', () => {
 
     act(() => gateway.resolveInitialState());
 
-    expect(await screen.findByRole('button', { name: 'Prijava z Googlom' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Nadaljuj z Googlom' })).toBeInTheDocument();
     expect(window.location.pathname).toBe('/login');
     expect(searchParam('next')).toBe('/account?x=1');
     expect(screen.queryByRole('heading', { name: 'Moj račun' })).not.toBeInTheDocument();
@@ -32,7 +32,7 @@ describe('zaščitene poti, odjava in potek seje', () => {
     mockProfileApi();
     const { user } = renderApp('/account?x=1');
 
-    await user.click(await screen.findByRole('button', { name: 'Prijava z Googlom' }));
+    await user.click(await screen.findByRole('button', { name: 'Nadaljuj z Googlom' }));
 
     await waitFor(() => expect(currentLocation()).toBe('/account?x=1'));
     expect(await screen.findByRole('heading', { level: 1, name: 'Moj račun' })).toBeInTheDocument();
@@ -42,7 +42,7 @@ describe('zaščitene poti, odjava in potek seje', () => {
     mockProfileApi();
     const { user } = renderApp('/login?next=%2F%2Fzlonamerno.si');
 
-    await user.click(await screen.findByRole('button', { name: 'Prijava z Googlom' }));
+    await user.click(await screen.findByRole('button', { name: 'Nadaljuj z Googlom' }));
 
     await waitFor(() => expect(currentLocation()).toBe('/'));
   });
@@ -55,14 +55,14 @@ describe('zaščitene poti, odjava in potek seje', () => {
       await screen.findByRole('heading', { level: 1, name: i18n.t('apiDocs.heading') }),
     ).toBeInTheDocument();
     expect(currentLocation()).toBe('/api-docs');
-    expect(screen.queryByRole('button', { name: 'Prijava z Googlom' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Nadaljuj z Googlom' })).not.toBeInTheDocument();
   });
 
   it('FR-001-06: neprijavljen na neobstoječi poti gre na prijavo, po prijavi vidi »Te strani ni«', async () => {
     mockProfileApi();
     const { user } = renderApp('/ne-obstaja');
 
-    await user.click(await screen.findByRole('button', { name: 'Prijava z Googlom' }));
+    await user.click(await screen.findByRole('button', { name: 'Nadaljuj z Googlom' }));
 
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Te strani ni' }),
@@ -84,7 +84,7 @@ describe('zaščitene poti, odjava in potek seje', () => {
     await user.click(screen.getByRole('button', { name: 'Meni računa' }));
     await user.click(await screen.findByRole('menuitem', { name: 'Odjava' }));
 
-    expect(await screen.findByRole('button', { name: 'Prijava z Googlom' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Nadaljuj z Googlom' })).toBeInTheDocument();
     expect(currentLocation()).toBe('/login');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(gateway.signOutCalls).toBe(1);
@@ -96,7 +96,7 @@ describe('zaščitene poti, odjava in potek seje', () => {
 
     await waitFor(() => expect(searchParam('next')).toBe('/'));
     expect(window.location.pathname).toBe('/login');
-    expect(screen.getByRole('button', { name: 'Prijava z Googlom' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Nadaljuj z Googlom' })).toBeInTheDocument();
     expect(screen.queryByRole('banner')).not.toBeInTheDocument();
     expect(document.body).not.toHaveTextContent('Ana Novak');
 
@@ -127,7 +127,7 @@ describe('zaščitene poti, odjava in potek seje', () => {
     expect(window.location.pathname).toBe('/login');
     expect(searchParam('next')).toBe('/account');
 
-    await user.click(screen.getByRole('button', { name: 'Prijava z Googlom' }));
+    await user.click(screen.getByRole('button', { name: 'Nadaljuj z Googlom' }));
     await waitFor(() => expect(currentLocation()).toBe('/account'));
   });
 
@@ -146,7 +146,7 @@ describe('zaščitene poti, odjava in potek seje', () => {
     expect(searchParam('next')).toBe('/account');
     expect(gateway.signOutCalls).toBe(0);
 
-    await user.click(screen.getByRole('button', { name: 'Prijava z Googlom' }));
+    await user.click(screen.getByRole('button', { name: 'Nadaljuj z Googlom' }));
     await waitFor(() => expect(currentLocation()).toBe('/account'));
   });
 
@@ -167,7 +167,7 @@ describe('zaščitene poti, odjava in potek seje', () => {
     expect(api.requests.filter((r) => r.path === '/api/me/preferences')).toHaveLength(0);
 
     await user.click(
-      screen.getByRole('button', { name: /^(Prijava z Googlom|Sign in with Google)$/ }),
+      screen.getByRole('button', { name: /^(Nadaljuj z Googlom|Continue with Google)$/ }),
     );
     await waitFor(() => expect(currentLocation()).toBe('/account'));
   });
@@ -189,7 +189,7 @@ describe('zaščitene poti, odjava in potek seje', () => {
     expect(searchParam('next')).toBe('/account');
     expect(api.requests.filter((r) => r.path === '/api/me/preferences')).toHaveLength(0);
 
-    await user.click(screen.getByRole('button', { name: 'Prijava z Googlom' }));
+    await user.click(screen.getByRole('button', { name: 'Nadaljuj z Googlom' }));
     await waitFor(() => expect(currentLocation()).toBe('/account'));
   });
 });

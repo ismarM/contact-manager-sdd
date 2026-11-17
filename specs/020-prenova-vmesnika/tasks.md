@@ -108,12 +108,12 @@ description: "Naloge: Prenova vmesnika (Kartoteka v2) – ena izvedba, testi zno
 
 **Goal**: pozdravna ploskev, vrstni red Google → ločilo → e-pošta in geslo, pravila gesla sproti. **Independent Test**: tokovi 001/017 delujejo kot prej pri 360 in 1280 px.
 
-- [ ] T041 FR-020-14, FR-020-09 — `AuthLayout`: dva stolpca na namizju (hero z naslovom, stavkom, ilustracijo T021 in počasnim vzorcem po FR-020-03), na telefonu pas z besedno znamko, izbiro jezika in naslovom (frontend/src/features/auth/AuthCard.tsx → AuthLayout.tsx)
-- [ ] T042 FR-020-14 — `LoginPage`/`AuthForm`: *Nadaljuj z Googlom*, ločilo »ali z e-pošto«, e-pošta, geslo z gumbom za prikaz, »Pozabljeno geslo?« (podčrtano), polni primarni gumb, povezava na drugi zaslon (frontend/src/features/auth/{LoginPage,AuthForm}.tsx)
-- [ ] T043 FR-020-14, FR-020-15 — `RegisterPage` s tremi prednostmi in `PasswordRules`: seznam pravil 017 (`passwordValidation.ts`) z ikono in besedilom, stanje ob zapustitvi polja v `aria-live` (frontend/src/features/auth/{RegisterPage,PasswordRules}.tsx)
-- [ ] T044 [P] FR-020-16, FR-020-24 — `VerifyEmailPage`, `ForgotPasswordPage` in `NotFoundPage` po platnu (pozdravna ploskev ali sredinska kartica z ilustracijo), brez spremembe vedenja (frontend/src/features/auth/, frontend/src/shared/pages/NotFoundPage.tsx)
-- [ ] T045 [P] FR-020-14 … -16 — FE testi (tokovi 017 z MSW/emulator-fake, pravila gesla, 404, vitest-axe) (frontend/src/features/auth/*.test.tsx)
-- [ ] T046 FR-020-14 … -16 — E2E: `prijava.spec.ts`, `prijava-geslo.spec.ts` na novih zaslonih, axe, 360 in 1280 px (e2e/tests/)
+- [x] T041 FR-020-14, FR-020-09 — `AuthLayout`: dva stolpca na namizju (hero z naslovom, stavkom, ilustracijo T021 in počasnim vzorcem po FR-020-03), na telefonu pas z besedno znamko, izbiro jezika in naslovom (frontend/src/features/auth/AuthCard.tsx → AuthLayout.tsx)
+- [x] T042 FR-020-14 — `LoginPage`/`AuthForm`: *Nadaljuj z Googlom*, ločilo »ali z e-pošto«, e-pošta, geslo z gumbom za prikaz, »Pozabljeno geslo?« (podčrtano), polni primarni gumb, povezava na drugi zaslon (frontend/src/features/auth/{LoginPage,AuthForm}.tsx)
+- [x] T043 FR-020-14, FR-020-15 — `RegisterPage` s tremi prednostmi in `PasswordRules`: seznam pravil 017 (`passwordValidation.ts`) z ikono in besedilom, stanje ob zapustitvi polja v `aria-live` (frontend/src/features/auth/{RegisterPage,PasswordRules}.tsx)
+- [x] T044 [P] FR-020-16, FR-020-24 — `VerifyEmailPage`, `ForgotPasswordPage` in `NotFoundPage` po platnu (pozdravna ploskev ali sredinska kartica z ilustracijo), brez spremembe vedenja (frontend/src/features/auth/, frontend/src/shared/pages/NotFoundPage.tsx)
+- [x] T045 [P] FR-020-14 … -16 — FE testi (tokovi 017 z MSW/emulator-fake, pravila gesla, 404, vitest-axe) (frontend/src/features/auth/*.test.tsx)
+- [x] T046 FR-020-14 … -16 — E2E: `prijava.spec.ts`, `prijava-geslo.spec.ts` na novih zaslonih, axe, 360 in 1280 px (e2e/tests/)
 
 ---
 

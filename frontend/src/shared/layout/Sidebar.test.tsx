@@ -70,9 +70,10 @@ describe('Sidebar', () => {
   it('FR-020-05: v navigaciji ni seznama skupin, gumba Nova skupina ne stikala teme', async () => {
     renderGroupsApp('/', { list: listReply(BY_ROLE) });
 
-    await mainNav();
-    expect(screen.queryByRole('link', { name: 'Alfa' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Nova skupina' })).not.toBeInTheDocument();
+    // Spremenjeno (020, US3): zaslon Skupine ima zbirko kartic in gumb Nova skupina, zato se preverja samo navigacija.
+    const nav = await mainNav();
+    expect(within(nav).queryByRole('link', { name: 'Alfa' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('button', { name: 'Nova skupina' })).not.toBeInTheDocument();
     expect(screen.queryByRole('switch')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /tema/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('banner')).not.toBeInTheDocument();

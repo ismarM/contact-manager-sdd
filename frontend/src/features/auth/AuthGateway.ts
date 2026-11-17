@@ -47,7 +47,7 @@ export interface AuthGateway {
    * ustavi.
    */
   onChange(listener: (user: AuthUser | null) => void): () => void;
-  /** Prijava z Googlom; ob neuspehu vrže {@link SignInError}. */
+  /** Nadaljuj z Googlom; ob neuspehu vrže {@link SignInError}. */
   signInWithGoogle(): Promise<void>;
   /** Prijava z e-naslovom in geslom (FR-017-05); ob neuspehu vrže {@link SignInError}. */
   signInWithPassword(email: string, password: string): Promise<void>;

@@ -26,17 +26,17 @@ export async function completeGooglePopup(popup: Page, user: TestUser): Promise<
     await popup.getByRole('button', { name: 'Add new account' }).click();
     await popup.getByLabel('Email', { exact: true }).fill(user.email);
     await popup.getByLabel('Display name', { exact: true }).fill(user.name);
-    const submit = popup.getByRole('button', { name: /Sign in with Google/ });
+    const submit = popup.getByRole('button', { name: /Continue with Google/ });
     await expect(submit).toBeEnabled();
     await submit.click();
   }
   await popupClosed;
 }
 
-/** Klikne »Prijava z Googlom« (sl ali en) in v oknu emulatorja izbere obstoječ račun ali ga ustvari. */
+/** Klikne »Nadaljuj z Googlom« (sl ali en) in v oknu emulatorja izbere obstoječ račun ali ga ustvari. */
 export async function signIn(page: Page, user: TestUser): Promise<void> {
   const popupOpened = page.waitForEvent('popup');
-  await page.getByRole('button', { name: /^(Prijava z Googlom|Sign in with Google)$/ }).click();
+  await page.getByRole('button', { name: /^(Nadaljuj z Googlom|Continue with Google)$/ }).click();
   await completeGooglePopup(await popupOpened, user);
 }
 

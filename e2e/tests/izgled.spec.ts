@@ -59,7 +59,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
   }) => {
     await page.emulateMedia({ colorScheme });
     await page.goto('/');
-    await expect(page.getByRole('button', { name: 'Prijava z Googlom' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Nadaljuj z Googlom' })).toBeVisible();
     await expectNoAxeViolations(page);
     await expectNoHorizontalScroll(page);
 

@@ -23,7 +23,7 @@ async function htmlAttribute(page: Page, name: string) {
   return page.evaluate((attribute) => document.documentElement.getAttribute(attribute), name);
 }
 
-const signInButton = (page: Page) => page.getByRole('button', { name: 'Prijava z Googlom' });
+const signInButton = (page: Page) => page.getByRole('button', { name: 'Nadaljuj z Googlom' });
 
 test.use({ locale: 'sl-SI' });
 
@@ -222,7 +222,7 @@ test('FR-001-15 FR-001-17 FR-001-19: jezik in tema veljajo po osvežitvi, po odj
   await expect(page.getByRole('heading', { level: 1, name: 'My account' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Sign out' }).click();
-  await expect(page.getByRole('button', { name: 'Sign in with Google' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible();
   await expect.poll(() => htmlAttribute(page, 'data-theme')).toBe('dark');
   await expect(page).toHaveTitle('Sign in – Contacts');
 
@@ -249,10 +249,10 @@ test('FR-001-15: jezik na strani za prijavo se zamenja in shrani na napravi', as
 
   await languages.getByRole('button', { name: 'English' }).click();
 
-  await expect(page.getByRole('button', { name: 'Sign in with Google' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible();
   await expect(page).toHaveTitle('Sign in – Contacts');
   await page.reload();
-  await expect(page.getByRole('button', { name: 'Sign in with Google' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible();
   await expect.poll(() => htmlAttribute(page, 'lang')).toBe('en');
 });
 

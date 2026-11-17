@@ -41,7 +41,7 @@ const accountMenu = (page: Page) => page.getByRole('button', { name: 'Meni raču
 async function signOut(page: Page) {
   await accountMenu(page).click();
   await page.getByRole('menuitem', { name: 'Odjava' }).click();
-  await expect(page.getByRole('button', { name: 'Prijava z Googlom' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Nadaljuj z Googlom' })).toBeVisible();
 }
 
 test.use({ locale: 'sl-SI' });
@@ -68,6 +68,18 @@ test('FR-017-01 FR-017-02 FR-017-03 FR-017-04 FR-017-13: registracija, 403 pred 
   await expect(page.getByRole('heading', { level: 1, name: N.registerHeading })).toBeVisible();
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);
+
+  // 020: pravila gesla sproti (ikona + besedilo) in gumb za prikaz gesla.
+  const rules = page.getByRole('list', { name: 'Pravila gesla' });
+  await expect(rules).toContainText('Najmanj 8 znakov – ni izpolnjeno');
+  const passwordField = page.getByLabel(N.password, { exact: true });
+  await passwordField.fill(password);
+  await expect(rules).toContainText('Najmanj 8 znakov – izpolnjeno');
+  await page.getByRole('button', { name: 'Pokaži geslo' }).click();
+  await expect(passwordField).toHaveAttribute('type', 'text');
+  await page.getByRole('button', { name: 'Pokaži geslo' }).click();
+  await expect(passwordField).toHaveAttribute('type', 'password');
+  await expectNoAxeViolations(page);
 
   await registerWithPassword(page, email, password);
 

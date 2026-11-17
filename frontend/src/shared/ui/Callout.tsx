@@ -20,17 +20,23 @@ export function Callout({
   children,
   action,
   className,
+  announce = true,
+  role,
 }: {
   tone: Tone;
   children: ReactNode;
   /** Npr. gumb *Poskusi znova*. */
   action?: ReactNode;
   className?: string;
+  /** `false`: brez vloge (obvestilo že objavlja nadrejeno živo področje). */
+  announce?: boolean;
+  /** Vloga namesto privzete (opozorilo, ki ga je treba objaviti kot `alert`). */
+  role?: 'alert' | 'status';
 }) {
   const { box, icon, Icon } = TONE[tone];
   return (
     <div
-      role={tone === 'error' ? 'alert' : 'status'}
+      role={announce ? (role ?? (tone === 'error' ? 'alert' : 'status')) : undefined}
       className={cn(
         'flex items-start gap-3 rounded-md border border-border p-3 text-foreground',
         box,

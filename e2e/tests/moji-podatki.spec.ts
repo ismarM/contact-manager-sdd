@@ -380,7 +380,7 @@ test('FR-012-05 FR-012-07 FR-012-08 FR-012-09 FR-012-11 FR-012-12 FR-012-14 FR-0
   // Druga naprava: seja izbrisanega računa ne velja več – prvi zahtevek je 401 in vodi na prijavo.
   await downloadButton(device2).click();
   await expect(device2).toHaveURL(/\/login/);
-  await expect(device2.getByRole('button', { name: 'Prijava z Googlom' })).toBeVisible();
+  await expect(device2.getByRole('button', { name: 'Nadaljuj z Googlom' })).toBeVisible();
 
   // Ponovna prijava z istim Google računom: nov, prazen račun.
   await signIn(page, ana);

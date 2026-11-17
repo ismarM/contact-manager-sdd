@@ -24,7 +24,7 @@
   },
   "login": {
     "tagline": "Kontakti tvojih projektov in podjetij, na enem mestu.",
-    "signIn": "Prijava z Googlom",
+    "signIn": "Nadaljuj z Googlom",
     "sessionExpired": "Seja je potekla. Prijavi se znova.",
     "error": {
       "cancelled": "Prijava je bila prekinjena. Poskusi znova.",
@@ -58,20 +58,29 @@
         "passwordRequired": "Vpiši geslo.",
         "passwordTooShort": "Geslo mora imeti najmanj 8 znakov.",
         "passwordMismatch": "Gesli se ne ujemata."
+      },
+      "showPassword": "Pokaži geslo",
+      "rules": {
+        "heading": "Pravila gesla",
+        "minLength": "Najmanj 8 znakov",
+        "met": "izpolnjeno",
+        "unmet": "ni izpolnjeno"
       }
     },
     "login": {
-      "or": "ali",
+      "or": "ali z e-pošto",
       "submit": "Prijava z geslom",
       "forgot": "Pozabljeno geslo?",
-      "register": "Ustvari račun z e-naslovom"
+      "register": "Ustvari račun z e-naslovom",
+      "heading": "Prijava"
     },
     "register": {
       "documentTitle": "Registracija – Kontakti",
       "heading": "Ustvari račun",
       "submit": "Ustvari račun",
       "haveAccount": "Že imaš račun?",
-      "signIn": "Prijava"
+      "signIn": "Prijava",
+      "intro": "Ustvari račun z e-naslovom in geslom. Že uporabljaš Google? Prijavi se z Googlom in geslo dodaš pozneje v Mojem računu."
     },
     "verify": {
       "documentTitle": "Potrdi e-naslov – Kontakti",
@@ -91,6 +100,14 @@
       "submit": "Pošlji povezavo",
       "sent": "Če račun s tem e-naslovom obstaja, smo nanj poslali sporočilo s povezavo za novo geslo.",
       "back": "Nazaj na prijavo"
+    },
+    "hero": {
+      "loginText": "Skupine, vloge in sledljive spremembe – vse na enem mestu.",
+      "registerTitle": "Začni svojo kartoteko.",
+      "registerText": "Zbiraj kontakte v skupinah in jih deli s sodelavci z jasnimi vlogami.",
+      "benefit1": "Skupine z vlogami za vsakogar",
+      "benefit2": "Vsaka sprememba je zabeležena in povrnljiva",
+      "benefit3": "Uvoz in izvoz kontaktov"
     }
   },
   "shell": {
@@ -398,7 +415,8 @@
   "notFound": {
     "heading": "Te strani ni",
     "text": "Povezava je napačna ali pa stran ni več na voljo.",
-    "back": "Na seznam skupin"
+    "back": "Na seznam skupin",
+    "code": "Napaka 404"
   },
   "contacts": {
     "heading": "Kontakti",

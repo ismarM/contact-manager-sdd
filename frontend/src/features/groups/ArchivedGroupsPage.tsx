@@ -18,12 +18,12 @@ export function ArchivedGroupsPage() {
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 md:gap-7 md:px-8 md:py-8">
-      <header className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1">
         <h1 ref={heading} tabIndex={-1} className="text-2xl font-semibold outline-none md:text-3xl">
           {t('groups.archivedList.heading')}
         </h1>
         <p className="text-muted-foreground">{t('groups.archivedList.subtitle')}</p>
-      </header>
+      </div>
       <GroupBrowser
         kind="archived"
         headingRef={heading}

@@ -3,11 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { Link, Navigate, useSearchParams } from 'react-router';
 
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
-import { focusRing, primaryButton } from '../../shared/ui/styles';
+import { primaryButton, textLink } from '../../shared/ui/styles';
 import { useAuth } from './authContext';
-import { AuthAlert, AuthCard } from './AuthCard';
+import { AuthAlert, AuthLayout } from './AuthLayout';
 import { authErrorKey } from './authErrorKey';
 import { AuthField, ErrorSummary, useAuthForm } from './AuthForm';
+import { PasswordRules, passwordRulesAnnouncement } from './PasswordRules';
 import { safeNextPath } from './safeNextPath';
 
 /**
@@ -25,6 +26,8 @@ export function RegisterPage() {
   const emailId = useId();
   const passwordId = useId();
   const confirmId = useId();
+  const rulesId = useId();
+  const [announcement, setAnnouncement] = useState('');
 
   const next = params.get('next');
   if (status === 'signedIn') return <Navigate to={safeNextPath(next)} replace />;
@@ -52,7 +55,15 @@ export function RegisterPage() {
   };
 
   return (
-    <AuthCard heading={t('auth.register.heading')}>
+    <AuthLayout
+      heading={t('auth.register.heading')}
+      hero={{
+        title: t('auth.hero.registerTitle'),
+        text: t('auth.hero.registerText'),
+        benefits: [t('auth.hero.benefit1'), t('auth.hero.benefit2'), t('auth.hero.benefit3')],
+      }}
+    >
+      <p className="text-muted-foreground">{t('auth.register.intro')}</p>
       {failure && <AuthAlert>{failure}</AuthAlert>}
       {form.summaryVisible && (
         <ErrorSummary
@@ -61,11 +72,7 @@ export function RegisterPage() {
           summaryRef={form.summaryRef}
         />
       )}
-      <form
-        noValidate
-        onSubmit={(event) => void submit(event)}
-        className="mt-6 flex flex-col gap-4"
-      >
+      <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-4">
         <AuthField
           id={emailId}
           label={t('auth.form.email')}
@@ -76,17 +83,28 @@ export function RegisterPage() {
           onChange={(value) => form.change('email', value)}
           onBlur={() => form.blur('email')}
         />
-        <AuthField
-          id={passwordId}
-          label={t('auth.form.password')}
-          type="password"
-          autoComplete="new-password"
-          value={form.values.password}
-          hint={t('auth.form.passwordHint')}
-          error={fieldError('password')}
-          onChange={(value) => form.change('password', value)}
-          onBlur={() => form.blur('password')}
-        />
+        <div className="flex flex-col gap-2">
+          <AuthField
+            id={passwordId}
+            label={t('auth.form.password')}
+            type="password"
+            autoComplete="new-password"
+            value={form.values.password}
+            describedBy={rulesId}
+            error={fieldError('password')}
+            revealable
+            onChange={(value) => form.change('password', value)}
+            onBlur={() => {
+              form.blur('password');
+              if (form.values.password)
+                setAnnouncement(passwordRulesAnnouncement(t, form.values.password));
+            }}
+          />
+          <PasswordRules id={rulesId} password={form.values.password} />
+          <p role="status" className="sr-only">
+            {announcement}
+          </p>
+        </div>
         <AuthField
           id={confirmId}
           label={t('auth.form.passwordConfirm')}
@@ -101,15 +119,15 @@ export function RegisterPage() {
           {t('auth.register.submit')}
         </button>
       </form>
-      <p className="mt-6">
+      <p className="text-center">
         {t('auth.register.haveAccount')}{' '}
         <Link
           to={next ? `/login?${new URLSearchParams({ next }).toString()}` : '/login'}
-          className={`font-bold text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`}
+          className={`font-semibold ${textLink}`}
         >
           {t('auth.register.signIn')}
         </Link>
       </p>
-    </AuthCard>
+    </AuthLayout>
   );
 }

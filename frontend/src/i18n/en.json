@@ -24,7 +24,7 @@
   },
   "login": {
     "tagline": "Contacts for your projects and companies, in one place.",
-    "signIn": "Sign in with Google",
+    "signIn": "Continue with Google",
     "sessionExpired": "Your session has expired. Please sign in again.",
     "error": {
       "cancelled": "Sign-in was cancelled. Please try again.",
@@ -58,20 +58,29 @@
         "passwordRequired": "Enter your password.",
         "passwordTooShort": "The password must have at least 8 characters.",
         "passwordMismatch": "The passwords don't match."
+      },
+      "showPassword": "Show password",
+      "rules": {
+        "heading": "Password rules",
+        "minLength": "At least 8 characters",
+        "met": "met",
+        "unmet": "not met"
       }
     },
     "login": {
-      "or": "or",
+      "or": "or with email",
       "submit": "Sign in with password",
       "forgot": "Forgot password?",
-      "register": "Create an account with email"
+      "register": "Create an account with email",
+      "heading": "Sign in"
     },
     "register": {
       "documentTitle": "Create account – Contacts",
       "heading": "Create account",
       "submit": "Create account",
       "haveAccount": "Already have an account?",
-      "signIn": "Sign in"
+      "signIn": "Sign in",
+      "intro": "Create an account with your email and a password. Already use Google? Sign in with Google instead and add a password later in My account."
     },
     "verify": {
       "documentTitle": "Verify your email – Contacts",
@@ -91,6 +100,14 @@
       "submit": "Send link",
       "sent": "If an account with this email exists, we've sent it a link to set a new password.",
       "back": "Back to sign in"
+    },
+    "hero": {
+      "loginText": "Groups, roles and traceable changes – all in one place.",
+      "registerTitle": "Start your card file.",
+      "registerText": "Keep contacts in groups and share them with teammates using clear roles.",
+      "benefit1": "Groups with roles for everyone",
+      "benefit2": "Every change is recorded and reversible",
+      "benefit3": "Import and export your contacts"
     }
   },
   "shell": {
@@ -398,7 +415,8 @@
   "notFound": {
     "heading": "Page not found",
     "text": "The link is wrong or the page is no longer available.",
-    "back": "Back to groups"
+    "back": "Back to groups",
+    "code": "Error 404"
   },
   "contacts": {
     "heading": "Contacts",
