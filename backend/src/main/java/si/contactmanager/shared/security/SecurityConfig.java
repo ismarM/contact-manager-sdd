@@ -54,6 +54,7 @@ public class SecurityConfig {
                         resourceServer.jwt(jwt -> jwt.decoder(decoder)).authenticationEntryPoint(unauthenticated))
                 .exceptionHandling(errors -> errors.authenticationEntryPoint(unauthenticated)
                         .accessDeniedHandler((request, response, exception) -> unauthenticated(response, json)))
+                .addFilterBefore(new IdentityProviderUnavailableFilter(json), BearerTokenAuthenticationFilter.class)
                 .addFilterAfter(new EmailVerifiedFilter(json), BearerTokenAuthenticationFilter.class)
                 .build();
     }
