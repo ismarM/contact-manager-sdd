@@ -161,7 +161,7 @@ function RestoreBody({
     setMessage(null);
     try {
       await api.restore(group.id, contactId, body);
-      toast(
+      toast.success(
         ref === INITIAL || !when
           ? t('history.restore.toastInitial')
           : t('history.restore.toast', { time: when }),

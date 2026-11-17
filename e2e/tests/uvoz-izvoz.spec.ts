@@ -158,7 +158,7 @@ test('FR-014-21 FR-014-22 FR-014-25: geslo za aplikacijo odpre CardDAV; po prekl
   const password = (await dialog.getByRole('definition').nth(4).textContent())?.trim() ?? '';
   expect(password).toMatch(/^([a-z0-9]{4}-){6}[a-z0-9]{4}$/);
   await expectNoAxeViolations(page);
-  await dialog.getByRole('button', { name: NAMES.close }).click();
+  await dialog.getByRole('button', { name: NAMES.close, exact: true }).click();
 
   const propfind = () =>
     request.fetch('/dav/addressbooks/', {

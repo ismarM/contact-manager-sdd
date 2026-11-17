@@ -1,3 +1,5 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
+import { EmptyState } from '../../shared/ui/EmptyState';
 import { IconAlertTriangle, IconArrowLeft, IconGitCompare, IconTrash } from '@tabler/icons-react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -6,7 +8,7 @@ import { Link, useSearchParams } from 'react-router';
 import { Avatar } from '../../shared/images/Avatar';
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
-import { card, errorAlert, focusRing, secondaryButton, softButton } from '../../shared/ui/styles';
+import { backLink, card, errorAlert, secondaryButton, softButton } from '../../shared/ui/styles';
 import { useGroup } from '../groups/groupContext';
 import { SectionPagination } from '../groups/SectionPagination';
 import { useDelayed } from '../groups/useDelayed';
@@ -21,8 +23,6 @@ type State =
   | { kind: 'failed' }
   | { kind: 'notFound' }
   | { kind: 'ready'; data: History };
-
-const link = `text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`;
 
 /**
  * Zgodovina kontakta (plan.md 015 – Pages and routes; FR-015-05 … FR-015-09, FR-015-19): paginirana časovnica z
@@ -120,7 +120,7 @@ export function ContactHistoryPage({ contactId }: { contactId: string }) {
             ? `${base}/contacts/${contactId}`
             : `${base}/deleted-contacts`
         }
-        className={`inline-flex items-center gap-1 self-start ${link}`}
+        className={`inline-flex items-center gap-1 self-start ${backLink}`}
       >
         <IconArrowLeft aria-hidden="true" size={20} stroke={1.75} />
         {status === undefined || status === 'ACTIVE'
@@ -176,13 +176,14 @@ export function ContactHistoryPage({ contactId }: { contactId: string }) {
         </div>
       )}
 
-      {state.kind === 'loading' && showLoader && <p role="status">{t('history.page.loading')}</p>}
+      {state.kind === 'loading' && showLoader && <LoadingState label={t('history.page.loading')} />}
 
       {data && data.total === 0 && !data.contact.hasInitial && (
-        <div className="flex flex-col items-start gap-1 py-4">
-          <h3 className="text-lg font-bold">{t('history.page.empty')}</h3>
-          <p>{t('history.page.emptyText')}</p>
-        </div>
+        <EmptyState
+          headingLevel={3}
+          title={t('history.page.empty')}
+          text={t('history.page.emptyText')}
+        />
       )}
 
       {data && (data.total > 0 || data.contact.hasInitial) && (

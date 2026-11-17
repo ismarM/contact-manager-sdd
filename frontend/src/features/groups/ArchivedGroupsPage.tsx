@@ -1,3 +1,4 @@
+import { EmptyState } from '../../shared/ui/EmptyState';
 import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -28,13 +29,16 @@ export function ArchivedGroupsPage() {
         kind="archived"
         headingRef={heading}
         empty={
-          <section className="flex flex-col items-center gap-3 py-10 text-center">
-            <NoContactsIllustration size={180} />
-            <h2 className="text-xl font-semibold">{t('groups.archivedList.empty')}</h2>
-            <Link to="/" className={textLink}>
-              {t('groups.archivedList.back')}
-            </Link>
-          </section>
+          <EmptyState
+            centered
+            illustration={<NoContactsIllustration size={180} />}
+            title={t('groups.archivedList.empty')}
+            action={
+              <Link to="/" className={textLink}>
+                {t('groups.archivedList.back')}
+              </Link>
+            }
+          />
         }
       />
     </div>

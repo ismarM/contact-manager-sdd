@@ -1,3 +1,4 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -80,7 +81,7 @@ function Changes({ entryId, photoChange }: { entryId: string; photoChange?: Phot
       </div>
     );
   }
-  if (state.kind === 'loading') return <p role="status">{t('audit.details.loading')}</p>;
+  if (state.kind === 'loading') return <LoadingState label={t('audit.details.loading')} />;
 
   const { data } = state;
   return (

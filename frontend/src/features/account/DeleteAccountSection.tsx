@@ -1,3 +1,4 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -87,9 +88,7 @@ export function DeleteAccountSection() {
       </h2>
       <p className="max-w-prose text-muted-foreground">{t('account.delete.consequences')}</p>
       {blockers.state === 'loading' && (
-        <p role="status" className="text-muted-foreground">
-          {t('account.delete.loading')}
-        </p>
+        <LoadingState label={t('account.delete.loading')} className="text-muted-foreground" />
       )}
       {blockers.state === 'failed' && (
         <div className="flex flex-col items-start gap-2">

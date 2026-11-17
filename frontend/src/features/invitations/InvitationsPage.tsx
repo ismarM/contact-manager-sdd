@@ -1,3 +1,5 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
+import { EmptyState } from '../../shared/ui/EmptyState';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -129,7 +131,7 @@ export function InvitationsPage() {
       const joined = await api.accept(invitation.id);
       removeLocally(invitation);
       groups.refresh();
-      toast(
+      toast.success(
         <span>
           {t('invitations.toast.joined', { title: joined.title })}{' '}
           <Link
@@ -165,7 +167,7 @@ export function InvitationsPage() {
           <span>{failure}</span>
         </div>
       )}
-      {showLoader && <p role="status">{t('invitations.page.loading')}</p>}
+      {showLoader && <LoadingState label={t('invitations.page.loading')} />}
       {!loading && result === null && (
         <div role="alert" className={errorAlert}>
           <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
@@ -176,11 +178,12 @@ export function InvitationsPage() {
         </div>
       )}
       {empty && (
-        <section className="flex flex-col items-center gap-3 py-8 text-center">
-          <NoInvitationsIllustration size={180} />
-          <h2 className="text-xl font-semibold">{t('invitations.page.emptyTitle')}</h2>
-          <p className="max-w-prose text-muted-foreground">{t('invitations.page.emptyText')}</p>
-        </section>
+        <EmptyState
+          centered
+          illustration={<NoInvitationsIllustration size={180} />}
+          title={t('invitations.page.emptyTitle')}
+          text={t('invitations.page.emptyText')}
+        />
       )}
       {result && result.items.length > 0 && (
         <ul
@@ -200,7 +203,7 @@ export function InvitationsPage() {
               onAccept={() => void accept(invitation)}
               onDeclined={() => {
                 removeLocally(invitation);
-                toast(t('invitations.toast.declined'));
+                toast.success(t('invitations.toast.declined'));
               }}
               onError={(error) => fail(error, 'decline')}
             />

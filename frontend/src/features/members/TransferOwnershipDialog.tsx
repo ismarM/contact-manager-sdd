@@ -96,7 +96,7 @@ export function TransferOwnershipDialog({
       setOpen(false);
       onOpenChange?.(false);
       setGroup(detail);
-      toast(t('members.toast.transferred', { name: chosen.name ?? chosen.email }));
+      toast.success(t('members.toast.transferred', { name: chosen.name ?? chosen.email }));
       refresh();
     } catch (error) {
       const result = memberFailure(error, 'transfer');

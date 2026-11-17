@@ -1,3 +1,4 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -200,11 +201,7 @@ function GroupScreen({
     );
   }
   if (!context) {
-    return showLoader ? (
-      <p role="status" className="px-4 py-8">
-        {t('groups.loading')}
-      </p>
-    ) : null;
+    return showLoader ? <LoadingState label={t('groups.loading')} className="px-4 py-8" /> : null;
   }
 
   return (

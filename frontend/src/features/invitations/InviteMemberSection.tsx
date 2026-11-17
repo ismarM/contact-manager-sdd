@@ -79,7 +79,7 @@ export function InviteMemberSection({ onSent }: { onSent?: () => void }) {
     setBusy(true);
     try {
       await api.send(group.id, { email: email.trim(), role });
-      toast(t('invitations.toast.sent'));
+      toast.success(t('invitations.toast.sent'));
       setEmail('');
       setRole(null);
       setErrors({});

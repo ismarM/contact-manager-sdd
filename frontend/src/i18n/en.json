@@ -268,11 +268,15 @@
     "grafit": "Graphite",
     "rja": "Rust"
   },
+  "dialog": {
+    "close": "Close dialog"
+  },
   "toast": {
     "region": "Notifications",
     "close": "Close notification"
   },
   "ui": {
+    "optional": "(optional)",
     "badge": {
       "archived": "Archived",
       "permanentlyArchived": "Permanently archived",

@@ -27,7 +27,7 @@ export function UnarchiveButton({ className = secondaryButton }: { className?: s
     setFailure(null);
     try {
       setGroup(await api.unarchiveGroup(group.id));
-      toast(t('groups.toast.unarchived'));
+      toast.success(t('groups.toast.unarchived'));
       refresh();
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) {

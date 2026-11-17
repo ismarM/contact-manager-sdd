@@ -154,7 +154,7 @@ export function AppPasswordsSection() {
                 item={item}
                 revoke={api.revoke}
                 onRevoked={() => {
-                  toast(t('account.appPasswords.revoked', { name: item.name }));
+                  toast.success(t('account.appPasswords.revoked', { name: item.name }));
                   reload();
                 }}
               />
@@ -352,7 +352,7 @@ function CopyRow({
           onClick={() => {
             void navigator.clipboard
               ?.writeText(value)
-              .then(() => toast(t('account.appPasswords.copied')));
+              .then(() => toast.success(t('account.appPasswords.copied')));
           }}
         >
           <IconCopy aria-hidden="true" size={20} stroke={1.75} />

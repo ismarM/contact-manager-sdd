@@ -128,6 +128,8 @@ Potrditveni dialog (design.md 8.11) je obvezen za: izbris kontakta (tudi množi�
 - Vsa besedila v slovenščini in angleščini; privzeto po jeziku brskalnika (`sl` → slovenščina, sicer angleščina); izbira v *Mojem računu* ima prednost.
 - Datumi in časi v zapisu izbranega jezika.
 - WCAG 2.1 AA, odzivno (320 px naprej), PWA – po konstituciji in design.md.
+- Kartoteka v2 (020): `GET /api/groups` vrne en paginiran seznam `{total, page, size, items[]}` z `role` na elementu (parametri `q`, `role`, `page`, `size`, `lang`); kartica skupine nosi značko vloge in stanja; navigacija ima števce (skupine, arhivirane, nova povabila; brez števca, če jih ni) iz `GET /api/groups?size=1`, `GET /api/groups/archived?size=1` in `GET /api/invitations/count`; glava skupine kaže vlogo in stanje skupine; značka *Povrnjeno* ni na kartici kontakta, podatek je samo v sledi in zgodovini.
+- Skupni vzorci vmesnika: prazno stanje (`EmptyState`: naslov, stavek, dejanje samo po vlogi in stanju skupine; ilustracija le na zaslonih brez podatkov), skelet po 300 ms (`LoadingState`), obvestila z ikono in zapiranjem, vsak dialog ima gumb X »Zapri dialog«, neobvezna polja imajo oznako »(neobvezno)« ob `label` (zunaj dostopnega imena).
 
 ### 2.10 Register kod napak
 

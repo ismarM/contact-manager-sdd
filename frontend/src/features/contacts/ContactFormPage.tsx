@@ -1,3 +1,4 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
 import { IconAlertTriangle, IconArrowLeft } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -5,7 +6,7 @@ import { Link, useLocation } from 'react-router';
 
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
-import { errorAlert, focusRing, secondaryButton, warningAlert } from '../../shared/ui/styles';
+import { backLink, errorAlert, secondaryButton, warningAlert } from '../../shared/ui/styles';
 import { useGroup } from '../groups/groupContext';
 import { useDelayed } from '../groups/useDelayed';
 import { isNotFound, useContactsApi } from './api';
@@ -20,7 +21,7 @@ type State =
   | { kind: 'notFound' }
   | { kind: 'ready'; contact: ContactDetail };
 
-const link = `inline-flex items-center gap-1 self-start text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`;
+const link = `inline-flex items-center gap-1 self-start ${backLink}`;
 
 /**
  * Stran *Nov kontakt* (brez `contactId`) in *Uredi kontakt* (FR-004-01, -10): obrazec samo za EDITOR+ v nearhivirani
@@ -101,7 +102,7 @@ export function ContactFormPage({ contactId }: { contactId?: string }) {
         <ContactForm key={state.contact.id} contact={state.contact} labelledBy={headingId} />
       )}
       {contactId && state.kind === 'loading' && showLoader && (
-        <p role="status">{t('contacts.list.loading')}</p>
+        <LoadingState label={t('contacts.list.loading')} />
       )}
       {contactId && state.kind === 'failed' && (
         <div role="alert" className={errorAlert}>

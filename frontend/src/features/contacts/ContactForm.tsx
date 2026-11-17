@@ -22,6 +22,7 @@ import { conflictCurrent, type FailureKey, failureKey, useContactsApi, useKeyLoo
 import { ContactConflictAlert } from './ContactConflictAlert';
 import { ContactPhotoSection } from './ContactPhotoSection';
 import { AttributeTransferDialog, type TransferRequest } from './AttributeTransfer';
+import { FieldLabel } from '../../shared/ui/FieldLabel';
 import { CountryField } from './CountryField';
 import { SuggestInput } from './SuggestInput';
 import { TagInput } from './TagInput';
@@ -564,7 +565,7 @@ export function ContactForm({
         ? await api.updateContact(group.id, contact.id, { ...input, version: sendVersion })
         : await api.createContact(group.id, input);
       leaving.current = true;
-      toast(t('contacts.toast.saved', { name: saved.displayName }));
+      toast.success(t('contacts.toast.saved', { name: saved.displayName }));
       void navigate(`${base}/${saved.id}${search}`);
     } catch (error) {
       const current = conflictCurrent(error);
@@ -666,9 +667,9 @@ export function ContactForm({
   const countryList = t('contacts.form.countryList');
   const textField = (field: Field, label: string, props: Record<string, string> = {}) => (
     <div className="flex flex-col gap-1">
-      <label htmlFor={domId(field)} className="font-bold">
+      <FieldLabel htmlFor={domId(field)} optional={field !== 'firstName' && field !== 'lastName'}>
         {label}
-      </label>
+      </FieldLabel>
       {field === 'address' ? (
         <textarea
           id={domId(field)}
@@ -777,9 +778,9 @@ export function ContactForm({
             {textField('lastName', t('contacts.form.lastName'), { autoComplete: 'family-name' })}
           </div>
           <div className="flex flex-col gap-1">
-            <label htmlFor={domId('company')} className="font-bold">
+            <FieldLabel htmlFor={domId('company')} optional>
               {t('contacts.form.company')}
-            </label>
+            </FieldLabel>
             <SuggestInput
               id={domId('company')}
               type="company"
@@ -835,9 +836,9 @@ export function ContactForm({
             />
           )}
           <div className="flex flex-col gap-1">
-            <label htmlFor={domId('country')} className="font-bold">
+            <FieldLabel htmlFor={domId('country')} optional>
               {t('contacts.form.country')}
-            </label>
+            </FieldLabel>
             <CountryField
               id={domId('country')}
               value={values.country}

@@ -74,7 +74,7 @@ function ChangeRoleDialogBody({
         version: expected,
       });
       done.current = true;
-      toast(t('members.toast.roleChanged', { name, role: t(`roles.${chosen}`) }));
+      toast.success(t('members.toast.roleChanged', { name, role: t(`roles.${chosen}`) }));
       onClose();
       onSucceeded();
     } catch (error) {

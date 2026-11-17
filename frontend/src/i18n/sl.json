@@ -268,11 +268,15 @@
     "grafit": "Grafit",
     "rja": "Rja"
   },
+  "dialog": {
+    "close": "Zapri dialog"
+  },
   "toast": {
     "region": "Obvestila",
     "close": "Zapri obvestilo"
   },
   "ui": {
+    "optional": "(neobvezno)",
     "badge": {
       "archived": "Arhivirana",
       "permanentlyArchived": "Trajno arhivirana",

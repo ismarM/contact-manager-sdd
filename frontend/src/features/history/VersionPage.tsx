@@ -1,3 +1,4 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
 import {
   IconAlertTriangle,
   IconArrowBackUp,
@@ -11,13 +12,7 @@ import { Link, useNavigate } from 'react-router';
 
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
-import {
-  card,
-  errorAlert,
-  focusRing,
-  primaryButton,
-  secondaryButton,
-} from '../../shared/ui/styles';
+import { backLink, card, errorAlert, primaryButton, secondaryButton } from '../../shared/ui/styles';
 import { useAuditSentence } from '../audit/auditSentence';
 import { useAuditTime } from '../audit/formatTime';
 import { countryName } from '../contacts/countries';
@@ -36,8 +31,6 @@ type State =
   | { kind: 'failed' }
   | { kind: 'notFound' }
   | { kind: 'ready'; version: Version };
-
-const link = `text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`;
 
 /** Polja različice za branje: samo izpolnjena, kot v pogledu kontakta (004). */
 export function VersionFields({ version }: { version: Version }) {
@@ -172,7 +165,10 @@ export function VersionPage({ contactId, versionRef }: { contactId: string; vers
       aria-labelledby={headingId}
       className="mx-auto flex w-full max-w-[56rem] flex-col gap-5 px-4 py-6"
     >
-      <Link to={`${base}/history`} className={`inline-flex items-center gap-1 self-start ${link}`}>
+      <Link
+        to={`${base}/history`}
+        className={`inline-flex items-center gap-1 self-start ${backLink}`}
+      >
         <IconArrowLeft aria-hidden="true" size={20} stroke={1.75} />
         {t('history.version.back')}
       </Link>
@@ -196,7 +192,7 @@ export function VersionPage({ contactId, versionRef }: { contactId: string; vers
         </div>
       )}
       {state.kind === 'loading' && showLoader && (
-        <p role="status">{t('history.version.loading')}</p>
+        <LoadingState label={t('history.version.loading')} />
       )}
 
       <h2 id={headingId} className="text-xl font-bold break-words">

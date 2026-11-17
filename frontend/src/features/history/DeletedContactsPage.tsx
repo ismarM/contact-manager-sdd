@@ -1,3 +1,5 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
+import { EmptyState } from '../../shared/ui/EmptyState';
 import {
   IconAlertTriangle,
   IconArrowBackUp,
@@ -9,7 +11,14 @@ import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
 
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
-import { card, errorAlert, focusRing, secondaryButton, textInput } from '../../shared/ui/styles';
+import {
+  backLink,
+  card,
+  errorAlert,
+  focusRing,
+  secondaryButton,
+  textInput,
+} from '../../shared/ui/styles';
 import { useAuditTime } from '../audit/formatTime';
 import { useDebouncedCallback } from '../contacts/useDebouncedCallback';
 import { useGroup } from '../groups/groupContext';
@@ -188,7 +197,7 @@ export function DeletedContactsPage() {
       aria-labelledby={headingId}
       className="mx-auto flex w-full max-w-[60rem] flex-col gap-5 px-4 py-6"
     >
-      <Link to={base} className={`inline-flex items-center gap-1 self-start ${link}`}>
+      <Link to={base} className={`inline-flex items-center gap-1 self-start ${backLink}`}>
         <IconArrowLeft aria-hidden="true" size={20} stroke={1.75} />
         {t('history.deleted.back')}
       </Link>
@@ -256,28 +265,29 @@ export function DeletedContactsPage() {
       )}
 
       {state.kind === 'loading' && showLoader && (
-        <p role="status">{t('history.deleted.loading')}</p>
+        <LoadingState label={t('history.deleted.loading')} />
       )}
 
       {data && data.total === 0 && (
-        <div className="flex flex-col items-start gap-3 py-4">
-          <h3 className="text-lg font-bold">
-            {filtered ? t('history.deleted.emptyFiltered') : t('history.deleted.empty')}
-          </h3>
-          {!filtered && <p>{t('history.deleted.emptyText')}</p>}
-          {filtered && (
-            <button
-              type="button"
-              className={secondaryButton}
-              onClick={() => {
-                debounced.cancel();
-                goTo({ page: 1, size, q: '', state: 'all' });
-              }}
-            >
-              {t('history.deleted.clearSearch')}
-            </button>
-          )}
-        </div>
+        <EmptyState
+          headingLevel={3}
+          title={filtered ? t('history.deleted.emptyFiltered') : t('history.deleted.empty')}
+          text={filtered ? undefined : t('history.deleted.emptyText')}
+          action={
+            filtered ? (
+              <button
+                type="button"
+                className={secondaryButton}
+                onClick={() => {
+                  debounced.cancel();
+                  goTo({ page: 1, size, q: '', state: 'all' });
+                }}
+              >
+                {t('history.deleted.clearSearch')}
+              </button>
+            ) : null
+          }
+        />
       )}
 
       {data && data.total > 0 && (

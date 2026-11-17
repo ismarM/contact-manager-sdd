@@ -199,7 +199,10 @@ test('FR-017-08 SC-002: Google prijava obstoječega uporabnika ohrani skupine, n
   await page.getByRole('button', { name: APP_PASSWORD.newPassword }).click();
   await page.getByLabel(APP_PASSWORD.deviceName).fill('Telefon');
   await page.getByRole('button', { name: APP_PASSWORD.createPassword }).click();
-  await page.getByRole('dialog').getByRole('button', { name: APP_PASSWORD.close }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: APP_PASSWORD.close, exact: true })
+    .click();
   await signOut(page);
 
   await signIn(page, user);

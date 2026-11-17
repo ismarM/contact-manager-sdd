@@ -17,6 +17,7 @@ import { ApiError } from '../../shared/api/client';
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
 import {
+  backLink,
   card,
   errorAlert,
   fieldError,
@@ -48,7 +49,7 @@ import type {
 
 const PAGE = 25;
 const MAX_FILE = 10 * 1024 * 1024;
-const link = `inline-flex items-center gap-1 self-start text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`;
+const link = `inline-flex items-center gap-1 self-start ${backLink}`;
 
 type Decision = 'skip' | 'create';
 
@@ -201,7 +202,7 @@ export function ImportPage() {
     try {
       const result = await api.commit(group.id, source, contacts);
       const done = t('import.done', { count: result.created });
-      toast(skipped > 0 ? `${done} ${t('import.doneSkipped', { count: skipped })}` : done);
+      toast.success(skipped > 0 ? `${done} ${t('import.doneSkipped', { count: skipped })}` : done);
       void navigate(list);
     } catch (error) {
       setImportFailed(

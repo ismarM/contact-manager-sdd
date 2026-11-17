@@ -171,18 +171,19 @@ description: "Naloge: Prenova vmesnika (Kartoteka v2) – ena izvedba, testi zno
 
 **Goal**: prijazna prazna stanja, mirno nalaganje, pravilne povezave. **Independent Test**: vsako prazno stanje ima skrito ilustracijo in dovoljeno dejanje.
 
-- [ ] T072 FR-020-24 — Skupna komponenta `EmptyState` (ilustracija T021, naslov, stavek, dejanje po vlogi in stanju skupine) in uporaba: ni skupin, ni kontaktov, ni zadetkov (skupine, kontakti, dvojniki, revizija), ni povabil, uvoz končan, sprejeto povabilo, brez povezave, 404; ilustracij na delovnih zaslonih ni (frontend/src/shared/ui/EmptyState.tsx, features/**)
-- [ ] T073 [P] FR-020-25 — Okostja po vseh seznamih in zaslonih (nad 300 ms, `useDelayed`), obvestila (toast) po vseh tokovih z ikono in zapiranjem (frontend/src/features/**)
-- [ ] T074 [P] FR-020-26 — Pregled povezav: podčrtane samo v tekočem besedilu (npr. »Pozabljeno geslo?«, e-naslov in telefon kot vrednost, ime kontakta v stavku sledi), ime kontakta v preglednici in »Nazaj na …« ob lebdenju; test z vitest po mestih uporabe (frontend/src/features/**)
-- [ ] T075 [P] FR-020-24, FR-020-27 — FE testi praznih stanj po vlogah (VIEWER ne vidi dejanja, arhivirana skupina brez dejanj), ilustracija `aria-hidden`, vitest-axe; E2E prvi zagon in 404 (frontend/src/**/*.test.tsx, e2e/tests/)
+- [x] T072 FR-020-24 — Skupna komponenta `EmptyState` (ilustracija T021, naslov, stavek, dejanje po vlogi in stanju skupine) in uporaba: ni skupin, ni kontaktov, ni zadetkov (skupine, kontakti, dvojniki, revizija), ni povabil, uvoz končan, sprejeto povabilo, brez povezave, 404; ilustracij na delovnih zaslonih ni (frontend/src/shared/ui/EmptyState.tsx, features/**)
+- [x] T073 [P] FR-020-25 — Okostja po vseh seznamih in zaslonih (nad 300 ms, `useDelayed`), obvestila (toast) po vseh tokovih z ikono in zapiranjem (frontend/src/features/**)
+- [x] T074 [P] FR-020-26 — Pregled povezav: podčrtane samo v tekočem besedilu (npr. »Pozabljeno geslo?«, e-naslov in telefon kot vrednost, ime kontakta v stavku sledi), ime kontakta v preglednici in »Nazaj na …« ob lebdenju; test z vitest po mestih uporabe (frontend/src/features/**)
+- [x] T075 [P] FR-020-24, FR-020-27 — FE testi praznih stanj po vlogah (VIEWER ne vidi dejanja, arhivirana skupina brez dejanj), ilustracija `aria-hidden`, vitest-axe; E2E prvi zagon in 404 (frontend/src/**/*.test.tsx, e2e/tests/)
 
 ---
 
 ## Phase 10: Polish
 
-- [ ] T076 — `feature-map.md`: širša pravila (oblika `GET /api/groups`, značka vloge na kartici, števci navigacije, vloga in stanje skupine v glavi, `Povrnjeno` samo v sledi) (.specify/memory/feature-map.md)
-- [ ] T077 FR-020-01, FR-020-27 — Prevodi: preveri sl/en paritet in dostopna imena vseh novih elementov (`frontend/src/i18n/{sl,en}.json`); pregled `grep` za barve, sence in zaobljenosti mimo žetonov (SC-003)
+- [x] T076 — `feature-map.md`: širša pravila (oblika `GET /api/groups`, značka vloge na kartici, števci navigacije, vloga in stanje skupine v glavi, `Povrnjeno` samo v sledi) (.specify/memory/feature-map.md)
+- [x] T077 FR-020-01, FR-020-27 — Prevodi: preveri sl/en paritet in dostopna imena vseh novih elementov (`frontend/src/i18n/{sl,en}.json`); pregled `grep` za barve, sence in zaobljenosti mimo žetonov (SC-003)
 - [ ] T078 — Celoten `./verify.sh e2e` in `quickstart.md` (SC-001, SC-002, SC-004); seznam spremenjenih obstoječih testov z razlogom za opis PR
+- [x] T079 — Dodatek nadzornika: gumb X »Zapri dialog« / »Close dialog« v glavi vseh dialogov (`shared/ui/dialog.tsx`); oznaka »(neobvezno)« / »(optional)« ob neobveznih poljih (`shared/ui/FieldLabel.tsx`, zunaj dostopnega imena); E2E `getByRole('button', {name: 'Zapri'})` postane `exact: true`, da se ne podvaja z »Zapri dialog« (frontend/src/shared/ui/, e2e/tests/)
 
 ---
 

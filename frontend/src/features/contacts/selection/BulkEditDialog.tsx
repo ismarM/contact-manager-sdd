@@ -164,7 +164,7 @@ export function BulkEditDialog({
   );
   const onSuccess = useCallback(
     (result: BulkUpdateResult) => {
-      toast(
+      toast.success(
         result.changed === 0
           ? t('contacts.bulk.unchanged')
           : t('contacts.bulk.updated', { count: result.changed }),

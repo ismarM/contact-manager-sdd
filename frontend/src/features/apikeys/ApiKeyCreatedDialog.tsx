@@ -26,7 +26,7 @@ export function ApiKeyCreatedDialog({ created }: { created: ApiKeyCreated }) {
     clipboard.writeText(created.token).then(
       () => {
         setCopyFailed(false);
-        toast(t('apiKeys.createdDialog.copied'));
+        toast.success(t('apiKeys.createdDialog.copied'));
       },
       () => setCopyFailed(true),
     );

@@ -1,7 +1,10 @@
 import { Dialog as Primitive } from 'radix-ui';
+import { IconX } from '@tabler/icons-react';
 import type { ComponentProps } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { cn } from '../lib/cn';
+import { focusRing } from './styles';
 
 // shadcn/ui Dialog (D-15), prilagojen po design.md 8.10 in 13.4: brez lucide in skritega angleškega »Close« (zapiranje
 // z Esc in gumbom Prekliči), `raised`, rob `divider`, `radius-lg`, senca `lg`, ozadje `rgb(18 18 17 / 0.45)` brez
@@ -21,6 +24,7 @@ export function DialogContent({
   /** Obrazec: do 560 px namesto 480 px. */
   wide?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <Primitive.Portal>
       <Primitive.Overlay className="fixed inset-0 z-50 k-fade-in overscroll-contain bg-backdrop" />
@@ -34,11 +38,17 @@ export function DialogContent({
         {...props}
       >
         {children}
+        <Primitive.Close
+          aria-label={t('dialog.close')}
+          className={`absolute top-3 right-3 flex size-10 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground ${focusRing}`}
+        >
+          <IconX aria-hidden="true" size={20} stroke={1.75} />
+        </Primitive.Close>
       </Primitive.Content>
     </Primitive.Portal>
   );
 }
 
 export function DialogTitle({ className, ...props }: ComponentProps<typeof Primitive.Title>) {
-  return <Primitive.Title className={cn('text-xl font-bold', className)} {...props} />;
+  return <Primitive.Title className={cn('pr-10 text-xl font-bold', className)} {...props} />;
 }

@@ -83,7 +83,7 @@ export function ApiKeysSection() {
               apiKey={key}
               revoke={api.revoke}
               onRevoked={() => {
-                toast(t('apiKeys.revoke.done', { name: key.name }));
+                toast.success(t('apiKeys.revoke.done', { name: key.name }));
                 reload();
               }}
             />

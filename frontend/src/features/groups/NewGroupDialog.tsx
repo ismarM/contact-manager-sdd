@@ -58,7 +58,7 @@ export function NewGroupDialog({ className = primaryButton }: { className?: stri
       const group = await api.createGroup(value);
       created.current = true;
       setOpen(false);
-      toast(t('groups.created'));
+      toast.success(t('groups.created'));
       refresh();
       void navigate(`/groups/${group.id}/contacts`, { state: { focusTitle: true } });
     } catch (error) {

@@ -1,3 +1,4 @@
+import { EmptyState } from '../../shared/ui/EmptyState';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
@@ -41,11 +42,12 @@ export function GroupsPage() {
         kind="active"
         headingRef={heading}
         empty={
-          <section className="flex flex-col items-center gap-3 py-10 text-center">
-            <FirstRunIllustration size={200} />
-            <h2 className="text-xl font-semibold">{t('groups.empty')}</h2>
-            <p className="max-w-prose text-muted-foreground">{t('groups.emptyHint')}</p>
-          </section>
+          <EmptyState
+            centered
+            illustration={<FirstRunIllustration size={200} />}
+            title={t('groups.empty')}
+            text={t('groups.emptyHint')}
+          />
         }
       />
     </div>

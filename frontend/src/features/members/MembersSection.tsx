@@ -1,3 +1,4 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -104,11 +105,7 @@ export function MembersSection() {
           </span>
         )}
       </div>
-      {showLoader && (
-        <p role="status" className="px-6 pb-5">
-          {t('members.section.loading')}
-        </p>
-      )}
+      {showLoader && <LoadingState label={t('members.section.loading')} className="px-6 pb-5" />}
       {!loading && result === null && (
         <Callout
           tone="error"

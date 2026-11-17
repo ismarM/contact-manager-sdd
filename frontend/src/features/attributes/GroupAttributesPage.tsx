@@ -1,3 +1,5 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
+import { EmptyState } from '../../shared/ui/EmptyState';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -113,13 +115,16 @@ export function GroupAttributesPage() {
       )}
 
       {state.kind === 'loading' && showLoader && (
-        <p role="status">{t('attributes.list.loading')}</p>
+        <LoadingState label={t('attributes.list.loading')} />
       )}
 
       {data && data.total === 0 && (
-        <p role="status">
-          {q === '' ? t('attributes.list.empty') : t('attributes.list.noResults')}
-        </p>
+        <div role="status">
+          <EmptyState
+            headingLevel={3}
+            title={q === '' ? t('attributes.list.empty') : t('attributes.list.noResults')}
+          />
+        </div>
       )}
 
       {data && data.total > 0 && (

@@ -1,3 +1,4 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
 import { IconAlertTriangle, IconArrowLeft } from '@tabler/icons-react';
 import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -6,7 +7,7 @@ import { Link } from 'react-router';
 import { ApiError } from '../../shared/api/client';
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
-import { errorAlert, focusRing, secondaryButton } from '../../shared/ui/styles';
+import { backLink, errorAlert, secondaryButton } from '../../shared/ui/styles';
 import { useGroup } from '../groups/groupContext';
 import { useDelayed } from '../groups/useDelayed';
 import { useAuditApi } from './api';
@@ -65,7 +66,7 @@ export function AuditEntryPage({ entryId }: { entryId: string }) {
       </h2>
       <Link
         to={`/groups/${group.id}/audit`}
-        className={`inline-flex items-center gap-1 self-start text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`}
+        className={`inline-flex items-center gap-1 self-start ${backLink}`}
       >
         <IconArrowLeft aria-hidden="true" size={20} stroke={1.75} />
         {t('audit.entry.back')}
@@ -88,7 +89,7 @@ export function AuditEntryPage({ entryId }: { entryId: string }) {
           </span>
         </div>
       )}
-      {state.kind === 'loading' && showLoader && <p role="status">{t('audit.list.loading')}</p>}
+      {state.kind === 'loading' && showLoader && <LoadingState label={t('audit.list.loading')} />}
       {state.kind === 'ready' && (
         <ul>
           <AuditEntryItem key={state.entry.id} entry={state.entry} />

@@ -52,7 +52,7 @@ function RemoveMemberDialogBody({
     try {
       await api.remove(group.id, member.id);
       done.current = true;
-      toast(t('members.toast.removed', { name }));
+      toast.success(t('members.toast.removed', { name }));
       onClose();
       onSucceeded();
     } catch (error) {

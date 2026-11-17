@@ -38,7 +38,7 @@ export function BulkDeleteDialog({
   const { clear } = selection;
   const onSuccess = useCallback(
     (result: BulkDeleteResult) => {
-      toast(t('contacts.bulk.deleted', { count: result.deleted }));
+      toast.success(t('contacts.bulk.deleted', { count: result.deleted }));
       clear();
       onDeleted();
     },

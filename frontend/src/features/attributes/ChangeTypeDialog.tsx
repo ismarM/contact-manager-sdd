@@ -124,7 +124,7 @@ function ChangeTypeContent({
     setFailure(null);
     try {
       const saved = await api.changeType(groupId, { key: item.key, type, version });
-      toast(
+      toast.success(
         saved.version === version
           ? t('attributes.change.unchanged', { key: item.key })
           : t('attributes.change.success', { key: item.key }),

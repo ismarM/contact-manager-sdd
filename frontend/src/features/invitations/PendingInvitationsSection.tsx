@@ -1,3 +1,4 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -82,7 +83,7 @@ export function PendingInvitationsSection({ reloadToken }: { reloadToken: number
 
   const withdrawn = () => {
     setFailure(null);
-    toast(t('invitations.toast.withdrawn'));
+    toast.success(t('invitations.toast.withdrawn'));
     focusHeading.current = true;
     setTick((value) => value + 1);
   };
@@ -116,9 +117,7 @@ export function PendingInvitationsSection({ reloadToken }: { reloadToken: number
         </Callout>
       )}
       {showLoader && (
-        <p role="status" className="px-6 pb-5">
-          {t('invitations.pending.loading')}
-        </p>
+        <LoadingState label={t('invitations.pending.loading')} className="px-6 pb-5" />
       )}
       {!loading && result === null && (
         <Callout

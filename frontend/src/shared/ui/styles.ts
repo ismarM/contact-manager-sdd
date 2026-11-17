@@ -37,6 +37,9 @@ export const interactiveCard = `${card} hover:shadow-sm motion-safe:transition-s
 /** Povezava v tekočem besedilu (8.20): podčrtana, `accent`, ob prehodu `accent-hover`. */
 export const textLink = `text-primary underline decoration-1 underline-offset-[3px] hover:text-primary-hover ${focusRing}`;
 
+/** Povezava »Nazaj na …« (design.md 8.2): brez podčrtaja, ob lebdenju podčrtana; podčrtane so samo povezave v tekočem besedilu. */
+export const backLink = `text-primary hover:underline decoration-1 underline-offset-[3px] ${focusRing}`;
+
 export const fieldError = 'text-destructive';
 
 /** Napaka akcije (8.13): `danger-soft`, `radius-md`, brez barvnih robov na levi. */

@@ -1,3 +1,4 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
 import {
   IconAlertTriangle,
   IconArrowLeft,
@@ -16,6 +17,7 @@ import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
 import { COLOR_SWATCH } from '../groups/colors';
 import {
+  backLink,
   card,
   errorAlert,
   focusRing,
@@ -134,7 +136,7 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
   }
 
   if (state.kind === 'loading') {
-    return showLoader ? <p role="status">{t('contacts.list.loading')}</p> : null;
+    return showLoader ? <LoadingState label={t('contacts.list.loading')} /> : null;
   }
 
   const { contact } = state;
@@ -158,7 +160,7 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
       {panel ? (
         <CloseLink to={list} />
       ) : (
-        <Link to={list} className={`inline-flex items-center gap-1 self-start ${link}`}>
+        <Link to={list} className={`inline-flex items-center gap-1 self-start ${backLink}`}>
           <IconArrowLeft aria-hidden="true" size={20} stroke={1.75} />
           {t('contacts.view.back')}
         </Link>
@@ -222,7 +224,7 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
                   trigger
                   contact={contact}
                   onDeleted={() => {
-                    toast(t('contacts.toast.deleted', { name: contact.displayName }));
+                    toast.success(t('contacts.toast.deleted', { name: contact.displayName }));
                     toList({});
                   }}
                   onGone={() => toList({ notice: { kind: 'gone' } })}
@@ -395,7 +397,7 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
 function CloseLink({ to }: { to: string }) {
   const { t } = useTranslation();
   return (
-    <Link to={to} className={`inline-flex items-center gap-1 self-start ${link}`}>
+    <Link to={to} className={`inline-flex items-center gap-1 self-start ${backLink}`}>
       <IconX aria-hidden="true" size={20} stroke={1.75} />
       {t('contacts.view.close')}
     </Link>

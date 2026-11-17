@@ -1,10 +1,11 @@
+import { EmptyState } from '../../shared/ui/EmptyState';
 import { type ReactNode, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router';
 
 import { NoResultsIllustration } from '../../shared/ui/illustrations';
 import { Callout } from '../../shared/ui/Callout';
-import { Skeleton } from '../../shared/ui/Skeleton';
+import { LoadingState, Skeleton } from '../../shared/ui/Skeleton';
 import { secondaryButton, textLink } from '../../shared/ui/styles';
 import { GroupCollection } from './GroupCollection';
 import { GroupToolbar } from './GroupToolbar';
@@ -38,7 +39,7 @@ export function GroupBrowser({
       {!firstRun && (
         <GroupToolbar q={list.q} role={list.role} onSearch={list.setSearch} onRole={list.setRole} />
       )}
-      {list.showLoader && <p role="status">{t('groups.loading')}</p>}
+      {list.showLoader && <LoadingState label={t('groups.loading')} />}
       {!loading && result && total > 0 && (
         <p role="status" className="text-sm text-muted-foreground">
           {filtering
@@ -77,13 +78,16 @@ export function GroupBrowser({
       )}
       {firstRun && empty}
       {none && filtering && (
-        <section className="flex flex-col items-center gap-3 py-8 text-center">
-          <NoResultsIllustration size={160} />
-          <h2 className="text-xl font-semibold">{t('groups.search.none')}</h2>
-          <Link to={pathname} replace className={textLink}>
-            {t('groups.search.clear')}
-          </Link>
-        </section>
+        <EmptyState
+          centered
+          illustration={<NoResultsIllustration size={160} />}
+          title={t('groups.search.none')}
+          action={
+            <Link to={pathname} replace className={textLink}>
+              {t('groups.search.clear')}
+            </Link>
+          }
+        />
       )}
       {result && result.items.length > 0 && (
         <GroupCollection

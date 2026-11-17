@@ -68,7 +68,7 @@ export function DeleteGroupDialog() {
       await api.deleteGroup(group.id);
       deleted.current = true;
       setOpen(false);
-      toast(t('groups.toast.deleted'));
+      toast.success(t('groups.toast.deleted'));
       refresh();
       void navigate('/');
     } catch (error) {

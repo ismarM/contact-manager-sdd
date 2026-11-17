@@ -1,3 +1,4 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
 import { IconAlertTriangle, IconArrowLeft } from '@tabler/icons-react';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -6,7 +7,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router';
 import { ApiError } from '../../shared/api/client';
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
-import { card, errorAlert, focusRing, secondaryButton, softButton } from '../../shared/ui/styles';
+import { backLink, card, errorAlert, secondaryButton, softButton } from '../../shared/ui/styles';
 import { typeNameKey } from '../attributes/typeNames';
 import { typeChange, useChangeText } from '../audit/changeText';
 import type { ChangeFieldName } from '../audit/types';
@@ -26,8 +27,6 @@ type State =
   | { kind: 'invalid' }
   | { kind: 'notFound' }
   | { kind: 'ready'; data: Comparison };
-
-const link = `text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`;
 
 function Cell({ row, side }: { row: CompareRow; side: 'before' | 'after' }) {
   const { t } = useTranslation();
@@ -192,7 +191,10 @@ export function ComparePage({ contactId }: { contactId: string }) {
       aria-labelledby={headingId}
       className="mx-auto flex w-full max-w-[56rem] flex-col gap-5 px-4 py-6"
     >
-      <Link to={`${base}/history`} className={`inline-flex items-center gap-1 self-start ${link}`}>
+      <Link
+        to={`${base}/history`}
+        className={`inline-flex items-center gap-1 self-start ${backLink}`}
+      >
         <IconArrowLeft aria-hidden="true" size={20} stroke={1.75} />
         {t('history.compare.back')}
       </Link>
@@ -226,7 +228,7 @@ export function ComparePage({ contactId }: { contactId: string }) {
         </div>
       )}
       {state.kind === 'loading' && !missing && showLoader && (
-        <p role="status">{t('history.compare.loading')}</p>
+        <LoadingState label={t('history.compare.loading')} />
       )}
 
       {data && rows && (

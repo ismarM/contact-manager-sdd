@@ -166,7 +166,7 @@ function DetailsForm({ labelledBy, onArchived }: { labelledBy: string; onArchive
       setConflict(null);
       setValues(formState(updated));
       setGroup(updated);
-      toast(t('groups.details.saved'));
+      toast.success(t('groups.details.saved'));
       refresh();
     } catch (error) {
       const current = conflictCurrent(error);

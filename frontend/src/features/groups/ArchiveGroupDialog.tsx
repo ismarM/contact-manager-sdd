@@ -48,7 +48,7 @@ export function ArchiveGroupDialog({ onDone }: { onDone: () => void }) {
       done.current = true;
       setOpen(false);
       setGroup(updated);
-      toast(t('groups.toast.archived'));
+      toast.success(t('groups.toast.archived'));
       refresh();
       onDone();
     } catch (error) {

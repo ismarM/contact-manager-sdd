@@ -1,3 +1,5 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
+import { EmptyState } from '../../shared/ui/EmptyState';
 import {
   IconAlertTriangle,
   IconArrowDown,
@@ -245,7 +247,7 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
   const onDeleted = (name: string) => {
     setRemoving(null);
     setNotice(null);
-    toast(t('contacts.toast.deleted', { name }));
+    toast.success(t('contacts.toast.deleted', { name }));
     reload();
   };
   const onGone = () => {
@@ -379,29 +381,33 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
         </div>
       )}
 
-      {loading && showLoader && <p role="status">{t('contacts.list.loading')}</p>}
+      {loading && showLoader && <LoadingState label={t('contacts.list.loading')} />}
 
-      {data && data.total === 0 && (
-        <div className="flex flex-col items-start gap-3 py-4">
-          {state.filtered ? (
-            <>
-              <h3 className="text-lg font-bold">{t('contacts.search.empty')}</h3>
+      {data &&
+        data.total === 0 &&
+        (state.filtered ? (
+          <EmptyState
+            headingLevel={3}
+            title={t('contacts.search.empty')}
+            action={
               <button type="button" className={secondaryButton} onClick={clearAndFocus}>
                 {t('contacts.search.clear')}
               </button>
-            </>
-          ) : (
-            <>
-              <h3 className="text-lg font-bold">{t('contacts.list.empty')}</h3>
-              {editable && (
+            }
+          />
+        ) : (
+          <EmptyState
+            headingLevel={3}
+            title={t('contacts.list.empty')}
+            action={
+              editable ? (
                 <Link to={`${base}/new${link}`} className={primaryButton}>
                   {t('contacts.newContact')}
                 </Link>
-              )}
-            </>
-          )}
-        </div>
-      )}
+              ) : null
+            }
+          />
+        ))}
 
       {data && data.total > 0 && (
         <>

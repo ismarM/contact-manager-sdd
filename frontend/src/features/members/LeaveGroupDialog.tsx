@@ -70,7 +70,7 @@ export function LeaveGroupDialog({
       await api.leave(group.id);
       left.current = true;
       setOpen(false);
-      toast(t('members.toast.left', { group: group.title }));
+      toast.success(t('members.toast.left', { group: group.title }));
       refresh();
       void navigate('/groups', { state: { focusHeading: true } });
     } catch (error) {
