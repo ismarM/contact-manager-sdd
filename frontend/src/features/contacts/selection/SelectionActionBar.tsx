@@ -2,7 +2,7 @@ import { type RefObject, useLayoutEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 
-import { focusRing, primaryButton, secondaryButton } from '../../../shared/ui/styles';
+import { ghostButton, primaryButton, secondaryButton } from '../../../shared/ui/styles';
 import { useGroup } from '../../groups/groupContext';
 import { canEditContacts } from '../contactRouting';
 import { ExportButton } from '../export/ExportButton';
@@ -101,9 +101,13 @@ export function SelectionActionBar({
         ref={bar}
         role="toolbar"
         aria-label={t('contacts.selection.toolbar')}
-        className="fixed inset-x-0 bottom-0 z-10 flex flex-wrap items-center gap-3 border-t border-border bg-card p-3 shadow-float sm:static sm:rounded-md sm:border sm:shadow-none"
+        className="fixed inset-x-0 bottom-[calc(var(--k-bottom-bar-h)_+_env(safe-area-inset-bottom))] z-20 flex flex-wrap items-center gap-3 border-t border-border bg-popover p-3 shadow-md sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:w-max sm:max-w-[calc(100vw-2rem)] sm:-translate-x-1/2 sm:rounded-lg sm:border"
       >
-        <p role="status" aria-live="polite" className="font-bold">
+        <p
+          role="status"
+          aria-live="polite"
+          className="rounded-full bg-selected px-3 py-1 font-bold text-primary"
+        >
           {t('contacts.selection.count', { count: selection.count })}
         </p>
         {total !== null && (
@@ -138,7 +142,7 @@ export function SelectionActionBar({
         )}
         <ExportButton />
         <ExportButton format="vcf" />
-        <button type="button" className={`ml-auto px-2 underline ${focusRing}`} onClick={onClear}>
+        <button type="button" className={`${ghostButton} ml-auto`} onClick={onClear}>
           {t('contacts.selection.clear')}
         </button>
       </div>

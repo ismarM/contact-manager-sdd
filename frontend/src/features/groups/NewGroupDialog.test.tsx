@@ -176,8 +176,8 @@ describe('NewGroupDialog', () => {
   it('FR-002-01 FR-002-03: uspeh – zahtevek s podatki, obvestilo, odprta nova skupina, fokus na naslovu, osvežen povzetek', async () => {
     const { user, api, listRequests } = renderGroupsScreen();
     const dialog = await openDialog(user);
-    await waitFor(() => expect(listRequests(10).length).toBeGreaterThan(0));
-    const summariesBefore = listRequests(10).length;
+    await waitFor(() => expect(listRequests(100).length).toBeGreaterThan(0));
+    const summariesBefore = listRequests(100).length;
     await user.type(within(dialog).getByRole('textbox', { name: 'Naslov' }), 'Projekt FERI');
     await user.type(within(dialog).getByRole('textbox', { name: 'Opis' }), 'Kontakti projekta');
     await user.click(within(dialog).getByRole('radio', { name: 'Mah' }));
@@ -194,7 +194,7 @@ describe('NewGroupDialog', () => {
     expect(within(notifications).getByText('Skupina je ustvarjena.')).toBeInTheDocument();
     const heading = await screen.findByRole('heading', { level: 1, name: 'Projekt FERI' });
     await waitFor(() => expect(heading).toHaveFocus());
-    await waitFor(() => expect(listRequests(10).length).toBeGreaterThan(summariesBefore));
+    await waitFor(() => expect(listRequests(100).length).toBeGreaterThan(summariesBefore));
 
     await user.click(within(notifications).getByRole('button', { name: 'Zapri obvestilo' }));
     await waitFor(() =>
@@ -222,8 +222,8 @@ describe('NewGroupDialog', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Ustvari skupino' }));
     await waitFor(() => expect(currentLocation()).toBe(`/groups/${CREATED}/contacts`));
 
-    // Skupina se še nalaga; uporabnik s tipkovnico fokusira gumb za preklop skupine (design.md 7.1).
-    const switcher = await screen.findByRole('button', { name: 'Preklopi skupino' });
+    // Skupina se še nalaga; uporabnik s tipkovnico fokusira gumb menija računa v zgornji vrstici (design.md 7.1).
+    const switcher = await screen.findByRole('button', { name: 'Meni računa' });
     switcher.focus();
     expect(switcher).toHaveFocus();
     release();

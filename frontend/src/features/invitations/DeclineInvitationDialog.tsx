@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../../shared/ui/dialog';
-import { dangerButton, secondaryButton } from '../../shared/ui/styles';
+import { dangerButton, ghostButton, secondaryButton } from '../../shared/ui/styles';
 import { useInvitationsApi } from './api';
 import type { ReceivedInvitation } from './types';
 
@@ -75,7 +75,7 @@ export function DeclineInvitationDialog({
         <DialogTitle>{t('invitations.declineDialog.title', { title })}</DialogTitle>
         <p>{t('invitations.declineDialog.text')}</p>
         <div className="flex flex-wrap justify-end gap-3">
-          <DialogClose ref={cancel} className={secondaryButton}>
+          <DialogClose ref={cancel} className={ghostButton}>
             {t('invitations.declineDialog.cancel')}
           </DialogClose>
           <button

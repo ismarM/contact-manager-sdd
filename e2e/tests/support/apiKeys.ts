@@ -89,7 +89,7 @@ export async function createApiKey(page: Page, key: NewApiKey): Promise<string> 
     await created.getByRole('button', { name: apiKeyNames.copy() }).click();
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(value);
   }
-  await created.getByRole('button', { name: apiKeyNames.close() }).click();
+  await created.getByRole('button', { name: apiKeyNames.close(), exact: true }).click();
   await expect(created).toBeHidden();
   return value;
 }

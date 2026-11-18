@@ -1,9 +1,22 @@
-import { IconAlertTriangle, IconMinus, IconPlus } from '@tabler/icons-react';
+import {
+  IconAlertTriangle,
+  IconCheck,
+  IconPhoto,
+  IconZoomIn,
+  IconZoomOut,
+} from '@tabler/icons-react';
 import { type ChangeEvent, type DragEvent, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Dialog, DialogClose, DialogContent, DialogTitle } from '../ui/dialog';
-import { errorAlert, focusRing, primaryButton, secondaryButton } from '../ui/styles';
+import {
+  errorAlert,
+  focusRing,
+  ghostButton,
+  primaryButton,
+  secondaryButton,
+  softButton,
+} from '../ui/styles';
 import { CropCanvas, type CropShape, FRAME } from './CropCanvas';
 import { clampCrop, type CropState, INITIAL_CROP, MAX_ZOOM, MIN_ZOOM } from './cropMath';
 import { type DecodedImage, decodeImage, exportCrop } from './imageExport';
@@ -128,6 +141,7 @@ function UploadBody({ shape, title, onUpload }: Pick<Props, 'shape' | 'title' | 
 
   return (
     <DialogContent
+      wide
       onInteractOutside={(event) => event.preventDefault()}
       onOpenAutoFocus={(event) => {
         // Fokus na izbiro datoteke (ne na *Prekliči*).
@@ -145,7 +159,7 @@ function UploadBody({ shape, title, onUpload }: Pick<Props, 'shape' | 'title' | 
           }}
           onDragLeave={() => setDragging(false)}
           onDrop={onDrop}
-          className={`flex flex-col items-center gap-3 rounded-md border-2 border-dashed p-6 text-center ${
+          className={`flex flex-col items-center gap-3 rounded-md border-2 border-dashed px-6 py-10 text-center ${
             dragging ? 'border-ring bg-selected' : 'border-border'
           }`}
         >
@@ -158,8 +172,9 @@ function UploadBody({ shape, title, onUpload }: Pick<Props, 'shape' | 'title' | 
           />
           <label
             htmlFor={fileId}
-            className={`${secondaryButton} cursor-pointer peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring`}
+            className={`${softButton} cursor-pointer peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring`}
           >
+            <IconPhoto aria-hidden="true" size={20} stroke={1.75} />
             {t('images.dialog.choose')}
           </label>
           <p className="text-muted-foreground">
@@ -185,7 +200,7 @@ function UploadBody({ shape, title, onUpload }: Pick<Props, 'shape' | 'title' | 
               aria-label={t('images.dialog.zoomOut')}
               onClick={() => zoomBy(-ZOOM_STEP)}
             >
-              <IconMinus aria-hidden="true" size={20} stroke={1.75} />
+              <IconZoomOut aria-hidden="true" size={20} stroke={1.75} />
             </button>
             <input
               id={zoomId}
@@ -207,7 +222,7 @@ function UploadBody({ shape, title, onUpload }: Pick<Props, 'shape' | 'title' | 
               aria-label={t('images.dialog.zoomIn')}
               onClick={() => zoomBy(ZOOM_STEP)}
             >
-              <IconPlus aria-hidden="true" size={20} stroke={1.75} />
+              <IconZoomIn aria-hidden="true" size={20} stroke={1.75} />
             </button>
           </div>
         </>
@@ -232,7 +247,7 @@ function UploadBody({ shape, title, onUpload }: Pick<Props, 'shape' | 'title' | 
       )}
 
       <div className="flex flex-wrap justify-end gap-3">
-        <DialogClose className={secondaryButton}>{t('images.dialog.cancel')}</DialogClose>
+        <DialogClose className={ghostButton}>{t('images.dialog.cancel')}</DialogClose>
         {step === 'crop' && (
           <button
             type="button"
@@ -241,6 +256,7 @@ function UploadBody({ shape, title, onUpload }: Pick<Props, 'shape' | 'title' | 
             aria-busy={busy}
             onClick={() => void save()}
           >
+            <IconCheck aria-hidden="true" size={20} stroke={1.75} />
             {busy ? t('images.dialog.saving') : t('images.dialog.save')}
           </button>
         )}

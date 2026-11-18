@@ -1,11 +1,24 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
+
+import { signIn, uniqueUser } from './support/auth';
+import { createGroup } from './support/groups';
+import {
+  goToAccount,
+  goToArchived,
+  goToInvitations,
+  isPhoneViewport,
+  isWideViewport,
+  mainNavigation,
+  openGroup,
+  openGroupSwitcher,
+} from './support/nav';
 
 // Začasna začetna stran ogrodja (plan.md – Public Interfaces). Vsak test teče pri 360, 768 in 1280 px
 // (projekti v playwright.config.ts) ter v svetli in temni shemi sistema.
 
-const LIGHT_BG = 'rgb(246, 245, 241)'; // --k-bg svetla (#F6F5F1)
-const DARK_BG = 'rgb(22, 21, 19)'; // --k-bg temna (#161513)
+const LIGHT_BG = 'rgb(247, 246, 242)'; // --k-bg svetla (#F7F6F2, design.md v2)
+const DARK_BG = 'rgb(18, 18, 17)'; // --k-bg temna (#121211, design.md v2)
 
 for (const colorScheme of ['light', 'dark'] as const) {
   test.describe(`shema ${colorScheme}`, () => {
@@ -21,7 +34,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
     test('FR-000-12: začetna stran brez kršitev axe', async ({ page }) => {
       await page.goto('/');
-      await expect(page.getByRole('heading', { level: 1, name: 'Kontakti' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Prijava' })).toBeVisible();
 
       const results = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
@@ -48,7 +61,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     test('FR-000-12: brez vodoravnega drsenja pri 320 px', async ({ page }) => {
       await page.setViewportSize({ width: 320, height: 640 });
       await page.goto('/');
-      await expect(page.getByRole('heading', { level: 1, name: 'Kontakti' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Prijava' })).toBeVisible();
 
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -58,7 +71,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
     test('FR-000-13: shema sledi sistemu, data-theme jo preglasi', async ({ page }) => {
       await page.goto('/');
-      await expect(page.getByRole('heading', { level: 1, name: 'Kontakti' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Prijava' })).toBeVisible();
       const bodyBackground = () =>
         page.evaluate(() => getComputedStyle(document.body).backgroundColor);
 
@@ -67,7 +80,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       const override = colorScheme === 'dark' ? 'light' : 'dark';
       await page.evaluate((theme) => localStorage.setItem('theme', theme), override);
       await page.reload();
-      await expect(page.getByRole('heading', { level: 1, name: 'Kontakti' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Prijava' })).toBeVisible();
 
       expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe(override);
       expect(await bodyBackground()).toBe(override === 'dark' ? DARK_BG : LIGHT_BG);
@@ -105,12 +118,12 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await page.goto('/');
       await page.evaluate(() => navigator.serviceWorker.ready);
       await page.reload();
-      await expect(page.getByRole('heading', { level: 1, name: 'Kontakti' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Prijava' })).toBeVisible();
 
       await context.setOffline(true);
       await page.reload();
 
-      await expect(page.getByRole('heading', { level: 1, name: 'Kontakti' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Prijava' })).toBeVisible();
       const apiReachable = await page.evaluate(() =>
         fetch('/api/health').then(
           () => true,
@@ -127,7 +140,7 @@ test.describe('zmanjšano gibanje in vsiljene barve', () => {
 
   test('FR-000-13: ob prefers-reduced-motion ni prehodov ali animacij', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { level: 1, name: 'Kontakti' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Prijava' })).toBeVisible();
 
     const moving = await page.evaluate(
       () =>
@@ -145,7 +158,7 @@ test.describe('zmanjšano gibanje in vsiljene barve', () => {
     page,
   }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { level: 1, name: 'Kontakti' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Prijava' })).toBeVisible();
 
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
@@ -161,7 +174,7 @@ test.describe('jezik brskalnika', () => {
     test('FR-000-14: sl-SI → slovenska besedila in lang="sl"', async ({ page }) => {
       await page.goto('/');
 
-      await expect(page.getByRole('heading', { level: 1, name: 'Kontakti' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Prijava' })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.lang)).toBe('sl');
     });
   });
@@ -172,8 +185,141 @@ test.describe('jezik brskalnika', () => {
     test('FR-000-14: de-DE → angleška besedila in lang="en"', async ({ page }) => {
       await page.goto('/');
 
-      await expect(page.getByRole('heading', { level: 1, name: 'Contacts' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.lang)).toBe('en');
     });
+  });
+});
+
+// 020 – novo ogrodje in navigacija (FR-020-05 … -09). Teče pri 360 (spodnja vrstica), 768 (ploskev) in 1280 px
+// (stranska vrstica); vsebuje tudi @w768, da se izvede v srednjem projektu.
+
+async function signedIn(page: Page) {
+  const user = uniqueUser('Ana Novak');
+  await page.goto('/');
+  await signIn(page, user);
+  await expect(page.getByRole('button', { name: 'Meni računa' })).toBeVisible();
+  return user;
+}
+
+async function expectNoAxeViolations(page: Page) {
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(results.violations).toEqual([]);
+}
+
+test.describe('ogrodje in navigacija', () => {
+  test.use({ locale: 'sl-SI' });
+
+  test('FR-020-05 FR-020-07 @w768: vsi cilji dosegljivi prek glavne navigacije, aktivna postavka je označena', async ({
+    page,
+  }) => {
+    await signedIn(page);
+
+    await goToArchived(page);
+    await expect(page.getByRole('heading', { level: 1, name: 'Arhivirane skupine' })).toBeVisible();
+    await goToInvitations(page);
+    await expect(page.getByRole('heading', { level: 1, name: 'Povabila' })).toBeVisible();
+    await goToAccount(page);
+
+    const nav = await mainNavigation(page);
+    await nav.getByRole('link', { name: 'Skupine', exact: true }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Skupine' })).toBeVisible();
+    await expectNoAxeViolations(page);
+  });
+
+  test('FR-020-07: pod 640 px je spodnja vrstica s točno štirimi postavkami, sicer je ni', async ({
+    page,
+  }) => {
+    await signedIn(page);
+    const bar = page.getByRole('navigation', { name: 'Glavna navigacija' });
+
+    if (isPhoneViewport(page)) {
+      await expect(bar.getByRole('link')).toHaveCount(4);
+      await expect(bar.getByRole('link', { name: 'Skupine' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      );
+      await bar.getByRole('link', { name: 'Račun' }).click();
+      await expect(page).toHaveURL(/\/account$/);
+      await expect(bar.getByRole('link', { name: 'Račun' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      );
+    } else {
+      await expect(bar).toHaveCount(isWideViewport(page) ? 1 : 0);
+    }
+  });
+
+  test('FR-020-05 FR-020-07: od 1024 px stalna stranska vrstica, pod tem ploskev z gumbom v zgornji vrstici', async ({
+    page,
+  }) => {
+    await signedIn(page);
+
+    if (isWideViewport(page)) {
+      await expect(page.getByRole('banner')).toHaveCount(0);
+      await expect(page.getByRole('link', { name: 'Arhivirane', exact: true })).toBeVisible();
+    } else {
+      await expect(page.getByRole('banner')).toBeVisible();
+      if (!isPhoneViewport(page)) {
+        await page.getByRole('button', { name: 'Odpri navigacijo' }).click();
+        await expect(page.getByRole('dialog', { name: 'Navigacija' })).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(page.getByRole('dialog')).toHaveCount(0);
+      }
+    }
+  });
+
+  test('FR-020-09: stikala teme v glavi ali navigaciji ni, tema je v Mojem računu', async ({
+    page,
+  }) => {
+    await signedIn(page);
+
+    await expect(page.getByRole('switch')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /tema/i })).toHaveCount(0);
+    await goToAccount(page);
+    await expect(page.getByRole('main').getByText('Tema', { exact: true })).toBeVisible();
+  });
+
+  test('FR-020-06 FR-020-08: zamenjava skupine prek preklopnika ohrani zavihek, glava kaže naziv in vlogo', async ({
+    page,
+  }) => {
+    await signedIn(page);
+    await createGroup(page, { title: 'Alfa' });
+    await createGroup(page, { title: 'Beta' });
+    await openGroup(page, 'Alfa');
+    await page
+      .getByRole('navigation', { name: 'Razdelki skupine' })
+      .getByRole('link', { name: 'Revizijska sled' })
+      .click();
+    await expect(page).toHaveURL(/\/audit$/);
+
+    await expect(page.getByRole('heading', { level: 1, name: 'Alfa' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Alfa' })).toContainText('Vloga: Lastnik');
+    const menu = await openGroupSwitcher(page);
+    await expectNoAxeViolations(page);
+    await menu.getByRole('menuitem', { name: 'Beta', exact: true }).click();
+
+    await expect(page).toHaveURL(/\/audit$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Beta' })).toBeVisible();
+    if (isWideViewport(page)) {
+      // Vidni naziv kartice je ob gumbu (WCAG 2.5.3); gumb ga ima kot opis.
+      await expect(
+        page.getByRole('button', { name: 'Preklopi skupino' }),
+      ).toHaveAccessibleDescription('Beta');
+    }
+  });
+
+  test('FR-020-05: tipkovnica – prvi Tab je »Preskoči na vsebino«, navigacija je dosegljiva s tipkovnico', async ({
+    page,
+  }) => {
+    await signedIn(page);
+
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('link', { name: 'Preskoči na vsebino' })).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('main')).toBeFocused();
   });
 });

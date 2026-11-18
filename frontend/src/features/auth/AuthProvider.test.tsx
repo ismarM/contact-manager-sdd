@@ -105,7 +105,7 @@ describe('AuthProvider – izbris računa (accountDeleted)', () => {
     await waitFor(() => expect(currentLocation()).toBe('/login?reason=account-deleted'));
     expect(gateway.signOutCalls).toBe(1);
     expect(gateway.currentUser).toBeNull();
-    expect(await screen.findByRole('button', { name: 'Prijava z Googlom' })).toBeVisible();
+    expect(await screen.findByRole('button', { name: 'Nadaljuj z Googlom' })).toBeVisible();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.getByRole('main')).not.toHaveTextContent('Seja je potekla. Prijavi se znova.');
     expect(visited.some((url) => url.includes('session-expired'))).toBe(false);
@@ -133,7 +133,7 @@ describe('AuthProvider – izbris računa (accountDeleted)', () => {
     await waitFor(() => expect(currentLocation()).toBe('/login?reason=account-deleted'));
     const syncsBefore = profile.requests.filter((r) => r.path === '/api/me').length;
 
-    await user.click(await screen.findByRole('button', { name: 'Prijava z Googlom' }));
+    await user.click(await screen.findByRole('button', { name: 'Nadaljuj z Googlom' }));
 
     await waitFor(() => expect(currentLocation()).toBe('/'));
     expect(gateway.signInCalls).toBe(1);

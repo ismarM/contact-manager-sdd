@@ -655,9 +655,9 @@ test('FR-011-08 FR-011-11 FR-011-12 FR-011-21 T030: primerjava ima v pravem brsk
   await card(page, email).getByRole('button', { name: 'Primerjaj in združi' }).click();
   await expect(page.getByRole('heading', { level: 2, name: 'Primerjava dvojnikov' })).toBeVisible();
 
-  // Drevo dostopnosti glavne vsebine (vloge, imena, stanja) – enako pri obeh širinah: ena komponenta, brez
-  // podvojene vsebine za mobilni ali namizni prikaz.
-  const main = page.getByRole('main');
+  // Drevo dostopnosti primerjave (vloge, imena, stanja) – enako pri obeh širinah: ena komponenta, brez podvojene
+  // vsebine za mobilni ali namizni prikaz. Glava skupine je izvzeta: na telefonu ima po FR-020-08 gumb preklopnika.
+  const main = page.getByRole('region', { name: 'Primerjava dvojnikov' });
   const treeAt = async (width: number) => {
     await page.setViewportSize({ width, height: 900 });
     await expect(page.getByRole('region', { name: 'Predogled združenega kontakta' })).toBeVisible();

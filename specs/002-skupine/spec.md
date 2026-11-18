@@ -33,22 +33,22 @@ Prijavljen uporabnik ustvari novo skupino kontaktov: vpiše naslov, po želji op
 
 ### User Story 2 - Pregled mojih skupin po vlogah (Priority: P1)
 
-Uporabnik vidi vse nearhivirane skupine, katerih član je, razvrščene v razdelke po svoji vlogi (*Lastnik*, *Admin*, *Urednik*, *Bralec*), na zaslonu *Skupine* in v stranskem pasu, ter iz seznama odpre skupino.
+Uporabnik vidi vse nearhivirane skupine, katerih član je, v enem seznamu z značko svoje vloge (*Lastnik*, *Admin*, *Urednik*, *Bralec*), na zaslonu *Skupine* in v stranskem pasu, ter iz seznama odpre skupino.
 
 **Why this priority**: seznam skupin je vstopna točka aplikacije; brez njega uporabnik ne pride do skupin, v katere je povabljen.
 
-**Independent Test**: uporabnik, ki je lastnik ene, admin druge in bralec tretje skupine, na zaslonu *Skupine* vidi tri razdelke s pravimi skupinami in števili; razdelka *Urednik* ni.
+**Independent Test**: uporabnik, ki je lastnik ene, admin druge in bralec tretje skupine, na zaslonu *Skupine* vidi en seznam s tremi skupinami in značkami vlog.
 
 **Acceptance Scenarios**:
 
-1. **[FR-002-04]** **Given** uporabnik je lastnik skupin A in B, admin skupine C in bralec skupine D, **When** odpre zaslon *Skupine*, **Then** vidi razdelke *Lastnik* (2), *Admin* (1) in *Bralec* (1) v tem vrstnem redu, vsak z naslovom ravni 2 in številom; razdelka *Urednik* ni.
+1. **[FR-002-04]** **Given** uporabnik je lastnik skupin A in B, admin skupine C in bralec skupine D, **When** odpre zaslon *Skupine*, **Then** vidi en seznam vseh štirih skupin, urejen po naslovu, vsaka z značko svoje vloge (*Lastnik*, *Admin*, *Bralec*); vloge *Urednik* ni (od 020 namesto razdelkov po vlogah).
 2. **[FR-002-04]** **Given** zaslon *Skupine*, **When** se izriše vrstica skupine, **Then** vsebuje jeziček v barvi skupine, naslov, opis v eni skrajšani vrstici in število kontaktov skupine; vrstica je povezava, ki odpre skupino.
-3. **[FR-002-04]** **Given** uporabnik je član arhivirane skupine E, **When** odpre zaslon *Skupine*, **Then** skupine E ni v nobenem razdelku po vlogah.
-4. **[FR-002-04]** **Given** uporabnik je lastnik 30 nearhiviranih skupin, **When** odpre zaslon *Skupine*, **Then** razdelek *Lastnik* pokaže število 30, prvih 25 skupin po abecedi naslovov in paginacijo razdelka (design.md 8.9), s katero pride do preostalih 5.
+3. **[FR-002-04]** **Given** uporabnik je član arhivirane skupine E, **When** odpre zaslon *Skupine*, **Then** skupine E ni na seznamu.
+4. **[FR-002-04]** **Given** uporabnik je lastnik 30 nearhiviranih skupin, **When** odpre zaslon *Skupine*, **Then** seznam pokaže število 30, prvih 25 skupin po abecedi naslovov in paginacijo (design.md 8.9), s katero pride do preostalih 5.
 5. **[FR-002-05]** **Given** uporabnik ni član nobene nearhivirane skupine, **When** odpre zaslon *Skupine*, **Then** vidi prazno stanje »Nimaš še nobene skupine.« z akcijo *Nova skupina* (design.md 8.15).
-6. **[FR-002-06]** **Given** širina zaslona ≥ 1024 px, **When** je uporabnik kjerkoli v aplikaciji, **Then** stranski pas prikazuje iste razdelke po vlogah kot zaslon *Skupine* (brez praznih razdelkov), z največ 10 skupinami na razdelek, in trenutno odprta skupina je označena kot trenutna stran.
-7. **[FR-002-06]** **Given** širina ≥ 1024 px in uporabnik je bralec 14 skupin, **When** si ogleda stranski pas, **Then** razdelek *Bralec* pokaže 10 skupin in povezavo *Vse skupine*, ki vodi na zaslon *Skupine*.
-8. **[FR-002-06]** **Given** širina zaslona < 1024 px, **When** uporabnik izbere gumb za preklop skupine v zgornji vrstici, **Then** se odpre meni z istimi razdelki in omejitvami kot stranski pas, iz katerega odpre drugo skupino.
+6. **[FR-002-06]** **Given** širina zaslona ≥ 1024 px, **When** je uporabnik kjerkoli v aplikaciji, **Then** stranski pas prikazuje skupine (urejene po naslovu, z značko vloge), največ 10, in trenutno odprta skupina je označena kot trenutna stran.
+7. **[FR-002-06]** **Given** širina ≥ 1024 px in uporabnik je bralec 14 skupin, **When** si ogleda stranski pas, **Then** stranski pas pokaže 10 skupin in povezavo *Vse skupine*, ki vodi na zaslon *Skupine*.
+8. **[FR-002-06]** **Given** širina zaslona < 1024 px, **When** uporabnik izbere gumb za preklop skupine v zgornji vrstici, **Then** se odpre meni z istimi skupinami in omejitvami kot stranski pas, iz katerega odpre drugo skupino.
 
 ---
 
@@ -137,9 +137,9 @@ Vsi člani v *Nastavitve → Podatki skupine* vidijo naslov, opis in barvo skupi
 - **FR-002-01**: Sistem MORA prijavljenemu uporabniku omogočiti ustvarjanje skupine prek dialoga *Nova skupina* (dosegljiv z zaslona *Skupine* in iz stranskega pasu) s polji *Naslov* (obvezno), *Opis* (neobvezno) in *Barva* (izbirni gumbi osmih poimenovanih barv, design.md 4.2 in 9.2), s *Prekliči* in *Ustvari skupino*. *(najnižja vloga: —)*
 - **FR-002-02**: Sistem MORA pri ustvarjanju in urejanju skupine preveriti podatke po skupnem slovarju (feature-map §2.6): naslov 1–100 znakov po obrezu presledkov, opis do 1000 znakov, barva ena od *tinta, mah, opeka, oker, sliva, morje, grafit, rja*; neveljavne podatke zavrne z `400 VALIDATION_FAILED` in napakami po poljih, vmesnik pa napako prikaže ob ustreznem polju in ohrani vnesene podatke. *(najnižja vloga: — pri ustvarjanju, ADMIN pri urejanju)*
 - **FR-002-03**: Sistem MORA ustvarjalca skupine nastaviti kot njenega edinega člana z vlogo `OWNER`, skupini brez izbrane barve dodeliti barvo *tinta*, po uspehu prikazati obvestilo o uspehu in odpreti novo skupino. *(najnižja vloga: —)*
-- **FR-002-04**: Sistem MORA na zaslonu *Skupine* prikazati vse **nearhivirane** skupine, katerih član je uporabnik, v razdelkih po njegovi vlogi v vrstnem redu *Lastnik*, *Admin*, *Urednik*, *Bralec*; razdelek brez skupin se ne izriše; vsak razdelek ima naslov ravni 2 in skupno število skupin; vrstica skupine vsebuje jeziček, naslov, skrajšan opis in število kontaktov ter odpre skupino; skupine so v razdelku urejene po naslovu abecedno (po pravilih jezika vmesnika), vsak razdelek je paginiran ločeno (privzeto 25, izbira 25/50/100, design.md 8.9). *(najnižja vloga: —)*
+- **FR-002-04**: Sistem MORA na zaslonu *Skupine* prikazati vse **nearhivirane** skupine, katerih član je uporabnik, kot **en paginiran seznam** z značko vloge uporabnika na vsaki skupini (namesto razdelkov po vlogah, FR-020-10); vrstica skupine vsebuje jeziček, naslov, skrajšan opis in število kontaktov ter odpre skupino; skupine so urejene po naslovu abecedno (po pravilih jezika vmesnika), seznam je paginiran (privzeto 25, izbira 25/50/100, design.md 8.9), neobvezno filtriran po eni vlogi. *(najnižja vloga: —)*
 - **FR-002-05**: Sistem MORA uporabniku, ki ni član nobene nearhivirane skupine, na zaslonu *Skupine* prikazati prazno stanje »Nimaš še nobene skupine.« z akcijo *Nova skupina* (design.md 8.15). *(najnižja vloga: —)*
-- **FR-002-06**: Sistem MORA pri širini ≥ 1024 px v stranskem pasu (design.md 7.1), pri širini < 1024 px pa v meniju gumba za preklop skupine v zgornji vrstici, prikazati iste razdelke po vlogah kot FR-002-04, z največ 10 skupinami na razdelek (po naslovu) in povezavo *Vse skupine* na zaslon *Skupine*, kadar ima razdelek več skupin; trenutno odprta skupina je označena kot trenutna stran. *(najnižja vloga: —)*
+- **FR-002-06**: Sistem MORA pri širini ≥ 1024 px v stranskem pasu (design.md 7.1), pri širini < 1024 px pa v meniju gumba za preklop skupine v zgornji vrstici, prikazati skupine po naslovu z značko vloge, največ 10, in povezavo *Vse skupine* na zaslon *Skupine*, kadar je skupin več; trenutno odprta skupina je označena kot trenutna stran. *(najnižja vloga: —)*
 - **FR-002-07**: Sistem MORA na vseh zaslonih skupine prikazati glavo skupine (design.md 7.1): jeziček v barvi skupine, naslov, oznako vloge uporabnika (*Lastnik*, *Admin*, *Urednik*, *Bralec*), oznako *Arhivirano*, kadar je skupina arhivirana, in navigacijo med razdelki skupine (povezave, ne ARIA zavihki), v kateri je trenutni razdelek označen in so prikazani samo razdelki, dovoljeni vlogi in stanju skupine; razdelek *Nastavitve* vidijo vsi člani; druge razdelke dodajajo poznejše funkcionalnosti (004, 005, 011). *(najnižja vloga: VIEWER)*
 - **FR-002-08**: Sistem MORA za skupino, ki ne obstaja, ali skupino, katere uporabnik ni član, na vseh poteh skupine vrniti `404` brez razkritja obstoja ali podatkov skupine, vmesnik pa prikazati stran »Te strani ni« (001, design.md 9.10). *(najnižja vloga: VIEWER)*
 - **FR-002-09**: Sistem MORA zaslonom skupine nastaviti naslov strani »‹Zaslon› – ‹naslov skupine› – Kontakti« (npr. »Nastavitve – Projekt FERI – Kontakti«), zaslonu *Skupine* pa »Skupine – Kontakti«, v jeziku vmesnika. *(najnižja vloga: VIEWER)*
@@ -168,7 +168,7 @@ Vsi člani v *Nastavitve → Podatki skupine* vidijo naslov, opis in barvo skupi
 ## Assumptions
 
 - Odvisnost od **001-prijava**: prijava, ogrodje aplikacije (zgornja vrstica, *Preskoči na vsebino*) in stran »Te strani ni«; 002 doda stranski pas in gumb za preklop skupine.
-- **Omejitev seznamov (konstitucija V)**: zaslon *Skupine* je paginiran po razdelkih (privzeto 25 na stran, 25/50/100, največ 100); stranski pas in meni preklopa skupine pokažeta največ 10 skupin na razdelek in povezavo *Vse skupine*. Razvrščanje vedno po naslovu abecedno.
+- **Omejitev seznamov (konstitucija V)**: zaslon *Skupine* je paginiran kot en seznam (privzeto 25 na stran, 25/50/100, največ 100); stranski pas in meni preklopa skupine pokažeta največ 10 skupin in povezavo *Vse skupine*. Razvrščanje vedno po naslovu abecedno.
 - **Število kontaktov** v vrstici skupine šteje kontakte skupine iz 004; dokler 004 ni implementirana, je 0.
 - **Privzeti razdelek skupine**: odprtje skupine (tudi po ustvarjanju) prikaže prvi razdelek navigacije; od 004 naprej je to *Kontakti*, do takrat *Nastavitve*.
 - **Navigacija skupine**: 002 vzpostavi glavo, navigacijo in razdelek *Nastavitve* s podrazdelkom *Podatki skupine*. *Kontakti* (004), *Revizijska sled* (005), *Dvojniki* (011; samo EDITOR in višje, v arhivirani skupini ga ni) ter razdelki *Člani* in *Povabi člana* (007, 006) in *Upravljanje skupine* (003, 007) v *Nastavitvah* dodajo poznejše funkcionalnosti.

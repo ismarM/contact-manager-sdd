@@ -54,14 +54,14 @@ export function ContactsPage() {
 
   const selected = route.kind === 'view' ? route.id : undefined;
   return (
-    <div className="flex gap-6 px-4 py-6">
+    <div className="flex items-start gap-6 px-4 py-6">
       <div className="min-w-0 flex-1">
         <ContactList titled={selected === undefined} selectedId={selected} />
       </div>
       {selected !== undefined && (
         <section
           aria-label={t('contacts.view.panel')}
-          className="w-[420px] shrink-0 border-l border-border pl-6"
+          className="sticky top-6 max-h-[calc(100dvh-3rem)] w-[420px] shrink-0 overflow-y-auto overscroll-contain border-l border-border pl-6"
         >
           <ContactView key={selected} contactId={selected} panel />
         </section>

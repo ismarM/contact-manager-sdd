@@ -1,3 +1,4 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -232,7 +233,7 @@ export function ComparePage() {
         contacts: contacts.map((contact) => ({ id: contact.id, version: contact.version })),
         result,
       });
-      toast(
+      toast.success(
         t('duplicates.toast.merged', {
           count: response.mergedCount,
           name: response.keptDisplayName,
@@ -314,7 +315,7 @@ export function ComparePage() {
   return (
     <section
       aria-labelledby={status === 'loading' ? undefined : headingId}
-      className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-6"
+      className="mx-auto flex w-full max-w-[1120px] flex-col gap-6 px-4 py-6"
     >
       {status !== 'loading' && (
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -330,7 +331,7 @@ export function ComparePage() {
         </div>
       )}
 
-      {status === 'loading' && showLoader && <p role="status">{t('duplicates.loading')}</p>}
+      {status === 'loading' && showLoader && <LoadingState label={t('duplicates.loading')} />}
       {status === 'failed' && !message && (
         <div role="alert" className={errorAlert}>
           <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />

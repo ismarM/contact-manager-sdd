@@ -10,6 +10,7 @@ import {
   memberCount,
   setRole,
 } from './support/groups';
+import { goToArchived } from './support/nav';
 
 // 003 arhiviranje in izbris skupine (plan.md – Public Interfaces). Vsak test teče pri 360, 768 in 1280 px; stranski pas je
 // viden od 1024 px. Druge vloge, trajno arhivirano stanje (012) in arhiviranje drugih skupin pripravi SQL (D-27).
@@ -69,22 +70,21 @@ test('FR-003-01 FR-003-02 FR-003-04 FR-003-05 FR-003-07 SC-002 SC-003: lastnik a
   await expect(banner(page)).toContainText(
     'Skupina je arhivirana – na voljo so pregled, iskanje in izvoz.',
   );
-  await expect(page.getByRole('region', { name: 'Projekt FERI' })).toContainText('Arhivirano');
+  await expect(page.getByRole('region', { name: 'Projekt FERI' })).toContainText('Arhivirana');
   await expect(page.getByRole('form', { name: 'Podatki skupine' })).toHaveCount(0);
   await expect(page.getByRole('textbox')).toHaveCount(0);
   await expectNoAxeViolations(page);
 
   await page.goto('/');
   await expect(page.getByRole('main').getByRole('link', { name: 'Projekt FERI' })).toHaveCount(0);
-  await page.getByRole('main').getByRole('link', { name: 'Arhivirane skupine' }).click();
-  await expect(page).toHaveURL(/\/groups\/archived$/);
+  await goToArchived(page);
   await expect(page).toHaveTitle('Arhivirane skupine – Kontakti');
   await expect(page.getByRole('heading', { level: 1, name: 'Arhivirane skupine' })).toBeVisible();
   const row = page
     .getByRole('listitem')
     .filter({ has: page.getByRole('link', { name: 'Projekt FERI' }) });
   await expect(row).toContainText('Vloga: Lastnik');
-  await expect(row).toContainText('Arhivirano');
+  await expect(row).toContainText('Arhivirana');
   await expectNoAxeViolations(page);
   await row.getByRole('link', { name: 'Projekt FERI' }).click();
   await expect(page).toHaveURL(new RegExp(`/groups/${id}/contacts$`));
@@ -116,9 +116,7 @@ test('FR-003-05 FR-003-06: urednik vidi pasico brez odarhiviranja, lastnik odarh
   await expect(banner(page)).toHaveCount(0);
   await expect(page.getByRole('form', { name: 'Podatki skupine' })).toBeVisible();
   await page.goto('/');
-  await expect(
-    page.getByRole('main').getByRole('heading', { level: 2, name: 'Lastnik (1)' }),
-  ).toBeVisible();
+  await expect(page.getByRole('main').getByRole('listitem')).toContainText('Vloga: Lastnik');
   await eva.context.close();
 });
 

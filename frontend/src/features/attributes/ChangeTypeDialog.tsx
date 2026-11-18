@@ -5,7 +5,13 @@ import { toast } from 'sonner';
 
 import { ApiError } from '../../shared/api/client';
 import { Dialog, DialogContent, DialogTitle } from '../../shared/ui/dialog';
-import { errorAlert, primaryButton, secondaryButton, warningAlert } from '../../shared/ui/styles';
+import {
+  errorAlert,
+  ghostButton,
+  primaryButton,
+  secondaryButton,
+  warningAlert,
+} from '../../shared/ui/styles';
 import { TypeSelect } from '../contacts/typed/TypeSelect';
 import { keyConflictCurrent, typeConflictDetails, useAttributesApi } from './api';
 import { TypeConflictList } from './TypeConflictList';
@@ -118,7 +124,7 @@ function ChangeTypeContent({
     setFailure(null);
     try {
       const saved = await api.changeType(groupId, { key: item.key, type, version });
-      toast(
+      toast.success(
         saved.version === version
           ? t('attributes.change.unchanged', { key: item.key })
           : t('attributes.change.success', { key: item.key }),
@@ -192,7 +198,7 @@ function ChangeTypeContent({
         </div>
       )}
       <div className="flex flex-wrap justify-end gap-3">
-        <button ref={cancel} type="button" className={secondaryButton} onClick={onClose}>
+        <button ref={cancel} type="button" className={ghostButton} onClick={onClose}>
           {t('attributes.change.cancel')}
         </button>
         <button

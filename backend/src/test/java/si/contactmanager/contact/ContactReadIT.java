@@ -369,14 +369,7 @@ class ContactReadIT extends ContactApiTest {
     }
 
     private static int contactCountOf(Map<String, Object> body, String groupId) {
-        List<Map<String, Object>> found = new ArrayList<>();
-        if (body.containsKey("sections")) {
-            for (Map<String, Object> section : asObjects(body.get("sections"))) {
-                found.addAll(asObjects(section.get("items")));
-            }
-        } else {
-            found.addAll(asObjects(body.get("items")));
-        }
+        List<Map<String, Object>> found = new ArrayList<>(asObjects(body.get("items")));
         Set<String> ids = new HashSet<>();
         for (Map<String, Object> item : found) {
             ids.add((String) item.get("id"));

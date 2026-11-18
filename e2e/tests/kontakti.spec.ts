@@ -583,3 +583,67 @@ test('FR-004-01 FR-004-04 SC-001 SC-006: angleški vmesnik – kontakt z dvema a
   await expect(english.getByRole('listitem').filter({ hasText: 'konferenca2025' })).toBeVisible();
   await expectNoAxeViolations(page);
 });
+
+test('FR-020-17 FR-020-19: kartica kontakta po platnu – Uredi pred Izbriši, deljenje, zgodovina; bralec brez akcij', async ({
+  page,
+  browser,
+}) => {
+  await signedIn(page);
+  const id = await createGroup(page, { title: 'Projekt FERI' });
+  await addContact(page, id, { first: 'Maja', last: 'Kovač', tags: ['partner', 'vip'] });
+  await expect(page.getByRole('heading', { level: 2, name: 'Maja Kovač' })).toBeVisible();
+
+  const card = details(page);
+  await expect(card.getByText(/^Dodano .* · nazadnje urejeno /)).toBeVisible();
+  const edit = card.getByRole('link', { name: 'Uredi kontakt' });
+  const remove = card.getByRole('button', { name: 'Izbriši kontakt' });
+  await expect(edit).toBeVisible();
+  await expect(remove).toBeVisible();
+  const editBox = await edit.boundingBox();
+  const removeBox = await remove.boundingBox();
+  // Na telefonu je *Uredi kontakt* v spodnji vrstici akcij (pod vsebino), sicer pred *Izbriši kontakt* v glavi.
+  if (editBox && removeBox && (page.viewportSize()?.width ?? 0) >= 640)
+    expect(editBox.x).toBeLessThan(removeBox.x);
+  await expect(card.getByRole('button', { name: 'Deli s kodo QR' })).toBeVisible();
+  await expect(card.getByRole('button', { name: 'Prenesi vizitko (.vcf)' })).toBeVisible();
+  await expect(card.getByRole('link', { name: 'Zgodovina kontakta' })).toBeVisible();
+  await expect(
+    card.getByRole('link', { name: 'Spremembe tega kontakta v revizijski sledi' }),
+  ).toBeVisible();
+  await expectNoAxeViolations(page);
+
+  const contactUrl = page.url();
+  const reader = await otherUser(browser, page, 'Bojan Bralec');
+  setRole(id, reader.user.email, 'VIEWER');
+  await reader.page.goto(contactUrl);
+  await expect(reader.page.getByRole('heading', { level: 2, name: 'Maja Kovač' })).toBeVisible();
+  await expect(reader.page.getByRole('link', { name: 'Uredi kontakt' })).toHaveCount(0);
+  await expect(reader.page.getByRole('button', { name: 'Izbriši kontakt' })).toHaveCount(0);
+  await expect(reader.page.getByRole('button', { name: 'Deli s kodo QR' })).toBeVisible();
+  await reader.context.close();
+});
+
+test('FR-020-18: od 1280 px je plošča ob seznamu lepljiva in se pomika sama, pod tem je kontakt svoja stran', async ({
+  page,
+}) => {
+  await signedIn(page);
+  const id = await createGroup(page, { title: 'Projekt FERI' });
+  createContactsBulk(id, 40);
+  await page.goto(`/groups/${id}/contacts`);
+  await table(page).getByRole('link').first().click();
+
+  if (hasPanel(page)) {
+    const panel = page.getByRole('region', { name: 'Podrobnosti kontakta' });
+    await expect(panel).toBeVisible();
+    await expect(table(page)).toBeVisible();
+    await expect(panel).toHaveCSS('position', 'sticky');
+    await page.mouse.wheel(0, 600);
+    await expect.poll(async () => (await panel.boundingBox())?.y ?? -1).toBeGreaterThanOrEqual(0);
+    await expect(panel.getByRole('link', { name: 'Zgodovina kontakta' })).toBeInViewport();
+  } else {
+    await expect(page.getByRole('region', { name: 'Podrobnosti kontakta' })).toHaveCount(0);
+    await expect(table(page)).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Nazaj na seznam kontaktov' })).toBeVisible();
+  }
+  await expectNoAxeViolations(page);
+});

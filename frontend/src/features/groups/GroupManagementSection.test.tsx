@@ -322,8 +322,8 @@ describe('GroupManagementSection', () => {
     it('FR-003-09 FR-003-10 FR-003-11: natančen naslov (obrezan presledkov) – izbris, preusmeritev, obvestilo, povzetek osvežen', async () => {
       const { user, api, listRequests } = render({ role: 'OWNER', canDelete: true });
       await management();
-      await waitFor(() => expect(listRequests(10).length).toBeGreaterThan(0));
-      const before = listRequests(10).length;
+      await waitFor(() => expect(listRequests(100).length).toBeGreaterThan(0));
+      const before = listRequests(100).length;
       await user.click(screen.getByRole('button', { name: 'Izbriši skupino' }));
       const dialog = await screen.findByRole('dialog');
       await user.type(
@@ -336,7 +336,7 @@ describe('GroupManagementSection', () => {
       expect(await screen.findByRole('heading', { level: 1, name: 'Skupine' })).toBeInTheDocument();
       expect(api.of('DELETE', `/api/groups/${GROUP_ID}`)).toHaveLength(1);
       await expectNotice('Skupina je izbrisana.');
-      await waitFor(() => expect(listRequests(10).length).toBeGreaterThan(before));
+      await waitFor(() => expect(listRequests(100).length).toBeGreaterThan(before));
     });
 
     it('FR-003-09: izbris v arhivirani skupini je dovoljen', async () => {

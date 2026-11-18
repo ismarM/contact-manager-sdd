@@ -130,4 +130,15 @@ class ReceivedInvitationSecurityIT extends InvitationApiTest {
         assertThat(accept(UUID.randomUUID(), noProfile).statusCode()).isEqualTo(404);
         assertThat(decline(UUID.randomUUID(), noProfile).statusCode()).isEqualTo(404);
     }
+
+    @Test
+    @Tag("FR-020-05")
+    void countOfAUserWithoutProfileIsZero() throws Exception {
+        SignedIn fresh = newGoogleUser("Brez profila");
+
+        HttpResponse<String> response = get("/api/invitations/count", fresh.idToken());
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(json(response.body())).containsEntry("count", 0);
+    }
 }

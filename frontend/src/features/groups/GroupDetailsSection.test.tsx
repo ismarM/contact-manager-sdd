@@ -85,8 +85,8 @@ describe('GroupDetailsSection', () => {
     expect(within(form).getByRole('textbox', { name: 'Naslov' })).toHaveValue('Projekt FERI');
     expect(within(form).getByRole('textbox', { name: 'Opis' })).toHaveValue('Kontakti projekta');
     expect(within(form).getByRole('radio', { name: 'Mah' })).toBeChecked();
-    await waitFor(() => expect(listRequests(10).length).toBeGreaterThan(0));
-    const summariesBefore = listRequests(10).length;
+    await waitFor(() => expect(listRequests(100).length).toBeGreaterThan(0));
+    const summariesBefore = listRequests(100).length;
 
     const title = within(form).getByRole('textbox', { name: 'Naslov' });
     await user.clear(title);
@@ -109,7 +109,7 @@ describe('GroupDetailsSection', () => {
       await screen.findByRole('heading', { level: 1, name: 'Projekt FERI 2' }),
     ).toBeInTheDocument();
     await waitFor(() => expect(document.title).toBe('Nastavitve – Projekt FERI 2 – Kontakti'));
-    await waitFor(() => expect(listRequests(10).length).toBeGreaterThan(summariesBefore));
+    await waitFor(() => expect(listRequests(100).length).toBeGreaterThan(summariesBefore));
   });
 
   it('FR-002-11: lastnik pobriše opis – zahtevek nosi description: null', async () => {

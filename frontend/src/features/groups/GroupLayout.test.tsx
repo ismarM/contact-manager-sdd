@@ -3,7 +3,17 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 
 import { i18n } from '../../i18n';
-import { GROUP_ID, groupDetail, renderGroupsApp, type Reply } from '../../test/groupsApi';
+import {
+  GROUP_ID,
+  groupDetail,
+  groupId,
+  listReply,
+  renderGroupsApp,
+  type Reply,
+  summary,
+} from '../../test/groupsApi';
+import { switcherNames } from '../../test/names';
+import { setViewport } from '../../test/viewport';
 import { currentLocation } from '../../test/renderApp';
 
 // Glava in navigacija skupine, »Te strani ni« za nečlana (FR-002-07, -08, -09; plan.md – Pages and routes,
@@ -33,7 +43,7 @@ describe('GroupLayout', () => {
       within(header).getByRole('heading', { level: 1, name: 'Projekt FERI' }),
     ).toBeInTheDocument();
     expect(header).toHaveTextContent('Vloga: Urednik');
-    expect(header).not.toHaveTextContent('Arhivirano');
+    expect(header).not.toHaveTextContent('Arhivirana');
     const sections = within(header).getByRole('navigation', { name: 'Razdelki skupine' });
     const settings = within(sections).getByRole('link', { name: 'Nastavitve' });
     expect(settings).toHaveAttribute('href', `/groups/${GROUP_ID}/settings`);
@@ -43,13 +53,66 @@ describe('GroupLayout', () => {
     expect(screen.queryByRole('tab')).not.toBeInTheDocument();
   });
 
-  it('FR-002-07: arhivirana skupina ima v glavi oznako Arhivirano', async () => {
+  it('FR-020-08: arhivirana skupina ima v glavi značko Arhivirana, trajno arhivirana Trajno arhivirana', async () => {
     renderGroupsApp(`/groups/${GROUP_ID}/settings`, {
       get: () => asEditor({ archived: true }),
     });
 
     const header = await screen.findByRole('region', { name: 'Projekt FERI' });
-    expect(header).toHaveTextContent('Arhivirano');
+    expect(header).toHaveTextContent('Arhivirana');
+    expect(header).not.toHaveTextContent('Trajno');
+  });
+
+  it('FR-020-08: trajno arhivirana skupina ima značko Trajno arhivirana', async () => {
+    renderGroupsApp(`/groups/${GROUP_ID}/settings`, {
+      get: () => asEditor({ archived: true, permanentlyArchived: true }),
+    });
+
+    const header = await screen.findByRole('region', { name: 'Projekt FERI' });
+    expect(header).toHaveTextContent('Trajno arhivirana');
+  });
+
+  it('FR-020-08: od 640 px glava pokaže naziv, opis in vlogo, zavihki so povezave z aktivnim', async () => {
+    setViewport('tablet');
+    renderGroupsApp(`/groups/${GROUP_ID}/audit`, { get: () => asEditor() });
+
+    const header = await screen.findByRole('region', { name: 'Projekt FERI' });
+    expect(header).toHaveTextContent('Kontakti projekta');
+    expect(within(header).getByText('Urednik')).toBeInTheDocument();
+    expect(within(header).queryByRole('button', { name: switcherNames.button() })).toBeNull();
+    const tabs = within(header).getByRole('navigation', { name: 'Razdelki skupine' });
+    expect(
+      within(tabs)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual(['Kontakti', 'Dvojniki', 'Revizijska sled', 'Atributi skupine', 'Nastavitve']);
+    expect(within(tabs).getByRole('link', { name: 'Revizijska sled' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+
+  it('FR-020-08: na telefonu je glava strnjena, preklopnik skupin je v glavi, opisa ni', async () => {
+    setViewport('narrow');
+    const { user } = renderGroupsApp(`/groups/${GROUP_ID}/settings`, {
+      get: () => asEditor(),
+      list: listReply({ OWNER: [summary(1, { title: 'Alfa' })] }),
+    });
+
+    const header = await screen.findByRole('region', { name: 'Projekt FERI' });
+    expect(header).not.toHaveTextContent('Kontakti projekta');
+    await user.click(within(header).getByRole('button', { name: switcherNames.button() }));
+    expect(await screen.findByRole('menuitem', { name: 'Alfa' })).toHaveAttribute(
+      'href',
+      `/groups/${groupId(1)}/settings`,
+    );
+  });
+
+  it('FR-020-08: bralec nima zavihka Dvojniki, v arhivirani skupini ga ni', async () => {
+    renderGroupsApp(`/groups/${GROUP_ID}/settings`, { get: () => asEditor({ role: 'VIEWER' }) });
+
+    const header = await screen.findByRole('region', { name: 'Projekt FERI' });
+    expect(within(header).queryByRole('link', { name: 'Dvojniki' })).not.toBeInTheDocument();
   });
 
   it('FR-002-07: bralec vidi razdelek Nastavitve', async () => {

@@ -1,3 +1,5 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
+import { EmptyState } from '../../shared/ui/EmptyState';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -102,18 +104,26 @@ export function DuplicateResults({
         </div>
       )}
 
-      {loading && showLoader && <p role="status">{t('duplicates.loading')}</p>}
+      {loading && showLoader && <LoadingState label={t('duplicates.loading')} />}
 
       {!failed && data && data.groups.length === 0 && (
-        <p role="status">
-          {t('duplicates.empty', { category: t(`duplicates.categories.${category}`) })}
-        </p>
+        <div role="status">
+          <EmptyState
+            headingLevel={3}
+            title={t('duplicates.empty', { category: t(`duplicates.categories.${category}`) })}
+          />
+        </div>
       )}
 
       {!failed && data && data.groups.length > 0 && (
         <>
-          <p role="status">{t('duplicates.resultsCount', { count: data.total })}</p>
-          <ul aria-label={t('duplicates.groupsList')} className="flex flex-col gap-4">
+          <p role="status" className="text-lg font-bold">
+            {t('duplicates.resultsCount', { count: data.total })}
+          </p>
+          <ul
+            aria-label={t('duplicates.groupsList')}
+            className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+          >
             {data.groups.map((group) => (
               <DuplicateCard
                 key={group.contacts[0]?.id}

@@ -3,19 +3,18 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 
 import { i18n } from '../../i18n';
+import { currentLocation } from '../../test/renderApp';
 import { listReply, renderGroupsApp, summaries } from '../../test/groupsApi';
 
-// Paginacija razdelka na zaslonu *Skupine* (FR-002-04; design.md 8.9, D-26; plan.md – Key elements).
+// Paginacija zbirke na zaslonu *Skupine* (FR-002-04; design.md 8.9, D-26; plan.md – Key elements).
 
-const pageRequests = (api: ReturnType<typeof renderGroupsApp>['api'], role: string) =>
-  api
-    .of('GET', '/api/groups')
-    .filter((r) => r.search.get('role') === role && r.search.get('size') !== '10');
+const pageRequests = (api: ReturnType<typeof renderGroupsApp>['api']) =>
+  api.of('GET', '/api/groups').filter((r) => r.search.get('size') !== '100');
 
 const groupLinks = (container: HTMLElement) =>
   within(container).queryAllByRole('link', { name: /^Skupina \d{3}$/ });
 
-describe('GroupSection – paginacija', () => {
+describe('GroupsPage – paginacija', () => {
   beforeEach(async () => {
     await i18n.changeLanguage('sl');
   });
@@ -24,7 +23,7 @@ describe('GroupSection – paginacija', () => {
     const { user, api } = renderGroupsApp('/', { list: listReply({ OWNER: summaries(30) }) });
     const main = await screen.findByRole('main');
     const pages = await within(main).findByRole('navigation', {
-      name: 'Strani rezultatov: Lastnik',
+      name: 'Strani rezultatov: Skupine',
     });
 
     expect(groupLinks(main)).toHaveLength(25);
@@ -35,20 +34,20 @@ describe('GroupSection – paginacija', () => {
     await user.click(within(pages).getByRole('button', { name: 'Naslednja' }));
 
     await waitFor(() => expect(groupLinks(main)).toHaveLength(5));
-    const request = pageRequests(api, 'OWNER').at(-1);
+    const request = pageRequests(api).at(-1);
     expect(request?.search.get('page')).toBe('1');
     expect(request?.search.get('size')).toBe('25');
     expect(within(pages).getByRole('status')).toHaveTextContent('26–30 od 30');
     expect(pages).toHaveTextContent('Stran 2 od 2');
     expect(within(pages).getByRole('button', { name: 'Naslednja' })).toBeDisabled();
-    expect(within(main).getByRole('heading', { level: 2, name: 'Lastnik (30)' })).toHaveFocus();
+    expect(within(main).getByRole('heading', { level: 1, name: 'Skupine' })).toHaveFocus();
   });
 
   it('FR-002-04: Velikost strani 50 zahteva size=50 od prve strani', async () => {
     const { user, api } = renderGroupsApp('/', { list: listReply({ OWNER: summaries(60) }) });
     const main = await screen.findByRole('main');
     const pages = await within(main).findByRole('navigation', {
-      name: 'Strani rezultatov: Lastnik',
+      name: 'Strani rezultatov: Skupine',
     });
     const pageSize = within(pages).getByRole('combobox', { name: 'Velikost strani' });
     expect(
@@ -60,35 +59,43 @@ describe('GroupSection – paginacija', () => {
     await user.selectOptions(pageSize, '50');
 
     await waitFor(() => expect(groupLinks(main)).toHaveLength(50));
-    const request = pageRequests(api, 'OWNER').at(-1);
+    const request = pageRequests(api).at(-1);
     expect(request?.search.get('size')).toBe('50');
-    expect(request?.search.get('page')).toBe('0');
+    expect(request?.search.get('page') ?? '0').toBe('0');
     expect(within(pages).getByRole('status')).toHaveTextContent('1–50 od 60');
   });
 
-  it('FR-002-04: razdelek z največ 25 skupinami nima paginacije', async () => {
+  it('FR-002-04: seznam z največ 25 skupinami nima paginacije', async () => {
     renderGroupsApp('/', { list: listReply({ OWNER: summaries(25) }) });
     const main = await screen.findByRole('main');
 
-    await within(main).findByRole('heading', { level: 2, name: 'Lastnik (25)' });
+    await within(main).findByRole('link', { name: 'Skupina 001' });
 
     expect(within(main).queryByRole('navigation')).not.toBeInTheDocument();
   });
 
-  it('FR-002-04: dva paginirana razdelka imata različno ime in ločeno stanje strani', async () => {
-    const { user } = renderGroupsApp('/', {
-      list: listReply({ OWNER: summaries(30), VIEWER: summaries(40, 100) }),
+  it('FR-020-11: stran je v URL (od 1); povezava s page=2 odpre drugo stran, vrnitev na prvo stran page odstrani', async () => {
+    const { user, api } = renderGroupsApp('/?page=2', {
+      list: listReply({ OWNER: summaries(30) }),
     });
     const main = await screen.findByRole('main');
-    const owner = await within(main).findByRole('navigation', {
-      name: 'Strani rezultatov: Lastnik',
+    const pages = await within(main).findByRole('navigation', {
+      name: 'Strani rezultatov: Skupine',
     });
-    const viewer = within(main).getByRole('navigation', { name: 'Strani rezultatov: Bralec' });
 
-    await user.click(within(owner).getByRole('button', { name: 'Naslednja' }));
+    await waitFor(() => expect(groupLinks(main)).toHaveLength(5));
+    expect(
+      pageRequests(api)
+        .filter((r) => r.search.get('size') === '25')
+        .at(-1)
+        ?.search.get('page'),
+    ).toBe('1');
+    expect(pages).toHaveTextContent('Stran 2 od 2');
 
-    await waitFor(() => expect(within(owner).getByRole('status')).toHaveTextContent('26–30 od 30'));
-    expect(within(viewer).getByRole('status')).toHaveTextContent('1–25 od 40');
+    await user.click(within(pages).getByRole('button', { name: 'Prejšnja' }));
+
+    await waitFor(() => expect(groupLinks(main)).toHaveLength(25));
+    expect(currentLocation()).toBe('/');
   });
 
   it.each(['sl', 'en'] as const)(
@@ -96,16 +103,13 @@ describe('GroupSection – paginacija', () => {
     async (language) => {
       await i18n.changeLanguage(language);
       const { container } = renderGroupsApp('/', {
-        list: listReply({ OWNER: summaries(30), VIEWER: summaries(40, 100) }),
+        list: listReply({ OWNER: summaries(30) }),
       });
       const main = await screen.findByRole('main');
-      const owner = language === 'sl' ? 'Strani rezultatov: Lastnik' : 'Result pages: Owner';
+      const owner = language === 'sl' ? 'Strani rezultatov: Skupine' : 'Result pages: Groups';
       const pages = await within(main).findByRole('navigation', { name: owner });
       if (language === 'en') {
         expect(within(pages).getByRole('combobox', { name: 'Page size' })).toBeInTheDocument();
-        expect(
-          within(main).getByRole('navigation', { name: 'Result pages: Viewer' }),
-        ).toBeInTheDocument();
       }
 
       expect((await axe(container)).violations).toEqual([]);

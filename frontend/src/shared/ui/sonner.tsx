@@ -1,3 +1,4 @@
+import { IconCircleCheck, IconInfoCircle } from '@tabler/icons-react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Toaster as Sonner, toast } from 'sonner';
@@ -23,14 +24,23 @@ export function Toaster() {
       position={medium ? 'bottom-right' : 'bottom-center'}
       duration={5000}
       closeButton
+      icons={{
+        success: (
+          <IconCircleCheck aria-hidden="true" size={20} stroke={1.75} className="text-success" />
+        ),
+        info: (
+          <IconInfoCircle aria-hidden="true" size={20} stroke={1.75} className="text-primary" />
+        ),
+      }}
       toastOptions={{
         unstyled: true,
         closeButtonAriaLabel: t('toast.close'),
         classNames: {
           toast:
-            'flex w-[calc(100vw-2rem)] max-w-[360px] items-center gap-3 rounded-lg border border-border bg-card p-4 pr-12 text-card-foreground shadow-float',
+            'flex w-[calc(100vw-2rem)] max-w-[360px] items-center gap-3 rounded-md border border-border bg-popover p-4 pr-12 text-popover-foreground shadow-md',
           title: 'text-base',
-          closeButton: `absolute top-2 right-2 flex size-8 items-center justify-center rounded-md text-foreground hover:bg-muted ${focusRing}`,
+          icon: 'flex shrink-0 items-center',
+          closeButton: `absolute top-2 right-2 flex size-8 items-center justify-center rounded-sm text-foreground hover:bg-muted ${focusRing}`,
         },
       }}
     />

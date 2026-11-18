@@ -15,7 +15,7 @@ export function MemberCell({
 }) {
   return (
     <td className={className}>
-      <span aria-hidden="true" className="hidden font-bold max-sm:inline">
+      <span aria-hidden="true" className="hidden font-medium max-sm:inline">
         {label}
       </span>
       {children}

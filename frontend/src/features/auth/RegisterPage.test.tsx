@@ -70,7 +70,7 @@ describe('RegisterPage', () => {
     await fill(user, { email: EMAIL, password: '1234567', confirm: '1234567' });
     await user.click(screen.getByRole('button', { name: t('auth.register.submit') }));
     expect(screen.getByLabelText(t('auth.form.password'))).toHaveAccessibleDescription(
-      `${t('auth.form.passwordHint')} ${t('auth.form.errors.passwordTooShort')}`,
+      new RegExp(`${t('auth.form.rules.minLength')}.*${t('auth.form.errors.passwordTooShort')}`),
     );
     expect(gateway.currentUser).toBeNull();
 
@@ -110,6 +110,43 @@ describe('RegisterPage', () => {
     expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute(
       'href',
       '/login?next=%2Faccount',
+    );
+  });
+
+  it('FR-020-15: pravila gesla se posodabljajo sproti, stanje ob zapustitvi polja gre v aria-live', async () => {
+    const { user } = renderApp('/register');
+    const password = await screen.findByLabelText(t('auth.form.password'));
+    const rules = screen.getByRole('list', { name: t('auth.form.rules.heading') });
+    expect(rules).toHaveTextContent(
+      `${t('auth.form.rules.minLength')} – ${t('auth.form.rules.unmet')}`,
+    );
+    expect(password).toHaveAccessibleDescription(new RegExp(t('auth.form.rules.minLength')));
+
+    await user.type(password, '12345678');
+    expect(rules).toHaveTextContent(
+      `${t('auth.form.rules.minLength')} – ${t('auth.form.rules.met')}`,
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('');
+
+    await user.tab();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      `${t('auth.form.rules.minLength')}: ${t('auth.form.rules.met')}`,
+    );
+  });
+
+  it('FR-020-14: pozdravna ploskev ima tri prednosti, Prikaži geslo pokaže geslo', async () => {
+    const { user } = renderApp('/register');
+    const password = await screen.findByLabelText(t('auth.form.password'));
+
+    expect(screen.getByText(t('auth.hero.benefit3'))).toBeInTheDocument();
+    expect(password).toHaveAttribute('type', 'password');
+
+    await user.click(screen.getByRole('button', { name: t('auth.form.showPassword') }));
+
+    expect(password).toHaveAttribute('type', 'text');
+    expect(screen.getByRole('button', { name: t('auth.form.showPassword') })).toHaveAttribute(
+      'aria-pressed',
+      'true',
     );
   });
 

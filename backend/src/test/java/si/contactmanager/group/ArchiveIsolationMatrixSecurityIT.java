@@ -216,4 +216,28 @@ class ArchiveIsolationMatrixSecurityIT extends ApiTest {
         assertThat(response.statusCode()).isEqualTo(401);
         assertThat(json(response.body())).isEqualTo(Map.of("code", "UNAUTHENTICATED"));
     }
+
+    @org.junit.jupiter.api.Test
+    @Tag("FR-020-13")
+    @Tag("FR-020-05")
+    void archivedListShowsOnlyOwnGroupsAndCountsTheTotalWithSmallPages() throws Exception {
+        GroupFixtures fixtures = new GroupFixtures(jdbc);
+        SignedIn ana = registeredUser("Ana Arhiv");
+        SignedIn bojan = registeredUser("Bojan Arhiv");
+        long anaId = fixtures.userId(ana.uid());
+        long bojanId = fixtures.userId(bojan.uid());
+        fixtures.archive(fixtures.createGroup(anaId, "Moja prva"));
+        fixtures.archive(fixtures.createGroup(anaId, "Moja druga"));
+        fixtures.archive(fixtures.createGroup(bojanId, "Tuja arhivirana"));
+
+        Map<String, Object> mine =
+                json(get("/api/groups/archived?size=1", ana.idToken()).body());
+        Map<String, Object> outsider =
+                json(get("/api/groups/archived", registeredUser("Cene Zunanji").idToken())
+                        .body());
+
+        assertThat(mine).containsEntry("total", 2).containsEntry("size", 1);
+        assertThat(mine.get("items").toString()).doesNotContain("Tuja");
+        assertThat(outsider).containsEntry("total", 0).containsEntry("items", List.of());
+    }
 }

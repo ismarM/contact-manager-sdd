@@ -14,6 +14,7 @@ import {
   dangerButton,
   errorAlert,
   fieldError,
+  ghostButton,
   secondaryButton,
   textInput,
 } from '../../shared/ui/styles';
@@ -119,7 +120,9 @@ export function DeleteAccountDialog({ onDeleted, onBlocked }: DeleteAccountDialo
 
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
-      <DialogTrigger className={dangerButton}>{t('account.delete.button')}</DialogTrigger>
+      <DialogTrigger className={`${secondaryButton} text-destructive`}>
+        {t('account.delete.button')}
+      </DialogTrigger>
       <DialogContent
         onInteractOutside={(event) => event.preventDefault()}
         onOpenAutoFocus={(event) => {
@@ -141,7 +144,7 @@ export function DeleteAccountDialog({ onDeleted, onBlocked }: DeleteAccountDialo
         )}
         <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <label htmlFor={inputId} className="font-bold">
+            <label htmlFor={inputId} className="font-medium">
               {t('account.delete.confirmLabel')}
             </label>
             <input
@@ -163,7 +166,7 @@ export function DeleteAccountDialog({ onDeleted, onBlocked }: DeleteAccountDialo
           </div>
           {usesPassword ? (
             <div className="flex flex-col gap-1">
-              <label htmlFor={passwordId} className="font-bold">
+              <label htmlFor={passwordId} className="font-medium">
                 {t('account.delete.passwordLabel')}
               </label>
               <input
@@ -187,7 +190,7 @@ export function DeleteAccountDialog({ onDeleted, onBlocked }: DeleteAccountDialo
             <p className="text-muted-foreground">{t('account.delete.reauthGoogle')}</p>
           )}
           <div className="flex flex-wrap justify-end gap-3">
-            <DialogClose ref={cancel} className={secondaryButton}>
+            <DialogClose ref={cancel} className={ghostButton}>
               {t('account.delete.cancel')}
             </DialogClose>
             <button type="submit" className={dangerButton} aria-busy={busy} aria-disabled={busy}>

@@ -1,82 +1,82 @@
-import { IconChevronDown, IconStack2 } from '@tabler/icons-react';
-import { Fragment, useRef } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useMatch } from 'react-router';
+import { Link, useLocation, useMatch } from 'react-router';
 
-import { COLOR_SWATCH } from '../../features/groups/colors';
 import { useGroups } from '../../features/groups/groupsContext';
-import { Avatar } from '../images/Avatar';
+import type { GroupItem } from '../../features/groups/types';
+import { Monogram } from '../ui/Monogram';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
-import { focusRing } from '../ui/styles';
+
+const TABS = ['contacts', 'duplicates', 'audit', 'attributes', 'settings'] as const;
+
+/** Zavihek odprte skupine (`deleted-contacts` sodi h kontaktom); `null`, če pot ni v skupini. */
+export function currentTab(pathname: string): (typeof TABS)[number] | null {
+  const section = /^\/groups\/[^/]+\/([^/]+)/.exec(pathname)?.[1];
+  if (section === undefined) return null;
+  if (section === 'deleted-contacts') return 'contacts';
+  return (TABS as readonly string[]).includes(section) ? (section as (typeof TABS)[number]) : null;
+}
+
+/** Cilj izbire skupine (FR-020-06): isti zavihek, kjer obstaja (*Dvojniki* le urednik in višje), sicer privzeti. */
+export function switchTarget(group: GroupItem, tab: ReturnType<typeof currentTab>): string {
+  const exists = tab !== null && !(tab === 'duplicates' && group.role === 'VIEWER');
+  return `/groups/${group.id}/${exists ? tab : 'contacts'}`;
+}
 
 /**
- * Preklop skupine pod 1024 px (design.md 7.1, 8.16; FR-002-06): meni z istimi razdelki in omejitvami kot stranski pas.
- * Gumb ima samo ikono (dostopno ime »Preklopi skupino«, WCAG 2.5.3 – kot meni računa, CR-01).
+ * Preklopnik skupin (design.md 8.16; FR-020-06): meni z nearhiviranimi skupinami uporabnika (do 100); izbira odpre
+ * skupino na istem zavihku. Sprožilec (kartica *Trenutna skupina* ali naziv v glavi na telefonu) poda klicatelj; njegovo
+ * dostopno ime je ime menija.
  */
-export function GroupSwitcher() {
+export function GroupSwitcher({
+  children,
+  align = 'start',
+  triggerRef,
+}: {
+  children: ReactNode;
+  align?: 'start' | 'end';
+  triggerRef?: React.RefObject<HTMLButtonElement | null>;
+}) {
   const { t } = useTranslation();
-  const { sections, error, refresh } = useGroups();
+  const { groups, total, error, refresh } = useGroups();
+  const { pathname } = useLocation();
   const current = useMatch('/groups/:groupId/*')?.params.groupId;
-  const trigger = useRef<HTMLButtonElement>(null);
+  const tab = currentTab(pathname);
 
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger
-        ref={trigger}
-        aria-label={t('groups.switchGroup')}
-        className={`flex h-11 items-center gap-1 rounded-md border border-border bg-card px-2 text-foreground hover:bg-muted pointer-coarse:h-12 ${focusRing}`}
-      >
-        <IconStack2 aria-hidden="true" size={24} stroke={1.75} />
-        <IconChevronDown aria-hidden="true" size={20} stroke={1.75} />
-      </DropdownMenuTrigger>
+      <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
       <DropdownMenuContent
-        align="start"
-        className="max-h-[calc(100dvh-5rem)] max-w-[calc(100vw-2rem)] overflow-y-auto"
+        align={align}
+        className="max-h-[calc(100dvh-5rem)] w-72 max-w-[calc(100vw-2rem)] overflow-y-auto"
         onCloseAutoFocus={(event) => {
           event.preventDefault();
-          trigger.current?.focus();
+          triggerRef?.current?.focus();
         }}
       >
-        {sections.map((section, index) => (
-          <Fragment key={section.role}>
-            {index > 0 && <DropdownMenuSeparator />}
-            <DropdownMenuGroup aria-labelledby={`switcher-${section.role}`}>
-              <DropdownMenuLabel id={`switcher-${section.role}`}>
-                {t(`roles.${section.role}`)}
-              </DropdownMenuLabel>
-              {section.items.map((group) => (
-                <DropdownMenuItem key={group.id} asChild>
-                  <Link
-                    to={`/groups/${group.id}`}
-                    aria-current={group.id === current ? 'page' : undefined}
-                    className="aria-[current=page]:bg-selected"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={`inline-block h-5 w-1 shrink-0 rounded-sm ${COLOR_SWATCH[group.color]}`}
-                    />
-                    <Avatar
-                      kind="group"
-                      name={group.title}
-                      colorSeed={group.color}
-                      size={24}
-                      alt=""
-                      photo={{ path: `/groups/${group.id}/photo`, revision: group.photoRevision }}
-                    />
-                    <span className="truncate">{group.title}</span>
-                  </Link>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuGroup>
-          </Fragment>
+        {groups.map((group) => (
+          <DropdownMenuItem key={group.id} asChild>
+            <Link
+              to={switchTarget(group, tab)}
+              aria-current={group.id === current ? 'page' : undefined}
+              className="aria-[current=page]:bg-selected"
+            >
+              <Monogram
+                title={group.title}
+                color={group.color}
+                size={24}
+                photo={{ path: `/groups/${group.id}/photo`, revision: group.photoRevision }}
+              />
+              <span className="truncate">{group.title}</span>
+            </Link>
+          </DropdownMenuItem>
         ))}
         {error && (
           <>
@@ -84,11 +84,7 @@ export function GroupSwitcher() {
             <DropdownMenuItem onSelect={refresh}>{t('groups.retry')}</DropdownMenuItem>
           </>
         )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to="/groups/archived">{t('groups.archivedList.link')}</Link>
-        </DropdownMenuItem>
-        {sections.some((section) => section.total > section.items.length) && (
+        {total > groups.length && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>

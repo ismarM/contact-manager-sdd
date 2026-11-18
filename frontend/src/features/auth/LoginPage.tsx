@@ -1,12 +1,12 @@
-import { IconAlertTriangle, IconClockExclamation } from '@tabler/icons-react';
 import { type FormEvent, useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, Navigate, useSearchParams } from 'react-router';
 
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
-import { focusRing, primaryButton } from '../../shared/ui/styles';
+import { Callout } from '../../shared/ui/Callout';
+import { primaryButton, secondaryButton, textLink } from '../../shared/ui/styles';
 import { useAuth } from './authContext';
-import { AuthCard } from './AuthCard';
+import { AuthLayout } from './AuthLayout';
 import { AUTH_ERROR_KEYS } from './authErrorKey';
 import { AuthField, ErrorSummary, useAuthForm } from './AuthForm';
 import { GoogleLogo } from './GoogleLogo';
@@ -66,50 +66,30 @@ export function LoginPage() {
         : null;
 
   return (
-    <AuthCard
+    <AuthLayout
+      heading={t('auth.login.heading')}
+      hero={{ title: t('login.tagline'), text: t('auth.hero.loginText') }}
       footer={
-        <Link
-          to="/api-docs"
-          className="inline-flex min-h-11 items-center text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        >
+        <Link to="/api-docs" className={`inline-flex min-h-11 items-center ${textLink}`}>
           {t('login.apiDocsLink')}
         </Link>
       }
     >
-      <p className="mt-3 text-muted-foreground">{t('login.tagline')}</p>
-      {deletedNotice && (
-        <p role="status" className="mt-6 rounded-md border-l-4 border-border bg-muted p-3">
-          {t(deletedNotice)}
-        </p>
-      )}
+      {deletedNotice && <Callout tone="info">{t(deletedNotice)}</Callout>}
       {signInError ? (
-        <div
-          role="alert"
-          className="mt-6 flex gap-2 rounded-md border-l-4 border-destructive bg-destructive-soft p-3"
-        >
-          <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
-          <span>{t(AUTH_ERROR_KEYS[signInError])}</span>
-        </div>
+        <Callout tone="error">{t(AUTH_ERROR_KEYS[signInError])}</Callout>
       ) : (
         sessionExpired && (
-          <div
-            role="alert"
-            className="mt-6 flex gap-2 rounded-md border-l-4 border-warning bg-warning-soft p-3"
-          >
-            <IconClockExclamation aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
-            <span>{t('login.sessionExpired')}</span>
-          </div>
+          <Callout tone="warning" role="alert">
+            {t('login.sessionExpired')}
+          </Callout>
         )
       )}
-      <button
-        type="button"
-        onClick={() => void signIn()}
-        className="mt-6 flex h-11 w-full items-center justify-center gap-3 rounded-md border border-border bg-card px-4 font-bold text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:h-12"
-      >
+      <button type="button" onClick={() => void signIn()} className={`w-full ${secondaryButton}`}>
         <GoogleLogo />
         {t('login.signIn')}
       </button>
-      <p className="mt-6 flex items-center gap-3 text-muted-foreground" aria-hidden="true">
+      <p className="flex items-center gap-3 text-sm text-muted-foreground" aria-hidden="true">
         <span className="h-px flex-1 bg-border" />
         {t('auth.login.or')}
         <span className="h-px flex-1 bg-border" />
@@ -121,11 +101,7 @@ export function LoginPage() {
           summaryRef={form.summaryRef}
         />
       )}
-      <form
-        noValidate
-        onSubmit={(event) => void submit(event)}
-        className="mt-6 flex flex-col gap-4"
-      >
+      <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-4">
         <AuthField
           id={emailId}
           label={t('auth.form.email')}
@@ -136,34 +112,31 @@ export function LoginPage() {
           onChange={(value) => form.change('email', value)}
           onBlur={() => form.blur('email')}
         />
-        <AuthField
-          id={passwordId}
-          label={t('auth.form.password')}
-          type="password"
-          autoComplete="current-password"
-          value={form.values.password}
-          error={fieldError('password')}
-          onChange={(value) => form.change('password', value)}
-          onBlur={() => form.blur('password')}
-        />
+        <div className="flex flex-col gap-1">
+          <AuthField
+            id={passwordId}
+            label={t('auth.form.password')}
+            type="password"
+            autoComplete="current-password"
+            value={form.values.password}
+            error={fieldError('password')}
+            revealable
+            onChange={(value) => form.change('password', value)}
+            onBlur={() => form.blur('password')}
+          />
+          <Link to="/forgot-password" className={`self-end text-sm ${textLink}`}>
+            {t('auth.login.forgot')}
+          </Link>
+        </div>
         <button type="submit" disabled={busy} className={`w-full ${primaryButton}`}>
           {t('auth.login.submit')}
         </button>
       </form>
-      <div className="mt-6 flex flex-col gap-2">
-        <Link
-          to="/forgot-password"
-          className={`font-bold text-primary underline underline-offset-4 ${focusRing}`}
-        >
-          {t('auth.login.forgot')}
-        </Link>
-        <Link
-          to={withNext('/register')}
-          className={`font-bold text-primary underline underline-offset-4 ${focusRing}`}
-        >
+      <p className="text-center">
+        <Link to={withNext('/register')} className={`font-semibold ${textLink}`}>
           {t('auth.login.register')}
         </Link>
-      </div>
-    </AuthCard>
+      </p>
+    </AuthLayout>
   );
 }

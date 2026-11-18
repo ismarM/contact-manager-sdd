@@ -40,13 +40,13 @@ describe('ArchivedBanner', () => {
     expect(screen.queryByRole('region', { name: 'Stanje skupine' })).not.toBeInTheDocument();
   });
 
-  it('FR-003-05: urednik arhivirane skupine vidi pasico brez akcije Odarhiviraj in oznako Arhivirano', async () => {
+  it('FR-003-05: urednik arhivirane skupine vidi pasico brez akcije Odarhiviraj in značko Arhivirana', async () => {
     render({ role: 'EDITOR', archived: true });
 
     const banner = await screen.findByRole('region', { name: 'Stanje skupine' });
     expect(banner).toHaveTextContent(ARCHIVED_TEXT);
     expect(within(banner).queryByRole('button')).not.toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Projekt FERI' })).toHaveTextContent('Arhivirano');
+    expect(screen.getByRole('region', { name: 'Projekt FERI' })).toHaveTextContent('Arhivirana');
   });
 
   it('FR-003-06: lastnik odarhivira iz pasice – zahtevek, obvestilo, pasica izgine, obrazec se vrne', async () => {

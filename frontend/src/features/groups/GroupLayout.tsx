@@ -1,3 +1,4 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +20,7 @@ import { ContactHistoryPage } from '../history/ContactHistoryPage';
 import { DeletedContactsPage } from '../history/DeletedContactsPage';
 import { VersionPage } from '../history/VersionPage';
 import { useGroupsApi } from './api';
+import { useCurrentGroup } from './currentGroup';
 import { ArchivedBanner } from './ArchivedBanner';
 import { GroupContext, type GroupContextValue } from './groupContext';
 import { GroupHeader } from './GroupHeader';
@@ -129,6 +131,13 @@ function GroupScreen({
   const [state, setState] = useState<State>({ kind: 'loading' });
   const focusTitle = (location.state as { focusTitle?: boolean } | null)?.focusTitle === true;
   const showLoader = useDelayed(state.kind === 'loading');
+  const { setCurrent } = useCurrentGroup();
+
+  // Stranska vrstica (kartica *Trenutna skupina*, FR-020-05) izve, katera skupina je naložena.
+  useEffect(() => {
+    setCurrent(state.kind === 'ready' ? state.group : null);
+  }, [state, setCurrent]);
+  useEffect(() => () => setCurrent(null), [setCurrent]);
 
   useEffect(() => {
     let active = true;
@@ -192,11 +201,7 @@ function GroupScreen({
     );
   }
   if (!context) {
-    return showLoader ? (
-      <p role="status" className="px-4 py-8">
-        {t('groups.loading')}
-      </p>
-    ) : null;
+    return showLoader ? <LoadingState label={t('groups.loading')} className="px-4 py-8" /> : null;
   }
 
   return (

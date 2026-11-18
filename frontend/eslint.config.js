@@ -65,6 +65,14 @@ export default tseslint.config(
               message: 'Arbitrarna barva ni dovoljena – uporabi žeton iz design.md.',
             },
             {
+              pattern: '^(.*:)?(bg-(gradient|linear|radial|conic)-.+|(from|via|to)-.+)$',
+              message: 'Preliv ni dovoljen (design.md 3) – uporabi polno barvo iz žetona.',
+            },
+            {
+              pattern: '^(.*:)?(backdrop-)?blur(-.+)?$',
+              message: 'Zameglitev (backdrop-blur, blur) ni dovoljena (design.md 3, 8.10).',
+            },
+            {
               pattern: '^dark:',
               message: 'Različica dark: ni dovoljena – žetoni se prilagodijo sami (light-dark()).',
             },

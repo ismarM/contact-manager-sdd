@@ -1,3 +1,5 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
+import { EmptyState } from '../../shared/ui/EmptyState';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -5,6 +7,7 @@ import { Link } from 'react-router';
 import { toast } from 'sonner';
 
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
+import { NoInvitationsIllustration } from '../../shared/ui/illustrations';
 import { errorAlert, focusRing, secondaryButton } from '../../shared/ui/styles';
 import { useGroups } from '../groups/groupsContext';
 import { PAGE_SIZES, SectionPagination } from '../groups/SectionPagination';
@@ -128,12 +131,12 @@ export function InvitationsPage() {
       const joined = await api.accept(invitation.id);
       removeLocally(invitation);
       groups.refresh();
-      toast(
+      toast.success(
         <span>
           {t('invitations.toast.joined', { title: joined.title })}{' '}
           <Link
             to={`/groups/${joined.groupId}`}
-            className={`font-bold text-primary underline underline-offset-4 ${focusRing}`}
+            className={`font-bold text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`}
           >
             {t('invitations.toast.openGroup')}
           </Link>
@@ -147,17 +150,24 @@ export function InvitationsPage() {
   };
 
   return (
-    <div className="mx-auto flex max-w-[80ch] flex-col gap-6 px-4 py-8">
-      <h1 ref={heading} tabIndex={-1} className="text-2xl font-bold outline-none">
-        {t('invitations.page.heading')}
-      </h1>
+    <div className="flex flex-col gap-6 px-4 py-6 md:gap-8 md:px-8 md:py-8">
+      <header className="flex flex-col gap-1">
+        <h1 ref={heading} tabIndex={-1} className="text-2xl font-semibold outline-none">
+          {t('invitations.page.heading')}
+        </h1>
+        {result && result.total > 0 && (
+          <p className="text-muted-foreground">
+            {t('invitations.page.subtitle', { count: result.total })}
+          </p>
+        )}
+      </header>
       {failure && (
         <div role="alert" className={errorAlert}>
           <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
           <span>{failure}</span>
         </div>
       )}
-      {showLoader && <p role="status">{t('invitations.page.loading')}</p>}
+      {showLoader && <LoadingState label={t('invitations.page.loading')} />}
       {!loading && result === null && (
         <div role="alert" className={errorAlert}>
           <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
@@ -168,16 +178,18 @@ export function InvitationsPage() {
         </div>
       )}
       {empty && (
-        <section className="flex flex-col items-start gap-2">
-          <h2 className="text-xl font-bold">{t('invitations.page.emptyTitle')}</h2>
-          <p className="text-muted-foreground">{t('invitations.page.emptyText')}</p>
-        </section>
+        <EmptyState
+          centered
+          illustration={<NoInvitationsIllustration size={180} />}
+          title={t('invitations.page.emptyTitle')}
+          text={t('invitations.page.emptyText')}
+        />
       )}
       {result && result.items.length > 0 && (
         <ul
           aria-label={t('invitations.page.list')}
           aria-busy={loading}
-          className="flex flex-col divide-y divide-border rounded-lg border border-border bg-card"
+          className="flex max-w-3xl flex-col gap-3"
         >
           {result.items.map((invitation) => (
             <InvitationItem
@@ -191,7 +203,7 @@ export function InvitationsPage() {
               onAccept={() => void accept(invitation)}
               onDeclined={() => {
                 removeLocally(invitation);
-                toast(t('invitations.toast.declined'));
+                toast.success(t('invitations.toast.declined'));
               }}
               onError={(error) => fail(error, 'decline')}
             />

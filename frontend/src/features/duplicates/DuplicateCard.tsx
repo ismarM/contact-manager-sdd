@@ -2,7 +2,7 @@ import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Avatar } from '../../shared/images/Avatar';
-import { focusRing, primaryButton } from '../../shared/ui/styles';
+import { focusRing, softButton } from '../../shared/ui/styles';
 import { useGroup } from '../groups/groupContext';
 import { COMPARE_LIMIT } from './duplicateRouting';
 import type { DuplicateContact, DuplicateGroup } from './types';
@@ -30,7 +30,7 @@ export function DuplicateCard({
       kind="contact"
       name={contact.displayName}
       colorSeed={contact.id}
-      size={24}
+      size={32}
       alt=""
       photo={{
         path: `/groups/${current.id}/contacts/${contact.id}/photo`,
@@ -42,21 +42,25 @@ export function DuplicateCard({
   return (
     <li
       aria-labelledby={titleId}
-      className="flex flex-col items-start gap-3 rounded-lg border border-border bg-card p-4"
+      className="flex flex-col items-start gap-4 rounded-md border border-border bg-card p-5"
     >
-      <h3 id={titleId} className="text-lg font-bold break-words">
+      <h3 id={titleId} className="text-sm font-medium break-words">
         {t(`duplicates.reason.${group.reason.category}`, { value: group.reason.value })}
       </h3>
       {/* Pravi seznam: preostali kontakti imajo atribut `hidden`, dokler jih gumb »Še N kontaktov« ne razkrije. */}
       <ul id={moreId} aria-label={t('duplicates.contactsList')} className="flex flex-col gap-1">
         {first.map((contact) => (
-          <li key={contact.id} className="flex items-center gap-2 break-words">
+          <li key={contact.id} className="flex items-center gap-3 font-medium break-words">
             {avatar(contact)}
             <span>{contact.displayName}</span>
           </li>
         ))}
         {more.map((contact) => (
-          <li key={contact.id} hidden={!expanded} className="flex items-center gap-2 break-words">
+          <li
+            key={contact.id}
+            hidden={!expanded}
+            className="flex items-center gap-3 font-medium break-words"
+          >
             {avatar(contact)}
             <span>{contact.displayName}</span>
           </li>
@@ -68,12 +72,12 @@ export function DuplicateCard({
           aria-expanded={expanded}
           aria-controls={moreId}
           onClick={() => setExpanded(!expanded)}
-          className={`min-h-11 rounded-md px-1 font-bold underline pointer-coarse:min-h-12 ${focusRing}`}
+          className={`min-h-11 rounded-sm px-1 text-sm text-muted-foreground underline pointer-coarse:min-h-12 ${focusRing}`}
         >
           {t('duplicates.more', { count: more.length })}
         </button>
       )}
-      <button type="button" className={primaryButton} onClick={onCompare}>
+      <button type="button" className={`${softButton} mt-auto`} onClick={onCompare}>
         {t('duplicates.compareAndMerge')}
       </button>
     </li>

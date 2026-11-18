@@ -1,4 +1,4 @@
-import { IconAlertTriangle } from '@tabler/icons-react';
+import { IconKey, IconPlus } from '@tabler/icons-react';
 import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -10,11 +10,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../../shared/ui/dialog';
+import { Callout } from '../../shared/ui/Callout';
+import { Monogram } from '../../shared/ui/Monogram';
+import { SegmentedControl } from '../../shared/ui/SegmentedControl';
 import {
-  errorAlert,
   fieldError,
+  focusRing,
+  ghostButton,
   primaryButton,
   secondaryButton,
+  softButton,
   textInput,
 } from '../../shared/ui/styles';
 import type { ApiKeysApi, SelectableGroup } from './api';
@@ -39,9 +44,7 @@ const EXPIRIES: { value: string; days: ApiKeyExpiry; label: ExpiryLabel }[] = [
 
 const select = `${textInput} w-auto min-h-11 pointer-coarse:min-h-12`;
 const option = 'flex min-h-11 items-center gap-3 pointer-coarse:min-h-12';
-const control =
-  'size-5 accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring';
-const fieldset = 'flex flex-col gap-2 rounded-md border border-border p-4';
+const control = `size-5 accent-primary ${focusRing}`;
 
 type Scope = 'selected' | 'all';
 
@@ -183,14 +186,17 @@ export function CreateApiKeyDialog({ api, onCreated }: { api: ApiKeysApi; onCrea
         if (!next) reset();
       }}
     >
-      <DialogTrigger className={`${primaryButton} self-start`}>{t('apiKeys.create')}</DialogTrigger>
-      <DialogContent onInteractOutside={(event) => event.preventDefault()}>
+      <DialogTrigger className={softButton}>
+        <IconPlus aria-hidden="true" size={20} stroke={1.75} />
+        {t('apiKeys.create')}
+      </DialogTrigger>
+      <DialogContent wide onInteractOutside={(event) => event.preventDefault()}>
         {created ? (
           <ApiKeyCreatedDialog created={created} />
         ) : (
           <form
             noValidate
-            className="flex flex-col gap-6"
+            className="flex flex-col gap-5"
             onSubmit={(event) => {
               event.preventDefault();
               void submit();
@@ -198,12 +204,9 @@ export function CreateApiKeyDialog({ api, onCreated }: { api: ApiKeysApi; onCrea
           >
             <DialogTitle>{t('apiKeys.form.title')}</DialogTitle>
             <div className="flex flex-col gap-1">
-              <label htmlFor={`${formId}-name`} className="font-bold">
+              <label htmlFor={`${formId}-name`} className="font-medium">
                 {t('apiKeys.form.nameLabel')}
               </label>
-              <p id={`${formId}-name-hint`} className="text-sm text-muted-foreground">
-                {t('apiKeys.form.nameHint')}
-              </p>
               <input
                 id={`${formId}-name`}
                 value={name}
@@ -216,6 +219,9 @@ export function CreateApiKeyDialog({ api, onCreated }: { api: ApiKeysApi; onCrea
                 }
                 className={textInput}
               />
+              <p id={`${formId}-name-hint`} className="text-sm text-muted-foreground">
+                {t('apiKeys.form.nameHint')}
+              </p>
               {errors.name && (
                 <p id={`${formId}-name-error`} className={fieldError}>
                   {errors.name}
@@ -223,10 +229,17 @@ export function CreateApiKeyDialog({ api, onCreated }: { api: ApiKeysApi; onCrea
               )}
             </div>
 
-            <fieldset className={fieldset}>
-              <legend className="px-1 font-bold">{t('apiKeys.form.scopeLegend')}</legend>
+            <fieldset className="flex flex-col gap-2">
+              <legend className="mb-1.5 font-medium">{t('apiKeys.form.scopeLegend')}</legend>
               {(['selected', 'all'] as Scope[]).map((value) => (
-                <label key={value} className={option}>
+                <label
+                  key={value}
+                  className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-sm border px-3 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring pointer-coarse:min-h-12 ${
+                    scope === value
+                      ? 'border-primary bg-selected'
+                      : 'border-input bg-card hover:bg-muted'
+                  }`}
+                >
                   <input
                     type="radio"
                     name={`${formId}-scope`}
@@ -253,7 +266,7 @@ export function CreateApiKeyDialog({ api, onCreated }: { api: ApiKeysApi; onCrea
                 />
               ) : (
                 <div className="flex flex-col gap-1">
-                  <label htmlFor={`${formId}-all-permission`} className="font-bold">
+                  <label htmlFor={`${formId}-all-permission`} className="font-medium">
                     {t('apiKeys.form.permissionLabel')}
                   </label>
                   <select
@@ -273,40 +286,24 @@ export function CreateApiKeyDialog({ api, onCreated }: { api: ApiKeysApi; onCrea
               <p className="text-sm text-muted-foreground">{t('apiKeys.form.permissionHint')}</p>
             </fieldset>
 
-            <div className="flex flex-col gap-1">
-              <label htmlFor={`${formId}-expiry`} className="font-bold">
-                {t('apiKeys.form.expiryLabel')}
-              </label>
-              <select
-                id={`${formId}-expiry`}
+            <fieldset className="flex flex-col gap-2">
+              <legend className="mb-1.5 font-medium">{t('apiKeys.form.expiryLabel')}</legend>
+              <SegmentedControl
+                label={t('apiKeys.form.expiryLabel')}
                 value={expiry}
-                onChange={(event) => setExpiry(event.target.value)}
-                className={select}
-              >
-                {EXPIRIES.map((entry) => (
-                  <option key={entry.value} value={entry.value}>
-                    {t(entry.label)}
-                  </option>
-                ))}
-              </select>
-            </div>
+                segments={EXPIRIES.map((entry) => ({ value: entry.value, label: t(entry.label) }))}
+                onChange={setExpiry}
+                className="self-start"
+              />
+            </fieldset>
 
-            {failure && (
-              <div role="alert" className={errorAlert}>
-                <IconAlertTriangle
-                  aria-hidden="true"
-                  size={20}
-                  stroke={1.75}
-                  className="shrink-0"
-                />
-                <span>{failure}</span>
-              </div>
-            )}
-            <div className="flex flex-wrap gap-3">
+            {failure && <Callout tone="error">{failure}</Callout>}
+            <div className="flex flex-wrap justify-end gap-2">
+              <DialogClose className={ghostButton}>{t('apiKeys.form.cancel')}</DialogClose>
               <button type="submit" className={primaryButton} aria-disabled={busy}>
+                <IconKey aria-hidden="true" size={20} stroke={1.75} />
                 {t('apiKeys.form.submit')}
               </button>
-              <DialogClose className={secondaryButton}>{t('apiKeys.form.cancel')}</DialogClose>
             </div>
           </form>
         )}
@@ -337,15 +334,16 @@ function GroupChoices({
   const { t } = useTranslation();
   if (failed) {
     return (
-      <div role="alert" className={errorAlert}>
-        <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
-        <span className="flex flex-wrap items-center gap-3">
-          {t('apiKeys.form.groupsLoadFailed')}
+      <Callout
+        tone="error"
+        action={
           <button type="button" className={secondaryButton} onClick={retry}>
             {t('apiKeys.retry')}
           </button>
-        </span>
-      </div>
+        }
+      >
+        {t('apiKeys.form.groupsLoadFailed')}
+      </Callout>
     );
   }
   return (
@@ -356,8 +354,8 @@ function GroupChoices({
       aria-busy={groups === null}
       className="flex flex-col gap-2"
     >
-      <legend className="font-bold">{t('apiKeys.form.groupsLabel')}</legend>
-      <ul className="flex flex-col gap-2">
+      <legend className="sr-only">{t('apiKeys.form.groupsLabel')}</legend>
+      <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-md border border-border">
         {(groups ?? []).map((group) => {
           const checkboxId = `${id}-${group.id}`;
           const title = group.archived
@@ -365,7 +363,10 @@ function GroupChoices({
             : group.title;
           const permission = chosen[group.id];
           return (
-            <li key={group.id} className="flex flex-wrap items-center justify-between gap-2">
+            <li
+              key={group.id}
+              className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-1.5"
+            >
               <label htmlFor={checkboxId} className={option}>
                 <input
                   id={checkboxId}
@@ -373,6 +374,16 @@ function GroupChoices({
                   checked={permission !== undefined}
                   onChange={(event) => toggle(group, event.target.checked)}
                   className={control}
+                />
+                <Monogram
+                  title={group.title}
+                  color={group.color ?? 'tinta'}
+                  size={24}
+                  photo={
+                    group.photoRevision == null
+                      ? undefined
+                      : { path: `/groups/${group.id}/photo`, revision: group.photoRevision }
+                  }
                 />
                 <span className="break-words">{title}</span>
               </label>

@@ -13,7 +13,17 @@ import { setupServer } from 'msw/node';
 // testi strani *Moj račun* privzet odgovor.
 // Začetni rokovalniki imajo najnižjo prednost – vsak `server.use` v testu jih preglasi.
 export const server = setupServer(
-  http.get('/api/groups', () => HttpResponse.json({ sections: [] })),
+  http.get('/api/groups', () => HttpResponse.json({ total: 0, page: 0, size: 25, items: [] })),
+  // Od 020 ogrodje za števec *Arhivirane* naloži `GET /api/groups/archived?size=1`; privzeto prazen seznam.
+  http.get('/api/groups/archived', ({ request }) => {
+    const url = new URL(request.url);
+    return HttpResponse.json({
+      total: 0,
+      page: Number(url.searchParams.get('page') ?? 0),
+      size: Number(url.searchParams.get('size') ?? 25),
+      items: [],
+    });
+  }),
   http.get('/api/invitations/count', () => HttpResponse.json({ count: 0 })),
   http.get('/api/me/deletion-blockers', () => HttpResponse.json({ groups: [] })),
   // Od 014 *Moj račun* naloži gesla za aplikacijo (`GET /api/me/app-passwords` → prazen seznam).

@@ -1,10 +1,11 @@
-import { IconAlertTriangle } from '@tabler/icons-react';
+import { IconCopy } from '@tabler/icons-react';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { DialogClose, DialogTitle } from '../../shared/ui/dialog';
-import { errorAlert, secondaryButton, textInput, warningAlert } from '../../shared/ui/styles';
+import { Callout } from '../../shared/ui/Callout';
+import { primaryButton, softButton, textInput } from '../../shared/ui/styles';
 import type { ApiKeyCreated } from './types';
 
 /**
@@ -25,7 +26,7 @@ export function ApiKeyCreatedDialog({ created }: { created: ApiKeyCreated }) {
     clipboard.writeText(created.token).then(
       () => {
         setCopyFailed(false);
-        toast(t('apiKeys.createdDialog.copied'));
+        toast.success(t('apiKeys.createdDialog.copied'));
       },
       () => setCopyFailed(true),
     );
@@ -34,31 +35,30 @@ export function ApiKeyCreatedDialog({ created }: { created: ApiKeyCreated }) {
   return (
     <>
       <DialogTitle>{t('apiKeys.createdDialog.title', { name: created.key.name })}</DialogTitle>
-      <p className={warningAlert}>{t('apiKeys.createdDialog.showOnce')}</p>
+      <Callout tone="warning" role="status">
+        {t('apiKeys.createdDialog.showOnce')}
+      </Callout>
       <div className="flex flex-col gap-1">
-        <label htmlFor={keyId} className="font-bold">
+        <label htmlFor={keyId} className="font-medium">
           {t('apiKeys.createdDialog.keyLabel')}
         </label>
-        <textarea
-          id={keyId}
-          readOnly
-          rows={4}
-          value={created.token}
-          onFocus={(event) => event.currentTarget.select()}
-          className={`${textInput} resize-none font-mono break-all`}
-        />
-      </div>
-      {copyFailed && (
-        <div role="alert" className={errorAlert}>
-          <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
-          <span>{t('apiKeys.createdDialog.copyFailed')}</span>
+        <div className="flex gap-2">
+          <input
+            id={keyId}
+            readOnly
+            value={created.token}
+            onFocus={(event) => event.currentTarget.select()}
+            className={`${textInput} min-w-0 flex-1 font-mono`}
+          />
+          <button type="button" className={softButton} onClick={copy}>
+            <IconCopy aria-hidden="true" size={20} stroke={1.75} />
+            {t('apiKeys.createdDialog.copy')}
+          </button>
         </div>
-      )}
-      <div className="flex flex-wrap gap-3">
-        <button type="button" className={secondaryButton} onClick={copy}>
-          {t('apiKeys.createdDialog.copy')}
-        </button>
-        <DialogClose className={secondaryButton}>{t('apiKeys.createdDialog.close')}</DialogClose>
+      </div>
+      {copyFailed && <Callout tone="error">{t('apiKeys.createdDialog.copyFailed')}</Callout>}
+      <div className="flex justify-end">
+        <DialogClose className={primaryButton}>{t('apiKeys.createdDialog.close')}</DialogClose>
       </div>
     </>
   );

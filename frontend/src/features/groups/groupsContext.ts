@@ -1,18 +1,21 @@
 import { createContext, useContext } from 'react';
 
-import type { GroupSection } from './types';
+import type { GroupItem } from './types';
 
-/** Povzetek mojih skupin za stranski pas in meni preklopa (research R-09; največ 10 na razdelek). */
+/** Moje nearhivirane skupine za preklopnik (research R-07; do 100 skupin, vloga na elementu). */
 export interface GroupsContextValue {
-  sections: GroupSection[];
+  groups: GroupItem[];
+  /** Skupno število mojih nearhiviranih skupin (lahko več kot `groups`). */
+  total: number;
   loading: boolean;
   error: boolean;
-  /** Ponovno naloži povzetek (po ustvarjanju ali urejanju skupine). */
+  /** Ponovno naloži seznam (po ustvarjanju ali urejanju skupine). */
   refresh: () => void;
 }
 
 const EMPTY: GroupsContextValue = {
-  sections: [],
+  groups: [],
+  total: 0,
   loading: false,
   error: false,
   refresh: () => undefined,

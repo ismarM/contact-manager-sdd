@@ -2,14 +2,20 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { DialogClose, DialogContent, DialogTitle } from '../../shared/ui/dialog';
-import { errorAlert, focusRing, secondaryButton, warningAlert } from '../../shared/ui/styles';
+import {
+  errorAlert,
+  focusRing,
+  ghostButton,
+  secondaryButton,
+  warningAlert,
+} from '../../shared/ui/styles';
 import { useAuth } from '../auth/authContext';
 import { useUiLanguage } from '../contacts/useUiLanguage';
 import { type AddressLocation, fetchAddressLocation, fetchMapTile } from './api';
 
 const MapView = lazy(() => import('./MapView'));
 
-const LINK = `text-primary underline underline-offset-4 ${focusRing}`;
+const LINK = `text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`;
 const OSM = 'https://www.openstreetmap.org';
 
 type State =
@@ -89,7 +95,7 @@ export function MapDialog({
       : null;
 
   return (
-    <DialogContent className="max-w-[640px]">
+    <DialogContent className="sm:max-w-[640px]">
       <DialogTitle>{t('map.title', { name })}</DialogTitle>
       <p className="break-words whitespace-pre-line">{address}</p>
 
@@ -177,7 +183,7 @@ export function MapDialog({
       )}
 
       <div className="flex flex-wrap gap-3">
-        <DialogClose className={secondaryButton}>{t('map.close')}</DialogClose>
+        <DialogClose className={ghostButton}>{t('map.close')}</DialogClose>
       </div>
     </DialogContent>
   );

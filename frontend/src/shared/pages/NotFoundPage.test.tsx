@@ -25,6 +25,9 @@ describe('NotFoundPage', () => {
     );
     expect(screen.getByRole('link', { name: 'Na seznam skupin' })).toHaveAttribute('href', '/');
     expect(screen.getByRole('banner')).toBeInTheDocument();
+    // 020 (FR-020-16, -24): koda napake in ilustracija, skrita bralniku zaslona.
+    expect(screen.getByText('Napaka 404')).toBeInTheDocument();
+    expect(screen.getByRole('main').querySelector('svg[aria-hidden="true"]')).not.toBeNull();
   });
 
   it('FR-001-18: naslov strani v izbranem jeziku', async () => {

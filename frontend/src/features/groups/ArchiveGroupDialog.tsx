@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../../shared/ui/dialog';
-import { dangerButton, errorAlert, secondaryButton } from '../../shared/ui/styles';
+import { dangerButton, errorAlert, ghostButton, secondaryButton } from '../../shared/ui/styles';
 import { manageFailureKey, useGroupsApi } from './api';
 import { useGroup } from './groupContext';
 import { useGroups } from './groupsContext';
@@ -48,7 +48,7 @@ export function ArchiveGroupDialog({ onDone }: { onDone: () => void }) {
       done.current = true;
       setOpen(false);
       setGroup(updated);
-      toast(t('groups.toast.archived'));
+      toast.success(t('groups.toast.archived'));
       refresh();
       onDone();
     } catch (error) {
@@ -90,7 +90,7 @@ export function ArchiveGroupDialog({ onDone }: { onDone: () => void }) {
           </div>
         )}
         <div className="flex flex-wrap justify-end gap-3">
-          <DialogClose ref={cancel} className={secondaryButton}>
+          <DialogClose ref={cancel} className={ghostButton}>
             {t('groups.form.cancel')}
           </DialogClose>
           <button

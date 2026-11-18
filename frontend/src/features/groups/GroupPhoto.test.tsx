@@ -148,15 +148,10 @@ describe('Slika skupine', () => {
       list: () => ({
         status: 200,
         body: {
-          sections: [
-            {
-              role: 'OWNER',
-              total: 2,
-              page: 0,
-              size: 25,
-              items: [summary(1, { photoRevision: 3 }), summary(2)],
-            },
-          ],
+          total: 2,
+          page: 0,
+          size: 25,
+          items: [summary(1, { photoRevision: 3 }), summary(2)],
         },
       }),
     });

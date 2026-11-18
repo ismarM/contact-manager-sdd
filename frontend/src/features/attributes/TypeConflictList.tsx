@@ -40,7 +40,7 @@ export function TypeConflictList({
               to={`/groups/${encodeURIComponent(groupId)}/contacts/${encodeURIComponent(contact.contactId)}`}
               aria-label={t('attributes.conflict.open', { name: contact.displayName })}
               onClick={onNavigate}
-              className={`font-bold underline ${focusRing}`}
+              className={`font-bold text-primary underline ${focusRing}`}
             >
               {contact.displayName}
             </Link>

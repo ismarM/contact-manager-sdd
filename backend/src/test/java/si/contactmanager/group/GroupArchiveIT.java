@@ -62,9 +62,9 @@ class GroupArchiveIT extends ApiTest {
                 .isEqualTo(200);
 
         for (SignedIn member : List.of(ana, eva)) {
-            List<Map<String, Object>> sections = JSON.convertValue(
-                    json(get("/api/groups", member.idToken()).body()).get("sections"), LIST);
-            assertThat(sections).isEmpty();
+            List<Map<String, Object>> items = JSON.convertValue(
+                    json(get("/api/groups", member.idToken()).body()).get("items"), LIST);
+            assertThat(items).isEmpty();
         }
         HttpResponse<String> read = get("/api/groups/" + group, eva.idToken());
         assertThat(read.statusCode()).isEqualTo(200);

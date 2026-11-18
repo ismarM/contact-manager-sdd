@@ -1,9 +1,11 @@
-import { IconAlertTriangle } from '@tabler/icons-react';
+import { LoadingState } from '../../shared/ui/Skeleton';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { errorAlert, secondaryButton } from '../../shared/ui/styles';
+import { Callout } from '../../shared/ui/Callout';
+import { card, secondaryButton } from '../../shared/ui/styles';
+import { roleChip } from '../members/roleChip';
 import { useGroup } from '../groups/groupContext';
 import { PAGE_SIZES, SectionPagination } from '../groups/SectionPagination';
 import { useDelayed } from '../groups/useDelayed';
@@ -81,7 +83,7 @@ export function PendingInvitationsSection({ reloadToken }: { reloadToken: number
 
   const withdrawn = () => {
     setFailure(null);
-    toast(t('invitations.toast.withdrawn'));
+    toast.success(t('invitations.toast.withdrawn'));
     focusHeading.current = true;
     setTick((value) => value + 1);
   };
@@ -90,65 +92,85 @@ export function PendingInvitationsSection({ reloadToken }: { reloadToken: number
   if (loaded === null && !showLoader) return null;
 
   const cell =
-    'p-2 max-sm:flex max-sm:gap-2 max-sm:before:font-bold max-sm:before:content-[attr(data-label)]';
+    'px-4 py-2 max-sm:flex max-sm:gap-2 max-sm:px-6 max-sm:py-1 max-sm:before:font-medium max-sm:before:content-[attr(data-label)]';
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-4">
-      <h2 id={headingId} ref={heading} tabIndex={-1} className="text-xl font-bold outline-none">
-        {t('invitations.pending.heading')}
-      </h2>
+    <section aria-labelledby={headingId} className={`${card} flex flex-col`}>
+      <div className="flex items-baseline gap-2 px-6 py-5">
+        <h2
+          id={headingId}
+          ref={heading}
+          tabIndex={-1}
+          className="text-xl font-semibold outline-none"
+        >
+          {t('invitations.pending.heading')}
+        </h2>
+        {result && result.total > 0 && (
+          <span aria-hidden="true" className="text-xl text-muted-foreground tabular-nums">
+            ({result.total})
+          </span>
+        )}
+      </div>
       {failure && (
-        <div role="alert" className={errorAlert}>
-          <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
-          <span>{failure}</span>
-        </div>
+        <Callout tone="error" className="mx-6 mb-5">
+          {failure}
+        </Callout>
       )}
-      {showLoader && <p role="status">{t('invitations.pending.loading')}</p>}
+      {showLoader && (
+        <LoadingState label={t('invitations.pending.loading')} className="px-6 pb-5" />
+      )}
       {!loading && result === null && (
-        <div role="alert" className={errorAlert}>
-          <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
-          <span className="flex-1">{t('invitations.pending.loadFailed')}</span>
-          <button type="button" className={secondaryButton} onClick={() => setTick((v) => v + 1)}>
-            {t('invitations.pending.retry')}
-          </button>
-        </div>
+        <Callout
+          tone="error"
+          className="mx-6 mb-5"
+          action={
+            <button type="button" className={secondaryButton} onClick={() => setTick((v) => v + 1)}>
+              {t('invitations.pending.retry')}
+            </button>
+          }
+        >
+          {t('invitations.pending.loadFailed')}
+        </Callout>
       )}
-      {empty && <p className="text-muted-foreground">{t('invitations.pending.empty')}</p>}
+      {empty && <p className="px-6 pb-5 text-muted-foreground">{t('invitations.pending.empty')}</p>}
       {result && result.items.length > 0 && (
         <table
           aria-label={t('invitations.pending.heading')}
           aria-busy={loading}
           className="w-full border-collapse text-left"
         >
-          <thead className="max-sm:sr-only">
-            <tr className="border-b border-border">
-              <th scope="col" className="p-2">
+          <thead className="bg-muted text-sm max-sm:sr-only">
+            <tr>
+              <th scope="col" className="px-4 py-3 pl-6 font-medium">
                 {t('invitations.pending.invitee')}
               </th>
-              <th scope="col" className="p-2">
+              <th scope="col" className="px-4 py-3 font-medium">
                 {t('invitations.pending.role')}
               </th>
-              <th scope="col" className="p-2">
+              <th scope="col" className="px-4 py-3 font-medium">
                 {t('invitations.pending.invitedBy')}
               </th>
-              <th scope="col" className="p-2">
+              <th scope="col" className="px-4 py-3 font-medium">
                 {t('invitations.pending.date')}
               </th>
-              <th scope="col" className="p-2">
+              <th scope="col" className="px-4 py-3 pr-6 text-right font-medium">
                 {t('invitations.pending.actions')}
               </th>
             </tr>
           </thead>
           <tbody>
             {result.items.map((invitation) => (
-              <tr key={invitation.id} className="border-b border-border max-sm:block max-sm:py-2">
+              <tr key={invitation.id} className="border-t border-border max-sm:block max-sm:py-2">
                 <td data-label={t('invitations.pending.invitee')} className={`${cell} break-all`}>
                   {invitation.inviteeEmail}
                 </td>
                 <td data-label={t('invitations.pending.role')} className={cell}>
-                  {t(`roles.${invitation.role}`)}
+                  <span className={roleChip}>{t(`roles.${invitation.role}`)}</span>
                 </td>
-                <td data-label={t('invitations.pending.invitedBy')} className={cell}>
+                <td
+                  data-label={t('invitations.pending.invitedBy')}
+                  className={`${cell} text-muted-foreground`}
+                >
                   {invitation.invitedBy ? (
                     (invitation.invitedBy.name ?? invitation.invitedBy.email)
                   ) : (
@@ -157,12 +179,18 @@ export function PendingInvitationsSection({ reloadToken }: { reloadToken: number
                     </em>
                   )}
                 </td>
-                <td data-label={t('invitations.pending.date')} className={cell}>
+                <td
+                  data-label={t('invitations.pending.date')}
+                  className={`${cell} text-muted-foreground tabular-nums`}
+                >
                   <time dateTime={invitation.createdAt}>
                     {formatDate(invitation.createdAt, i18n.language)}
                   </time>
                 </td>
-                <td data-label={t('invitations.pending.actions')} className={cell}>
+                <td
+                  data-label={t('invitations.pending.actions')}
+                  className={`${cell} sm:pr-6 sm:text-right`}
+                >
                   {invitation.canWithdraw && (
                     <WithdrawInvitationDialog
                       groupId={group.id}

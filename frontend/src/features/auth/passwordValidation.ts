@@ -49,3 +49,14 @@ export function validateAuthForm(
   }
   return errors;
 }
+
+/** Pravila gesla za prikaz v obrazcu (FR-020-15): enaka pravila kot pri preverjanju (`validatePassword`). */
+export const PASSWORD_RULES = [
+  { id: 'minLength', test: (password: string) => password.length >= MIN_PASSWORD_LENGTH },
+] as const;
+
+export type PasswordRuleId = (typeof PASSWORD_RULES)[number]['id'];
+
+export function passwordRuleStates(password: string): { id: PasswordRuleId; met: boolean }[] {
+  return PASSWORD_RULES.map((rule) => ({ id: rule.id, met: rule.test(password) }));
+}

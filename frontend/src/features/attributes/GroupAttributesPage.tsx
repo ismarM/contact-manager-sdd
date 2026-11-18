@@ -1,9 +1,11 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
+import { EmptyState } from '../../shared/ui/EmptyState';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
-import { errorAlert, secondaryButton, textInput } from '../../shared/ui/styles';
+import { errorAlert, secondaryButton, softButton, textInput } from '../../shared/ui/styles';
 import { useGroup } from '../groups/groupContext';
 import { SectionPagination } from '../groups/SectionPagination';
 import { useDelayed } from '../groups/useDelayed';
@@ -71,15 +73,15 @@ export function GroupAttributesPage() {
   return (
     <section
       aria-labelledby={headingId}
-      className="mx-auto flex w-full max-w-[70ch] flex-col gap-4 px-4 py-6"
+      className="mx-auto flex w-full max-w-[880px] flex-col gap-4 px-4 py-6"
     >
       <h2 id={headingId} ref={heading} tabIndex={-1} className="text-xl font-bold outline-none">
         {t('attributes.heading')}
       </h2>
-      <p>{t('attributes.description')}</p>
+      <p className="text-muted-foreground">{t('attributes.description')}</p>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor={searchId} className="font-bold">
+        <label htmlFor={searchId} className="text-sm font-bold">
           {t('attributes.list.search')}
         </label>
         <input
@@ -113,33 +115,36 @@ export function GroupAttributesPage() {
       )}
 
       {state.kind === 'loading' && showLoader && (
-        <p role="status">{t('attributes.list.loading')}</p>
+        <LoadingState label={t('attributes.list.loading')} />
       )}
 
       {data && data.total === 0 && (
-        <p role="status">
-          {q === '' ? t('attributes.list.empty') : t('attributes.list.noResults')}
-        </p>
+        <div role="status">
+          <EmptyState
+            headingLevel={3}
+            title={q === '' ? t('attributes.list.empty') : t('attributes.list.noResults')}
+          />
+        </div>
       )}
 
       {data && data.total > 0 && (
         <>
           <p role="status">{t('attributes.list.total', { total: data.total })}</p>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-md border border-border bg-card">
             <table className="w-full border-collapse text-left">
               <thead>
-                <tr className="border-b border-border">
-                  <th scope="col" className="py-2 pr-4">
+                <tr className="border-b border-border bg-muted text-sm text-muted-foreground">
+                  <th scope="col" className="px-4 py-3 font-medium">
                     {t('attributes.list.key')}
                   </th>
-                  <th scope="col" className="py-2 pr-4">
+                  <th scope="col" className="px-4 py-3 font-medium">
                     {t('attributes.list.type')}
                   </th>
-                  <th scope="col" className="py-2 pr-4">
+                  <th scope="col" className="px-4 py-3 font-medium">
                     {t('attributes.list.count')}
                   </th>
                   {canChange && (
-                    <th scope="col" className="py-2">
+                    <th scope="col" className="px-4 py-3">
                       <span className="sr-only">{t('attributes.list.changeType')}</span>
                     </th>
                   )}
@@ -148,16 +153,16 @@ export function GroupAttributesPage() {
               <tbody>
                 {data.items.map((item) => (
                   <tr key={item.key} className="border-b border-border">
-                    <th scope="row" className="py-2 pr-4 font-bold break-words">
+                    <th scope="row" className="px-4 py-3 font-mono font-normal break-words">
                       {item.key}
                     </th>
-                    <td className="py-2 pr-4">{t(typeNameKey(item.type))}</td>
-                    <td className="py-2 pr-4">{item.contactCount}</td>
+                    <td className="px-4 py-3">{t(typeNameKey(item.type))}</td>
+                    <td className="px-4 py-3">{item.contactCount}</td>
                     {canChange && (
-                      <td className="py-2">
+                      <td className="px-4 py-3 text-right">
                         <button
                           type="button"
-                          className={secondaryButton}
+                          className={softButton}
                           aria-label={t('attributes.list.changeTypeFor', { key: item.key })}
                           onClick={() => setChanging(item)}
                         >

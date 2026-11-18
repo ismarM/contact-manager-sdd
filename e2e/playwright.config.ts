@@ -12,6 +12,10 @@ export default defineConfig({
   use: {
     baseURL: process.env.BASE_URL ?? 'http://localhost:8080',
     serviceWorkers: 'allow',
+    // 020: vmesnik ima vstopne animacije (dialog 320 ms, meni 200 ms; design.md 6). Testi delovanja tečejo ob
+    // `prefers-reduced-motion: reduce` (gibanje izklopljeno, kot pred prenovo), da klik ne čaka na ustalitev plasti;
+    // gibanje in njegov izklop preverjata izgled.spec.ts (FR-020-03) in ogrodje.spec.ts (FR-000-13).
+    contextOptions: { reducedMotion: 'reduce' },
     trace: 'retain-on-failure',
   },
   projects: [

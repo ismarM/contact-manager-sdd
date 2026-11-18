@@ -1,9 +1,10 @@
-import { IconAlertTriangle } from '@tabler/icons-react';
+import { IconDownload } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { ApiError } from '../../shared/api/client';
-import { errorAlert, primaryButton, secondaryButton } from '../../shared/ui/styles';
+import { Callout } from '../../shared/ui/Callout';
+import { card, secondaryButton, softButton } from '../../shared/ui/styles';
 import { useMyDataApi } from './api';
 import { localDateStamp } from '../../shared/download';
 import { downloadJson } from './downloadJson';
@@ -35,19 +36,20 @@ export function MyDataSection() {
   const busy = state === 'busy';
 
   return (
-    <section aria-labelledby="account-data" className="flex flex-col gap-3">
-      <h2 id="account-data" className="text-xl font-bold">
+    <section aria-labelledby="account-data" className={`${card} flex flex-col gap-4 p-4 md:p-6`}>
+      <h2 id="account-data" className="text-xl font-semibold">
         {t('account.data.heading')}
       </h2>
-      <p>{t('account.data.description')}</p>
+      <p className="max-w-prose text-muted-foreground">{t('account.data.description')}</p>
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
           onClick={() => void download()}
           disabled={busy}
           aria-busy={busy}
-          className={`${primaryButton} disabled:opacity-60`}
+          className={softButton}
         >
+          <IconDownload aria-hidden="true" size={20} stroke={1.75} />
           {t('account.data.download')}
         </button>
         {state === 'done' && (
@@ -58,10 +60,9 @@ export function MyDataSection() {
       </div>
       {state === 'failed' && (
         <div className="flex flex-col items-start gap-2">
-          <div role="alert" className={errorAlert}>
-            <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
-            <span>{t('account.data.error')}</span>
-          </div>
+          <Callout tone="error" className="self-stretch">
+            {t('account.data.error')}
+          </Callout>
           <button type="button" onClick={() => void download()} className={secondaryButton}>
             {t('account.data.retry')}
           </button>

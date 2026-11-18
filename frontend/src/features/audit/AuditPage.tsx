@@ -1,3 +1,5 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
+import { EmptyState } from '../../shared/ui/EmptyState';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -134,7 +136,7 @@ export function AuditPage() {
       // Po uspehu fokus prevzame naslov; zaprtje dialoga ga ne sme vrniti na sprožilec.
       opener.current = null;
       setPending(null);
-      toast(
+      toast.success(
         target === 'initial'
           ? t('audit.toast.restoredInitial')
           : t('audit.toast.restored', { time: time(target.createdAt) }),
@@ -183,7 +185,7 @@ export function AuditPage() {
   return (
     <section
       aria-labelledby={headingId}
-      className="mx-auto flex w-full max-w-[70ch] flex-col gap-4 px-4 py-6"
+      className="mx-auto flex w-full max-w-[880px] flex-col gap-4 px-4 py-6"
     >
       <h2 id={headingId} ref={heading} tabIndex={-1} className="text-xl font-bold outline-none">
         {t('audit.list.heading')}
@@ -237,28 +239,32 @@ export function AuditPage() {
         </div>
       )}
 
-      {state.kind === 'loading' && showLoader && <p role="status">{t('audit.list.loading')}</p>}
+      {state.kind === 'loading' && showLoader && <LoadingState label={t('audit.list.loading')} />}
 
       {data && data.total === 0 && (
-        <div className="flex flex-col items-start gap-3 py-4">
-          <h3 className="text-lg font-bold">
-            {filtered ? t('audit.list.emptyFiltered') : t('audit.list.empty')}
-          </h3>
-          {filtered && (
-            <button
-              type="button"
-              className={secondaryButton}
-              onClick={() => goTo(1, size, { actions: [], contact: null, actor: null })}
-            >
-              {t('audit.list.clearFilters')}
-            </button>
-          )}
-        </div>
+        <EmptyState
+          headingLevel={3}
+          title={filtered ? t('audit.list.emptyFiltered') : t('audit.list.empty')}
+          action={
+            filtered ? (
+              <button
+                type="button"
+                className={secondaryButton}
+                onClick={() => goTo(1, size, { actions: [], contact: null, actor: null })}
+              >
+                {t('audit.list.clearFilters')}
+              </button>
+            ) : null
+          }
+        />
       )}
 
       {data && data.total > 0 && (
         <>
-          <ol aria-label={t('audit.list.entries')} className="flex flex-col divide-y divide-border">
+          <ol
+            aria-label={t('audit.list.entries')}
+            className="flex flex-col divide-y divide-border rounded-md border border-border bg-card px-5"
+          >
             {data.items.map((entry) => (
               <AuditEntryItem
                 key={entry.id}

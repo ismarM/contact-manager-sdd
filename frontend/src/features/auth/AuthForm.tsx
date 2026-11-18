@@ -1,4 +1,4 @@
-import { IconAlertTriangle } from '@tabler/icons-react';
+import { IconAlertTriangle, IconEye, IconEyeOff } from '@tabler/icons-react';
 import { type FormEvent, type RefObject, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -64,7 +64,7 @@ export function ErrorSummary({
   const entries = FIELD_ORDER.filter((field) => errors[field]);
   if (entries.length === 0) return null;
   return (
-    <div ref={summaryRef} tabIndex={-1} role="alert" className={`mt-6 ${errorAlert} ${focusRing}`}>
+    <div ref={summaryRef} tabIndex={-1} role="alert" className={`${errorAlert} ${focusRing}`}>
       <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
       <div>
         <p>{t('auth.form.summary')}</p>
@@ -93,6 +93,8 @@ export function AuthField({
   onChange,
   onBlur,
   readOnly,
+  revealable = false,
+  describedBy: extraDescribedBy,
 }: {
   id: string;
   label: string;
@@ -104,36 +106,62 @@ export function AuthField({
   onChange: (value: string) => void;
   onBlur: () => void;
   readOnly?: boolean;
+  /** Gumb za prikaz gesla (FR-020-14): `aria-pressed`, polje se ob prikazu spremeni v besedilno. */
+  revealable?: boolean;
+  /** Dodatni element, ki opisuje polje (npr. seznam pravil gesla). */
+  describedBy?: string;
 }) {
+  const { t } = useTranslation();
   const hintId = useId();
   const errorId = useId();
-  const describedBy = [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(' ');
+  const [shown, setShown] = useState(false);
+  const describedBy = [hint ? hintId : null, extraDescribedBy, error ? errorId : null]
+    .filter(Boolean)
+    .join(' ');
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="font-bold">
+      <label htmlFor={id} className="text-sm font-semibold">
         {label}
       </label>
       {hint && (
-        <p id={hintId} className="text-muted-foreground">
+        <p id={hintId} className="text-sm text-muted-foreground">
           {hint}
         </p>
       )}
-      <input
-        id={id}
-        type={type}
-        autoComplete={autoComplete}
-        autoCapitalize="off"
-        autoCorrect="off"
-        spellCheck={false}
-        value={value}
-        readOnly={readOnly}
-        onChange={(event) => onChange(event.target.value)}
-        onBlur={onBlur}
-        aria-required="true"
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy || undefined}
-        className={`h-11 ${textInput}`}
-      />
+      <span className="relative block">
+        <input
+          id={id}
+          type={revealable && shown ? 'text' : type}
+          autoComplete={autoComplete}
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck={false}
+          value={value}
+          readOnly={readOnly}
+          onChange={(event) => onChange(event.target.value)}
+          onBlur={onBlur}
+          aria-required="true"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy || undefined}
+          className={`h-11 ${textInput} ${revealable ? 'pr-12' : ''}`}
+        />
+        {revealable && (
+          <button
+            type="button"
+            aria-pressed={shown}
+            aria-controls={id}
+            aria-label={t('auth.form.showPassword')}
+            onClick={() => setShown((value) => !value)}
+            className={`absolute top-1/2 right-1 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted pointer-coarse:size-11 ${focusRing}`}
+          >
+            {shown ? (
+              <IconEyeOff aria-hidden="true" size={20} stroke={1.75} />
+            ) : (
+              <IconEye aria-hidden="true" size={20} stroke={1.75} />
+            )}
+          </button>
+        )}
+      </span>
       {error && (
         <p id={errorId} className={`flex items-center gap-1 ${fieldError}`}>
           <IconAlertTriangle aria-hidden="true" size={16} stroke={1.75} className="shrink-0" />

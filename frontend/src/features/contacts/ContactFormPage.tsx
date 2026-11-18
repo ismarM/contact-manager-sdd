@@ -1,3 +1,4 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
 import { IconAlertTriangle, IconArrowLeft } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -5,7 +6,7 @@ import { Link, useLocation } from 'react-router';
 
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
-import { errorAlert, focusRing, secondaryButton, warningAlert } from '../../shared/ui/styles';
+import { backLink, errorAlert, secondaryButton, warningAlert } from '../../shared/ui/styles';
 import { useGroup } from '../groups/groupContext';
 import { useDelayed } from '../groups/useDelayed';
 import { isNotFound, useContactsApi } from './api';
@@ -20,7 +21,7 @@ type State =
   | { kind: 'notFound' }
   | { kind: 'ready'; contact: ContactDetail };
 
-const link = `inline-flex items-center gap-1 self-start text-primary underline underline-offset-4 ${focusRing}`;
+const link = `inline-flex items-center gap-1 self-start ${backLink}`;
 
 /**
  * Stran *Nov kontakt* (brez `contactId`) in *Uredi kontakt* (FR-004-01, -10): obrazec samo za EDITOR+ v nearhivirani
@@ -36,6 +37,7 @@ export function ContactFormPage({ contactId }: { contactId?: string }) {
   const [reloads, setReloads] = useState(0);
   const showLoader = useDelayed(state.kind === 'loading');
   const list = `/groups/${group.id}/contacts${location.search}`;
+  const cancelTo = contactId ? `/groups/${group.id}/contacts/${contactId}${location.search}` : list;
 
   useEffect(() => {
     if (!contactId || !editable) return undefined;
@@ -80,10 +82,16 @@ export function ContactFormPage({ contactId }: { contactId?: string }) {
 
   const headingId = 'contact-form-heading';
   return (
-    <div className="mx-auto flex w-full max-w-[70ch] flex-col gap-5 px-4 py-6">
-      <h2 id={headingId} className="text-2xl font-bold">
-        {t(contactId ? 'contacts.form.editHeading' : 'contacts.form.newHeading')}
-      </h2>
+    <div className="mx-auto flex w-full max-w-[44rem] flex-col gap-6 px-4 py-6">
+      <div className="flex flex-col gap-2">
+        <Link to={cancelTo} className={`self-start ${link}`}>
+          <IconArrowLeft aria-hidden="true" size={20} stroke={1.75} />
+          {t(contactId ? 'contacts.form.backToContact' : 'contacts.view.back')}
+        </Link>
+        <h2 id={headingId} className="text-2xl font-bold">
+          {t(contactId ? 'contacts.form.editHeading' : 'contacts.form.newHeading')}
+        </h2>
+      </div>
       {!contactId && (
         <ContactForm
           labelledBy={headingId}
@@ -94,7 +102,7 @@ export function ContactFormPage({ contactId }: { contactId?: string }) {
         <ContactForm key={state.contact.id} contact={state.contact} labelledBy={headingId} />
       )}
       {contactId && state.kind === 'loading' && showLoader && (
-        <p role="status">{t('contacts.list.loading')}</p>
+        <LoadingState label={t('contacts.list.loading')} />
       )}
       {contactId && state.kind === 'failed' && (
         <div role="alert" className={errorAlert}>

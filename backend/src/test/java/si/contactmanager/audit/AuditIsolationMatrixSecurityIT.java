@@ -278,4 +278,21 @@ class AuditIsolationMatrixSecurityIT extends AuditApiTest {
         assertThat(json(response.body())).isEqualTo(Map.of("code", "UNAUTHENTICATED"));
         assertThat(audit.count(s.group())).isEqualTo(entriesBefore);
     }
+
+    @ParameterizedTest(name = "filter contact= na lastnem kontaktu, {0}")
+    @EnumSource(
+            value = Actor.class,
+            names = {"VIEWER", "EDITOR", "ADMIN", "OWNER"})
+    @Tag("FR-020-19")
+    void contactFilterOnOwnContactIsReadableByEveryRoleEvenWhenArchived(Actor actor) throws Exception {
+        Scenario s = scenario();
+        UUID contact = twoEntries(s);
+        groups.archive(s.group());
+
+        HttpResponse<String> response =
+                get(auditPath(s.group()) + "?contact=" + contact, s.token(Who.valueOf(actor.name())));
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(json(response.body())).containsEntry("total", 2);
+    }
 }

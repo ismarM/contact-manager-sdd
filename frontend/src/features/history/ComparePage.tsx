@@ -1,3 +1,4 @@
+import { LoadingState } from '../../shared/ui/Skeleton';
 import { IconAlertTriangle, IconArrowLeft } from '@tabler/icons-react';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -6,7 +7,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router';
 import { ApiError } from '../../shared/api/client';
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
-import { errorAlert, focusRing, secondaryButton } from '../../shared/ui/styles';
+import { backLink, card, errorAlert, secondaryButton, softButton } from '../../shared/ui/styles';
 import { typeNameKey } from '../attributes/typeNames';
 import { typeChange, useChangeText } from '../audit/changeText';
 import type { ChangeFieldName } from '../audit/types';
@@ -26,8 +27,6 @@ type State =
   | { kind: 'invalid' }
   | { kind: 'notFound' }
   | { kind: 'ready'; data: Comparison };
-
-const link = `text-primary underline underline-offset-4 ${focusRing}`;
 
 function Cell({ row, side }: { row: CompareRow; side: 'before' | 'after' }) {
   const { t } = useTranslation();
@@ -105,7 +104,7 @@ function DiffTable({ rows, caption }: { rows: CompareRow[]; caption: string }) {
         {rows.map((row) => (
           <tr
             key={row.id}
-            className="border-b border-border max-sm:block max-sm:rounded-md max-sm:border max-sm:bg-card max-sm:p-3"
+            className="border-b border-border last:border-b-0 max-sm:block max-sm:rounded-md max-sm:border max-sm:bg-card max-sm:p-3"
           >
             <th
               scope="row"
@@ -190,9 +189,12 @@ export function ComparePage({ contactId }: { contactId: string }) {
   return (
     <section
       aria-labelledby={headingId}
-      className="mx-auto flex w-full max-w-[70ch] flex-col gap-4 px-4 py-6"
+      className="mx-auto flex w-full max-w-[56rem] flex-col gap-5 px-4 py-6"
     >
-      <Link to={`${base}/history`} className={`inline-flex items-center gap-1 self-start ${link}`}>
+      <Link
+        to={`${base}/history`}
+        className={`inline-flex items-center gap-1 self-start ${backLink}`}
+      >
         <IconArrowLeft aria-hidden="true" size={20} stroke={1.75} />
         {t('history.compare.back')}
       </Link>
@@ -226,19 +228,19 @@ export function ComparePage({ contactId }: { contactId: string }) {
         </div>
       )}
       {state.kind === 'loading' && !missing && showLoader && (
-        <p role="status">{t('history.compare.loading')}</p>
+        <LoadingState label={t('history.compare.loading')} />
       )}
 
       {data && rows && (
         <>
-          <ul aria-label={t('history.compare.versions')} className="flex flex-col gap-3">
+          <ul aria-label={t('history.compare.versions')} className="grid gap-3 sm:grid-cols-2">
             {sides.map(({ version, title }) => (
               <li
                 key={title}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-card p-3"
+                className={`${card} flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-5`}
               >
                 <span>
-                  <span className="font-bold">{title}: </span>
+                  <span className="font-bold text-muted-foreground">{title}: </span>
                   {versionLabel(version.ref, version.createdAt)}
                 </span>
                 {canRestore && version.ref !== CURRENT && (
@@ -260,13 +262,15 @@ export function ComparePage({ contactId }: { contactId: string }) {
 
           {rows.changed.length === 0 && <p role="status">{t('history.compare.noDifferences')}</p>}
           {rows.changed.length > 0 && (
-            <DiffTable rows={rows.changed} caption={t('history.compare.caption', { name })} />
+            <div className={`${card} overflow-hidden`}>
+              <DiffTable rows={rows.changed} caption={t('history.compare.caption', { name })} />
+            </div>
           )}
           {rows.unchanged.length > 0 && (
             <>
               <button
                 type="button"
-                className={`${secondaryButton} self-start`}
+                className={`${softButton} self-start`}
                 aria-expanded={showUnchanged}
                 aria-controls={unchangedId}
                 onClick={() => setShowUnchanged((value) => !value)}

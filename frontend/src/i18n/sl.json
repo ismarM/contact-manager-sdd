@@ -24,7 +24,7 @@
   },
   "login": {
     "tagline": "Kontakti tvojih projektov in podjetij, na enem mestu.",
-    "signIn": "Prijava z Googlom",
+    "signIn": "Nadaljuj z Googlom",
     "sessionExpired": "Seja je potekla. Prijavi se znova.",
     "error": {
       "cancelled": "Prijava je bila prekinjena. Poskusi znova.",
@@ -58,20 +58,29 @@
         "passwordRequired": "Vpiši geslo.",
         "passwordTooShort": "Geslo mora imeti najmanj 8 znakov.",
         "passwordMismatch": "Gesli se ne ujemata."
+      },
+      "showPassword": "Pokaži geslo",
+      "rules": {
+        "heading": "Pravila gesla",
+        "minLength": "Najmanj 8 znakov",
+        "met": "izpolnjeno",
+        "unmet": "ni izpolnjeno"
       }
     },
     "login": {
-      "or": "ali",
+      "or": "ali z e-pošto",
       "submit": "Prijava z geslom",
       "forgot": "Pozabljeno geslo?",
-      "register": "Ustvari račun z e-naslovom"
+      "register": "Ustvari račun z e-naslovom",
+      "heading": "Prijava"
     },
     "register": {
       "documentTitle": "Registracija – Kontakti",
       "heading": "Ustvari račun",
       "submit": "Ustvari račun",
       "haveAccount": "Že imaš račun?",
-      "signIn": "Prijava"
+      "signIn": "Prijava",
+      "intro": "Ustvari račun z e-naslovom in geslom. Že uporabljaš Google? Prijavi se z Googlom in geslo dodaš pozneje v Mojem računu."
     },
     "verify": {
       "documentTitle": "Potrdi e-naslov – Kontakti",
@@ -91,6 +100,14 @@
       "submit": "Pošlji povezavo",
       "sent": "Če račun s tem e-naslovom obstaja, smo nanj poslali sporočilo s povezavo za novo geslo.",
       "back": "Nazaj na prijavo"
+    },
+    "hero": {
+      "loginText": "Skupine, vloge in sledljive spremembe – vse na enem mestu.",
+      "registerTitle": "Začni svojo kartoteko.",
+      "registerText": "Zbiraj kontakte v skupinah in jih deli s sodelavci z jasnimi vlogami.",
+      "benefit1": "Skupine z vlogami za vsakogar",
+      "benefit2": "Vsaka sprememba je zabeležena in povrnljiva",
+      "benefit3": "Uvoz in izvoz kontaktov"
     }
   },
   "shell": {
@@ -99,7 +116,12 @@
     "myAccount": "Moj račun",
     "signOut": "Odjava",
     "saveFailed": "Izbire ni bilo mogoče shraniti v račun.",
-    "dismiss": "Zapri sporočilo"
+    "dismiss": "Zapri sporočilo",
+    "mainNav": "Glavna navigacija",
+    "openNav": "Odpri navigacijo",
+    "nav": "Navigacija",
+    "accountTab": "Račun",
+    "archived": "Arhivirane"
   },
   "account": {
     "heading": "Moj račun",
@@ -246,19 +268,38 @@
     "grafit": "Grafit",
     "rja": "Rja"
   },
+  "dialog": {
+    "close": "Zapri dialog"
+  },
   "toast": {
     "region": "Obvestila",
     "close": "Zapri obvestilo"
   },
+  "ui": {
+    "optional": "(neobvezno)",
+    "badge": {
+      "archived": "Arhivirana",
+      "permanentlyArchived": "Trajno arhivirana",
+      "rolePrefix": "Vloga: "
+    },
+    "chip": {
+      "remove": "Odstrani filter {{name}}"
+    }
+  },
   "groups": {
     "heading": "Skupine",
+    "subtitle": "Skupine, katerih član si. Tvoja vloga je prikazana na kartici.",
     "newGroup": "Nova skupina",
-    "sectionHeading": "{{role}} ({{total}})",
     "contactCount_one": "{{count}} kontakt",
     "contactCount_two": "{{count}} kontakta",
     "contactCount_few": "{{count}} kontakti",
     "contactCount_other": "{{count}} kontaktov",
+    "count_one": "{{count}} skupina",
+    "count_two": "{{count}} skupini",
+    "count_few": "{{count}} skupine",
+    "count_other": "{{count}} skupin",
     "empty": "Nimaš še nobene skupine.",
+    "emptyHint": "Ustvari prvo skupino za svoje kontakte ali sprejmi povabilo.",
     "loading": "Nalagam…",
     "loadFailed": "Skupin ni bilo mogoče naložiti. Poskusi znova.",
     "retry": "Poskusi znova",
@@ -323,7 +364,8 @@
       "empty": "Nimaš arhiviranih skupin.",
       "back": "Na seznam skupin",
       "ownerDeleted": "lastnik: izbrisan uporabnik",
-      "pagination": "Arhivirane skupine"
+      "pagination": "Arhivirane skupine",
+      "subtitle": "Skupine, ki so jih lastniki ali admini arhivirali. Pregled in izvoz sta še vedno mogoča."
     },
     "banner": {
       "region": "Stanje skupine",
@@ -363,21 +405,22 @@
     "search": {
       "label": "Išči skupine",
       "rolesLegend": "Vloga",
-      "stateLegend": "Stanje",
-      "active": "Aktivne",
-      "archived": "Arhivirane",
       "results_one": "{{count}} zadetek",
       "results_two": "{{count}} zadetka",
       "results_few": "{{count}} zadetki",
       "results_other": "{{count}} zadetkov",
       "none": "Ni zadetkov.",
-      "clear": "Počisti iskanje"
-    }
+      "clear": "Počisti iskanje",
+      "placeholder": "Naziv skupine",
+      "allRoles": "Vse vloge"
+    },
+    "currentGroup": "Trenutna skupina"
   },
   "notFound": {
     "heading": "Te strani ni",
     "text": "Povezava je napačna ali pa stran ni več na voljo.",
-    "back": "Na seznam skupin"
+    "back": "Na seznam skupin",
+    "code": "Napaka 404"
   },
   "contacts": {
     "heading": "Kontakti",
@@ -414,12 +457,16 @@
       "company": "Podjetje",
       "country": "Država",
       "historyHeading": "Zgodovina",
-      "historyLink": "Zgodovina kontakta"
+      "historyLink": "Zgodovina kontakta",
+      "fields": "Kontakt",
+      "meta": "Dodano {{created}} · nazadnje urejeno {{updated}}, {{who}}",
+      "historyText": "Vsaka sprememba tega kontakta, starejše različice in obnovitev različice."
     },
     "gone": "Tega kontakta ni več – medtem ga je nekdo izbrisal.",
     "form": {
       "newHeading": "Nov kontakt",
       "editHeading": "Uredi kontakt",
+      "backToContact": "Nazaj na kontakt",
       "basic": "Osnovni podatki",
       "attributesLegend": "Dodatni atributi",
       "tagsLegend": "Značke",
@@ -510,13 +557,6 @@
       "list": "Kontakti",
       "new": "Nov kontakt",
       "edit": "Uredi kontakt"
-    },
-    "reverted": {
-      "badge": "Povrnjeno",
-      "toState": "Povrnjeno na stanje",
-      "toInitial": "Povrnjeno na začetno stanje",
-      "openEntry": "Odpri vnos povrnitve",
-      "by": "Povrnil(a): {{name}}"
     },
     "search": {
       "region": "Iskanje in filtri",
@@ -1019,6 +1059,10 @@
     },
     "page": {
       "heading": "Povabila",
+      "subtitle_one": "Povabila te je {{count}} skupina.",
+      "subtitle_two": "Povabili sta te {{count}} skupini.",
+      "subtitle_few": "Povabile so te {{count}} skupine.",
+      "subtitle_other": "Povabilo te je {{count}} skupin.",
       "list": "Prejeta povabila",
       "emptyTitle": "Nimaš novih povabil.",
       "emptyText": "Ko te kdo povabi v skupino, bo povabilo tukaj.",
@@ -1046,6 +1090,13 @@
     },
     "invite": {
       "heading": "Povabi člana",
+      "placeholder": "ime@primer.si",
+      "help": "Povabi nekoga, ki že ima račun. Povabilo bo videl med Povabili.",
+      "roleHint": {
+        "ADMIN": "Upravlja člane",
+        "EDITOR": "Ureja kontakte",
+        "VIEWER": "Samo bere"
+      },
       "email": "E-naslov",
       "role": "Vloga",
       "submit": "Pošlji povabilo",
@@ -1165,6 +1216,7 @@
     },
     "transfer": {
       "button": "Prenesi lastništvo",
+      "description": "Izberi drugega člana za lastnika. Sam postaneš admin.",
       "info": "Lastništvo lahko preneseš, ko ima skupina še vsaj enega člana.",
       "title": "Prenesem lastništvo skupine {{group}}?",
       "newOwner": "Novi lastnik",
@@ -1206,6 +1258,8 @@
     "none": "Ni predlogov"
   },
   "import": {
+    "fileSection": "Datoteka",
+    "cancel": "Prekliči",
     "heading": "Uvoz kontaktov",
     "screenXlsx": "Uvoz iz Excela",
     "screenVcf": "Uvoz iz vizitk",
@@ -1227,6 +1281,8 @@
       "failed": "Datoteke ni bilo mogoče prebrati. Poskusi znova."
     },
     "mapping": {
+      "keyHeader": "Ključ atributa",
+      "typeHeader": "Tip ključa",
       "heading": "Preslikava stolpcev",
       "column": "Stolpec",
       "target": "Uvozi v",
@@ -1636,6 +1692,7 @@
     "requests24h_few": "{{count}} zahteve v zadnjih 24 urah",
     "requests24h_other": "{{count}} zahtev v zadnjih 24 urah",
     "usageLink": "Statistika ključa {{name}}",
+    "usageShort": "Statistika",
     "status": {
       "ACTIVE": "Aktiven",
       "EXPIRED": "Potekel",
@@ -1693,6 +1750,7 @@
       "failed": "Ključa ni bilo mogoče preklicati. Poskusi znova."
     },
     "usage": {
+      "legend": "Legenda",
       "heading": "Statistika ključa {{name}}",
       "back": "Nazaj na Moj račun",
       "periodLegend": "Obdobje",
@@ -1707,6 +1765,7 @@
       "rateLimited": "Zavrnitve zaradi omejitve",
       "chartHeading": "Zahteve po dnevih",
       "tableCaption": "Zahteve po dnevih",
+      "tableSummary": "Zahtevki po dnevih (tabela)",
       "day": "Dan",
       "loadFailed": "Statistike ni bilo mogoče naložiti. Poskusi znova.",
       "retry": "Poskusi znova",
@@ -1750,6 +1809,9 @@
       "rights": "Ob vsaki zahtevi velja manjša od pravice ključa in tvoje trenutne vloge v skupini."
     },
     "operations": {
+      "method": "Metoda",
+      "path": "Pot",
+      "description": "Opis",
       "heading": "Operacije",
       "caption": "Operacije vmesnika različice 1",
       "method": "Metoda",
@@ -1786,6 +1848,9 @@
       "text": "Seznami vrnejo stran (page, začne se z 0) velikosti size in skupno število zadetkov total. Privzeta velikost je 25, največ 100 za skupine; za kontakte veljajo enaka pravila kot v aplikaciji."
     },
     "errors": {
+      "status": "Status",
+      "code": "Koda",
+      "meaning": "Pomen",
       "heading": "Kode napak",
       "caption": "Kode napak vmesnika",
       "status": "Status",

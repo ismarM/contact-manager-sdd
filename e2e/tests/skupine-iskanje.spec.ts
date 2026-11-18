@@ -3,6 +3,7 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { signIn, uniqueUser } from './support/auth';
 import { archive, createGroup, createGroupsBulk } from './support/groups';
+import { goToArchived } from './support/nav';
 
 // 017 iskanje in filtriranje skupin (plan.md – Pages and routes: `/`, stanje v URL `q`, `role`, `state`). Skupine in
 // arhiviranje pripravi SQL (D-27); vsak test teče pri 360 in 1280 px (playwright.config.ts).
@@ -35,12 +36,13 @@ test('FR-017-14 FR-017-15 FR-017-16 FR-017-17: iskanje, filter vlog, arhivirane,
   createGroupsBulk(user.email, 60, 'OWNER');
   await page.goto('/');
   const main = page.getByRole('main');
-  await expect(main.getByRole('heading', { level: 2, name: 'Lastnik (60)' })).toBeVisible();
+  await expect(main.getByRole('navigation', { name: 'Strani rezultatov: Skupine' })).toContainText(
+    '1–25 od 60',
+  );
 
   // Skupina s tretje strani razdelka se najde z iskanjem po delu naziva.
   const search = main.getByRole('searchbox', { name: 'Išči skupine' });
   await search.fill('skupina 058');
-  await expect(main.getByRole('heading', { level: 2, name: 'Lastnik (1)' })).toBeVisible();
   await expect(main.getByRole('link', { name: 'Skupina 058' })).toBeVisible();
   await expect(main.getByRole('status').filter({ hasText: '1 zadetek' })).toBeVisible();
   await expect(page).toHaveURL(/[?&]q=skupina\+058|[?&]q=skupina%20058/);
@@ -53,27 +55,25 @@ test('FR-017-14 FR-017-15 FR-017-16 FR-017-17: iskanje, filter vlog, arhivirane,
   await expect(main.getByRole('link', { name: 'Skupina 058' })).toBeVisible();
 
   // Filter vlog brez zadetkov: prazno stanje, Počisti iskanje vrne vse.
-  // Stanje je v URL (react-router ga posodobi asinhrono), zato click + expect namesto check().
-  const viewer = main
-    .getByRole('group', { name: 'Vloga' })
-    .getByRole('checkbox', { name: 'Bralec' });
+  // Stanje je v URL (react-router ga posodobi asinhrono), zato click + expect.
+  const viewer = main.getByRole('group', { name: 'Vloga' }).getByRole('button', { name: 'Bralec' });
   await viewer.click();
-  await expect(viewer).toBeChecked();
+  await expect(viewer).toHaveAttribute('aria-pressed', 'true');
+  await expect(page).toHaveURL(/[?&]role=VIEWER/);
   await expect(main.getByRole('heading', { level: 2, name: 'Ni zadetkov.' })).toBeVisible();
   await expectNoAxeViolations(page);
   await main.getByRole('link', { name: 'Počisti iskanje' }).click();
-  await expect(main.getByRole('heading', { level: 2, name: 'Lastnik (60)' })).toBeVisible();
+  await expect(main.getByRole('navigation', { name: 'Strani rezultatov: Skupine' })).toContainText(
+    '1–25 od 60',
+  );
   await expect(main.getByRole('searchbox', { name: 'Išči skupine' })).toHaveValue('');
 
-  // Stanje Arhivirane: ista iskalna polja (brez razlike šumnikov), povezava na stran Arhivirane skupine ostane.
-  const archivedState = main.getByRole('radio', { name: 'Arhivirane' });
-  await archivedState.click();
-  await expect(archivedState).toBeChecked();
+  // Arhivirane (izbira navigacije): ista orodna vrstica (iskanje brez razlike šumnikov, čipi vlog).
+  await goToArchived(page);
   await expect(main.getByRole('link', { name: 'Šolski krožek' })).toBeVisible();
   await main.getByRole('searchbox', { name: 'Išči skupine' }).fill('SOLSKI');
   await expect(main.getByRole('link', { name: 'Šolski krožek' })).toBeVisible();
-  await expect(main.getByRole('link', { name: 'Arhivirane skupine' })).toBeVisible();
-  await expect(page).toHaveURL(/state=archived/);
+  await expect(page).toHaveURL(/\/groups\/archived\?q=SOLSKI/);
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);
   await main.getByRole('searchbox', { name: 'Išči skupine' }).fill('nicneobstaja');

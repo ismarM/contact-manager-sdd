@@ -1,4 +1,12 @@
-import { IconAlertTriangle, IconArrowLeft, IconX } from '@tabler/icons-react';
+import { LoadingState } from '../../shared/ui/Skeleton';
+import {
+  IconAlertTriangle,
+  IconArrowLeft,
+  IconDownload,
+  IconHistory,
+  IconPencil,
+  IconX,
+} from '@tabler/icons-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router';
@@ -7,11 +15,15 @@ import { toast } from 'sonner';
 import { Avatar } from '../../shared/images/Avatar';
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
+import { COLOR_SWATCH } from '../groups/colors';
 import {
+  backLink,
+  card,
   errorAlert,
   focusRing,
   primaryButton,
   secondaryButton,
+  softButton,
   warningAlert,
 } from '../../shared/ui/styles';
 import { useAuth } from '../auth/authContext';
@@ -28,7 +40,6 @@ import { DeleteContactDialog } from './DeleteContactDialog';
 import { countryName } from './countries';
 import { contactVcard } from './export/api';
 import { contactFileName, QrShareDialog } from './qr/QrShareDialog';
-import { RevertedBadge } from './RevertedBadge';
 import type { ContactDetail } from './types';
 import { useUiLanguage } from './useUiLanguage';
 import { TypedValueView } from './typed/TypedValueView';
@@ -39,7 +50,7 @@ type State =
   | { kind: 'notFound' }
   | { kind: 'ready'; contact: ContactDetail };
 
-const link = `text-primary underline underline-offset-4 ${focusRing}`;
+const link = `text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`;
 
 /** `tel:` brez presledkov in ločil, z ohranjenim vodilnim `+`. */
 function telHref(phone: string): string {
@@ -125,56 +136,35 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
   }
 
   if (state.kind === 'loading') {
-    return showLoader ? <p role="status">{t('contacts.list.loading')}</p> : null;
+    return showLoader ? <LoadingState label={t('contacts.list.loading')} /> : null;
   }
 
   const { contact } = state;
+  const hasFields = [
+    contact.company,
+    contact.address,
+    contact.addressParts,
+    contact.country,
+    contact.email,
+    contact.phone,
+  ].some((value) => value != null);
+  const who = contact.updatedBy
+    ? (contact.updatedBy.name ?? contact.updatedBy.email)
+    : t('contacts.conflict.deletedUser');
+  const sections = hasFields || contact.attributes.length > 0 || contact.tags.length > 0;
   return (
-    <article aria-labelledby={`contact-${contact.id}`} className="flex flex-col gap-5">
+    <article
+      aria-labelledby={`contact-${contact.id}`}
+      className={`flex flex-col gap-4 ${editable && !panel ? 'pb-[calc(var(--k-bottom-bar-h)+5rem)] sm:pb-0' : ''}`}
+    >
       {panel ? (
         <CloseLink to={list} />
       ) : (
-        <Link to={list} className={`inline-flex items-center gap-1 self-start ${link}`}>
+        <Link to={list} className={`inline-flex items-center gap-1 self-start ${backLink}`}>
           <IconArrowLeft aria-hidden="true" size={20} stroke={1.75} />
           {t('contacts.view.back')}
         </Link>
       )}
-      <div className="flex min-w-0 items-center gap-4">
-        <Avatar
-          kind="contact"
-          name={contact.displayName}
-          colorSeed={contact.id}
-          size={64}
-          alt=""
-          photo={{
-            path: `/groups/${group.id}/contacts/${contact.id}/photo`,
-            revision: contact.photoRevision,
-          }}
-        />
-        <h2 id={`contact-${contact.id}`} className="min-w-0 text-2xl font-bold break-words">
-          {contact.displayName}
-        </h2>
-      </div>
-
-      {contact.reverted && <RevertedBadge info={contact.reverted} />}
-
-      <section aria-labelledby={`history-${contact.id}`} className="flex flex-col gap-1">
-        <h3 id={`history-${contact.id}`} className="text-lg font-bold">
-          {t('contacts.view.historyHeading')}
-        </h3>
-        <Link
-          to={`/groups/${group.id}/contacts/${contact.id}/history`}
-          className={`self-start ${link}`}
-        >
-          {t('contacts.view.historyLink')}
-        </Link>
-        <Link
-          to={`/groups/${group.id}/audit?contact=${contact.id}`}
-          className={`self-start ${link}`}
-        >
-          {t('contacts.view.auditLink')}
-        </Link>
-      </section>
 
       {conflict && (
         <div role="alert" className={warningAlert}>
@@ -185,138 +175,221 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
         </div>
       )}
 
-      {editable && (
-        <div className="flex flex-wrap gap-3">
-          <Link
-            to={`/groups/${group.id}/contacts/${contact.id}/edit${location.search}`}
-            className={primaryButton}
-          >
-            {t('contacts.view.edit')}
-          </Link>
-          <DeleteContactDialog
-            trigger
-            contact={contact}
-            onDeleted={() => {
-              toast(t('contacts.toast.deleted', { name: contact.displayName }));
-              toList({});
-            }}
-            onGone={() => toList({ notice: { kind: 'gone' } })}
-            onConflict={(current) => {
-              // Pogled se osveži s trenutnim stanjem s strežnika; izbris je mogoče ponovno potrditi.
-              setConflict(current);
-              reload();
-            }}
-          />
+      <section className={`${card} overflow-hidden`}>
+        <div aria-hidden="true" className={`h-1.5 sm:h-2 ${COLOR_SWATCH[group.color]}`} />
+        <div className="flex flex-col gap-4 p-4 sm:p-6">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+            <Avatar
+              kind="contact"
+              name={contact.displayName}
+              colorSeed={contact.id}
+              size={64}
+              alt=""
+              photo={{
+                path: `/groups/${group.id}/contacts/${contact.id}/photo`,
+                revision: contact.photoRevision,
+              }}
+            />
+            <div className="flex min-w-48 flex-1 flex-col gap-1">
+              <h2 id={`contact-${contact.id}`} className="text-2xl font-bold break-words">
+                {contact.displayName}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {t('contacts.view.meta', {
+                  created: format.date(contact.createdAt),
+                  updated: format.date(contact.updatedAt),
+                  who,
+                })}
+              </p>
+            </div>
+            {editable && (
+              <div className="flex items-center gap-2">
+                {/* Na telefonu je *Uredi kontakt* v spodnji vrstici akcij nad spodnjo vrstico (FR-020-18). */}
+                <div
+                  className={
+                    panel
+                      ? ''
+                      : 'fixed inset-x-0 bottom-[calc(var(--k-bottom-bar-h)+env(safe-area-inset-bottom))] z-20 border-t border-border bg-popover p-3 sm:static sm:z-auto sm:border-0 sm:bg-transparent sm:p-0'
+                  }
+                >
+                  <Link
+                    to={`/groups/${group.id}/contacts/${contact.id}/edit${location.search}`}
+                    className={`${primaryButton} ${panel ? '' : 'w-full sm:w-auto'}`}
+                  >
+                    <IconPencil aria-hidden="true" size={20} stroke={1.75} />
+                    {t('contacts.view.edit')}
+                  </Link>
+                </div>
+                <DeleteContactDialog
+                  trigger
+                  contact={contact}
+                  onDeleted={() => {
+                    toast.success(t('contacts.toast.deleted', { name: contact.displayName }));
+                    toList({});
+                  }}
+                  onGone={() => toList({ notice: { kind: 'gone' } })}
+                  onConflict={(current) => {
+                    // Pogled se osveži s trenutnim stanjem s strežnika; izbris je mogoče ponovno potrditi.
+                    setConflict(current);
+                    reload();
+                  }}
+                />
+              </div>
+            )}
+          </div>
+          <ShareActions contact={contact} />
+        </div>
+      </section>
+
+      {sections && (
+        <div
+          className={`grid items-start gap-4 ${panel ? 'grid-cols-1' : 'sm:grid-cols-2 sm:gap-6'}`}
+        >
+          {hasFields && (
+            <section
+              aria-labelledby={`fields-${contact.id}`}
+              className={`${card} flex flex-col gap-3 p-4 sm:p-6`}
+            >
+              <h3 id={`fields-${contact.id}`} className="text-lg font-bold">
+                {t('contacts.view.fields')}
+              </h3>
+              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
+                {contact.company != null && (
+                  <>
+                    <dt className="font-bold">{t('contacts.view.company')}</dt>
+                    <dd className="break-words">{contact.company}</dd>
+                  </>
+                )}
+                {(contact.address != null || contact.addressParts != null) && (
+                  <>
+                    <dt className="font-bold">{t('contacts.view.address')}</dt>
+                    <dd className="break-words">
+                      <span className="whitespace-pre-line">
+                        {format.address(contact.addressParts ?? contact.address ?? '')}
+                      </span>
+                      <ShowOnMapButton
+                        groupId={group.id}
+                        contactId={contact.id}
+                        name={t('contacts.view.address')}
+                        address={format.address(contact.addressParts ?? contact.address ?? '')}
+                      />
+                    </dd>
+                  </>
+                )}
+                {contact.country != null && (
+                  <>
+                    <dt className="font-bold">{t('contacts.view.country')}</dt>
+                    <dd>{countryName(contact.country, language)}</dd>
+                  </>
+                )}
+                {contact.email !== null && (
+                  <>
+                    <dt className="font-bold">{t('contacts.view.email')}</dt>
+                    <dd className="break-all">
+                      <a href={`mailto:${contact.email}`} className={link}>
+                        {contact.email}
+                      </a>
+                    </dd>
+                  </>
+                )}
+                {contact.phone !== null && (
+                  <>
+                    <dt className="font-bold">{t('contacts.view.phone')}</dt>
+                    <dd>
+                      <a href={telHref(contact.phone)} className={link}>
+                        {format.phone(contact.phone)}
+                      </a>
+                    </dd>
+                  </>
+                )}
+              </dl>
+            </section>
+          )}
+
+          {(contact.attributes.length > 0 || contact.tags.length > 0) && (
+            <div className="flex min-w-0 flex-col gap-4 sm:gap-6">
+              {contact.attributes.length > 0 && (
+                <section
+                  aria-labelledby={`attributes-${contact.id}`}
+                  className={`${card} flex flex-col gap-3 p-4 sm:p-6`}
+                >
+                  <h3 id={`attributes-${contact.id}`} className="text-lg font-bold">
+                    {t('contacts.view.attributes')}
+                  </h3>
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
+                    {contact.attributes.map((attribute) => (
+                      <div key={attribute.key} className="contents">
+                        <dt className="font-mono break-words text-muted-foreground">
+                          {attribute.key}
+                        </dt>
+                        <dd className="break-words">
+                          <TypedValueView
+                            type={attribute.type}
+                            value={attribute.value ?? ''}
+                            parts={attribute.parts}
+                          />
+                          {attribute.type === 'ADDRESS' && (
+                            <ShowOnMapButton
+                              groupId={group.id}
+                              contactId={contact.id}
+                              attributeKey={attribute.key}
+                              name={attribute.key}
+                              address={format.address(
+                                attribute.parts ?? attribute.value ?? '',
+                                true,
+                              )}
+                            />
+                          )}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
+              )}
+
+              {contact.tags.length > 0 && (
+                <section
+                  aria-labelledby={`tags-${contact.id}`}
+                  className={`${card} flex flex-col gap-3 p-4 sm:p-6`}
+                >
+                  <h3 id={`tags-${contact.id}`} className="text-lg font-bold">
+                    {t('contacts.view.tags')}
+                  </h3>
+                  <ul className="flex flex-wrap gap-2">
+                    {contact.tags.map((tag) => (
+                      <li key={tag} className="rounded-xs bg-muted px-2 py-0.5 text-sm">
+                        {tag}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+            </div>
+          )}
         </div>
       )}
 
-      <ShareActions contact={contact} />
-
-      {[
-        contact.company,
-        contact.address,
-        contact.addressParts,
-        contact.country,
-        contact.email,
-        contact.phone,
-      ].some((value) => value != null) && (
-        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
-          {contact.company != null && (
-            <>
-              <dt className="font-bold">{t('contacts.view.company')}</dt>
-              <dd className="break-words">{contact.company}</dd>
-            </>
-          )}
-          {(contact.address != null || contact.addressParts != null) && (
-            <>
-              <dt className="font-bold">{t('contacts.view.address')}</dt>
-              <dd className="break-words">
-                <span className="whitespace-pre-line">
-                  {format.address(contact.addressParts ?? contact.address ?? '')}
-                </span>
-                <ShowOnMapButton
-                  groupId={group.id}
-                  contactId={contact.id}
-                  name={t('contacts.view.address')}
-                  address={format.address(contact.addressParts ?? contact.address ?? '')}
-                />
-              </dd>
-            </>
-          )}
-          {contact.country != null && (
-            <>
-              <dt className="font-bold">{t('contacts.view.country')}</dt>
-              <dd>{countryName(contact.country, language)}</dd>
-            </>
-          )}
-          {contact.email !== null && (
-            <>
-              <dt className="font-bold">{t('contacts.view.email')}</dt>
-              <dd className="break-all">
-                <a href={`mailto:${contact.email}`} className={link}>
-                  {contact.email}
-                </a>
-              </dd>
-            </>
-          )}
-          {contact.phone !== null && (
-            <>
-              <dt className="font-bold">{t('contacts.view.phone')}</dt>
-              <dd>
-                <a href={telHref(contact.phone)} className={link}>
-                  {format.phone(contact.phone)}
-                </a>
-              </dd>
-            </>
-          )}
-        </dl>
-      )}
-
-      {contact.attributes.length > 0 && (
-        <section aria-labelledby={`attributes-${contact.id}`} className="flex flex-col gap-2">
-          <h3 id={`attributes-${contact.id}`} className="text-lg font-bold">
-            {t('contacts.view.attributes')}
-          </h3>
-          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
-            {contact.attributes.map((attribute) => (
-              <div key={attribute.key} className="contents">
-                <dt className="font-bold break-words">{attribute.key}</dt>
-                <dd className="break-words">
-                  <TypedValueView
-                    type={attribute.type}
-                    value={attribute.value ?? ''}
-                    parts={attribute.parts}
-                  />
-                  {attribute.type === 'ADDRESS' && (
-                    <ShowOnMapButton
-                      groupId={group.id}
-                      contactId={contact.id}
-                      attributeKey={attribute.key}
-                      name={attribute.key}
-                      address={format.address(attribute.parts ?? attribute.value ?? '', true)}
-                    />
-                  )}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-      )}
-
-      {contact.tags.length > 0 && (
-        <section aria-labelledby={`tags-${contact.id}`} className="flex flex-col gap-2">
-          <h3 id={`tags-${contact.id}`} className="text-lg font-bold">
-            {t('contacts.view.tags')}
-          </h3>
-          <ul className="flex flex-wrap gap-2">
-            {contact.tags.map((tag) => (
-              <li key={tag} className="rounded-sm bg-muted px-2 py-0.5 text-sm">
-                {tag}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <section
+        aria-labelledby={`history-${contact.id}`}
+        className={`${card} flex flex-col gap-3 p-4 sm:p-6`}
+      >
+        <h3 id={`history-${contact.id}`} className="text-lg font-bold">
+          {t('contacts.view.historyHeading')}
+        </h3>
+        <p className="text-sm text-muted-foreground">{t('contacts.view.historyText')}</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            to={`/groups/${group.id}/contacts/${contact.id}/history`}
+            className={secondaryButton}
+          >
+            <IconHistory aria-hidden="true" size={20} stroke={1.75} />
+            {t('contacts.view.historyLink')}
+          </Link>
+          <Link to={`/groups/${group.id}/audit?contact=${contact.id}`} className={link}>
+            {t('contacts.view.auditLink')}
+          </Link>
+        </div>
+      </section>
     </article>
   );
 }
@@ -324,7 +397,7 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
 function CloseLink({ to }: { to: string }) {
   const { t } = useTranslation();
   return (
-    <Link to={to} className={`inline-flex items-center gap-1 self-start ${link}`}>
+    <Link to={to} className={`inline-flex items-center gap-1 self-start ${backLink}`}>
       <IconX aria-hidden="true" size={20} stroke={1.75} />
       {t('contacts.view.close')}
     </Link>
@@ -351,9 +424,10 @@ function ShareActions({ contact }: { contact: ContactDetail }) {
     }
   };
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap gap-3">
-        <button type="button" className={secondaryButton} onClick={() => void download()}>
+    <div className="flex flex-col gap-2 border-t border-border pt-4">
+      <div className="flex flex-wrap gap-2">
+        <button type="button" className={softButton} onClick={() => void download()}>
+          <IconDownload aria-hidden="true" size={20} stroke={1.75} />
           {t('contacts.vcard.download')}
         </button>
         <QrShareDialog contact={contact} onDownloadVcard={() => void download()} />

@@ -14,6 +14,7 @@ import {
   dangerButton,
   errorAlert,
   fieldError,
+  ghostButton,
   secondaryButton,
   textInput,
 } from '../../shared/ui/styles';
@@ -95,7 +96,7 @@ export function TransferOwnershipDialog({
       setOpen(false);
       onOpenChange?.(false);
       setGroup(detail);
-      toast(t('members.toast.transferred', { name: chosen.name ?? chosen.email }));
+      toast.success(t('members.toast.transferred', { name: chosen.name ?? chosen.email }));
       refresh();
     } catch (error) {
       const result = memberFailure(error, 'transfer');
@@ -184,7 +185,7 @@ export function TransferOwnershipDialog({
             )}
           </div>
           <div className="flex flex-wrap justify-end gap-3">
-            <DialogClose ref={cancel} className={secondaryButton}>
+            <DialogClose ref={cancel} className={ghostButton}>
               {t('members.transfer.cancel')}
             </DialogClose>
             <button type="submit" className={dangerButton} aria-disabled={busy}>

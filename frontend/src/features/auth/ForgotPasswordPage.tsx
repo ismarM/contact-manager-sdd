@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
-import { focusRing, primaryButton } from '../../shared/ui/styles';
-import { AuthAlert, AuthCard } from './AuthCard';
+import { Callout } from '../../shared/ui/Callout';
+import { primaryButton, textLink } from '../../shared/ui/styles';
+import { AuthAlert, AuthLayout } from './AuthLayout';
 import { authErrorKey } from './authErrorKey';
 import { AuthField, ErrorSummary, useAuthForm } from './AuthForm';
 import { useAuth } from './authContext';
@@ -41,8 +42,8 @@ export function ForgotPasswordPage() {
   const emailError = form.errors.email ? t(`auth.form.errors.${form.errors.email}`) : undefined;
 
   return (
-    <AuthCard heading={t('auth.forgot.heading')}>
-      <p className="mt-3">{t('auth.forgot.intro')}</p>
+    <AuthLayout heading={t('auth.forgot.heading')}>
+      <p>{t('auth.forgot.intro')}</p>
       {failure && <AuthAlert>{failure}</AuthAlert>}
       {form.summaryVisible && (
         <ErrorSummary
@@ -51,17 +52,14 @@ export function ForgotPasswordPage() {
           summaryRef={form.summaryRef}
         />
       )}
-      <p
-        role="status"
-        className={sent ? 'mt-6 rounded-md border-l-4 border-border bg-muted p-3' : 'sr-only'}
-      >
-        {sent ? t('auth.forgot.sent') : ''}
-      </p>
-      <form
-        noValidate
-        onSubmit={(event) => void submit(event)}
-        className="mt-6 flex flex-col gap-4"
-      >
+      <div role="status" className={sent ? undefined : 'sr-only'}>
+        {sent && (
+          <Callout tone="success" announce={false}>
+            {t('auth.forgot.sent')}
+          </Callout>
+        )}
+      </div>
+      <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-4">
         <AuthField
           id={emailId}
           label={t('auth.form.email')}
@@ -76,14 +74,11 @@ export function ForgotPasswordPage() {
           {t('auth.forgot.submit')}
         </button>
       </form>
-      <p className="mt-6">
-        <Link
-          to="/login"
-          className={`font-bold text-primary underline underline-offset-4 ${focusRing}`}
-        >
+      <p>
+        <Link to="/login" className={`font-semibold ${textLink}`}>
           {t('auth.forgot.back')}
         </Link>
       </p>
-    </AuthCard>
+    </AuthLayout>
   );
 }

@@ -2,7 +2,7 @@ import { useRef, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Dialog, DialogClose, DialogContent, DialogTitle } from '../../shared/ui/dialog';
-import { dangerButton, secondaryButton } from '../../shared/ui/styles';
+import { dangerButton, ghostButton } from '../../shared/ui/styles';
 
 /**
  * Potrditev združitve (FR-011-14; design.md 8.11): naslov s številom kontaktov, posledica, fokus na »Prekliči«, med
@@ -44,7 +44,7 @@ export function MergeDialog({
         <DialogTitle>{t('duplicates.dialog.title', { count })}</DialogTitle>
         <p>{t('duplicates.dialog.body', { count: count - 1, name })}</p>
         <div className="flex flex-wrap justify-end gap-3">
-          <DialogClose ref={cancel} className={secondaryButton} aria-disabled={busy}>
+          <DialogClose ref={cancel} className={ghostButton} aria-disabled={busy}>
             {t('duplicates.dialog.cancel')}
           </DialogClose>
           <button

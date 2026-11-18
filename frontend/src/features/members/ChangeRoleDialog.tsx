@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 
 import { ApiError } from '../../shared/api/client';
 import { Dialog, DialogClose, DialogContent, DialogTitle } from '../../shared/ui/dialog';
-import { dangerButton, errorAlert, fieldError, secondaryButton } from '../../shared/ui/styles';
+import { dangerButton, errorAlert, fieldError, ghostButton } from '../../shared/ui/styles';
 import { fieldErrors } from '../groups/api';
 import { useGroup } from '../groups/groupContext';
 import type { Role } from '../groups/types';
@@ -74,7 +74,7 @@ function ChangeRoleDialogBody({
         version: expected,
       });
       done.current = true;
-      toast(t('members.toast.roleChanged', { name, role: t(`roles.${chosen}`) }));
+      toast.success(t('members.toast.roleChanged', { name, role: t(`roles.${chosen}`) }));
       onClose();
       onSucceeded();
     } catch (error) {
@@ -185,7 +185,7 @@ function ChangeRoleDialogBody({
             )}
           </fieldset>
           <div className="flex flex-wrap justify-end gap-3">
-            <DialogClose ref={cancel} className={secondaryButton}>
+            <DialogClose ref={cancel} className={ghostButton}>
               {t('members.changeRole.cancel')}
             </DialogClose>
             <button type="submit" className={dangerButton} aria-disabled={busy}>

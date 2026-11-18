@@ -24,7 +24,7 @@ export function SettingsPage() {
   const manages = group.role === 'ADMIN' || group.role === 'OWNER';
 
   return (
-    <div className="mx-auto flex max-w-[70ch] flex-col gap-8 px-4 py-8">
+    <div className="flex max-w-[52rem] flex-col gap-8 px-4 py-6 md:px-8 md:py-8">
       <GroupDetailsSection />
       <MembersSection />
       {manages && !group.archived && <InviteMemberSection onSent={() => setSent((v) => v + 1)} />}

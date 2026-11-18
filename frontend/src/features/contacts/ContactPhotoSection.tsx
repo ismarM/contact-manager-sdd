@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Avatar } from '../../shared/images/Avatar';
 import { useImageApi } from '../../shared/images/imageApi';
 import { PhotoControls } from '../../shared/images/PhotoControls';
+import { card } from '../../shared/ui/styles';
 import { useGroup } from '../groups/groupContext';
 import type { ContactDetail } from './types';
 
@@ -29,7 +30,11 @@ export function ContactPhotoSection({
   const name = contact?.displayName ?? '';
 
   return (
-    <div role="group" aria-labelledby={headingId} className="flex flex-col gap-2">
+    <div
+      role="group"
+      aria-labelledby={headingId}
+      className={`${card} flex flex-col gap-2 p-4 sm:p-6`}
+    >
       <h3 id={headingId} className="text-lg font-bold">
         {t('images.contact.heading')}
       </h3>

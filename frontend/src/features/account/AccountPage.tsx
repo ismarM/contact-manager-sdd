@@ -1,7 +1,10 @@
+import { IconLogout } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
 import type { Language } from '../../i18n/language';
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
+import { SegmentedControl } from '../../shared/ui/SegmentedControl';
+import { card, secondaryButton } from '../../shared/ui/styles';
 import { ApiKeysSection } from '../apikeys/ApiKeysSection';
 import { useAuth } from '../auth/authContext';
 import { AppPasswordsSection } from './AppPasswordsSection';
@@ -11,12 +14,6 @@ import { MyDataSection } from './MyDataSection';
 import { ProfilePhotoSection } from './ProfilePhotoSection';
 import { SignInMethodsSection } from './SignInMethodsSection';
 import type { Theme } from './preferences';
-
-const radio =
-  'size-5 accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring';
-const option = 'flex min-h-11 items-center gap-3 pointer-coarse:min-h-12';
-const fieldset = 'flex flex-col gap-1 rounded-md border border-border p-4';
-const legend = 'px-1 font-bold';
 
 const THEMES: { value: Theme | null; key: 'themeSystem' | 'themeLight' | 'themeDark' }[] = [
   { value: null, key: 'themeSystem' },
@@ -33,58 +30,56 @@ export function AccountPage() {
   if (!profile) return null;
 
   return (
-    <div className="mx-auto flex max-w-[70ch] flex-col gap-8 px-4 py-8">
-      <h1 className="text-2xl font-bold">{t('account.heading')}</h1>
+    <div className="flex max-w-3xl flex-col gap-7 px-4 py-6 md:px-8 md:py-8">
+      <h1 className="text-2xl font-semibold">{t('account.heading')}</h1>
 
-      <section aria-labelledby="account-profile" className="flex flex-col gap-3">
-        <h2 id="account-profile" className="text-xl font-bold">
+      <section
+        aria-labelledby="account-profile"
+        className={`${card} flex flex-col gap-5 p-4 md:p-6`}
+      >
+        <h2 id="account-profile" className="text-xl font-semibold">
           {t('account.profile')}
         </h2>
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-[max-content_1fr]">
-          <dt className="text-muted-foreground">{t('account.name')}</dt>
-          <dd className="break-words">{profile.name ?? profile.email}</dd>
-          <dt className="text-muted-foreground">{t('account.email')}</dt>
+        <dl className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-4 gap-y-1.5">
+          <dt className="text-sm font-medium text-muted-foreground">{t('account.name')}</dt>
+          <dd className="font-semibold break-words">{profile.name ?? profile.email}</dd>
+          <dt className="text-sm font-medium text-muted-foreground">{t('account.email')}</dt>
           <dd className="break-all">{profile.email}</dd>
         </dl>
+        <ProfilePhotoSection />
       </section>
 
-      <ProfilePhotoSection />
-
-      <section aria-labelledby="account-appearance" className="flex flex-col gap-4">
-        <h2 id="account-appearance" className="text-xl font-bold">
+      <section
+        aria-labelledby="account-appearance"
+        className={`${card} flex flex-col gap-5 p-4 md:p-6`}
+      >
+        <h2 id="account-appearance" className="text-xl font-semibold">
           {t('account.appearance')}
         </h2>
-        <fieldset className={fieldset}>
-          <legend className={legend}>{t('language.label')}</legend>
-          {(['sl', 'en'] as Language[]).map((language) => (
-            <label key={language} className={option} lang={language}>
-              <input
-                type="radio"
-                name="language"
-                value={language}
-                checked={i18n.language === language}
-                onChange={() => changeLanguage(language)}
-                className={radio}
-              />
-              {t(`language.${language}`)}
-            </label>
-          ))}
+        <fieldset className="flex flex-wrap items-center justify-between gap-4">
+          <legend className="float-left font-medium">{t('language.label')}</legend>
+          <SegmentedControl
+            label={t('language.label')}
+            value={i18n.language as Language}
+            segments={(['sl', 'en'] as Language[]).map((language) => ({
+              value: language,
+              label: t(`language.${language}`),
+            }))}
+            onChange={changeLanguage}
+          />
         </fieldset>
-        <fieldset className={fieldset}>
-          <legend className={legend}>{t('account.theme')}</legend>
-          {THEMES.map(({ value, key }) => (
-            <label key={key} className={option}>
-              <input
-                type="radio"
-                name="theme"
-                value={value ?? 'system'}
-                checked={theme === value}
-                onChange={() => changeTheme(value)}
-                className={radio}
-              />
-              {t(`account.${key}`)}
-            </label>
-          ))}
+        <hr className="border-border" />
+        <fieldset className="flex flex-wrap items-center justify-between gap-4">
+          <legend className="float-left font-medium">{t('account.theme')}</legend>
+          <SegmentedControl
+            label={t('account.theme')}
+            value={theme ?? 'system'}
+            segments={THEMES.map(({ value, key }) => ({
+              value: value ?? 'system',
+              label: t(`account.${key}`),
+            }))}
+            onChange={(next) => changeTheme(next === 'system' ? null : (next as Theme))}
+          />
         </fieldset>
       </section>
 
@@ -101,11 +96,8 @@ export function AccountPage() {
       <DeleteAccountSection />
 
       <div>
-        <button
-          type="button"
-          onClick={() => void signOut()}
-          className="h-11 rounded-md border border-border bg-card px-4 font-bold text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:h-12"
-        >
+        <button type="button" onClick={() => void signOut()} className={secondaryButton}>
+          <IconLogout aria-hidden="true" size={20} stroke={1.75} />
           {t('shell.signOut')}
         </button>
       </div>

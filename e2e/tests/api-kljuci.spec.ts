@@ -215,6 +215,8 @@ test('FR-019-20: zahteve s ključem se vidijo v statistiki (tabela) in na seznam
   await expect(totals).toContainText(`${t('apiKeys.usage.total')}4`);
   await expect(totals).toContainText(`${t('apiKeys.usage.successful')}3`);
   await expect(totals).toContainText(`${t('apiKeys.usage.errors')}1`);
+  // Enakovredna tabela je zložena v razdelku (po platnu); odpre se s povzetkom.
+  await page.getByText(t('apiKeys.usage.tableSummary')).click();
   const table = page.getByRole('table', { name: t('apiKeys.usage.tableCaption') });
   await expect(table.getByRole('row')).toHaveCount(8);
   await expectNoHorizontalScroll(page);

@@ -46,7 +46,7 @@ export function ComboListbox({
       id={id}
       role="listbox"
       aria-label={label}
-      className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-float"
+      className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
     >
       {options.map((option, index) => (
         <li

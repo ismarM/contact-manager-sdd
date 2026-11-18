@@ -9,6 +9,7 @@ import { Dialog, DialogClose, DialogContent, DialogTitle } from '../../../shared
 import {
   errorAlert,
   fieldError,
+  ghostButton,
   primaryButton,
   secondaryButton,
   textInput,
@@ -163,7 +164,7 @@ export function BulkEditDialog({
   );
   const onSuccess = useCallback(
     (result: BulkUpdateResult) => {
-      toast(
+      toast.success(
         result.changed === 0
           ? t('contacts.bulk.unchanged')
           : t('contacts.bulk.updated', { count: result.changed }),
@@ -217,7 +218,7 @@ export function BulkEditDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent onInteractOutside={(event) => event.preventDefault()}>
+      <DialogContent wide onInteractOutside={(event) => event.preventDefault()}>
         <DialogTitle>{t('contacts.bulk.editTitle', { count })}</DialogTitle>
         {check.notice && (
           <SelectionChangedNotice
@@ -293,7 +294,7 @@ export function BulkEditDialog({
           </div>
         </fieldset>
         <div className="flex flex-wrap justify-end gap-3">
-          <DialogClose className={secondaryButton}>{t('contacts.bulk.cancel')}</DialogClose>
+          <DialogClose className={ghostButton}>{t('contacts.bulk.cancel')}</DialogClose>
           <button
             type="button"
             className={primaryButton}

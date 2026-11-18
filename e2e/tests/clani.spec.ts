@@ -281,7 +281,7 @@ test('FR-007-06 FR-017-19: urednik zapusti skupino, lastnik v dialogu vidi razla
   await expect(ownerDialog).toContainText(
     'Kot lastnik lahko skupino zapustiš šele, ko preneseš lastništvo na drugega člana.',
   );
-  await expect(ownerDialog.getByRole('button', { name: 'Zapri' })).toBeFocused();
+  await expect(ownerDialog.getByRole('button', { name: 'Zapri', exact: true })).toBeFocused();
   await expect(ownerDialog.getByRole('button', { name: 'Zapusti skupino' })).toHaveCount(0);
   await expectNoAxeViolations(page);
   await ownerDialog.getByRole('button', { name: 'Prenesi lastništvo' }).click();

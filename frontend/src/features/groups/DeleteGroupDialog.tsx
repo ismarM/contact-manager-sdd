@@ -16,6 +16,7 @@ import {
   dangerButton,
   errorAlert,
   fieldError,
+  ghostButton,
   secondaryButton,
   textInput,
 } from '../../shared/ui/styles';
@@ -67,7 +68,7 @@ export function DeleteGroupDialog() {
       await api.deleteGroup(group.id);
       deleted.current = true;
       setOpen(false);
-      toast(t('groups.toast.deleted'));
+      toast.success(t('groups.toast.deleted'));
       refresh();
       void navigate('/');
     } catch (error) {
@@ -125,7 +126,7 @@ export function DeleteGroupDialog() {
             )}
           </div>
           <div className="flex flex-wrap justify-end gap-3">
-            <DialogClose ref={cancel} className={secondaryButton}>
+            <DialogClose ref={cancel} className={ghostButton}>
               {t('groups.form.cancel')}
             </DialogClose>
             <button type="submit" className={dangerButton} aria-disabled={busy}>

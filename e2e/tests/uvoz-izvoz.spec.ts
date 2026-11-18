@@ -155,10 +155,17 @@ test('FR-014-21 FR-014-22 FR-014-25: geslo za aplikacijo odpre CardDAV; po prekl
   await page.getByLabel(NAMES.deviceName).fill('Telefon');
   await page.getByRole('button', { name: NAMES.createPassword }).click();
   const dialog = page.getByRole('dialog', { name: 'Geslo za Telefon' });
-  const password = (await dialog.getByRole('definition').nth(4).textContent())?.trim() ?? '';
+  // 020: vrednost in gumb za kopiranje sta v istem `dd`; gumb nima besedila, zato je besedilo `dd` samo geslo.
+  const password =
+    (
+      await dialog
+        .getByRole('definition')
+        .filter({ has: page.getByRole('button', { name: 'Kopiraj Geslo' }) })
+        .textContent()
+    )?.trim() ?? '';
   expect(password).toMatch(/^([a-z0-9]{4}-){6}[a-z0-9]{4}$/);
   await expectNoAxeViolations(page);
-  await dialog.getByRole('button', { name: NAMES.close }).click();
+  await dialog.getByRole('button', { name: NAMES.close, exact: true }).click();
 
   const propfind = () =>
     request.fetch('/dav/addressbooks/', {

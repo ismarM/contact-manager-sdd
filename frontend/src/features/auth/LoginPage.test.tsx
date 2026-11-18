@@ -12,20 +12,25 @@ describe('LoginPage', () => {
     await i18n.changeLanguage('sl');
   });
 
-  it('FR-001-01 FR-017-05 FR-017-08: kartica z besednim znakom, »Prijava z Googlom« in obrazcem z geslom', async () => {
+  it('FR-001-01 FR-017-05 FR-017-08: kartica z besednim znakom, »Nadaljuj z Googlom« in obrazcem z geslom', async () => {
     // Spremenjen obstoječi test (017): stran za prijavo ni več samo gumb Google – dobi e-naslov, geslo in povezavi.
     renderApp('/login');
 
-    expect(await screen.findByRole('button', { name: 'Prijava z Googlom' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 1, name: 'Kontakti' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Nadaljuj z Googlom' })).toBeInTheDocument();
+    // Spremenjeno (020): naslov ravni 1 je naslov obrazca, besedna znamka je ob njem (ne naslov).
+    expect(screen.getByRole('heading', { level: 1, name: 'Prijava' })).toBeInTheDocument();
     expect(screen.getByLabelText(i18n.t('auth.form.email'))).toHaveAttribute('type', 'email');
     expect(screen.getByLabelText(i18n.t('auth.form.password'))).toHaveAttribute('type', 'password');
     expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual([
-      'Prijava z Googlom',
-      i18n.t('auth.login.submit'),
       'Slovenščina',
       'English',
+      'Nadaljuj z Googlom',
+      '',
+      i18n.t('auth.login.submit'),
     ]);
+    expect(
+      screen.getByRole('button', { name: i18n.t('auth.form.showPassword') }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: i18n.t('auth.login.forgot') })).toHaveAttribute(
       'href',
       '/forgot-password',
@@ -49,7 +54,7 @@ describe('LoginPage', () => {
     const api = mockProfileApi();
     const { user } = renderApp('/login');
 
-    await user.click(await screen.findByRole('button', { name: 'Prijava z Googlom' }));
+    await user.click(await screen.findByRole('button', { name: 'Nadaljuj z Googlom' }));
 
     await waitFor(() => expect(currentLocation()).toBe('/'));
     expect(await screen.findByRole('button', { name: 'Meni računa' })).toBeInTheDocument();
@@ -74,14 +79,14 @@ describe('LoginPage', () => {
       gateway.failNextSignIn(code);
       const { user } = renderApp('/login', { gateway });
 
-      await user.click(await screen.findByRole('button', { name: 'Prijava z Googlom' }));
+      await user.click(await screen.findByRole('button', { name: 'Nadaljuj z Googlom' }));
 
       expect(await screen.findByRole('alert')).toHaveTextContent(message);
       expect(currentLocation()).toBe('/login');
       expect(gateway.currentUser).toBeNull();
       expect(api.requests).toHaveLength(0);
 
-      await user.click(screen.getByRole('button', { name: 'Prijava z Googlom' }));
+      await user.click(screen.getByRole('button', { name: 'Nadaljuj z Googlom' }));
       await waitFor(() => expect(currentLocation()).toBe('/'));
     },
   );
@@ -91,7 +96,7 @@ describe('LoginPage', () => {
     const gateway = createAuthFake();
     const { user } = renderApp('/login', { gateway });
 
-    await user.click(await screen.findByRole('button', { name: 'Prijava z Googlom' }));
+    await user.click(await screen.findByRole('button', { name: 'Nadaljuj z Googlom' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Prijava ni uspela. Poskusi znova.');
     await waitFor(() => expect(gateway.currentUser).toBeNull());
@@ -105,7 +110,7 @@ describe('LoginPage', () => {
     renderApp('/login', { gateway: createAuthFake({ user: ANA }) });
 
     await waitFor(() => expect(currentLocation()).toBe('/'));
-    expect(screen.queryByRole('button', { name: 'Prijava z Googlom' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Nadaljuj z Googlom' })).not.toBeInTheDocument();
   });
 
   it('FR-001-05: prijavljen uporabnik na /login?next=/account gre na ciljno pot', async () => {
@@ -126,7 +131,7 @@ describe('LoginPage', () => {
     );
     await user.click(within(languages).getByRole('button', { name: 'English' }));
 
-    expect(await screen.findByRole('button', { name: 'Sign in with Google' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Continue with Google' })).toBeInTheDocument();
     expect(document.documentElement.lang).toBe('en');
     expect(document.title).toBe('Sign in – Contacts');
     expect(localStorage.getItem('language')).toBe('en');
@@ -140,7 +145,7 @@ describe('LoginPage', () => {
   it('FR-001-18: naslov strani je »Prijava – Kontakti«', async () => {
     renderApp('/login');
 
-    await screen.findByRole('button', { name: 'Prijava z Googlom' });
+    await screen.findByRole('button', { name: 'Nadaljuj z Googlom' });
     expect(document.title).toBe('Prijava – Kontakti');
   });
 
@@ -148,7 +153,7 @@ describe('LoginPage', () => {
     const gateway = createAuthFake();
     gateway.failNextSignIn('cancelled');
     const { container, user } = renderApp('/login', { gateway });
-    await user.click(await screen.findByRole('button', { name: 'Prijava z Googlom' }));
+    await user.click(await screen.findByRole('button', { name: 'Nadaljuj z Googlom' }));
     await screen.findByRole('alert');
 
     const results = await axe(container);
@@ -174,7 +179,7 @@ describe('LoginPage – potrdilo po izbrisu računa', () => {
 
     expect(await screen.findByRole('status')).toHaveTextContent(new RegExp(`^${SL}$`));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Prijava z Googlom' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Nadaljuj z Googlom' })).toBeVisible();
   });
 
   it('FR-012-17: reason=account-deleted-pending prikaže razširjeno besedilo o čakanju', async () => {
@@ -209,7 +214,7 @@ describe('LoginPage – potrdilo po izbrisu računa', () => {
     async (path) => {
       renderApp(path);
 
-      await screen.findByRole('button', { name: 'Prijava z Googlom' });
+      await screen.findByRole('button', { name: 'Nadaljuj z Googlom' });
       expect(screen.queryByRole('status')).not.toBeInTheDocument();
     },
   );
@@ -227,7 +232,7 @@ describe('LoginPage – potrdilo po izbrisu računa', () => {
     const { user } = renderApp('/login?reason=account-deleted');
     expect(await screen.findByRole('status')).toHaveTextContent(SL);
 
-    await user.click(screen.getByRole('button', { name: 'Prijava z Googlom' }));
+    await user.click(screen.getByRole('button', { name: 'Nadaljuj z Googlom' }));
     await waitFor(() => expect(currentLocation()).toBe('/'));
     await user.click(await screen.findByRole('button', { name: 'Meni računa' }));
     await user.click(await screen.findByRole('menuitem', { name: 'Odjava' }));

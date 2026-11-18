@@ -5,7 +5,7 @@ import { signIn, type TestUser, uniqueUser } from './support/auth';
 import { archive, createGroup, createGroupsBulk, setRole } from './support/groups';
 
 // 002 skupine (plan.md – Public Interfaces). Vsak test teče pri 360, 768 in 1280 px (playwright.config.ts); stranski
-// pas je viden od 1024 px, pod tem gumb »Preklopi skupino«. Vloge in arhiviranje pripravi SQL v bazi (D-27).
+// pas je viden od 1024 px, preklopnik skupin je kartica *Trenutna skupina* ali naziv v glavi. Vloge in arhiviranje pripravi SQL v bazi (D-27).
 
 const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
@@ -19,8 +19,6 @@ async function horizontalOverflow(page: Page) {
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
 }
-
-const isWide = (page: Page) => (page.viewportSize()?.width ?? 0) >= 1024;
 
 async function signedIn(page: Page, name = 'Ana Novak'): Promise<TestUser> {
   const user = uniqueUser(name);
@@ -50,9 +48,8 @@ async function switchLanguage(page: Page, language: 'sl' | 'en') {
   await page.keyboard.press('Escape');
 }
 
-/** Seznam skupin: stranski pas pri ≥ 1024 px, sicer meni »Preklopi skupino« (odprt). */
+/** Preklopnik skupin znotraj skupine (kartica *Trenutna skupina* ≥ 1024 px, naziv v glavi pod tem), odprt. */
 async function groupNavigation(page: Page) {
-  if (isWide(page)) return page.getByRole('navigation', { name: 'Moje skupine' });
   await page.getByRole('button', { name: 'Preklopi skupino' }).click();
   return page.getByRole('menu', { name: 'Preklopi skupino' });
 }
@@ -110,30 +107,22 @@ test('FR-002-06: stranski pas (≥ 1024 px) ali meni preklopa (< 1024 px) prika�
   await page.goto(`/groups/${first}/settings`);
 
   const groups = await groupNavigation(page);
-  const current = isWide(page)
-    ? groups.getByRole('link', { name: 'Alfa' })
-    : groups.getByRole('menuitem', { name: 'Alfa' });
-  await expect(current).toHaveAttribute('aria-current', 'page');
-  await expect(
-    groups
-      .getByRole('heading', { name: 'Lastnik' })
-      .or(groups.getByRole('group', { name: 'Lastnik' })),
-  ).toBeVisible();
+  await expect(groups.getByRole('menuitem', { name: 'Alfa' })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  // En seznam brez razdelkov po vlogah (FR-020-06).
+  await expect(groups.getByRole('group')).toHaveCount(0);
   await expectNoAxeViolations(page);
-  await (
-    isWide(page)
-      ? groups.getByRole('link', { name: 'Beta' })
-      : groups.getByRole('menuitem', { name: 'Beta' })
-  ).click();
+  await groups.getByRole('menuitem', { name: 'Beta' }).click();
 
-  await expect(page).toHaveURL(new RegExp(`/groups/${second}/contacts$`));
+  // Izbira ohrani zavihek (Nastavitve).
+  await expect(page).toHaveURL(new RegExp(`/groups/${second}/settings$`));
   await expect(page.getByRole('heading', { level: 1, name: 'Beta' })).toBeVisible();
-  if (!isWide(page)) {
-    await expect(page.getByRole('navigation', { name: 'Moje skupine' })).toHaveCount(0);
-  }
+  await expect(page.getByRole('menu')).toHaveCount(0);
 });
 
-test('FR-002-04 FR-002-07 FR-002-08 FR-002-10: razdelki po vlogah, arhivirana skupina in tuja skupina', async ({
+test('FR-002-04 FR-002-07 FR-002-08 FR-002-10: ena zbirka z značkami vlog, arhivirana skupina in tuja skupina', async ({
   page,
   browser,
 }) => {
@@ -157,17 +146,18 @@ test('FR-002-04 FR-002-07 FR-002-08 FR-002-10: razdelki po vlogah, arhivirana sk
   await page.goto('/');
   const main = page.getByRole('main');
 
-  await expect(main.getByRole('heading', { level: 2 })).toHaveText([
-    'Lastnik (1)',
-    'Admin (1)',
-    'Bralec (1)',
+  await expect(main.getByRole('heading', { level: 2 })).toHaveCount(0);
+  await expect(main.getByRole('listitem')).toHaveText([
+    /Cvet.*Vloga: Admin/,
+    /Delta.*Vloga: Bralec/,
+    /Moja.*Vloga: Lastnik/,
   ]);
   await expect(main.getByRole('link', { name: 'Stara' })).toHaveCount(0);
   await expectNoAxeViolations(page);
 
   await page.goto(`/groups/${archived}/settings`);
   const header = page.getByRole('region', { name: 'Stara' });
-  await expect(header).toContainText('Arhivirano');
+  await expect(header).toContainText('Arhivirana');
   await expect(page.getByRole('form', { name: 'Podatki skupine' })).toHaveCount(0);
   await expectNoAxeViolations(page);
   await switchLanguage(page, 'en');
@@ -207,11 +197,7 @@ test('FR-002-09 FR-002-11: admin spremeni naslov in barvo – glava, seznam in n
   await expect(page.getByRole('heading', { level: 1, name: 'Projekt FERI 2' })).toBeVisible();
   await expect(page).toHaveTitle('Nastavitve – Projekt FERI 2 – Kontakti');
   const groups = await groupNavigation(page);
-  await expect(
-    isWide(page)
-      ? groups.getByRole('link', { name: 'Projekt FERI 2' })
-      : groups.getByRole('menuitem', { name: 'Projekt FERI 2' }),
-  ).toBeVisible();
+  await expect(groups.getByRole('menuitem', { name: 'Projekt FERI 2' })).toBeVisible();
   await page.keyboard.press('Escape');
   await page.goto('/');
   await expect(
@@ -323,20 +309,14 @@ test('FR-002-09 SC-006: naslovi strani in axe v slovenščini in angleščini', 
 
   await page.goto('/');
   await expect(page).toHaveTitle('Groups – Contacts');
-  await expect(
-    page.getByRole('main').getByRole('heading', { level: 2, name: 'Owner (1)' }),
-  ).toBeVisible();
+  // Ena zbirka kartic (ne razdelkov po vlogah): kartica z značko vloge »Role: Owner«.
+  await expect(page.getByRole('main').getByRole('listitem')).toHaveCount(1);
+  await expect(page.getByRole('main').getByRole('listitem')).toContainText('Role: Owner');
   await expectNoAxeViolations(page);
   await page.getByRole('main').getByRole('button', { name: 'New group' }).click();
   await expect(page.getByRole('dialog', { name: 'New group' })).toBeVisible();
   await expectNoAxeViolations(page);
   await page.keyboard.press('Escape');
-  if (!isWide(page)) {
-    await page.getByRole('button', { name: 'Switch group' }).click();
-    await expect(page.getByRole('menu', { name: 'Switch group' })).toBeVisible();
-    await expectNoAxeViolations(page);
-    await page.keyboard.press('Escape');
-  }
 
   await page.goto(`/groups/00000000-0000-0000-0000-000000000000/settings`);
   await expect(page).toHaveTitle('Page not found – Contacts');
@@ -384,17 +364,15 @@ test('FR-002-01 FR-002-06 FR-002-07: upravljanje s tipkovnico – dialog, meni p
   await createGroup(page, { title: 'Prva' });
   const second = await createGroup(page, { title: 'Druga' });
   await page.goto(`/groups/${second}/settings`);
-  if (!isWide(page)) {
-    const button = page.getByRole('button', { name: 'Preklopi skupino' });
-    await button.focus();
-    await page.keyboard.press('Enter');
-    const menu = page.getByRole('menu', { name: 'Preklopi skupino' });
-    await expect(menu.getByRole('menuitem').first()).toBeFocused();
-    await page.keyboard.press('ArrowDown');
-    await expect(menu.getByRole('menuitem').nth(1)).toBeFocused();
-    await page.keyboard.press('Escape');
-    await expect(button).toBeFocused();
-  }
+  const button = page.getByRole('button', { name: 'Preklopi skupino' });
+  await button.focus();
+  await page.keyboard.press('Enter');
+  const menu = page.getByRole('menu', { name: 'Preklopi skupino' });
+  await expect(menu.getByRole('menuitem').first()).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await expect(menu.getByRole('menuitem').nth(1)).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(button).toBeFocused();
   const settings = page
     .getByRole('navigation', { name: 'Razdelki skupine' })
     .getByRole('link', { name: 'Nastavitve' });
@@ -412,10 +390,10 @@ test('SC-002: zaslon Skupine s 100 skupinami je pripravljen v manj kot 2 sekunda
 
   const started = Date.now();
   await page.goto('/');
-  await expect(main.getByRole('heading', { level: 2, name: 'Lastnik (100)' })).toBeVisible();
+  await expect(main.getByRole('link', { name: /^Skupina \d{3}$/ }).first()).toBeVisible();
   await expect(main.getByRole('link', { name: /^Skupina \d{3}$/ })).toHaveCount(25);
   const elapsed = Date.now() - started;
 
   expect(elapsed).toBeLessThan(2000);
-  await expect(main.getByRole('navigation', { name: 'Strani rezultatov: Lastnik' })).toBeVisible();
+  await expect(main.getByRole('navigation', { name: 'Strani rezultatov: Skupine' })).toBeVisible();
 });

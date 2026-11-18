@@ -1,4 +1,4 @@
-import { IconAlertTriangle, IconPlus, IconTrash } from '@tabler/icons-react';
+import { IconAlertTriangle, IconCheck, IconPlus, IconTrash } from '@tabler/icons-react';
 import { type FormEvent, memo, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useBlocker, useLocation, useNavigate } from 'react-router';
@@ -6,11 +6,14 @@ import { toast } from 'sonner';
 
 import { Dialog, DialogContent, DialogTitle } from '../../shared/ui/dialog';
 import {
+  card,
   errorAlert,
   fieldError,
   focusRing,
+  ghostButton,
   primaryButton,
   secondaryButton,
+  softButton,
   textInput,
 } from '../../shared/ui/styles';
 import { fieldErrors } from '../groups/api';
@@ -19,6 +22,7 @@ import { conflictCurrent, type FailureKey, failureKey, useContactsApi, useKeyLoo
 import { ContactConflictAlert } from './ContactConflictAlert';
 import { ContactPhotoSection } from './ContactPhotoSection';
 import { AttributeTransferDialog, type TransferRequest } from './AttributeTransfer';
+import { FieldLabel } from '../../shared/ui/FieldLabel';
 import { CountryField } from './CountryField';
 import { SuggestInput } from './SuggestInput';
 import { TagInput } from './TagInput';
@@ -53,6 +57,10 @@ import {
   serverErrorKey,
   validate,
 } from './validation';
+
+/** Naslov skupine v kartici (platno): legenda čez celotno širino, vsebina pod njo. */
+const legendClass = 'float-left mb-1 w-full text-lg font-bold';
+const legendFirst = '[&>legend+*]:clear-both';
 
 type Field = 'firstName' | 'lastName' | 'company' | 'address' | 'email' | 'phone';
 
@@ -557,7 +565,7 @@ export function ContactForm({
         ? await api.updateContact(group.id, contact.id, { ...input, version: sendVersion })
         : await api.createContact(group.id, input);
       leaving.current = true;
-      toast(t('contacts.toast.saved', { name: saved.displayName }));
+      toast.success(t('contacts.toast.saved', { name: saved.displayName }));
       void navigate(`${base}/${saved.id}${search}`);
     } catch (error) {
       const current = conflictCurrent(error);
@@ -659,9 +667,9 @@ export function ContactForm({
   const countryList = t('contacts.form.countryList');
   const textField = (field: Field, label: string, props: Record<string, string> = {}) => (
     <div className="flex flex-col gap-1">
-      <label htmlFor={domId(field)} className="font-bold">
+      <FieldLabel htmlFor={domId(field)} optional={field !== 'firstName' && field !== 'lastName'}>
         {label}
-      </label>
+      </FieldLabel>
       {field === 'address' ? (
         <textarea
           id={domId(field)}
@@ -707,7 +715,7 @@ export function ContactForm({
                     event.preventDefault();
                     document.getElementById(domId(field))?.focus();
                   }}
-                  className={`text-destructive underline underline-offset-4 ${focusRing}`}
+                  className={`text-destructive underline decoration-1 underline-offset-[3px] ${focusRing}`}
                 >
                   {t(errors[field]!)}
                 </a>
@@ -761,16 +769,18 @@ export function ContactForm({
         aria-labelledby={labelledBy}
         noValidate
         onSubmit={submit}
-        className="flex flex-col gap-6"
+        className="flex flex-col gap-6 pb-[calc(var(--k-bottom-bar-h)+5rem)] sm:pb-0"
       >
-        <fieldset className="flex flex-col gap-4">
-          <legend className="mb-2 text-lg font-bold">{t('contacts.form.basic')}</legend>
-          {textField('firstName', t('contacts.form.firstName'), { autoComplete: 'given-name' })}
-          {textField('lastName', t('contacts.form.lastName'), { autoComplete: 'family-name' })}
+        <fieldset className={`${card} flex flex-col gap-5 p-4 sm:p-6 ${legendFirst}`}>
+          <legend className={legendClass}>{t('contacts.form.basic')}</legend>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {textField('firstName', t('contacts.form.firstName'), { autoComplete: 'given-name' })}
+            {textField('lastName', t('contacts.form.lastName'), { autoComplete: 'family-name' })}
+          </div>
           <div className="flex flex-col gap-1">
-            <label htmlFor={domId('company')} className="font-bold">
+            <FieldLabel htmlFor={domId('company')} optional>
               {t('contacts.form.company')}
-            </label>
+            </FieldLabel>
             <SuggestInput
               id={domId('company')}
               type="company"
@@ -826,9 +836,9 @@ export function ContactForm({
             />
           )}
           <div className="flex flex-col gap-1">
-            <label htmlFor={domId('country')} className="font-bold">
+            <FieldLabel htmlFor={domId('country')} optional>
               {t('contacts.form.country')}
-            </label>
+            </FieldLabel>
             <CountryField
               id={domId('country')}
               value={values.country}
@@ -850,12 +860,14 @@ export function ContactForm({
               </p>
             )}
           </div>
-          {textField('email', t('contacts.form.email'), { type: 'email', autoComplete: 'off' })}
-          {textField('phone', t('contacts.form.phone'), { type: 'tel', autoComplete: 'off' })}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {textField('email', t('contacts.form.email'), { type: 'email', autoComplete: 'off' })}
+            {textField('phone', t('contacts.form.phone'), { type: 'tel', autoComplete: 'off' })}
+          </div>
         </fieldset>
 
-        <fieldset className="flex flex-col gap-4">
-          <legend className="mb-2 text-lg font-bold">{t('contacts.form.attributesLegend')}</legend>
+        <fieldset className={`${card} flex flex-col gap-4 p-4 sm:p-6 ${legendFirst}`}>
+          <legend className={legendClass}>{t('contacts.form.attributesLegend')}</legend>
           {values.attributes.map((row) => (
             <AttributeFields
               key={row.id}
@@ -879,7 +891,7 @@ export function ContactForm({
               type="button"
               onClick={addRow}
               aria-describedby={tooMany ? errorId('add-attribute') : undefined}
-              className={`${secondaryButton} self-start`}
+              className={`${softButton} self-start`}
             >
               <IconPlus aria-hidden="true" size={20} stroke={1.75} />
               {t('contacts.form.addAttribute')}
@@ -892,8 +904,8 @@ export function ContactForm({
           </div>
         </fieldset>
 
-        <fieldset className="flex flex-col gap-2">
-          <legend className="mb-2 text-lg font-bold">{t('contacts.form.tagsLegend')}</legend>
+        <fieldset className={`${card} flex flex-col gap-4 p-4 sm:p-6 ${legendFirst}`}>
+          <legend className={legendClass}>{t('contacts.form.tagsLegend')}</legend>
           <TagInput
             tags={values.tags}
             serverError={errors.tags}
@@ -908,11 +920,17 @@ export function ContactForm({
           />
         </fieldset>
 
-        <div className="flex flex-wrap gap-3">
-          <button type="submit" className={primaryButton} aria-disabled={busy}>
+        {/* Na telefonu je *Shrani* v lepljivi vrstici nad spodnjo vrstico (platno ContactFormMobile). */}
+        <div className="fixed inset-x-0 bottom-[calc(var(--k-bottom-bar-h)+env(safe-area-inset-bottom))] z-20 flex flex-row-reverse gap-2 border-t border-border bg-popover p-3 sm:static sm:z-auto sm:flex-row sm:justify-end sm:bg-transparent sm:px-0 sm:pt-4 sm:pb-0">
+          <button
+            type="submit"
+            className={`${primaryButton} flex-1 sm:flex-none`}
+            aria-disabled={busy}
+          >
+            <IconCheck aria-hidden="true" size={20} stroke={1.75} />
             {t('contacts.form.save')}
           </button>
-          <button type="button" className={secondaryButton} onClick={() => void navigate(cancelTo)}>
+          <button type="button" className={ghostButton} onClick={() => void navigate(cancelTo)}>
             {t('contacts.form.cancel')}
           </button>
         </div>
@@ -1118,7 +1136,7 @@ const AttributeFields = memo(function AttributeFields({
             : t('contacts.form.removeAttributeEmpty')
         }
         onClick={() => actions.removeRow(row.id)}
-        className={`${secondaryButton} mt-7 px-3`}
+        className={`${ghostButton} mt-7 px-3`}
       >
         <IconTrash aria-hidden="true" size={20} stroke={1.75} />
       </button>

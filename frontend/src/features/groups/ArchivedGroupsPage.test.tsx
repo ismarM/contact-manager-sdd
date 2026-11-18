@@ -12,7 +12,7 @@ describe('ArchivedGroupsPage', () => {
     await i18n.changeLanguage('sl');
   });
 
-  it('FR-003-07: vrstica ima naslov, opis, število kontaktov, vlogo in oznako Arhivirano; naslov strani', async () => {
+  it('FR-003-07: vrstica ima naslov, opis, število kontaktov, vlogo in značko Arhivirana; naslov strani', async () => {
     renderGroupsApp('/groups/archived', {
       listArchived: archivedReply([
         archivedSummary(1, {
@@ -37,7 +37,7 @@ describe('ArchivedGroupsPage', () => {
     expect(row).toHaveTextContent('Kontakti konference');
     expect(row).toHaveTextContent('12 kontaktov');
     expect(row).toHaveTextContent('Vloga: Urednik');
-    expect(row).toHaveTextContent('Arhivirano');
+    expect(row).toHaveTextContent('Arhivirana');
     expect(row).not.toHaveTextContent('izbrisan uporabnik');
   });
 
@@ -51,6 +51,7 @@ describe('ArchivedGroupsPage', () => {
 
     const rows = await within(await screen.findByRole('main')).findAllByRole('listitem');
     expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent('Trajno arhivirana');
     expect(rows[0]).toHaveTextContent('lastnik: izbrisan uporabnik');
     expect(rows[1]).not.toHaveTextContent('izbrisan uporabnik');
   });
@@ -86,7 +87,7 @@ describe('ArchivedGroupsPage', () => {
     await waitFor(() => expect(within(main).getAllByRole('listitem')).toHaveLength(30));
     const request = api.of('GET', '/api/groups/archived').at(-1);
     expect(request?.search.get('size')).toBe('50');
-    expect(request?.search.get('page')).toBe('0');
+    expect(request?.search.get('page')).toBeNull();
     expect(
       within(
         within(main).getByRole('navigation', { name: 'Strani rezultatov: Arhivirane skupine' }),

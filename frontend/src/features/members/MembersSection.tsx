@@ -1,9 +1,10 @@
-import { IconAlertTriangle } from '@tabler/icons-react';
+import { LoadingState } from '../../shared/ui/Skeleton';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Avatar } from '../../shared/images/Avatar';
-import { errorAlert, secondaryButton } from '../../shared/ui/styles';
+import { Callout } from '../../shared/ui/Callout';
+import { card, secondaryButton } from '../../shared/ui/styles';
 import { ApiError } from '../../shared/api/client';
 import { useListLanguage } from '../groups/api';
 import { useGroup } from '../groups/groupContext';
@@ -13,6 +14,7 @@ import { useMembersApi } from './api';
 import { ChangeRoleDialog } from './ChangeRoleDialog';
 import type { MemberDialogKind } from './MemberActionsMenu';
 import { MemberCell } from './MemberCell';
+import { roleChip } from './roleChip';
 import { MemberRow } from './MemberRow';
 import { RemoveMemberDialog } from './RemoveMemberDialog';
 import type { Member, Members } from './types';
@@ -84,22 +86,38 @@ export function MembersSection() {
   const loading = loaded?.key !== key;
   const showLoader = useDelayed(loading);
   const result = loaded?.result;
-  const cell = 'p-2 max-sm:flex max-sm:gap-2';
+  const cell = 'px-4 py-2 max-sm:flex max-sm:gap-2 max-sm:px-6 max-sm:py-1';
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-4">
-      <h2 id={headingId} ref={heading} tabIndex={-1} className="text-xl font-bold outline-none">
-        {t('members.section.heading')}
-      </h2>
-      {showLoader && <p role="status">{t('members.section.loading')}</p>}
+    <section aria-labelledby={headingId} className={`${card} flex flex-col`}>
+      <div className="flex items-baseline gap-2 px-6 py-5">
+        <h2
+          id={headingId}
+          ref={heading}
+          tabIndex={-1}
+          className="text-xl font-semibold outline-none"
+        >
+          {t('members.section.heading')}
+        </h2>
+        {result && (
+          <span aria-hidden="true" className="text-xl text-muted-foreground tabular-nums">
+            ({result.total + (result.deletedOwner ? 1 : 0)})
+          </span>
+        )}
+      </div>
+      {showLoader && <LoadingState label={t('members.section.loading')} className="px-6 pb-5" />}
       {!loading && result === null && (
-        <div role="alert" className={errorAlert}>
-          <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
-          <span className="flex-1">{t('members.section.loadFailed')}</span>
-          <button type="button" className={secondaryButton} onClick={refresh}>
-            {t('members.section.retry')}
-          </button>
-        </div>
+        <Callout
+          tone="error"
+          className="mx-6 mb-5"
+          action={
+            <button type="button" className={secondaryButton} onClick={refresh}>
+              {t('members.section.retry')}
+            </button>
+          }
+        >
+          {t('members.section.loadFailed')}
+        </Callout>
       )}
       {result && (
         <table
@@ -107,25 +125,25 @@ export function MembersSection() {
           aria-busy={loading}
           className="w-full border-collapse text-left"
         >
-          <thead className="max-sm:sr-only">
-            <tr className="border-b border-border">
-              <th scope="col" className="p-2">
+          <thead className="bg-muted text-sm font-medium max-sm:sr-only">
+            <tr>
+              <th scope="col" className="px-4 py-3 pl-6 font-medium">
                 {t('members.table.member')}
               </th>
-              <th scope="col" className="p-2">
+              <th scope="col" className="px-4 py-3 font-medium">
                 {t('members.table.email')}
               </th>
-              <th scope="col" className="p-2">
+              <th scope="col" className="px-4 py-3 font-medium">
                 {t('members.table.role')}
               </th>
-              <th scope="col" className="p-2">
-                {t('members.table.actions')}
+              <th scope="col" className="w-16 px-4 py-3 pr-6 font-medium">
+                <span className="sr-only">{t('members.table.actions')}</span>
               </th>
             </tr>
           </thead>
           <tbody>
             {result.deletedOwner && page === 0 && (
-              <tr className="border-b border-border max-sm:block max-sm:py-2">
+              <tr className="border-t border-border max-sm:block max-sm:py-2">
                 <MemberCell label={t('members.table.member')} className={cell}>
                   <span className="inline-flex items-center gap-3">
                     <Avatar kind="user" name={null} colorSeed="" size={32} alt="" />
@@ -134,7 +152,7 @@ export function MembersSection() {
                 </MemberCell>
                 <MemberCell label={t('members.table.email')} className={cell} />
                 <MemberCell label={t('members.table.role')} className={cell}>
-                  {t('roles.OWNER')}
+                  <span className={roleChip}>{t('roles.OWNER')}</span>
                 </MemberCell>
                 <MemberCell label={t('members.table.actions')} className={cell} />
               </tr>

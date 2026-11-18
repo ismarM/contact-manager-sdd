@@ -39,7 +39,7 @@ export function ExportButton({ format = 'xlsx' }: { format?: 'xlsx' | 'vcf' }) {
     (result: ExportResult) => {
       downloadBlob(result.blob, exportFileName(group.title, language, new Date(), format));
       const done = t('contacts.export.success', { count: result.count });
-      toast(
+      toast.success(
         result.skipped > 0
           ? `${done} ${t('contacts.export.skipped', { count: result.skipped })}`
           : done,

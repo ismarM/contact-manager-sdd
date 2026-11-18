@@ -1,3 +1,4 @@
+import { FieldLabel } from '../../shared/ui/FieldLabel';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -36,7 +37,7 @@ export function GroupFormFields({
   return (
     <>
       <div className="flex flex-col gap-1">
-        <label htmlFor={titleId} className="font-bold">
+        <label htmlFor={titleId} className="font-medium">
           {t('groups.form.title')}
         </label>
         <input
@@ -56,9 +57,9 @@ export function GroupFormFields({
         )}
       </div>
       <div className="flex flex-col gap-1">
-        <label htmlFor={descriptionId} className="font-bold">
+        <FieldLabel htmlFor={descriptionId} className="font-medium" optional>
           {t('groups.form.description')}
-        </label>
+        </FieldLabel>
         <textarea
           id={descriptionId}
           rows={4}

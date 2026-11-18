@@ -1,17 +1,19 @@
 // Nadomestek window.matchMedia za prelomno točko stranskega pasu (research R-10): jsdom nima CSS, zato test sam izbere
-// širino. Privzeto ozko (< 1024 px); vsak test, ki potrebuje stranski pas, pokliče setViewport('wide').
+// širino. Privzeto ozko (< 640 px, spodnja vrstica); vsak test, ki potrebuje stranski pas, pokliče setViewport('wide').
 
 const WIDE_QUERY = '(min-width: 1024px)';
 const PANEL_QUERY = '(min-width: 1280px)';
+const TABLET_QUERY = '(min-width: 640px)';
 
 type Listener = (event: MediaQueryListEvent) => void;
 
-let level: 'narrow' | 'wide' | 'panel' = 'narrow';
+let level: 'narrow' | 'tablet' | 'wide' | 'panel' = 'narrow';
 const lists = new Set<{ media: string; listeners: Set<Listener>; list: MediaQueryList }>();
 
 function matches(media: string): boolean {
   const query = media.replace(/\s+/g, '');
-  if (query === WIDE_QUERY.replace(/\s+/g, '')) return level !== 'narrow';
+  if (query === TABLET_QUERY.replace(/\s+/g, '')) return level !== 'narrow';
+  if (query === WIDE_QUERY.replace(/\s+/g, '')) return level === 'wide' || level === 'panel';
   if (query === PANEL_QUERY.replace(/\s+/g, '')) return level === 'panel';
   return false;
 }
@@ -44,9 +46,9 @@ export function installMatchMedia(): void {
 
 /**
  * Širina zaslona za teste: `panel` ≥ 1280 px (stranski pas in panel podrobnosti kontakta), `wide` ≥ 1024 px (stranski
- * pas), `narrow` < 1024 px (gumb za preklop skupine).
+ * pas), `tablet` 640–1023 px (zgornja vrstica in ploskev), `narrow` < 640 px (privzeto; spodnja vrstica).
  */
-export function setViewport(width: 'panel' | 'wide' | 'narrow'): void {
+export function setViewport(width: 'panel' | 'wide' | 'tablet' | 'narrow'): void {
   if (width === level) return;
   level = width;
   for (const { media, listeners, list } of lists) {

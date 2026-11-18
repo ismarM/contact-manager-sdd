@@ -1,9 +1,12 @@
 import { screen, waitFor, within } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 
 import { i18n } from '../../i18n';
 import {
+  archivedReply,
+  archivedSummary,
   groupDetail,
   groupId,
   listReply,
@@ -11,9 +14,12 @@ import {
   summaries,
   summary,
 } from '../../test/groupsApi';
+import { navNames, roleName, switcherNames } from '../../test/names';
+import { server } from '../../test/msw';
+import { currentLocation } from '../../test/renderApp';
 import { setViewport } from '../../test/viewport';
 
-// Stranski pas pri širini ≥ 1024 px (FR-002-06, FR-002-01; design.md 7.1, research R-10; plan.md – Key elements).
+// Stranska vrstica pri širini ≥ 1024 px (FR-020-05, -06, -09; design.md 7.1) in kartica *Trenutna skupina*.
 
 const BY_ROLE = {
   OWNER: [summary(1, { title: 'Alfa' }), summary(2, { title: 'Beta' })],
@@ -21,100 +27,207 @@ const BY_ROLE = {
   VIEWER: summaries(14, 100),
 };
 
+const detail = (id: string) => {
+  const found = [...BY_ROLE.OWNER, ...BY_ROLE.ADMIN, ...BY_ROLE.VIEWER].find((g) => g.id === id);
+  return found
+    ? {
+        status: 200,
+        body: groupDetail({ id, title: found.title, role: id === groupId(3) ? 'ADMIN' : 'OWNER' }),
+      }
+    : { status: 404 };
+};
+
+const invitationCount = (count: number) =>
+  server.use(http.get('/api/invitations/count', () => HttpResponse.json({ count })));
+
+const mainNav = () => screen.findByRole('navigation', { name: 'Glavna navigacija' });
+
 describe('Sidebar', () => {
   beforeEach(async () => {
     await i18n.changeLanguage('sl');
     setViewport('wide');
   });
 
-  it('FR-002-06: razdelki po vlogi brez praznih, največ 10 skupin na razdelek in »Vse skupine« pri več kot 10', async () => {
-    const { listRequests } = renderGroupsApp('/', { list: listReply(BY_ROLE) });
+  it('FR-020-05: besedna znamka, Skupine in Arhivirane s števci, Povabila kot značka z novimi povabili', async () => {
+    invitationCount(3);
+    renderGroupsApp('/', {
+      list: listReply(BY_ROLE),
+      listArchived: archivedReply([archivedSummary(1), archivedSummary(2)]),
+    });
 
-    const sidebar = await screen.findByRole('navigation', { name: 'Moje skupine' });
-    await within(sidebar).findByRole('link', { name: 'Alfa' });
+    const nav = await mainNav();
+    const groups = await within(nav).findByRole('link', { name: navNames.groups() });
+    await waitFor(() => expect(groups).toHaveAccessibleDescription('17'));
+    expect(groups).toHaveAttribute('aria-current', 'page');
+    const archived = within(nav).getByRole('link', { name: navNames.archived() });
+    await waitFor(() => expect(archived).toHaveAccessibleDescription('2'));
+    const invitations = await within(nav).findByRole('link', { name: navNames.invitationsNew(3) });
+    expect(invitations).toHaveAttribute('href', '/invitations');
+    expect(invitations).toHaveTextContent('3');
+    expect(screen.getByRole('link', { name: 'Kontakti' })).toHaveAttribute('href', '/');
+  });
+
+  it('FR-020-05: v navigaciji ni seznama skupin, gumba Nova skupina ne stikala teme', async () => {
+    renderGroupsApp('/', { list: listReply(BY_ROLE) });
+
+    // Spremenjeno (020, US3): zaslon Skupine ima zbirko kartic in gumb Nova skupina, zato se preverja samo navigacija.
+    const nav = await mainNav();
+    expect(within(nav).queryByRole('link', { name: 'Alfa' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('button', { name: 'Nova skupina' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /tema/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('banner')).not.toBeInTheDocument();
+  });
+
+  it('FR-020-05: ob napaki posamezen števec izpade, drugi ostanejo', async () => {
+    invitationCount(2);
+    renderGroupsApp('/', {
+      list: listReply(BY_ROLE),
+      listArchived: () => ({ status: 500, body: { code: 'INTERNAL' } }),
+    });
+
+    const nav = await mainNav();
+    const groups = within(nav).getByRole('link', { name: navNames.groups() });
+    await waitFor(() => expect(groups).toHaveAccessibleDescription('17'));
     expect(
-      within(sidebar)
-        .getAllByRole('heading', { level: 2 })
-        .map((heading) => heading.textContent),
-    ).toEqual(['Lastnik', 'Admin', 'Bralec']);
-    expect(within(sidebar).getAllByRole('link', { name: /^Skupina \d{3}$/ })).toHaveLength(10);
-    const all = within(sidebar).getAllByRole('link', { name: 'Vse skupine' });
-    expect(all).toHaveLength(1);
-    expect(all[0]).toHaveAttribute('href', '/');
-    expect(listRequests(10)[0]?.search.get('lang')).toBe('sl');
+      within(nav).getByRole('link', { name: navNames.archived() }),
+    ).toHaveAccessibleDescription('');
+    expect(
+      await within(nav).findByRole('link', { name: navNames.invitationsNew(2) }),
+    ).toBeVisible();
   });
 
-  it('FR-002-06: stranski pas je prisoten tudi na Mojem računu', async () => {
-    renderGroupsApp('/account', { list: listReply(BY_ROLE) });
+  it('FR-020-05: postavka računa na dnu odpre meni računa (Moj račun, jezik, Odjava)', async () => {
+    const { user } = renderGroupsApp('/', { list: listReply(BY_ROLE) });
 
-    const sidebar = await screen.findByRole('navigation', { name: 'Moje skupine' });
-    expect(await within(sidebar).findByRole('link', { name: 'Alfa' })).toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: 'Meni računa' }));
+
+    const menu = await screen.findByRole('menu', { name: 'Meni računa' });
+    expect(within(menu).getByRole('menuitem', { name: 'Moj račun' })).toBeInTheDocument();
+    expect(within(menu).getByRole('menuitem', { name: 'Odjava' })).toBeInTheDocument();
   });
 
-  it('FR-002-06: odprta skupina je označena kot trenutna stran', async () => {
-    const id = groupId(3);
-    renderGroupsApp(`/groups/${id}/settings`, {
+  it('FR-020-05: aktivna je postavka trenutne strani (Arhivirane, Povabila)', async () => {
+    renderGroupsApp('/groups/archived', { list: listReply(BY_ROLE) });
+    const nav = await mainNav();
+
+    expect(within(nav).getByRole('link', { name: navNames.archived() })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(within(nav).getByRole('link', { name: navNames.groups() })).not.toHaveAttribute(
+      'aria-current',
+    );
+  });
+
+  it('FR-020-05: zunaj skupine kartice Trenutna skupina ni', async () => {
+    renderGroupsApp('/', { list: listReply(BY_ROLE), get: detail });
+    await mainNav();
+
+    expect(screen.queryByRole('button', { name: switcherNames.button() })).not.toBeInTheDocument();
+  });
+
+  it('FR-020-05: kartica Trenutna skupina v skupini – naziv, vloga, preklopnik', async () => {
+    renderGroupsApp(`/groups/${groupId(3)}/settings`, { list: listReply(BY_ROLE), get: detail });
+
+    const card = await screen.findByRole('button', { name: switcherNames.button() });
+    expect(card).toHaveAccessibleDescription('Cvet');
+    // Vidno besedilo je ob gumbu, ki prekrije kartico (ime gumba = »Preklopi skupino«, WCAG 2.5.3).
+    const visible = card.parentElement;
+    expect(visible).toHaveTextContent('Trenutna skupina');
+    expect(visible).toHaveTextContent('Cvet');
+    expect(visible).toHaveTextContent(roleName('ADMIN'));
+  });
+
+  it('FR-020-06: izbira skupine v kartici ohrani zavihek (Revizijska sled), označena je trenutna', async () => {
+    const { user } = renderGroupsApp(`/groups/${groupId(1)}/audit`, {
       list: listReply(BY_ROLE),
-      get: () => ({ status: 200, body: groupDetail({ id, title: 'Cvet', role: 'ADMIN' }) }),
+      get: detail,
     });
+    await user.click(await screen.findByRole('button', { name: switcherNames.button() }));
 
-    const sidebar = await screen.findByRole('navigation', { name: 'Moje skupine' });
-    const current = await within(sidebar).findByRole('link', { name: 'Cvet' });
-    expect(current).toHaveAttribute('aria-current', 'page');
-    expect(within(sidebar).getByRole('link', { name: 'Alfa' })).not.toHaveAttribute('aria-current');
+    const menu = await screen.findByRole('menu', { name: switcherNames.menu() });
+    expect(within(menu).getByRole('menuitem', { name: 'Alfa' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(within(menu).queryByRole('group')).not.toBeInTheDocument();
+    await user.click(within(menu).getByRole('menuitem', { name: 'Cvet' }));
+
+    await waitFor(() => expect(currentLocation()).toBe(`/groups/${groupId(3)}/audit`));
   });
 
-  it('FR-002-01: Nova skupina v stranskem pasu odpre dialog; po ustvarjanju se povzetek ponovno naloži', async () => {
-    const { user, listRequests } = renderGroupsApp('/account', {
+  it('FR-020-06: zavihek, ki ga bralec nima (Dvojniki), preklopi na Kontakte', async () => {
+    const { user } = renderGroupsApp(`/groups/${groupId(3)}/duplicates`, {
       list: listReply(BY_ROLE),
-      get: (id) => ({ status: 200, body: groupDetail({ id, title: 'Nova', role: 'OWNER' }) }),
+      get: detail,
     });
-    const sidebar = await screen.findByRole('navigation', { name: 'Moje skupine' });
-    await within(sidebar).findByRole('link', { name: 'Alfa' });
-    const before = listRequests(10).length;
+    await user.click(await screen.findByRole('button', { name: switcherNames.button() }));
+    const menu = await screen.findByRole('menu', { name: switcherNames.menu() });
 
-    await user.click(within(sidebar).getByRole('button', { name: 'Nova skupina' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Nova skupina' });
-    await user.type(within(dialog).getByRole('textbox', { name: 'Naslov' }), 'Nova');
-    await user.click(within(dialog).getByRole('button', { name: 'Ustvari skupino' }));
+    await user.click(within(menu).getByRole('menuitem', { name: 'Skupina 100' }));
 
-    await waitFor(() => expect(listRequests(10).length).toBeGreaterThan(before));
+    await waitFor(() => expect(currentLocation()).toBe(`/groups/${groupId(100)}/contacts`));
   });
 
-  it('FR-002-06: pri ozkem zaslonu stranskega pasu ni', async () => {
-    setViewport('narrow');
-    renderGroupsApp('/', { list: listReply(BY_ROLE) });
+  it('FR-020-06: odstranjena skupina po preklopu prikaže »Te strani ni«', async () => {
+    const { user } = renderGroupsApp(`/groups/${groupId(1)}/contacts`, {
+      list: listReply(BY_ROLE),
+      get: (id) => (id === groupId(3) ? { status: 404 } : detail(id)),
+    });
+    await user.click(await screen.findByRole('button', { name: switcherNames.button() }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Cvet' }));
 
-    await screen.findByRole('button', { name: 'Preklopi skupino' });
-    expect(screen.queryByRole('navigation', { name: 'Moje skupine' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Te strani ni' })).toBeInTheDocument();
   });
 
-  it('FR-002-06: preklop širine med uporabo zamenja stranski pas in gumb za preklop', async () => {
-    renderGroupsApp('/', { list: listReply(BY_ROLE) });
-    await screen.findByRole('navigation', { name: 'Moje skupine' });
+  it('FR-020-06: pri več kot 100 skupinah je v preklopniku 100 skupin in »Vse skupine«', async () => {
+    const { user } = renderGroupsApp(`/groups/${groupId(1)}/contacts`, {
+      list: listReply({ OWNER: summaries(101) }),
+      get: detail,
+    });
+    await user.click(await screen.findByRole('button', { name: switcherNames.button() }));
 
-    setViewport('narrow');
+    const menu = await screen.findByRole('menu', { name: switcherNames.menu() });
+    await within(menu).findByRole('menuitem', { name: 'Skupina 001' });
+    expect(within(menu).getAllByRole('menuitem', { name: /^Skupina \d{3}$/ })).toHaveLength(100);
+    expect(within(menu).getByRole('menuitem', { name: switcherNames.allGroups() })).toBeVisible();
+  });
 
-    expect(await screen.findByRole('button', { name: 'Preklopi skupino' })).toBeInTheDocument();
-    expect(screen.queryByRole('navigation', { name: 'Moje skupine' })).not.toBeInTheDocument();
+  it('FR-020-06: puščice premikajo fokus, Esc zapre meni in vrne fokus na kartico', async () => {
+    const { user } = renderGroupsApp(`/groups/${groupId(1)}/contacts`, {
+      list: listReply(BY_ROLE),
+      get: detail,
+    });
+    const card = await screen.findByRole('button', { name: switcherNames.button() });
+
+    card.focus();
+    await user.keyboard('{Enter}');
+    const menu = await screen.findByRole('menu', { name: switcherNames.menu() });
+    await waitFor(() => expect(within(menu).getByRole('menuitem', { name: 'Alfa' })).toHaveFocus());
+    await user.keyboard('{ArrowDown}');
+    expect(within(menu).getByRole('menuitem', { name: 'Beta' })).toHaveFocus();
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
+    expect(card).toHaveFocus();
   });
 
   it.each(['sl', 'en'] as const)(
-    'FR-002-06: stranski pas nima kršitev axe (%s)',
+    'FR-020-05: stranska vrstica in odprt preklopnik nimata kršitev axe (%s)',
     async (language) => {
       await i18n.changeLanguage(language);
-      const { container } = renderGroupsApp('/', { list: listReply(BY_ROLE) });
-      const name = language === 'sl' ? 'Moje skupine' : 'My groups';
-      const sidebar = await screen.findByRole('navigation', { name });
-      await within(sidebar).findByRole('link', { name: 'Alfa' });
-      if (language === 'en') {
-        expect(within(sidebar).getByRole('link', { name: 'All groups' })).toBeInTheDocument();
-        expect(
-          within(sidebar).getByRole('heading', { level: 2, name: 'Viewer' }),
-        ).toBeInTheDocument();
-      }
-
+      const { user, container } = renderGroupsApp(`/groups/${groupId(1)}/contacts`, {
+        list: listReply(BY_ROLE),
+        get: detail,
+      });
+      const card = await screen.findByRole('button', { name: switcherNames.button() });
       expect((await axe(container)).violations).toEqual([]);
+
+      await user.click(card);
+      await screen.findByRole('menu', { name: switcherNames.menu() });
+
+      expect((await axe(document.body)).violations).toEqual([]);
     },
   );
 });

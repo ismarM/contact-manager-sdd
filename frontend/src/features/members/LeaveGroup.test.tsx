@@ -103,7 +103,7 @@ describe('LeaveGroup', () => {
   it('FR-007-06: potrditev – POST leave, seznam skupin, obvestilo, osvežen seznam, h1 v fokusu', async () => {
     const { user, members, listRequests } = render('EDITOR');
     const dialog = await openLeave(user);
-    const before = listRequests(10).length;
+    const before = listRequests(100).length;
 
     await user.click(within(dialog).getByRole('button', { name: 'Zapusti skupino' }));
 
@@ -114,7 +114,7 @@ describe('LeaveGroup', () => {
         'Zapustil(a) si skupino Projekt FERI.',
       ),
     );
-    await waitFor(() => expect(listRequests(10).length).toBeGreaterThan(before));
+    await waitFor(() => expect(listRequests(100).length).toBeGreaterThan(before));
     await waitFor(() =>
       expect(screen.getByRole('heading', { level: 1, name: 'Skupine' })).toHaveFocus(),
     );

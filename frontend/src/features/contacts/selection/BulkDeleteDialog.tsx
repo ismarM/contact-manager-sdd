@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { Dialog, DialogClose, DialogContent, DialogTitle } from '../../../shared/ui/dialog';
-import { dangerButton, errorAlert, secondaryButton } from '../../../shared/ui/styles';
+import { dangerButton, errorAlert, ghostButton, secondaryButton } from '../../../shared/ui/styles';
 import { useGroup } from '../../groups/groupContext';
 import type { BulkDeleteResult } from '../types';
 import { useSelectionApi } from './api';
@@ -38,7 +38,7 @@ export function BulkDeleteDialog({
   const { clear } = selection;
   const onSuccess = useCallback(
     (result: BulkDeleteResult) => {
-      toast(t('contacts.bulk.deleted', { count: result.deleted }));
+      toast.success(t('contacts.bulk.deleted', { count: result.deleted }));
       clear();
       onDeleted();
     },
@@ -90,7 +90,7 @@ export function BulkDeleteDialog({
           </div>
         )}
         <div className="flex flex-wrap justify-end gap-3">
-          <DialogClose ref={cancel} className={secondaryButton}>
+          <DialogClose ref={cancel} className={ghostButton}>
             {t('contacts.bulk.cancel')}
           </DialogClose>
           <button

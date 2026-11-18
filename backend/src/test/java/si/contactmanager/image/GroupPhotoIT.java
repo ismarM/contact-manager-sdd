@@ -72,11 +72,8 @@ class GroupPhotoIT extends ImageApiTest {
         Map<String, Object> detail =
                 json(get("/api/groups/" + s.group(), s.token(Who.VIEWER)).body());
         assertThat(detail).containsEntry("photoRevision", 1).containsEntry("version", 1);
-        Map<String, Object> listed = asObjects(asObject(asObjects(json(get("/api/groups", s.token(Who.VIEWER))
-                                                .body())
-                                        .get("sections"))
-                                .get(0))
-                        .get("items"))
+        Map<String, Object> listed = asObjects(
+                        json(get("/api/groups", s.token(Who.VIEWER)).body()).get("items"))
                 .get(0);
         assertThat(listed).containsEntry("photoRevision", 1);
 

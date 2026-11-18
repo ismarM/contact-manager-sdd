@@ -1,4 +1,4 @@
-import { IconAlertTriangle, IconArrowLeft } from '@tabler/icons-react';
+import { IconArrowLeft, IconChevronDown } from '@tabler/icons-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
@@ -6,10 +6,12 @@ import { Link, useParams } from 'react-router';
 import { ApiError } from '../../shared/api/client';
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
-import { errorAlert, focusRing, secondaryButton } from '../../shared/ui/styles';
+import { Callout } from '../../shared/ui/Callout';
+import { SegmentedControl } from '../../shared/ui/SegmentedControl';
+import { card, focusRing, secondaryButton } from '../../shared/ui/styles';
 import { useApiKeysApi } from './api';
 import type { ApiKey, ApiKeyUsage } from './types';
-import { UsageChart } from './UsageChart';
+import { UsageChart, UsageLegend } from './UsageChart';
 
 type Days = 7 | 30;
 
@@ -19,7 +21,7 @@ type State =
   | { kind: 'notFound' }
   | { kind: 'ready'; key: ApiKey; usage: ApiKeyUsage };
 
-const link = `inline-flex min-h-11 items-center gap-2 self-start text-primary underline underline-offset-4 ${focusRing}`;
+const link = `inline-flex min-h-11 items-center gap-1.5 self-start rounded-sm text-sm font-medium text-primary hover:underline ${focusRing}`;
 
 /**
  * Statistika ključa (FR-019-20; plan.md – /account/api-keys/:keyId): obdobje 7 ali 30 dni, skupna števila, graf in
@@ -66,19 +68,20 @@ export function ApiKeyUsagePage() {
 
   const back = (
     <Link to="/account" className={link}>
-      <IconArrowLeft aria-hidden="true" size={20} stroke={1.75} />
+      <IconArrowLeft aria-hidden="true" size={16} stroke={1.75} />
       {t('apiKeys.usage.back')}
     </Link>
   );
 
+  const page = 'flex max-w-4xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8';
+
   if (state.kind === 'failed') {
     return (
-      <div className="mx-auto flex max-w-[70ch] flex-col gap-4 px-4 py-8">
+      <div className={page}>
         {back}
-        <div role="alert" className={errorAlert}>
-          <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
-          <span className="flex flex-wrap items-center gap-3">
-            {t('apiKeys.usage.loadFailed')}
+        <Callout
+          tone="error"
+          action={
             <button
               type="button"
               className={secondaryButton}
@@ -89,103 +92,129 @@ export function ApiKeyUsagePage() {
             >
               {t('apiKeys.usage.retry')}
             </button>
-          </span>
-        </div>
+          }
+        >
+          {t('apiKeys.usage.loadFailed')}
+        </Callout>
       </div>
     );
   }
 
   if (state.kind === 'loading') {
-    return <div className="mx-auto max-w-[70ch] px-4 py-8" aria-busy="true" />;
+    return <div className={page} aria-busy="true" />;
   }
 
   const { usage } = state;
   const totals = usage.totals;
-  const totalRows: [string, number][] = [
-    [t('apiKeys.usage.total'), totals.total],
-    [t('apiKeys.usage.successful'), totals.readOk + totals.writeOk],
-    [t('apiKeys.usage.reads'), totals.readOk],
-    [t('apiKeys.usage.writes'), totals.writeOk],
-    [t('apiKeys.usage.errors'), totals.errors],
-    [t('apiKeys.usage.rateLimited'), totals.rateLimited],
-  ];
+  const cardClass = `${card} flex flex-col gap-0.5 px-5 py-4`;
+  const figure = 'text-3xl font-semibold tabular-nums';
 
   return (
-    <div className="mx-auto flex max-w-[70ch] flex-col gap-6 px-4 py-8">
+    <div className={page}>
       {back}
-      <h1 className="text-2xl font-bold break-words">{t('apiKeys.usage.heading', { name })}</h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <h1 className="min-w-0 text-2xl font-semibold break-words">
+          {t('apiKeys.usage.heading', { name })}
+        </h1>
+        <fieldset>
+          <legend className="sr-only">{t('apiKeys.usage.periodLegend')}</legend>
+          <SegmentedControl
+            label={t('apiKeys.usage.periodLegend')}
+            value={String(days)}
+            segments={[
+              { value: '7', label: t('apiKeys.usage.period7') },
+              { value: '30', label: t('apiKeys.usage.period30') },
+            ]}
+            onChange={(next) => setDays(next === '30' ? 30 : 7)}
+          />
+        </fieldset>
+      </div>
 
-      <fieldset className="flex flex-wrap items-center gap-x-6 gap-y-1">
-        <legend className="mb-1 font-bold">{t('apiKeys.usage.periodLegend')}</legend>
-        {([7, 30] as const).map((period) => (
-          <label key={period} className="flex min-h-11 items-center gap-3 pointer-coarse:min-h-12">
-            <input
-              type="radio"
-              name="usage-period"
-              checked={days === period}
-              onChange={() => setDays(period)}
-              className="size-5 accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            />
-            {t(`apiKeys.usage.period${period}`)}
-          </label>
-        ))}
-      </fieldset>
-
-      <section aria-labelledby="usage-totals" className="flex flex-col gap-2">
-        <h2 id="usage-totals" className="text-xl font-bold">
+      <section aria-labelledby="usage-totals" className="flex flex-col gap-3">
+        <h2 id="usage-totals" className="text-sm font-medium text-muted-foreground">
           {t('apiKeys.usage.totals')}
         </h2>
-        <dl className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-1 sm:max-w-sm">
-          {totalRows.map(([label, value]) => (
-            <div key={label} className="contents">
-              <dt>{label}</dt>
-              <dd className="text-right font-bold">{value}</dd>
-            </div>
-          ))}
+        <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className={cardClass}>
+            <dt className="text-sm text-muted-foreground">{t('apiKeys.usage.total')}</dt>
+            <dd className={figure}>{totals.total}</dd>
+          </div>
+          <div className={`${cardClass} !flex-row flex-wrap items-baseline gap-x-1.5`}>
+            <dt className="basis-full text-sm text-muted-foreground">
+              {t('apiKeys.usage.successful')}
+            </dt>
+            <dd className={`${figure} basis-full`}>{totals.readOk + totals.writeOk}</dd>
+            <dt className="text-xs text-muted-foreground">{t('apiKeys.usage.reads')}</dt>
+            <dd className="mr-2 text-xs text-muted-foreground tabular-nums">{totals.readOk}</dd>
+            <dt className="text-xs text-muted-foreground">{t('apiKeys.usage.writes')}</dt>
+            <dd className="text-xs text-muted-foreground tabular-nums">{totals.writeOk}</dd>
+          </div>
+          <div className={cardClass}>
+            <dt className="text-sm text-muted-foreground">{t('apiKeys.usage.errors')}</dt>
+            <dd className={figure}>{totals.errors}</dd>
+          </div>
+          <div className={cardClass}>
+            <dt className="text-sm text-muted-foreground">{t('apiKeys.usage.rateLimited')}</dt>
+            <dd className={figure}>{totals.rateLimited}</dd>
+          </div>
         </dl>
       </section>
 
-      <section aria-labelledby="usage-chart" className="flex flex-col gap-3">
-        <h2 id="usage-chart" className="text-xl font-bold">
-          {t('apiKeys.usage.chartHeading')}
-        </h2>
+      <section aria-labelledby="usage-chart" className={`${card} flex flex-col gap-4 p-6`}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="usage-chart" className="text-xl font-semibold">
+            {t('apiKeys.usage.chartHeading')}
+          </h2>
+          <UsageLegend />
+        </div>
         <UsageChart usage={usage} />
-        <div>
-          <table className="w-full border-collapse text-left">
+        <details className="group">
+          <summary
+            className={`inline-flex min-h-8 cursor-pointer list-none items-center gap-1.5 rounded-sm text-sm font-medium ${focusRing}`}
+          >
+            <IconChevronDown
+              aria-hidden="true"
+              size={16}
+              stroke={1.75}
+              className="group-open:rotate-180"
+            />
+            {t('apiKeys.usage.tableSummary')}
+          </summary>
+          <table className="mt-3 w-full border-collapse text-left tabular-nums">
             <caption className="sr-only">{t('apiKeys.usage.tableCaption')}</caption>
-            <thead>
-              <tr className="border-b border-border">
-                <th scope="col" className="py-2 pr-3">
+            <thead className="bg-muted text-sm">
+              <tr>
+                <th scope="col" className="px-3 py-2 font-medium">
                   {t('apiKeys.usage.day')}
                 </th>
-                <th scope="col" className="py-2 pr-3 text-right">
+                <th scope="col" className="px-3 py-2 text-right font-medium">
                   {t('apiKeys.usage.successful')}
                 </th>
-                <th scope="col" className="py-2 pr-3 text-right">
+                <th scope="col" className="px-3 py-2 text-right font-medium">
                   {t('apiKeys.usage.errors')}
                 </th>
-                <th scope="col" className="py-2 text-right">
+                <th scope="col" className="px-3 py-2 text-right font-medium">
                   {t('apiKeys.usage.rateLimited')}
                 </th>
               </tr>
             </thead>
             <tbody>
               {[...usage.perDay].reverse().map((day) => (
-                <tr key={day.day} className="border-b border-border">
-                  <th scope="row" className="py-2 pr-3 font-normal">
+                <tr key={day.day} className="border-t border-border">
+                  <th scope="row" className="px-3 py-2 font-normal">
                     {date.format(new Date(`${day.day}T00:00:00`))}
                   </th>
-                  <td className="py-2 pr-3 text-right">{day.readOk + day.writeOk}</td>
-                  <td className="py-2 pr-3 text-right">{day.errors}</td>
-                  <td className="py-2 text-right">{day.rateLimited}</td>
+                  <td className="px-3 py-2 text-right">{day.readOk + day.writeOk}</td>
+                  <td className="px-3 py-2 text-right">{day.errors}</td>
+                  <td className="px-3 py-2 text-right">{day.rateLimited}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </details>
       </section>
 
-      <p className="text-sm text-muted-foreground">{t('apiKeys.usage.note')}</p>
+      <p className="max-w-prose text-sm text-muted-foreground">{t('apiKeys.usage.note')}</p>
     </div>
   );
 }

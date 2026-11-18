@@ -1,11 +1,18 @@
-import { IconAlertTriangle, IconArrowLeft } from '@tabler/icons-react';
+import { LoadingState } from '../../shared/ui/Skeleton';
+import {
+  IconAlertTriangle,
+  IconArrowBackUp,
+  IconArrowLeft,
+  IconEye,
+  IconGitCompare,
+} from '@tabler/icons-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
 
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
-import { errorAlert, focusRing, secondaryButton } from '../../shared/ui/styles';
+import { backLink, card, errorAlert, primaryButton, secondaryButton } from '../../shared/ui/styles';
 import { useAuditSentence } from '../audit/auditSentence';
 import { useAuditTime } from '../audit/formatTime';
 import { countryName } from '../contacts/countries';
@@ -25,8 +32,6 @@ type State =
   | { kind: 'notFound' }
   | { kind: 'ready'; version: Version };
 
-const link = `text-primary underline underline-offset-4 ${focusRing}`;
-
 /** Polja različice za branje: samo izpolnjena, kot v pogledu kontakta (004). */
 export function VersionFields({ version }: { version: Version }) {
   const { t } = useTranslation();
@@ -45,9 +50,9 @@ export function VersionFields({ version }: { version: Version }) {
   ];
   const filled = rows.filter(([, value]) => value !== '');
   return (
-    <div className="flex flex-col gap-5">
+    <div className={`${card} grid gap-6 p-4 sm:p-6 md:grid-cols-2`}>
       {filled.length > 0 && (
-        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
+        <dl className="grid h-fit grid-cols-[auto_1fr] gap-x-4 gap-y-2">
           {filled.map(([label, value]) => (
             <div key={label} className="contents">
               <dt className="font-bold">{label}</dt>
@@ -56,35 +61,39 @@ export function VersionFields({ version }: { version: Version }) {
           ))}
         </dl>
       )}
-      {state.attributes.length > 0 && (
-        <section className="flex flex-col gap-2" aria-label={t('contacts.view.attributes')}>
-          <h3 className="text-lg font-bold">{t('contacts.view.attributes')}</h3>
-          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
-            {state.attributes.map((attribute) => (
-              <div key={attribute.key} className="contents">
-                <dt className="font-bold break-words">{attribute.key}</dt>
-                <dd className="break-words whitespace-pre-line">
-                  {attribute.parts
-                    ? format.address(attribute.parts, true)
-                    : format.byType(attribute.type, attribute.value ?? '')}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-      )}
-      {state.tags.length > 0 && (
-        <section className="flex flex-col gap-2" aria-label={t('contacts.view.tags')}>
-          <h3 className="text-lg font-bold">{t('contacts.view.tags')}</h3>
-          <ul className="flex flex-wrap gap-2">
-            {state.tags.map((tag) => (
-              <li key={tag} className="rounded-sm bg-muted px-2 py-0.5 text-sm">
-                {tag}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <div className="flex flex-col gap-5">
+        {state.attributes.length > 0 && (
+          <section className="flex flex-col gap-2" aria-label={t('contacts.view.attributes')}>
+            <h3 className="text-sm font-bold text-muted-foreground">
+              {t('contacts.view.attributes')}
+            </h3>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
+              {state.attributes.map((attribute) => (
+                <div key={attribute.key} className="contents">
+                  <dt className="font-bold break-words">{attribute.key}</dt>
+                  <dd className="break-words whitespace-pre-line">
+                    {attribute.parts
+                      ? format.address(attribute.parts, true)
+                      : format.byType(attribute.type, attribute.value ?? '')}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )}
+        {state.tags.length > 0 && (
+          <section className="flex flex-col gap-2" aria-label={t('contacts.view.tags')}>
+            <h3 className="text-sm font-bold text-muted-foreground">{t('contacts.view.tags')}</h3>
+            <ul className="flex flex-wrap gap-2">
+              {state.tags.map((tag) => (
+                <li key={tag} className="rounded-full bg-muted px-3 py-0.5 text-sm">
+                  {tag}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
     </div>
   );
 }
@@ -154,9 +163,12 @@ export function VersionPage({ contactId, versionRef }: { contactId: string; vers
   return (
     <section
       aria-labelledby={headingId}
-      className="mx-auto flex w-full max-w-[70ch] flex-col gap-4 px-4 py-6"
+      className="mx-auto flex w-full max-w-[56rem] flex-col gap-5 px-4 py-6"
     >
-      <Link to={`${base}/history`} className={`inline-flex items-center gap-1 self-start ${link}`}>
+      <Link
+        to={`${base}/history`}
+        className={`inline-flex items-center gap-1 self-start ${backLink}`}
+      >
         <IconArrowLeft aria-hidden="true" size={20} stroke={1.75} />
         {t('history.version.back')}
       </Link>
@@ -180,7 +192,7 @@ export function VersionPage({ contactId, versionRef }: { contactId: string; vers
         </div>
       )}
       {state.kind === 'loading' && showLoader && (
-        <p role="status">{t('history.version.loading')}</p>
+        <LoadingState label={t('history.version.loading')} />
       )}
 
       <h2 id={headingId} className="text-xl font-bold break-words">
@@ -203,31 +215,36 @@ export function VersionPage({ contactId, versionRef }: { contactId: string; vers
               )}
             </p>
           )}
-          <p className="text-muted-foreground">{t('history.version.readOnly')}</p>
+          <p className="flex items-center gap-2 rounded-md bg-selected p-3 text-foreground">
+            <IconEye aria-hidden="true" size={20} stroke={1.75} className="shrink-0 text-primary" />
+            {t('history.version.readOnly')}
+          </p>
+          <VersionFields version={version} />
           <div className="flex flex-wrap items-center gap-3">
-            {status === 'ACTIVE' && versionRef !== CURRENT && (
-              <Link
-                to={`${base}/compare?from=${encodeURIComponent(versionRef)}&to=${CURRENT}`}
-                className={secondaryButton}
-              >
-                {t('history.version.compareCurrent')}
-              </Link>
-            )}
             {canRestore && (
               <button
                 type="button"
-                className={secondaryButton}
+                className={primaryButton}
                 onClick={() => {
                   opener.current =
                     document.activeElement instanceof HTMLElement ? document.activeElement : null;
                   setRestoring(true);
                 }}
               >
+                <IconArrowBackUp aria-hidden="true" size={20} stroke={1.75} />
                 {t('history.restore.button')}
               </button>
             )}
+            {status === 'ACTIVE' && versionRef !== CURRENT && (
+              <Link
+                to={`${base}/compare?from=${encodeURIComponent(versionRef)}&to=${CURRENT}`}
+                className={secondaryButton}
+              >
+                <IconGitCompare aria-hidden="true" size={20} stroke={1.75} />
+                {t('history.version.compareCurrent')}
+              </Link>
+            )}
           </div>
-          <VersionFields version={version} />
         </>
       )}
 

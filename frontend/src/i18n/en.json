@@ -24,7 +24,7 @@
   },
   "login": {
     "tagline": "Contacts for your projects and companies, in one place.",
-    "signIn": "Sign in with Google",
+    "signIn": "Continue with Google",
     "sessionExpired": "Your session has expired. Please sign in again.",
     "error": {
       "cancelled": "Sign-in was cancelled. Please try again.",
@@ -58,20 +58,29 @@
         "passwordRequired": "Enter your password.",
         "passwordTooShort": "The password must have at least 8 characters.",
         "passwordMismatch": "The passwords don't match."
+      },
+      "showPassword": "Show password",
+      "rules": {
+        "heading": "Password rules",
+        "minLength": "At least 8 characters",
+        "met": "met",
+        "unmet": "not met"
       }
     },
     "login": {
-      "or": "or",
+      "or": "or with email",
       "submit": "Sign in with password",
       "forgot": "Forgot password?",
-      "register": "Create an account with email"
+      "register": "Create an account with email",
+      "heading": "Sign in"
     },
     "register": {
       "documentTitle": "Create account – Contacts",
       "heading": "Create account",
       "submit": "Create account",
       "haveAccount": "Already have an account?",
-      "signIn": "Sign in"
+      "signIn": "Sign in",
+      "intro": "Create an account with your email and a password. Already use Google? Sign in with Google instead and add a password later in My account."
     },
     "verify": {
       "documentTitle": "Verify your email – Contacts",
@@ -91,6 +100,14 @@
       "submit": "Send link",
       "sent": "If an account with this email exists, we've sent it a link to set a new password.",
       "back": "Back to sign in"
+    },
+    "hero": {
+      "loginText": "Groups, roles and traceable changes – all in one place.",
+      "registerTitle": "Start your card file.",
+      "registerText": "Keep contacts in groups and share them with teammates using clear roles.",
+      "benefit1": "Groups with roles for everyone",
+      "benefit2": "Every change is recorded and reversible",
+      "benefit3": "Import and export your contacts"
     }
   },
   "shell": {
@@ -99,7 +116,12 @@
     "myAccount": "My account",
     "signOut": "Sign out",
     "saveFailed": "Your choice could not be saved to your account.",
-    "dismiss": "Dismiss message"
+    "dismiss": "Dismiss message",
+    "mainNav": "Main navigation",
+    "openNav": "Open navigation",
+    "nav": "Navigation",
+    "accountTab": "Account",
+    "archived": "Archived"
   },
   "account": {
     "heading": "My account",
@@ -246,19 +268,38 @@
     "grafit": "Graphite",
     "rja": "Rust"
   },
+  "dialog": {
+    "close": "Close dialog"
+  },
   "toast": {
     "region": "Notifications",
     "close": "Close notification"
   },
+  "ui": {
+    "optional": "(optional)",
+    "badge": {
+      "archived": "Archived",
+      "permanentlyArchived": "Permanently archived",
+      "rolePrefix": "Role: "
+    },
+    "chip": {
+      "remove": "Remove filter {{name}}"
+    }
+  },
   "groups": {
     "heading": "Groups",
+    "subtitle": "The groups you belong to. Your role in each is shown on its card.",
     "newGroup": "New group",
-    "sectionHeading": "{{role}} ({{total}})",
     "contactCount_one": "{{count}} contact",
     "contactCount_two": "{{count}} contacts",
     "contactCount_few": "{{count}} contacts",
     "contactCount_other": "{{count}} contacts",
+    "count_one": "{{count}} group",
+    "count_two": "{{count}} groups",
+    "count_few": "{{count}} groups",
+    "count_other": "{{count}} groups",
     "empty": "You don't have any groups yet.",
+    "emptyHint": "Create your first group for your contacts, or accept an invitation.",
     "loading": "Loading…",
     "loadFailed": "Groups could not be loaded. Please try again.",
     "retry": "Try again",
@@ -323,7 +364,8 @@
       "empty": "You have no archived groups.",
       "back": "Back to groups",
       "ownerDeleted": "owner: deleted user",
-      "pagination": "Archived groups"
+      "pagination": "Archived groups",
+      "subtitle": "Groups that were archived. Viewing, searching and export are still available."
     },
     "banner": {
       "region": "Group status",
@@ -363,21 +405,22 @@
     "search": {
       "label": "Search groups",
       "rolesLegend": "Role",
-      "stateLegend": "State",
-      "active": "Active",
-      "archived": "Archived",
       "results_one": "{{count}} result",
       "results_two": "{{count}} results",
       "results_few": "{{count}} results",
       "results_other": "{{count}} results",
       "none": "No results.",
-      "clear": "Clear search"
-    }
+      "clear": "Clear search",
+      "placeholder": "Group title",
+      "allRoles": "All roles"
+    },
+    "currentGroup": "Current group"
   },
   "notFound": {
     "heading": "Page not found",
     "text": "The link is wrong or the page is no longer available.",
-    "back": "Back to groups"
+    "back": "Back to groups",
+    "code": "Error 404"
   },
   "contacts": {
     "heading": "Contacts",
@@ -414,12 +457,16 @@
       "company": "Company",
       "country": "Country",
       "historyHeading": "History",
-      "historyLink": "Contact history"
+      "historyLink": "Contact history",
+      "fields": "Contact",
+      "meta": "Added {{created}} · last edited {{updated}} by {{who}}",
+      "historyText": "Every change to this contact, older versions and restoring a version."
     },
     "gone": "This contact no longer exists – someone deleted it in the meantime.",
     "form": {
       "newHeading": "New contact",
       "editHeading": "Edit contact",
+      "backToContact": "Back to contact",
       "basic": "Basic details",
       "attributesLegend": "Additional attributes",
       "tagsLegend": "Tags",
@@ -510,13 +557,6 @@
       "list": "Contacts",
       "new": "New contact",
       "edit": "Edit contact"
-    },
-    "reverted": {
-      "badge": "Restored",
-      "toState": "Restored to the state of",
-      "toInitial": "Restored to the initial state",
-      "openEntry": "Open the restore entry",
-      "by": "Restored by: {{name}}"
     },
     "search": {
       "region": "Search and filters",
@@ -1019,6 +1059,10 @@
     },
     "page": {
       "heading": "Invitations",
+      "subtitle_one": "{{count}} group has invited you to join.",
+      "subtitle_two": "{{count}} groups have invited you to join.",
+      "subtitle_few": "{{count}} groups have invited you to join.",
+      "subtitle_other": "{{count}} groups have invited you to join.",
       "list": "Received invitations",
       "emptyTitle": "You have no new invitations.",
       "emptyText": "When someone invites you to a group, the invitation will appear here.",
@@ -1046,6 +1090,13 @@
     },
     "invite": {
       "heading": "Invite a member",
+      "placeholder": "name@example.com",
+      "help": "Invite someone who already has an account. They will see the invitation under Invitations.",
+      "roleHint": {
+        "ADMIN": "Manages members",
+        "EDITOR": "Edits contacts",
+        "VIEWER": "Read only"
+      },
       "email": "Email",
       "role": "Role",
       "submit": "Send invitation",
@@ -1165,6 +1216,7 @@
     },
     "transfer": {
       "button": "Transfer ownership",
+      "description": "Choose another member as owner. You will become an admin.",
       "info": "You can transfer ownership once the group has at least one more member.",
       "title": "Transfer ownership of {{group}}?",
       "newOwner": "New owner",
@@ -1206,6 +1258,8 @@
     "none": "No suggestions"
   },
   "import": {
+    "fileSection": "File",
+    "cancel": "Cancel",
     "heading": "Import contacts",
     "screenXlsx": "Import from Excel",
     "screenVcf": "Import from business cards",
@@ -1227,6 +1281,8 @@
       "failed": "The file could not be read. Try again."
     },
     "mapping": {
+      "keyHeader": "Attribute key",
+      "typeHeader": "Key type",
       "heading": "Column mapping",
       "column": "Column",
       "target": "Import into",
@@ -1636,6 +1692,7 @@
     "requests24h_few": "{{count}} requests in the last 24 hours",
     "requests24h_other": "{{count}} requests in the last 24 hours",
     "usageLink": "Statistics for key {{name}}",
+    "usageShort": "Statistics",
     "status": {
       "ACTIVE": "Active",
       "EXPIRED": "Expired",
@@ -1693,6 +1750,7 @@
       "failed": "The key could not be revoked. Try again."
     },
     "usage": {
+      "legend": "Legend",
       "heading": "Statistics for key {{name}}",
       "back": "Back to My account",
       "periodLegend": "Period",
@@ -1707,6 +1765,7 @@
       "rateLimited": "Rejected by rate limit",
       "chartHeading": "Requests per day",
       "tableCaption": "Requests per day",
+      "tableSummary": "Requests per day (table)",
       "day": "Day",
       "loadFailed": "The statistics could not be loaded. Try again.",
       "retry": "Try again",
@@ -1750,6 +1809,9 @@
       "rights": "On every request, the lesser of the key's permission and your current role in the group applies."
     },
     "operations": {
+      "method": "Method",
+      "path": "Path",
+      "description": "Description",
       "heading": "Operations",
       "caption": "Operations of API version 1",
       "method": "Method",
@@ -1786,6 +1848,9 @@
       "text": "Lists return a page (page, starting at 0) of size size and the total number of results total. The default size is 25, at most 100 for groups; contacts follow the same rules as in the app."
     },
     "errors": {
+      "status": "Status",
+      "code": "Code",
+      "meaning": "Meaning",
       "heading": "Error codes",
       "caption": "API error codes",
       "status": "Status",

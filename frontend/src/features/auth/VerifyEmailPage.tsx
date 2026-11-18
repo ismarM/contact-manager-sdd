@@ -3,9 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { Navigate, useSearchParams } from 'react-router';
 
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
+import { Callout } from '../../shared/ui/Callout';
 import { primaryButton, secondaryButton } from '../../shared/ui/styles';
 import { useAuth } from './authContext';
-import { AuthAlert, AuthCard } from './AuthCard';
+import { AuthAlert, AuthLayout } from './AuthLayout';
 import { authErrorKey } from './authErrorKey';
 import { safeNextPath } from './safeNextPath';
 
@@ -59,25 +60,22 @@ export function VerifyEmailPage() {
     );
 
   return (
-    <AuthCard heading={t('auth.verify.heading')}>
+    <AuthLayout heading={t('auth.verify.heading')}>
       {linkedNeedsVerification && (
-        <p className="mt-3 rounded-md border-l-4 border-border bg-muted p-3">
+        <Callout tone="info" announce={false}>
           {t('auth.verify.afterLinking', { email: user?.email ?? '' })}
-        </p>
+        </Callout>
       )}
-      <p className="mt-3">{t('auth.verify.intro', { email: user?.email ?? '' })}</p>
+      <p>{t('auth.verify.intro', { email: user?.email ?? '' })}</p>
       {notice?.kind === 'alert' && <AuthAlert>{notice.text}</AuthAlert>}
-      <p
-        role="status"
-        className={
-          notice?.kind === 'status'
-            ? 'mt-6 rounded-md border-l-4 border-border bg-muted p-3'
-            : 'sr-only'
-        }
-      >
-        {notice?.kind === 'status' ? notice.text : ''}
-      </p>
-      <div className="mt-6 flex flex-col gap-3">
+      <div role="status" className={notice?.kind === 'status' ? undefined : 'sr-only'}>
+        {notice?.kind === 'status' && (
+          <Callout tone="success" announce={false}>
+            {notice.text}
+          </Callout>
+        )}
+      </div>
+      <div className="flex flex-col gap-3">
         <button
           type="button"
           disabled={busy}
@@ -102,6 +100,6 @@ export function VerifyEmailPage() {
           {t('auth.verify.signOut')}
         </button>
       </div>
-    </AuthCard>
+    </AuthLayout>
   );
 }

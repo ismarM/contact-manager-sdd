@@ -1,11 +1,11 @@
-import { IconAlertTriangle } from '@tabler/icons-react';
+import { IconAlertTriangle, IconTrash } from '@tabler/icons-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { imageErrorCode } from './imageApi';
 import type { ImageErrorCode } from './photoTypes';
 import { Dialog, DialogClose, DialogContent, DialogTitle } from '../ui/dialog';
-import { dangerButton, errorAlert, secondaryButton } from '../ui/styles';
+import { dangerButton, errorAlert, ghostButton } from '../ui/styles';
 
 interface Props {
   open: boolean;
@@ -50,7 +50,7 @@ function RemoveBody({ onConfirm }: Pick<Props, 'onConfirm'>) {
         </div>
       )}
       <div className="flex flex-wrap justify-end gap-3">
-        <DialogClose ref={cancel} className={secondaryButton}>
+        <DialogClose ref={cancel} className={ghostButton}>
           {t('images.removeDialog.cancel')}
         </DialogClose>
         <button
@@ -59,6 +59,7 @@ function RemoveBody({ onConfirm }: Pick<Props, 'onConfirm'>) {
           aria-disabled={busy}
           onClick={() => void confirm()}
         >
+          <IconTrash aria-hidden="true" size={20} stroke={1.75} />
           {t('images.removeDialog.confirm')}
         </button>
       </div>

@@ -1,11 +1,14 @@
-import { IconAlertTriangle, IconArrowLeft, IconTrash } from '@tabler/icons-react';
+import { LoadingState } from '../../shared/ui/Skeleton';
+import { EmptyState } from '../../shared/ui/EmptyState';
+import { IconAlertTriangle, IconArrowLeft, IconGitCompare, IconTrash } from '@tabler/icons-react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
 
+import { Avatar } from '../../shared/images/Avatar';
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
 import { NotFoundPage } from '../../shared/pages/NotFoundPage';
-import { errorAlert, focusRing, secondaryButton } from '../../shared/ui/styles';
+import { backLink, card, errorAlert, secondaryButton, softButton } from '../../shared/ui/styles';
 import { useGroup } from '../groups/groupContext';
 import { SectionPagination } from '../groups/SectionPagination';
 import { useDelayed } from '../groups/useDelayed';
@@ -20,8 +23,6 @@ type State =
   | { kind: 'failed' }
   | { kind: 'notFound' }
   | { kind: 'ready'; data: History };
-
-const link = `text-primary underline underline-offset-4 ${focusRing}`;
 
 /**
  * Zgodovina kontakta (plan.md 015 – Pages and routes; FR-015-05 … FR-015-09, FR-015-19): paginirana časovnica z
@@ -111,7 +112,7 @@ export function ContactHistoryPage({ contactId }: { contactId: string }) {
   return (
     <section
       aria-labelledby={headingId}
-      className="mx-auto flex w-full max-w-[70ch] flex-col gap-4 px-4 py-6"
+      className="mx-auto flex w-full max-w-[56rem] flex-col gap-5 px-4 py-6"
     >
       <Link
         to={
@@ -119,21 +120,32 @@ export function ContactHistoryPage({ contactId }: { contactId: string }) {
             ? `${base}/contacts/${contactId}`
             : `${base}/deleted-contacts`
         }
-        className={`inline-flex items-center gap-1 self-start ${link}`}
+        className={`inline-flex items-center gap-1 self-start ${backLink}`}
       >
         <IconArrowLeft aria-hidden="true" size={20} stroke={1.75} />
         {status === undefined || status === 'ACTIVE'
           ? t('history.page.back')
           : t('history.page.backDeleted')}
       </Link>
-      <h2
-        id={headingId}
-        ref={heading}
-        tabIndex={-1}
-        className="text-xl font-bold break-words outline-none"
-      >
-        {data ? t('history.page.heading', { name }) : t('history.page.list')}
-      </h2>
+      <div className="flex min-w-0 items-center gap-4">
+        {data && (
+          <Avatar
+            kind="contact"
+            name={data.contact.displayName}
+            colorSeed={contactId}
+            size={40}
+            alt=""
+          />
+        )}
+        <h2
+          id={headingId}
+          ref={heading}
+          tabIndex={-1}
+          className="text-xl font-bold break-words outline-none"
+        >
+          {data ? t('history.page.heading', { name }) : t('history.page.list')}
+        </h2>
+      </div>
 
       {status && status !== 'ACTIVE' && (
         <p
@@ -164,13 +176,14 @@ export function ContactHistoryPage({ contactId }: { contactId: string }) {
         </div>
       )}
 
-      {state.kind === 'loading' && showLoader && <p role="status">{t('history.page.loading')}</p>}
+      {state.kind === 'loading' && showLoader && <LoadingState label={t('history.page.loading')} />}
 
       {data && data.total === 0 && !data.contact.hasInitial && (
-        <div className="flex flex-col items-start gap-1 py-4">
-          <h3 className="text-lg font-bold">{t('history.page.empty')}</h3>
-          <p>{t('history.page.emptyText')}</p>
-        </div>
+        <EmptyState
+          headingLevel={3}
+          title={t('history.page.empty')}
+          text={t('history.page.emptyText')}
+        />
       )}
 
       {data && (data.total > 0 || data.contact.hasInitial) && (
@@ -178,17 +191,23 @@ export function ContactHistoryPage({ contactId }: { contactId: string }) {
           <div
             role="group"
             aria-label={t('history.selection.summary')}
-            className="flex flex-wrap items-center gap-3"
+            className={`${card} flex flex-wrap items-center gap-3 py-2.5 pr-2.5 pl-4`}
           >
+            <IconGitCompare
+              aria-hidden="true"
+              size={20}
+              stroke={1.75}
+              className="text-muted-foreground"
+            />
             {compare.length === 2 && compare[0] && compare[1] ? (
               <Link
                 to={`${base}/contacts/${contactId}/compare?from=${compare[0].ref}&to=${compare[1].ref}`}
-                className={secondaryButton}
+                className={`${softButton} ml-auto h-9`}
               >
                 {t('history.selection.compare')}
               </Link>
             ) : (
-              <p aria-live="polite" className="text-muted-foreground">
+              <p aria-live="polite" className="flex-1 text-sm text-muted-foreground">
                 {picks.length === 1 ? t('history.selection.one') : t('history.selection.hint')}
               </p>
             )}

@@ -1,10 +1,24 @@
-import { IconAlertTriangle, IconArrowLeft, IconGitMerge } from '@tabler/icons-react';
+import { LoadingState } from '../../shared/ui/Skeleton';
+import { EmptyState } from '../../shared/ui/EmptyState';
+import {
+  IconAlertTriangle,
+  IconArrowBackUp,
+  IconArrowLeft,
+  IconGitMerge,
+} from '@tabler/icons-react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
 
 import { useDocumentTitle } from '../../shared/lib/useDocumentTitle';
-import { errorAlert, focusRing, secondaryButton, textInput } from '../../shared/ui/styles';
+import {
+  backLink,
+  card,
+  errorAlert,
+  focusRing,
+  secondaryButton,
+  textInput,
+} from '../../shared/ui/styles';
 import { useAuditTime } from '../audit/formatTime';
 import { useDebouncedCallback } from '../contacts/useDebouncedCallback';
 import { useGroup } from '../groups/groupContext';
@@ -23,7 +37,7 @@ import { LATEST, type DeletedItem, type DeletedPage as DeletedPageData } from '.
 
 type State = { kind: 'loading' } | { kind: 'failed' } | { kind: 'ready'; data: DeletedPageData };
 
-const link = `text-primary underline underline-offset-4 ${focusRing}`;
+const link = `text-primary underline decoration-1 underline-offset-[3px] ${focusRing}`;
 
 function DeletedRow({
   item,
@@ -45,14 +59,14 @@ function DeletedRow({
     : t('audit.list.deletedUser');
   const details = [item.email, item.company].filter((value) => value);
   return (
-    <li className="flex flex-col gap-2 py-3">
+    <li className="flex flex-col gap-2 px-4 py-4 sm:px-6">
       <p className="text-lg font-bold break-words">{item.displayName}</p>
       {details.length > 0 && <p className="break-all">{details.join(' · ')}</p>}
       <p className="text-muted-foreground">
         {t('history.deleted.removed', { actor, time: time(item.removedAt) })}
       </p>
       <p>
-        <span className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-sm">
+        <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-3 py-0.5 text-sm font-bold">
           {merged && <IconGitMerge aria-hidden="true" size={16} stroke={1.75} />}
           {merged
             ? kept
@@ -89,10 +103,11 @@ function DeletedRow({
         {canRestore && item.restorable && !merged && (
           <button
             type="button"
-            className={secondaryButton}
+            className={`${secondaryButton} h-9`}
             aria-label={t('history.deleted.restoreLabel', { name: item.displayName })}
             onClick={(event) => onRestore(item, event.currentTarget)}
           >
+            <IconArrowBackUp aria-hidden="true" size={20} stroke={1.75} />
             {t('history.deleted.restore')}
           </button>
         )}
@@ -180,9 +195,9 @@ export function DeletedContactsPage() {
   return (
     <section
       aria-labelledby={headingId}
-      className="mx-auto flex w-full max-w-[70ch] flex-col gap-4 px-4 py-6"
+      className="mx-auto flex w-full max-w-[60rem] flex-col gap-5 px-4 py-6"
     >
-      <Link to={base} className={`inline-flex items-center gap-1 self-start ${link}`}>
+      <Link to={base} className={`inline-flex items-center gap-1 self-start ${backLink}`}>
         <IconArrowLeft aria-hidden="true" size={20} stroke={1.75} />
         {t('history.deleted.back')}
       </Link>
@@ -250,35 +265,36 @@ export function DeletedContactsPage() {
       )}
 
       {state.kind === 'loading' && showLoader && (
-        <p role="status">{t('history.deleted.loading')}</p>
+        <LoadingState label={t('history.deleted.loading')} />
       )}
 
       {data && data.total === 0 && (
-        <div className="flex flex-col items-start gap-3 py-4">
-          <h3 className="text-lg font-bold">
-            {filtered ? t('history.deleted.emptyFiltered') : t('history.deleted.empty')}
-          </h3>
-          {!filtered && <p>{t('history.deleted.emptyText')}</p>}
-          {filtered && (
-            <button
-              type="button"
-              className={secondaryButton}
-              onClick={() => {
-                debounced.cancel();
-                goTo({ page: 1, size, q: '', state: 'all' });
-              }}
-            >
-              {t('history.deleted.clearSearch')}
-            </button>
-          )}
-        </div>
+        <EmptyState
+          headingLevel={3}
+          title={filtered ? t('history.deleted.emptyFiltered') : t('history.deleted.empty')}
+          text={filtered ? undefined : t('history.deleted.emptyText')}
+          action={
+            filtered ? (
+              <button
+                type="button"
+                className={secondaryButton}
+                onClick={() => {
+                  debounced.cancel();
+                  goTo({ page: 1, size, q: '', state: 'all' });
+                }}
+              >
+                {t('history.deleted.clearSearch')}
+              </button>
+            ) : null
+          }
+        />
       )}
 
       {data && data.total > 0 && (
         <>
           <ol
             aria-label={t('history.deleted.list')}
-            className="flex flex-col divide-y divide-border"
+            className={`${card} flex flex-col divide-y divide-border overflow-hidden`}
           >
             {data.items.map((item) => (
               <DeletedRow
