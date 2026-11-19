@@ -6,7 +6,6 @@ import {
   IconArrowsSort,
   IconArrowUp,
   IconDots,
-  IconPlus,
 } from '@tabler/icons-react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -44,8 +43,7 @@ import {
 } from './contactQuery';
 import { canEditContacts, type ListNotice, listState } from './contactRouting';
 import { ContactToolbar } from './ContactToolbar';
-import { ImportMenu } from '../import/ImportMenu';
-import { QrScanDialog } from './qr/QrScanDialog';
+import { ContactListActions } from './ContactListActions';
 import { DeleteContactDialog } from './DeleteContactDialog';
 import { selectionParams } from './selection/api';
 import { SelectAllOnPage } from './selection/SelectAllOnPage';
@@ -275,29 +273,18 @@ export function ContactList() {
       aria-labelledby={headingId}
       className={`flex min-w-0 flex-col gap-4 ${selection.count > 0 ? 'pb-[calc(var(--selection-bar-height,14rem)_+_var(--k-bottom-bar-h))] sm:pb-[var(--selection-bar-height,6rem)]' : ''}`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <h2 id={headingId} ref={heading} tabIndex={-1} className="text-lg font-bold outline-none">
-            {t('contacts.heading')}
-          </h2>
-          <Link
-            to={`/groups/${group.id}/deleted-contacts`}
-            className={`text-sm text-primary underline decoration-1 underline-offset-[3px] hover:text-primary-hover ${focusRing}`}
-          >
-            {t('contacts.deletedLink')}
-          </Link>
-        </div>
-        {editable && selection.count === 0 && (
-          <div className="flex flex-wrap items-center gap-3">
-            <ImportMenu base={base} />
-            <QrScanDialog />
-            {data && data.total > 0 && (
-              <Link to={`${base}/new${link}`} className={primaryButton}>
-                <IconPlus aria-hidden="true" size={20} stroke={1.75} />
-                {t('contacts.newContact')}
-              </Link>
-            )}
-          </div>
+      {/* Naslov ostane za bralnike zaslona in fokus po menjavi strani; izbrisani kontakti so zavihek skupine. */}
+      <h2 id={headingId} ref={heading} tabIndex={-1} className="sr-only">
+        {t('contacts.heading')}
+      </h2>
+      <div className="flex justify-end empty:hidden">
+        {selection.count === 0 && (
+          <ContactListActions
+            base={base}
+            link={link}
+            editable={editable}
+            hasContacts={!!data && data.total > 0}
+          />
         )}
       </div>
 

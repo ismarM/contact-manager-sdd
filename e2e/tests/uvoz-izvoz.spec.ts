@@ -5,7 +5,16 @@ import { readFile } from 'node:fs/promises';
 import { signIn, type TestUser, uniqueUser } from './support/auth';
 import { createSearchContact } from './support/contacts';
 import { createGroup } from './support/groups';
-import { basic, lastAction, NAMES, namesIn, xlsxBuffer } from './support/importExport';
+import {
+  basic,
+  exportSelection,
+  lastAction,
+  NAMES,
+  namesIn,
+  openQrScan,
+  startImport,
+  xlsxBuffer,
+} from './support/importExport';
 
 // 014 uvoz in izvoz (plan.md – Public Interfaces): Excel in vCard v krožni poti, koda QR iz slike, gesla za aplikacijo
 // in CardDAV. Podatke pripravi SQL (D-27); vsak test teče pri 360 in 1280 px.
@@ -29,10 +38,7 @@ async function signedIn(page: Page): Promise<TestUser> {
 
 async function openImport(page: Page, groupId: string, source: 'xlsx' | 'vcf') {
   await page.goto(`/groups/${groupId}/contacts`);
-  await page.getByRole('button', { name: NAMES.importMenu }).click();
-  await page
-    .getByRole('menuitem', { name: source === 'xlsx' ? NAMES.fromExcel : NAMES.fromVcf })
-    .click();
+  await startImport(page, source);
 }
 
 test('FR-014-02 FR-014-05 FR-014-06 FR-014-09: uvoz Excela z zaščitenimi vrednostmi, en vnos sledi; ponoven uvoz preskoči dvojnike', async ({
@@ -88,10 +94,7 @@ test('FR-014-10 FR-014-12 FR-014-13: izbor izvožen v vCard se uvozi v drugo sku
   await page.goto(`/groups/${source}/contacts`);
   await page.getByRole('checkbox', { name: 'Izberi Čeh Šuštar' }).check();
   const downloading = page.waitForEvent('download');
-  await page
-    .getByRole('toolbar', { name: 'Dejanja izbora' })
-    .getByRole('button', { name: NAMES.vcfSelection })
-    .click();
+  await exportSelection(page, 'vcf');
   const download = await downloading;
   expect(download.suggestedFilename()).toMatch(/^Vir-vizitk-kontakti-\d{4}-\d{2}-\d{2}\.vcf$/);
   const vcf = await readFile(await download.path());
@@ -131,7 +134,7 @@ test('FR-014-14 FR-014-15 FR-014-17 FR-014-18: koda QR kontakta se prebere iz sl
   const png = await readFile(await download.path());
 
   await page.goto(`/groups/${target}/contacts`);
-  await page.getByRole('button', { name: NAMES.qrScan }).click();
+  await openQrScan(page);
   await page
     .getByLabel(NAMES.pickImage)
     .setInputFiles({ name: 'koda.png', mimeType: 'image/png', buffer: png });
@@ -178,6 +181,8 @@ test('FR-014-21 FR-014-22 FR-014-25: geslo za aplikacijo odpre CardDAV; po prekl
 
   await page.getByRole('button', { name: NAMES.revoke('Telefon') }).click();
   await page.getByRole('dialog').getByRole('button', { name: NAMES.revokeConfirm }).click();
+  // Dokler je potrditveno okno odprto, je ozadje `aria-hidden`: najprej počakaj, da se okno zapre (preklic je končan).
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('button', { name: NAMES.revoke('Telefon') })).toHaveCount(0);
 
   expect((await propfind()).status()).toBe(401);

@@ -307,6 +307,8 @@ test('FR-012-05 FR-012-07 FR-012-08 FR-012-09 FR-012-11 FR-012-12 FR-012-14 FR-0
   page,
   browser,
 }) => {
+  // Štirje brskalniški konteksti in več prijav: ob polni obremenitvi zbirke preseže privzetih 30 s.
+  test.slow();
   const ana = await signedIn(page, 'Ana Novak');
   const eva = await otherUser(browser, page, 'Eva Lastnica');
   const dana = await otherUser(browser, page, 'Dana Povabljena');

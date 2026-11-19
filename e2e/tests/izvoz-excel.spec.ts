@@ -10,6 +10,7 @@ import {
   createTaggedContacts,
 } from './support/contacts';
 import { archive, createGroup, setRole } from './support/groups';
+import { exportSelection, selectionExportControl } from './support/importExport';
 import { localDate } from './support/myData';
 import { readXlsx } from './support/xlsx';
 
@@ -46,17 +47,21 @@ async function otherUser(browser: Browser, page: Page, name: string, locale = 's
 const toolbar = (page: Page) => page.getByRole('toolbar', { name: 'Dejanja izbora' });
 const status = (page: Page) => toolbar(page).getByRole('status');
 const toast = (page: Page) => page.getByRole('region', { name: 'Obvestila' });
-const exportButton = (page: Page) => toolbar(page).getByRole('button', { name: 'Izvozi v Excel' });
+/** Izvoz v vrstici izbora: gumb *Izvozi v Excel* od 1280 px, na ožjih zaslonih meni *Izvozi*. */
+const exportButton = (page: Page) => selectionExportControl(page);
 const pick = (page: Page, label: string) =>
   page.getByRole('checkbox', { name: `Izberi ${label}`, exact: true });
 const rows = (page: Page, group: string) =>
   page.getByRole('table', { name: `Kontakti skupine ${group}` }).getByRole('rowheader');
 const pagination = (page: Page) => page.getByRole('navigation', { name: 'Strani rezultatov' });
 
-/** Klik na *Izvozi v Excel* in prebrana prenesena datoteka z imenom. */
-async function exportAndRead(page: Page, button = exportButton(page)) {
+/** Izvoz v Excel (ali drugo dejanje, ki sproži prenos) in prebrana prenesena datoteka z imenom. */
+async function exportAndRead(
+  page: Page,
+  start: () => Promise<unknown> = () => exportSelection(page),
+) {
   const downloading = page.waitForEvent('download');
-  await button.click();
+  await start();
   const download = await downloading;
   const path = await download.path();
   return { name: download.suggestedFilename(), file: await readXlsx(path) };
@@ -167,11 +172,7 @@ test('FR-010-04 FR-010-10: angleški vmesnik – list Contacts, glava in ime dat
 
   await en.page.goto(`/groups/${id}/contacts`);
   await en.page.getByRole('checkbox', { name: 'Select Ana Kos', exact: true }).check();
-  const bar = en.page.getByRole('toolbar', { name: 'Selection actions' });
-  const { name, file } = await exportAndRead(
-    en.page,
-    bar.getByRole('button', { name: 'Export to Excel' }),
-  );
+  const { name, file } = await exportAndRead(en.page, () => exportSelection(en.page, 'xlsx', 'en'));
   expect(name).toBe(`Projekt-FERI-contacts-${localDate()}.xlsx`);
   expect(file.sheetNames).toEqual(['Contacts']);
   expect(file.rows).toEqual([
@@ -236,21 +237,20 @@ test('FR-010-02 FR-009-18: vsi zadetki – 12 vrstic, sprememba med izborom, *Na
   // Drug uporabnik doda značko trinajstemu kontaktu.
   addTagInDb(thirteenth, 'konferenca2025');
 
-  await exportButton(page).click();
+  await exportSelection(page);
   const notice = page.getByRole('alert');
   await expect(notice).toContainText('Izbor se je spremenil: 1 nov zadetek.');
   await expectNoAxeViolations(page);
 
   // *Nadaljuj z obstoječim izborom*: datoteka vsebuje prvotnih 12 kontaktov.
-  const kept = await exportAndRead(
-    page,
-    notice.getByRole('button', { name: 'Nadaljuj z obstoječim izborom' }),
+  const kept = await exportAndRead(page, () =>
+    notice.getByRole('button', { name: 'Nadaljuj z obstoječim izborom' }).click(),
   );
   expect(kept.file.rows).toHaveLength(13);
   expect(names(kept.file.rows)).toEqual(twelve);
 
   // *Posodobi izbor*: izbor ima 13 kontaktov in izvoz vsebuje tudi trinajstega.
-  await exportButton(page).click();
+  await exportSelection(page);
   await page.getByRole('alert').getByRole('button', { name: 'Posodobi izbor' }).click();
   await expect(status(page)).toHaveText('Izbranih: 13');
   const second = await exportAndRead(page);
@@ -271,7 +271,7 @@ test('FR-010-16 FR-010-14: arhivirana skupina – akcijska vrstica brez urejanja
   await page.goto(`/groups/${id}/contacts`);
   await page.getByRole('checkbox', { name: 'Izberi vse na strani', exact: true }).check();
   const bar = toolbar(page);
-  await expect(bar.getByRole('button', { name: 'Izvozi v Excel' })).toBeVisible();
+  await expect(exportButton(page)).toBeVisible();
   await expect(bar.getByRole('button', { name: 'Uredi izbrane' })).toHaveCount(0);
   await expect(bar.getByRole('button', { name: 'Izbriši' })).toHaveCount(0);
 
@@ -312,6 +312,8 @@ test('FR-010-01 FR-010-15 SC-005: samo tipkovnica – gumb v akcijski vrstici, i
   await button.focus();
   const downloading = page.waitForEvent('download');
   await page.keyboard.press('Enter');
+  // Pod 1280 px Enter odpre meni *Izvozi* s fokusom na prvi postavki (*V Excel*), drugi Enter jo izbere.
+  if ((viewport?.width ?? 0) < 1280) await page.keyboard.press('Enter');
   const download = await downloading;
   expect(download.suggestedFilename()).toBe(`Projekt-FERI-kontakti-${localDate()}.xlsx`);
   await expect(toast(page)).toContainText('Izvoženih kontaktov: 1.');

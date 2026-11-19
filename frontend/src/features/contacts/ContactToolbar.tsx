@@ -122,7 +122,8 @@ export function ContactToolbar({
       aria-label={t('contacts.search.region')}
       className="flex flex-col gap-3"
     >
-      <div className="flex flex-wrap items-end gap-3">
+      {/* Pod 1280 px mreža: na telefonu iskanje čez vso širino, pod njim enako široka *Filtri* in *Razvrsti*. */}
+      <div className="grid grid-cols-2 items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] xl:flex xl:flex-wrap">
         <SearchField
           id={searchId}
           value={searchText}
@@ -142,15 +143,15 @@ export function ContactToolbar({
             ? t('contacts.filters.buttonCount', { count: filterCount })
             : t('contacts.filters.button')}
         </button>
-        <div className="flex items-center gap-2">
-          <label htmlFor={sortId} className="text-sm font-bold">
+        <div className="flex min-w-0 items-center gap-2">
+          <label htmlFor={sortId} className="text-sm font-bold max-sm:sr-only">
             {t('contacts.sort.label')}
           </label>
           <select
             id={sortId}
             value={fieldOptionValue(query.sort)}
             onChange={(event) => update({ sort: fieldFromOptionValue(event.target.value) })}
-            className={`${textInput} h-11 w-auto max-w-48 pointer-coarse:h-12`}
+            className={`${textInput} h-11 min-w-0 flex-1 sm:w-auto sm:max-w-48 sm:flex-none pointer-coarse:h-12`}
           >
             <FieldOptions
               predefined={SORT_FIELDS}
@@ -227,7 +228,7 @@ const SearchField = memo(function SearchField({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="relative min-w-48 flex-1">
+    <div className="relative max-sm:col-span-2 sm:min-w-48 xl:flex-1">
       <label htmlFor={id} className="sr-only">
         {t('contacts.search.label')}
       </label>

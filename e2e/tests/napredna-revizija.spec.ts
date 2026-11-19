@@ -132,7 +132,7 @@ test('seznam izbrisanih kontaktov: iskanje, obnova in združen kontakt brez gumb
   await expect(
     page
       .getByRole('navigation', { name: 'Razdelki skupine' })
-      .getByRole('link', { name: 'Kontakti' }),
+      .getByRole('link', { name: 'Izbrisani kontakti' }),
   ).toHaveAttribute('aria-current', 'page');
   const list = page.getByRole('list', { name: 'Seznam izbrisanih kontaktov' });
   await expect(list.getByRole('listitem')).toHaveCount(2);

@@ -34,16 +34,16 @@ describe('Povezave na zgodovino', () => {
     ).toHaveAttribute('href', `/groups/${GROUP_ID}/audit?contact=${CONTACT_ID}`);
   });
 
-  it('FR-015-22: seznam kontaktov ima povezavo Izbrisani kontakti (tudi za bralca)', async () => {
+  it('FR-015-22: skupina ima zavihek Izbrisani kontakti (tudi za bralca)', async () => {
     renderContactsApp(`/groups/${GROUP_ID}/contacts`, {
       role: 'VIEWER',
       contacts: { list: contactPageReply(contactSummaries(3)) },
     });
 
-    expect(await screen.findByRole('link', { name: tr('contacts.deletedLink') })).toHaveAttribute(
-      'href',
-      `/groups/${GROUP_ID}/deleted-contacts`,
-    );
+    const sections = await screen.findByRole('navigation', { name: tr('groups.header.sections') });
+    expect(
+      within(sections).getByRole('link', { name: tr('contacts.deletedLink') }),
+    ).toHaveAttribute('href', `/groups/${GROUP_ID}/deleted-contacts`);
   });
 
   it('FR-015-05: povezava Zgodovina kontakta vodi na časovnico', async () => {

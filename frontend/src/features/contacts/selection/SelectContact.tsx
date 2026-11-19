@@ -18,7 +18,7 @@ export function SelectContact({
       aria-label={t('contacts.selection.selectContact', { name })}
       checked={checked}
       onChange={onChange}
-      className={`size-6 accent-primary ${focusRing}`}
+      className={`block size-6 accent-primary ${focusRing}`}
     />
   );
 }

@@ -124,6 +124,8 @@ describe('ExportButton', () => {
         'Izvozi v Excel',
         // 014 (FR-014-10): izvoz vizitk je branje, dovoljen tudi v arhivirani skupini.
         'Izvozi v vCard (.vcf)',
+        // Pod 1280 px sta oba izvoza v enem meniju *Izvozi* (jsdom izriše obe različici).
+        'Izvozi',
         'Počisti izbor',
       ]);
       expect(bar.queryByRole('button', { name: 'Uredi izbrane' })).not.toBeInTheDocument();

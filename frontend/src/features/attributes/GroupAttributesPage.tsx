@@ -130,50 +130,56 @@ export function GroupAttributesPage() {
       {data && data.total > 0 && (
         <>
           <p role="status">{t('attributes.list.total', { total: data.total })}</p>
-          <div className="overflow-x-auto rounded-md border border-border bg-card">
-            <table className="w-full border-collapse text-left">
-              <thead>
-                <tr className="border-b border-border bg-muted text-sm text-muted-foreground">
-                  <th scope="col" className="px-4 py-3 font-medium">
-                    {t('attributes.list.key')}
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-medium">
-                    {t('attributes.list.type')}
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-medium">
-                    {t('attributes.list.count')}
-                  </th>
-                  {canChange && (
-                    <th scope="col" className="px-4 py-3">
-                      <span className="sr-only">{t('attributes.list.changeType')}</span>
+          <div className="attributes-list">
+            <div className="overflow-x-auto rounded-md border border-border bg-card">
+              <table className="w-full border-collapse text-left">
+                <thead>
+                  <tr className="border-b border-border bg-muted text-sm text-muted-foreground">
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      {t('attributes.list.key')}
                     </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {data.items.map((item) => (
-                  <tr key={item.key} className="border-b border-border">
-                    <th scope="row" className="px-4 py-3 font-mono font-normal break-words">
-                      {item.key}
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      {t('attributes.list.type')}
                     </th>
-                    <td className="px-4 py-3">{t(typeNameKey(item.type))}</td>
-                    <td className="px-4 py-3">{item.contactCount}</td>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      {t('attributes.list.count')}
+                    </th>
                     {canChange && (
-                      <td className="px-4 py-3 text-right">
-                        <button
-                          type="button"
-                          className={softButton}
-                          aria-label={t('attributes.list.changeTypeFor', { key: item.key })}
-                          onClick={() => setChanging(item)}
-                        >
-                          {t('attributes.list.changeType')}
-                        </button>
-                      </td>
+                      <th scope="col" className="px-4 py-3">
+                        <span className="sr-only">{t('attributes.list.changeType')}</span>
+                      </th>
                     )}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {data.items.map((item) => (
+                    <tr key={item.key} className="border-b border-border">
+                      <th scope="row" className="px-4 py-3 font-mono font-normal break-words">
+                        {item.key}
+                      </th>
+                      <td data-label={t('attributes.list.type')} className="px-4 py-3">
+                        {t(typeNameKey(item.type))}
+                      </td>
+                      <td data-label={t('attributes.list.count')} className="px-4 py-3">
+                        {item.contactCount}
+                      </td>
+                      {canChange && (
+                        <td data-actions className="px-4 py-3 text-right">
+                          <button
+                            type="button"
+                            className={softButton}
+                            aria-label={t('attributes.list.changeTypeFor', { key: item.key })}
+                            onClick={() => setChanging(item)}
+                          >
+                            {t('attributes.list.changeType')}
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
           <SectionPagination
             label={t('attributes.heading')}

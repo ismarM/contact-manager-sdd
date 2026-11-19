@@ -5,7 +5,11 @@ import { secondaryButton, textInput } from '../../shared/ui/styles';
 
 export const PAGE_SIZES = [25, 50, 100] as const;
 
-/** Paginacija seznama (design.md 8.9, D-26): obseg, stran, Prejšnja/Naslednja in velikost strani v `nav` z imenom. */
+/**
+ * Paginacija seznama (design.md 8.9, D-26): obseg, stran, Prejšnja/Naslednja in velikost strani v `nav` z imenom.
+ * Na telefonu (pod 640 px) mreža: v prvi vrstici enako široka Prejšnja in Naslednja s stranjo med njima, v drugi obseg
+ * levo in velikost strani desno; vrstni red fokusa ostane enak.
+ */
 export function SectionPagination({
   label,
   page,
@@ -30,27 +34,36 @@ export function SectionPagination({
   const to = Math.min(total, (page + 1) * size);
 
   return (
-    <nav aria-label={label} className="flex flex-wrap items-center gap-3">
-      <p role="status">{t('groups.pagination.range', { from, to, total })}</p>
+    <nav
+      aria-label={label}
+      className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 sm:flex sm:flex-wrap"
+    >
+      <p role="status" className="tabular-nums max-sm:order-1">
+        {t('groups.pagination.range', { from, to, total })}
+      </p>
       <button
         type="button"
-        className={secondaryButton}
+        className={`${secondaryButton} max-sm:px-2`}
         disabled={disabled || page === 0}
         onClick={() => onPage(page - 1)}
       >
         {t('groups.pagination.previous')}
       </button>
-      <p>{t('groups.pagination.page', { page: page + 1, pages })}</p>
+      <p className="text-center whitespace-nowrap tabular-nums max-sm:text-sm">
+        {t('groups.pagination.page', { page: page + 1, pages })}
+      </p>
       <button
         type="button"
-        className={secondaryButton}
+        className={`${secondaryButton} max-sm:px-2`}
         disabled={disabled || page + 1 >= pages}
         onClick={() => onPage(page + 1)}
       >
         {t('groups.pagination.next')}
       </button>
-      <span className="flex items-center gap-2">
-        <label htmlFor={sizeId}>{t('groups.pagination.pageSize')}</label>
+      <span className="flex items-center gap-2 max-sm:order-2 max-sm:col-span-2 max-sm:justify-self-end">
+        <label htmlFor={sizeId} className="whitespace-nowrap">
+          {t('groups.pagination.pageSize')}
+        </label>
         <select
           id={sizeId}
           value={size}

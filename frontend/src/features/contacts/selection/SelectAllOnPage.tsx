@@ -35,7 +35,7 @@ export function SelectAllOnPage({
         onChange(state !== 'checked');
         redraw();
       }}
-      className={`size-6 accent-primary ${focusRing}`}
+      className={`block size-6 accent-primary ${focusRing}`}
     />
   );
 }

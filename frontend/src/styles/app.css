@@ -359,13 +359,68 @@
     grid-column: 1 / -1;
     padding: 0;
   }
-  .contacts-list td[data-label]:not(:empty)::before {
-    content: attr(data-label) ': ';
-    color: var(--color-muted-foreground);
+  /* Na ozkem zaslonu kartica pokaže samo ime; e-naslov, telefon in značke so v pogledu kontakta. */
+  .contacts-list td[data-label] {
+    display: none;
+  }
+  .contacts-list thead td {
+    border: 0;
+    padding-inline: 0;
+  }
+  .contacts-list tbody tr {
+    height: auto;
+    align-items: center;
   }
   .contacts-list td[data-actions] {
     grid-column: 3;
     grid-row: 1;
+  }
+}
+
+/* Atributi skupine (016): pod 40 rem vsebnika se preglednica zloži v vrstice-kartice brez vodoravnega drsenja. */
+@utility attributes-list {
+  container-type: inline-size;
+}
+
+@container (max-width: 40rem) {
+  .attributes-list > div {
+    overflow: visible;
+  }
+  .attributes-list thead {
+    display: none;
+  }
+  .attributes-list table,
+  .attributes-list tbody {
+    display: block;
+  }
+  .attributes-list tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 0.25rem 0.75rem;
+    padding: 0.75rem 1rem;
+  }
+  .attributes-list tr:last-child {
+    border-bottom: 0;
+  }
+  .attributes-list th[scope='row'] {
+    grid-column: 1;
+    padding: 0;
+  }
+  .attributes-list td {
+    grid-column: 1;
+    padding: 0;
+    font-size: 0.875rem;
+  }
+  /* Oznaka je samo vidna; prazno nadomestno besedilo jo izključi iz dostopnega imena vrstice. */
+  .attributes-list td[data-label]::before {
+    content: attr(data-label) ': ' / '';
+    color: var(--color-muted-foreground);
+  }
+  .attributes-list td[data-actions] {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    font-size: inherit;
   }
 }
 

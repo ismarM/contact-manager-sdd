@@ -3,7 +3,7 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { signIn, uniqueUser } from './support/auth';
 import { createGroup } from './support/groups';
-import { NAMES, xlsxBuffer } from './support/importExport';
+import { NAMES, startImport, xlsxBuffer } from './support/importExport';
 import { isPhoneViewport } from './support/nav';
 
 // 020 prenova vmesnika (Kartoteka v2): obrazec kontakta, uvoz, zgodovina in dialogi po platnu; vsak test teče pri 360 in
@@ -62,8 +62,7 @@ test('FR-020-22: uvoz iz Excela – kartica datoteke, preslikava stolpcev v preg
     ['Tina', 'Hribar', 'tina@primer.si', 'tina.example'],
   ]);
   await page.goto(`/groups/${groupId}/contacts`);
-  await page.getByRole('button', { name: NAMES.importMenu }).click();
-  await page.getByRole('menuitem', { name: NAMES.fromExcel }).click();
+  await startImport(page, 'xlsx');
   await page
     .getByLabel(NAMES.xlsxFile)
     .setInputFiles({ name: 'partnerji.xlsx', mimeType: 'application/octet-stream', buffer: file });

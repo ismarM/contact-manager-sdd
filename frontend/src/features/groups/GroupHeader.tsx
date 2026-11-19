@@ -33,21 +33,22 @@ export function GroupHeader({ group, focusTitle }: { group: GroupDetail; focusTi
     if (focusTitle && (active === null || active === document.body)) title.current?.focus();
   }, [focusTitle]);
 
-  // Razdelek *Kontakti* velja tudi za podstrani kontaktov in seznam izbrisanih kontaktov (`deleted-contacts`, 015).
+  // Razdelek velja tudi za svoje podstrani (npr. podrobnosti kontakta); izbrisani kontakti (015) so zadnji zavihek.
   const within = (section: string) =>
     pathname === `${base}/${section}` || pathname.startsWith(`${base}/${section}/`);
   const tabs: { to: string; label: string; current: boolean }[] = [
-    {
-      to: `${base}/contacts`,
-      label: t('groups.header.contacts'),
-      current: within('contacts') || within('deleted-contacts'),
-    },
+    { to: `${base}/contacts`, label: t('groups.header.contacts'), current: within('contacts') },
     ...(!group.archived && group.role !== 'VIEWER'
       ? [{ to: `${base}/duplicates`, label: t('duplicates.tab'), current: within('duplicates') }]
       : []),
     { to: `${base}/audit`, label: t('groups.header.audit'), current: within('audit') },
     { to: `${base}/attributes`, label: t('attributes.heading'), current: within('attributes') },
     { to: `${base}/settings`, label: t('groups.header.settings'), current: within('settings') },
+    {
+      to: `${base}/deleted-contacts`,
+      label: t('contacts.deletedLink'),
+      current: within('deleted-contacts'),
+    },
   ];
 
   const badges = (

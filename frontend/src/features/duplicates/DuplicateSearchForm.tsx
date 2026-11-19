@@ -20,7 +20,7 @@ export function DuplicateSearchForm({
 
   return (
     <form
-      className="flex flex-wrap items-end gap-6 rounded-md border border-border bg-card p-5"
+      className="flex flex-col gap-4 rounded-md border border-border bg-card p-4 sm:flex-row sm:flex-wrap sm:items-end sm:gap-6 sm:p-5"
       onSubmit={(event) => {
         event.preventDefault();
         onSearch(category);
@@ -41,7 +41,7 @@ export function DuplicateSearchForm({
           className="max-w-full flex-wrap self-start"
         />
       </div>
-      <button type="submit" className={primaryButton}>
+      <button type="submit" className={`${primaryButton} max-sm:w-full`}>
         <IconSearch aria-hidden="true" size={20} stroke={1.75} />
         {t('duplicates.search')}
       </button>

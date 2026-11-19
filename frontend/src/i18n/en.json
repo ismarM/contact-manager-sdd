@@ -750,6 +750,19 @@
       "unknown": "The value could not be recognised. Choose a country from the list; the attribute is removed only when you save the contact.",
       "pickLegend": "Choose a country"
     },
+    "actionsMenu": {
+      "button": "Actions",
+      "importXlsx": "Import from Excel (.xlsx)",
+      "importVcf": "Import from business cards (.vcf)",
+      "exportXlsx": "Export to Excel (.xlsx)",
+      "exportVcf": "Export to business cards (.vcf)"
+    },
+    "exportMenu": {
+      "button": "Export",
+      "xlsx": "To Excel (.xlsx)",
+      "vcf": "To business cards (.vcf)",
+      "empty": "There are no contacts to export."
+    },
     "importMenu": {
       "button": "Import",
       "xlsx": "From Excel (.xlsx)",

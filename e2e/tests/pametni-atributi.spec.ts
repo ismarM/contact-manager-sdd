@@ -9,6 +9,7 @@ import {
   tagsOf,
 } from './support/contacts';
 import { createGroup, sql } from './support/groups';
+import { exportSelection } from './support/importExport';
 import { readXlsx } from './support/xlsx';
 
 // 013 pametni atributi: država in podjetje, predlogi ključev, vrednosti in značk, kanonični zapis ključa, prenos starega
@@ -83,7 +84,7 @@ test('FR-013-01 FR-013-03 FR-013-04 FR-013-12 FR-013-13: kontakt s podjetjem in 
   await expect(table).toContainText('Bojan Drugi');
   await page.getByRole('checkbox', { name: /^Izberi Janez Novak/ }).check();
   const downloading = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Izvozi v Excel' }).click();
+  await exportSelection(page);
   const download = await downloading;
   const file = await readXlsx((await download.path()) ?? '');
   expect(file.rows[0]).toEqual([

@@ -750,6 +750,19 @@
       "unknown": "Vrednosti ni bilo mogoče prepoznati. Izberi državo s seznama; atribut se odstrani šele, ko shraniš kontakt.",
       "pickLegend": "Izberi državo"
     },
+    "actionsMenu": {
+      "button": "Dejanja",
+      "importXlsx": "Uvozi iz Excela (.xlsx)",
+      "importVcf": "Uvozi iz vizitk (.vcf)",
+      "exportXlsx": "Izvozi v Excel (.xlsx)",
+      "exportVcf": "Izvozi v vizitke (.vcf)"
+    },
+    "exportMenu": {
+      "button": "Izvozi",
+      "xlsx": "V Excel (.xlsx)",
+      "vcf": "V vizitke (.vcf)",
+      "empty": "Ni kontaktov za izvoz."
+    },
     "importMenu": {
       "button": "Uvozi",
       "xlsx": "Iz Excela (.xlsx)",

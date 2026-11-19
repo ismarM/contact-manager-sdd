@@ -1,4 +1,3 @@
-import { IconQrcode } from '@tabler/icons-react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -25,16 +24,24 @@ export interface QrPrefillState {
 type Problem = 'noCode' | 'manyCodes' | 'tooLarge' | null;
 
 /**
- * *Dodaj s kodo QR* (FR-014-17 … -20; design.md 8.10): kamera ob odprtju okna (odprtje je dotik uporabnika), sicer ali na
+ * Okno *Dodaj s kodo QR* (odpre ga gumb ali meni *Dejanja* na seznamu kontaktov; FR-014-17 … -20; design.md 8.10): kamera ob odprtju okna (odprtje je dotik uporabnika), sicer ali na
  * zahtevo izbira slike; po prvi kodi s kontaktom se kamera ustavi in odpre se predizpolnjen obrazec *Nov kontakt*.
  * Kamera se ustavi tudi ob zaprtju okna in odhodu s strani; slike se ne pošiljajo na strežnik.
  */
-export function QrScanDialog() {
+export function QrScanDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const { t } = useTranslation();
   const { group } = useGroup();
   const navigate = useNavigate();
   const language = useUiLanguage();
-  const [open, setOpen] = useState(false);
+
+  // Vsako odprtje začne s kamero in brez prejšnjega sporočila.
+  const [wasOpen, setWasOpen] = useState(open);
   const [camera, setCamera] = useState<'starting' | 'on' | 'unavailable'>('starting');
   const [problem, setProblem] = useState<Problem>(null);
   const [reading, setReading] = useState(false);
@@ -42,6 +49,13 @@ export function QrScanDialog() {
   const stream = useRef<MediaStream | null>(null);
   const detector = useRef<QrDetector | null>(null);
   const imageId = useId();
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setCamera('starting');
+      setProblem(null);
+    }
+  }
 
   const stop = useCallback(() => {
     stopStream(stream.current);
@@ -51,11 +65,11 @@ export function QrScanDialog() {
   const found = useCallback(
     (candidate: CardCandidate) => {
       stop();
-      setOpen(false);
+      onOpenChange(false);
       const state: QrPrefillState = { qrCandidate: candidate };
       void navigate(`/groups/${group.id}/contacts/new`, { state });
     },
-    [group.id, navigate, stop],
+    [group.id, navigate, stop, onOpenChange],
   );
 
   const detectorOnce = useCallback(async () => {
@@ -137,21 +151,9 @@ export function QrScanDialog() {
       open={open}
       onOpenChange={(next) => {
         if (!next) stop();
-        setOpen(next);
+        onOpenChange(next);
       }}
     >
-      <button
-        type="button"
-        className={secondaryButton}
-        onClick={() => {
-          setCamera('starting');
-          setProblem(null);
-          setOpen(true);
-        }}
-      >
-        <IconQrcode aria-hidden="true" size={20} stroke={1.75} />
-        {t('contacts.qrScan.button')}
-      </button>
       <DialogContent>
         <DialogTitle>{t('contacts.qrScan.title')}</DialogTitle>
         {camera === 'unavailable' || !cameraSupported() ? (

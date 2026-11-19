@@ -63,7 +63,7 @@ const iso = (n: number) => new Date(Date.parse('2026-01-01T00:00:00Z') + n * 100
 
 async function openContacts(page: Page, groupId: string) {
   await page.goto(`/groups/${groupId}/contacts`);
-  await expect(sections(page).getByRole('link', { name: 'Kontakti' })).toBeVisible();
+  await expect(sections(page).getByRole('link', { name: 'Kontakti', exact: true })).toBeVisible();
 }
 
 /** Odpre zavihek *Dvojniki*, izbere e-naslov in poišče (vsak korak je klik). */

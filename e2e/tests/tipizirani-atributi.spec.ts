@@ -5,7 +5,7 @@ import { idToken } from './support/audit';
 import { signIn, type TestUser, uniqueUser } from './support/auth';
 import { seedContact } from './support/duplicates';
 import { createGroup, setRole, sql } from './support/groups';
-import { NAMES, xlsxBuffer } from './support/importExport';
+import { exportSelection, NAMES, startImport, xlsxBuffer } from './support/importExport';
 import { readXlsx } from './support/xlsx';
 import { createSearchContact } from './support/contacts';
 import {
@@ -511,8 +511,7 @@ test('FR-016-24 FR-016-25: uvoz Excela s tipom Telefon in deli naslova, izvoz je
   ]);
 
   await page.goto(`/groups/${id}/contacts`);
-  await page.getByRole('button', { name: NAMES.importMenu }).click();
-  await page.getByRole('menuitem', { name: NAMES.fromExcel }).click();
+  await startImport(page, 'xlsx');
   await page
     .getByLabel(NAMES.xlsxFile)
     .setInputFiles({ name: 'kontakti.xlsx', mimeType: 'application/octet-stream', buffer: file });
@@ -540,10 +539,7 @@ test('FR-016-24 FR-016-25: uvoz Excela s tipom Telefon in deli naslova, izvoz je
   // Izvoz ostane kanoničen: telefon E.164, naslov po pravilih države (ne po shemi uporabnika).
   await page.getByRole('checkbox', { name: 'Izberi Ana Kos', exact: true }).check();
   const downloading = page.waitForEvent('download');
-  await page
-    .getByRole('toolbar', { name: 'Dejanja izbora' })
-    .getByRole('button', { name: 'Izvozi v Excel' })
-    .click();
+  await exportSelection(page);
   const exported = await readXlsx(await (await downloading).path());
   const cells = exported.rows.flat();
   // Izvoz pred vrednost, ki se začne z »+«, doda »'« (zaščita pred formulami v Excelu); vsebina je E.164.

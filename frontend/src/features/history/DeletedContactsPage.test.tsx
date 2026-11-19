@@ -82,14 +82,17 @@ describe('DeletedContactsPage', () => {
     );
   });
 
-  it('FR-015-22: v glavi skupine je razdelek Kontakti trenutna stran (aria-current)', async () => {
+  it('FR-015-22: v glavi skupine je zavihek Izbrisani kontakti trenutna stran (aria-current)', async () => {
     render([]);
 
     const header = await screen.findByRole('region', { name: 'Projekt FERI' });
     const sections = within(header).getByRole('navigation', { name: tr('groups.header.sections') });
     expect(
-      within(sections).getByRole('link', { name: tr('groups.header.contacts') }),
+      within(sections).getByRole('link', { name: tr('contacts.deletedLink') }),
     ).toHaveAttribute('aria-current', 'page');
+    expect(
+      within(sections).getByRole('link', { name: tr('groups.header.contacts') }),
+    ).not.toHaveAttribute('aria-current');
     expect(
       within(sections).getByRole('link', { name: tr('groups.header.audit') }),
     ).not.toHaveAttribute('aria-current');

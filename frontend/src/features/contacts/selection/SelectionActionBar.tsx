@@ -5,7 +5,12 @@ import { useTranslation } from 'react-i18next';
 import { ghostButton, primaryButton, secondaryButton } from '../../../shared/ui/styles';
 import { useGroup } from '../../groups/groupContext';
 import { canEditContacts } from '../contactRouting';
-import { ExportButton } from '../export/ExportButton';
+import {
+  ExportButton,
+  ExportFeedback,
+  SelectionExportMenu,
+  useSelectionExport,
+} from '../export/ExportButton';
 import { useSelectionApi } from './api';
 import { BulkDeleteDialog } from './BulkDeleteDialog';
 import { BulkEditDialog } from './BulkEditDialog';
@@ -18,7 +23,7 @@ export type SelectionNotice = 'limit' | 'loadFailed';
 /**
  * Akcijska vrstica izbora (FR-009-05; design.md 8.8, D-72): `toolbar` »Dejanja izbora« namesto vrstice z *Nov kontakt*,
  * dokler je kaj izbrano. Vsak član vidi število izbranih, *Izberi vse zadetke (N)* in *Počisti izbor*; *Uredi izbrane* in
- * *Izbriši* samo urednik in više v nearhivirani skupini. *Izvozi v Excel* doda šele 010. Število je območje
+ * *Izbriši* samo urednik in više v nearhivirani skupini; izvoz (010, 012) za vse člane. Število je območje
  * `aria-live="polite"`; pod 640 px je vrstica prilepljena na spodnji rob.
  */
 export function SelectionActionBar({
@@ -68,6 +73,8 @@ export function SelectionActionBar({
     };
   }, []);
   const deleteButton = useRef<HTMLButtonElement>(null);
+  const xlsx = useSelectionExport('xlsx');
+  const vcf = useSelectionExport('vcf');
   const editable = canEditContacts(group);
 
   /** Zapre dialog in takoj vrne fokus na gumb, ki ga je odprl (design.md 8.10); gumba morda ni več (vloga, arhiv). */
@@ -97,23 +104,27 @@ export function SelectionActionBar({
 
   return (
     <>
+      {/*
+        Pod 1280 px mreža z enako širokimi gumbi in vrsticami po pomenu: število in *Počisti izbor*, *Izberi vse zadetke*,
+        nato dejanja (*Uredi izbrane*, *Izbriši*, en meni *Izvozi*). Od 1280 px ena vrstica z ločenima gumboma izvoza.
+      */}
       <div
         ref={bar}
         role="toolbar"
         aria-label={t('contacts.selection.toolbar')}
-        className="fixed inset-x-0 bottom-[calc(var(--k-bottom-bar-h)_+_env(safe-area-inset-bottom))] z-20 flex flex-wrap items-center gap-3 border-t border-border bg-popover p-3 shadow-md sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:w-max sm:max-w-[calc(100vw-2rem)] sm:-translate-x-1/2 sm:rounded-lg sm:border"
+        className="fixed inset-x-0 bottom-[calc(var(--k-bottom-bar-h)_+_env(safe-area-inset-bottom))] z-20 grid grid-cols-2 items-center gap-3 border-t border-border bg-popover p-3 shadow-md sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:w-[36rem] sm:max-w-[calc(100vw-2rem)] sm:-translate-x-1/2 sm:grid-cols-6 sm:rounded-lg sm:border xl:flex xl:w-max xl:flex-wrap"
       >
         <p
           role="status"
           aria-live="polite"
-          className="rounded-full bg-selected px-3 py-1 font-bold text-primary"
+          className="justify-self-start rounded-full bg-selected px-3 py-1 font-bold text-primary max-xl:order-1 sm:col-span-3"
         >
           {t('contacts.selection.count', { count: selection.count })}
         </p>
         {total !== null && (
           <button
             type="button"
-            className={secondaryButton}
+            className={`${secondaryButton} col-span-2 max-xl:order-3 sm:col-span-6`}
             aria-disabled={loading}
             onClick={() => void selectAllResults()}
           >
@@ -125,7 +136,7 @@ export function SelectionActionBar({
             <button
               ref={editButton}
               type="button"
-              className={primaryButton}
+              className={`${primaryButton} max-xl:order-4 sm:col-span-2`}
               onClick={() => setDialog('edit')}
             >
               {t('contacts.selection.edit')}
@@ -133,18 +144,29 @@ export function SelectionActionBar({
             <button
               ref={deleteButton}
               type="button"
-              className={`${secondaryButton} text-destructive`}
+              className={`${secondaryButton} text-destructive max-xl:order-5 sm:col-span-2`}
               onClick={() => setDialog('delete')}
             >
               {t('contacts.selection.delete')}
             </button>
           </>
         )}
-        <ExportButton />
-        <ExportButton format="vcf" />
-        <button type="button" className={`${ghostButton} ml-auto`} onClick={onClear}>
+        <ExportButton exporter={xlsx} className="max-xl:hidden" />
+        <ExportButton exporter={vcf} className="max-xl:hidden" />
+        <SelectionExportMenu
+          xlsx={xlsx}
+          vcf={vcf}
+          className={`col-span-2 max-xl:order-6 xl:hidden ${editable ? 'sm:col-span-2' : 'sm:col-span-6'}`}
+        />
+        <button
+          type="button"
+          className={`${ghostButton} justify-self-end max-xl:order-2 sm:col-span-3 xl:ml-auto`}
+          onClick={onClear}
+        >
           {t('contacts.selection.clear')}
         </button>
+        <ExportFeedback exporter={xlsx} className="max-xl:order-7" />
+        <ExportFeedback exporter={vcf} className="max-xl:order-7" />
       </div>
       {dialog === 'edit' && (
         <BulkEditDialog

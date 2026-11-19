@@ -85,7 +85,14 @@ describe('GroupLayout', () => {
       within(tabs)
         .getAllByRole('link')
         .map((link) => link.textContent),
-    ).toEqual(['Kontakti', 'Dvojniki', 'Revizijska sled', 'Atributi skupine', 'Nastavitve']);
+    ).toEqual([
+      'Kontakti',
+      'Dvojniki',
+      'Revizijska sled',
+      'Atributi skupine',
+      'Nastavitve',
+      'Izbrisani kontakti',
+    ]);
     expect(within(tabs).getByRole('link', { name: 'Revizijska sled' })).toHaveAttribute(
       'aria-current',
       'page',
