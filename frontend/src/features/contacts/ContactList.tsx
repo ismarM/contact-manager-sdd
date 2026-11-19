@@ -88,7 +88,7 @@ export interface ListNavigationState {
  * stran onkraj zadnje preusmeri na zadnjo obstoječo. Med ponovnim branjem in ob neuspehu osvežitve ostanejo stari
  * podatki; zastareli odgovor se zavrže.
  */
-export function ContactList({ titled, selectedId }: { titled: boolean; selectedId?: string }) {
+export function ContactList() {
   const { t } = useTranslation();
   const format = useFormatters();
   const api = useContactsApi();
@@ -133,9 +133,8 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
   const title = t('title.groupScreen', { screen: t('contacts.screen.list'), group: group.title });
 
   useEffect(() => {
-    // Ko je odprt kontakt v panelu, naslov strani določi pogled kontakta.
-    if (titled) document.title = title;
-  }, [titled, title]);
+    document.title = title;
+  }, [title]);
 
   // Sporočilo iz navigacije (po izbrisu ali konfliktu) prevzamemo med izrisom, ne v učinku.
   const [seenNotice, setSeenNotice] = useState(navigation?.notice);
@@ -468,9 +467,8 @@ export function ContactList({ titled, selectedId }: { titled: boolean; selectedI
                   {data.items.map((contact) => (
                     <tr
                       key={contact.id}
-                      aria-current={contact.id === selectedId ? 'true' : undefined}
 
-                      className={`h-14 border-b border-border last:border-b-0 hover:bg-muted aria-[current=true]:bg-selected ${selection.isSelected(contact.id) ? 'bg-selected' : ''}`}
+                      className={`h-14 border-b border-border last:border-b-0 hover:bg-muted ${selection.isSelected(contact.id) ? 'bg-selected' : ''}`}
                     >
                       <td data-select className="p-2">
                         <SelectContact

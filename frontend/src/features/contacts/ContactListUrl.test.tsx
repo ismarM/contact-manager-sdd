@@ -310,23 +310,17 @@ describe('ContactListUrl', () => {
     );
   });
 
-  it('FR-008-09: v panelu (≥ 1280 px) ostane izbrani kontakt izbran ob spremembi filtra, »Zapri podrobnosti« ohrani poizvedbo', async () => {
+  it('FR-008-09: od 1280 px je kontakt na ločeni strani, »Nazaj na seznam kontaktov« ohrani poizvedbo', async () => {
     setViewport('panel');
-    const { user } = app(`${PATH}/${JANEZ.id}?q=novak&sort=email`, {
+    app(`${PATH}/${JANEZ.id}?q=novak&dir=desc`, {
       contacts: { list: resultsReply([JANEZ], 1) },
     });
-    const search = await area();
-    await screen.findByRole('region', { name: 'Podrobnosti kontakta' });
 
-    await user.click(search.getByRole('button', { name: 'Smer razvrščanja: naraščajoče' }));
-
-    await waitFor(() => expect(urlParams().get('dir')).toBe('desc'));
-    expect(window.location.pathname).toBe(`${PATH}/${JANEZ.id}`);
-    expect(screen.getByRole('region', { name: 'Podrobnosti kontakta' })).toBeInTheDocument();
-    const close = screen.getByRole('link', { name: 'Zapri podrobnosti' });
-    const closeTarget = new URL(close.getAttribute('href') ?? '', 'http://x');
-    expect(closeTarget.pathname).toBe(PATH);
-    expect(closeTarget.searchParams.get('q')).toBe('novak');
-    expect(closeTarget.searchParams.get('dir')).toBe('desc');
+    const back = await screen.findByRole('link', { name: 'Nazaj na seznam kontaktov' });
+    expect(screen.queryByRole('table', { name: TABLE })).not.toBeInTheDocument();
+    const backTarget = new URL(back.getAttribute('href') ?? '', 'http://x');
+    expect(backTarget.pathname).toBe(PATH);
+    expect(backTarget.searchParams.get('q')).toBe('novak');
+    expect(backTarget.searchParams.get('dir')).toBe('desc');
   });
 });

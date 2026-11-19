@@ -16,8 +16,5 @@ export function useMediaQuery(query: string): boolean {
 /** Širina za stranski pas (design.md 7.1, 7.2). */
 export const WIDE = '(min-width: 1024px)';
 
-/** Širina, od katere so podrobnosti kontakta v panelu ob seznamu (design.md 7.2). */
-export const PANEL = '(min-width: 1280px)';
-
 /** Širina, od katere ni več spodnje vrstice (design.md 7.1: pod 640 px je glavna navigacija spodnja vrstica). */
 export const TABLET = '(min-width: 640px)';

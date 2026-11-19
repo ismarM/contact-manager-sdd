@@ -18,7 +18,6 @@ import { archive, createGroup, setRole } from './support/groups';
 // 1280 px. Vloge in večje količine kontaktov pripravi SQL (D-27).
 
 const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
-const hasPanel = (page: Page) => (page.viewportSize()?.width ?? 0) >= 1280;
 
 async function expectNoAxeViolations(page: Page) {
   const results = await new AxeBuilder({ page }).withTags(WCAG).analyze();
@@ -47,11 +46,8 @@ async function otherUser(browser: Browser, page: Page, name: string) {
 const clock = (iso: string) =>
   new Intl.DateTimeFormat('sl', { hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
 
-/** Pogled kontakta: od 1280 px v panelu ob seznamu, sicer ločena stran (plan R-08). */
-const details = (page: Page) =>
-  hasPanel(page)
-    ? page.getByRole('region', { name: 'Podrobnosti kontakta' })
-    : page.getByRole('main');
+/** Pogled kontakta je pri vseh širinah ločena stran. */
+const details = (page: Page) => page.getByRole('main');
 const toast = (page: Page) => page.getByRole('region', { name: 'Obvestila' });
 const table = (page: Page, group = 'Projekt FERI') =>
   page.getByRole('table', { name: `Kontakti skupine ${group}` });
@@ -126,7 +122,7 @@ test('FR-004-01 FR-004-03 FR-004-08 FR-004-09 SC-001: urednik ustvari kontakt z 
   await expectNoAxeViolations(page);
 });
 
-test('FR-004-06 FR-004-09 SC-005: 60 kontaktov – strani, velikost strani, panel ali ločena stran; osvežitev', async ({
+test('FR-004-06 FR-004-09 SC-005: 60 kontaktov – strani, velikost strani, ločena stran kontakta; osvežitev', async ({
   page,
 }) => {
   await signedIn(page);
@@ -147,25 +143,13 @@ test('FR-004-06 FR-004-09 SC-005: 60 kontaktov – strani, velikost strani, pane
 
   await table(page).getByRole('link', { name: 'Ime030 Priimek030' }).click();
   await expect(page).toHaveURL(new RegExp(`/groups/${id}/contacts/[0-9a-f-]{36}`));
-  if (hasPanel(page)) {
-    await expect(page.getByRole('region', { name: 'Podrobnosti kontakta' })).toContainText(
-      'Ime030 Priimek030',
-    );
-    await expect(table(page)).toBeVisible();
-    await expectNoAxeViolations(page);
-    await page.reload();
-    await expect(page.getByRole('region', { name: 'Podrobnosti kontakta' })).toContainText(
-      'Ime030 Priimek030',
-    );
-  } else {
-    await expect(page.getByRole('heading', { level: 2, name: 'Ime030 Priimek030' })).toBeVisible();
-    await expect(table(page)).toHaveCount(0);
-    await expectNoAxeViolations(page);
-    await page.getByRole('link', { name: 'Nazaj na seznam kontaktov' }).click();
-    await expect(page).toHaveURL(/page=2/);
-    await expect(pagination.getByRole('status')).toHaveText('26–50 od 60');
-    await expectNoAxeViolations(page);
-  }
+  await expect(page.getByRole('heading', { level: 2, name: 'Ime030 Priimek030' })).toBeVisible();
+  await expect(table(page)).toHaveCount(0);
+  await expectNoAxeViolations(page);
+  await page.getByRole('link', { name: 'Nazaj na seznam kontaktov' }).click();
+  await expect(page).toHaveURL(/page=2/);
+  await expect(pagination.getByRole('status')).toHaveText('26–50 od 60');
+  await expectNoAxeViolations(page);
 });
 
 test('FR-004-10 FR-004-05: urednik uredi kontakt; neshranjene spremembe zahtevajo potrditev', async ({
@@ -383,13 +367,7 @@ test('FR-004-14: kontakt druge skupine pod to skupino je »Te strani ni« in ne 
 
   await page.goto(`/groups/${b}/contacts/${contact}`);
 
-  if (hasPanel(page)) {
-    await expect(page.getByRole('region', { name: 'Podrobnosti kontakta' })).toContainText(
-      'Tega kontakta ni več',
-    );
-  } else {
-    await expect(page.getByRole('heading', { level: 1, name: 'Te strani ni' })).toBeVisible();
-  }
+  await expect(page.getByRole('heading', { level: 1, name: 'Te strani ni' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Janez Novak' })).toHaveCount(0);
   await expectNoAxeViolations(page);
 });
@@ -577,9 +555,7 @@ test('FR-004-01 FR-004-04 SC-001 SC-006: angleški vmesnik – kontakt z dvema a
   expect(Date.now() - started).toBeLessThan(90_000);
   await expect(page.getByRole('heading', { level: 2, name: 'Janez Novak' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Edit contact' })).toBeVisible();
-  const english = hasPanel(page)
-    ? page.getByRole('region', { name: 'Contact details' })
-    : page.getByRole('main');
+  const english = page.getByRole('main');
   await expect(english.getByRole('listitem').filter({ hasText: 'konferenca2025' })).toBeVisible();
   await expectNoAxeViolations(page);
 });
@@ -623,7 +599,7 @@ test('FR-020-17 FR-020-19: kartica kontakta po platnu – Uredi pred Izbriši, d
   await reader.context.close();
 });
 
-test('FR-020-18: od 1280 px je plošča ob seznamu lepljiva in se pomika sama, pod tem je kontakt svoja stran', async ({
+test('FR-020-18: kontakt se pri vseh širinah odpre na svoji strani brez seznama in brez panela', async ({
   page,
 }) => {
   await signedIn(page);
@@ -632,18 +608,9 @@ test('FR-020-18: od 1280 px je plošča ob seznamu lepljiva in se pomika sama, p
   await page.goto(`/groups/${id}/contacts`);
   await table(page).getByRole('link').first().click();
 
-  if (hasPanel(page)) {
-    const panel = page.getByRole('region', { name: 'Podrobnosti kontakta' });
-    await expect(panel).toBeVisible();
-    await expect(table(page)).toBeVisible();
-    await expect(panel).toHaveCSS('position', 'sticky');
-    await page.mouse.wheel(0, 600);
-    await expect.poll(async () => (await panel.boundingBox())?.y ?? -1).toBeGreaterThanOrEqual(0);
-    await expect(panel.getByRole('link', { name: 'Zgodovina kontakta' })).toBeInViewport();
-  } else {
-    await expect(page.getByRole('region', { name: 'Podrobnosti kontakta' })).toHaveCount(0);
-    await expect(table(page)).toHaveCount(0);
-    await expect(page.getByRole('link', { name: 'Nazaj na seznam kontaktov' })).toBeVisible();
-  }
+  await expect(page).toHaveURL(new RegExp(`/groups/${id}/contacts/[0-9a-f-]{36}$`));
+  await expect(page.getByRole('region', { name: 'Podrobnosti kontakta' })).toHaveCount(0);
+  await expect(table(page)).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Nazaj na seznam kontaktov' })).toBeVisible();
   await expectNoAxeViolations(page);
 });

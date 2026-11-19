@@ -442,7 +442,6 @@
       "label": "Result pages"
     },
     "view": {
-      "panel": "Contact details",
       "address": "Address",
       "email": "Email",
       "phone": "Phone",
@@ -451,7 +450,6 @@
       "edit": "Edit contact",
       "delete": "Delete contact",
       "back": "Back to contacts",
-      "close": "Close details",
       "loadFailed": "The contact could not be loaded. Please try again.",
       "auditLink": "Changes to this contact in the audit trail",
       "company": "Company",

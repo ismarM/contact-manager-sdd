@@ -5,7 +5,6 @@ import {
   IconDownload,
   IconHistory,
   IconPencil,
-  IconX,
 } from '@tabler/icons-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -59,10 +58,9 @@ function telHref(phone: string): string {
 
 /**
  * Pogled kontakta (FR-004-08, design.md 9.4): ime kot naslov, polja kot seznam opisov (`mailto:`, `tel:`), dodatni
- * atributi in vse značke; akcije samo EDITOR+ v nearhivirani skupini. `404` je pod 1280 px »Te strani ni«, v panelu
- * sporočilo, seznam pa ostane (R-08, FR-004-14).
+ * atributi in vse značke; akcije samo EDITOR+ v nearhivirani skupini. `404` je »Te strani ni« (R-08, FR-004-14).
  */
-export function ContactView({ contactId, panel }: { contactId: string; panel: boolean }) {
+export function ContactView({ contactId }: { contactId: string }) {
   const { t } = useTranslation();
   const api = useContactsApi();
   const { group } = useGroup();
@@ -101,18 +99,7 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
   const toList = (navigation: ListNavigationState) =>
     void navigate(list, { state: { ...navigation, refresh: Date.now() } });
 
-  if (state.kind === 'notFound') {
-    if (!panel) return <NotFoundPage />;
-    return (
-      <div className="flex flex-col gap-3">
-        <div role="alert" className={errorAlert}>
-          <IconAlertTriangle aria-hidden="true" size={20} stroke={1.75} className="shrink-0" />
-          <span>{t('contacts.gone')}</span>
-        </div>
-        <CloseLink to={list} />
-      </div>
-    );
-  }
+  if (state.kind === 'notFound') return <NotFoundPage />;
 
   if (state.kind === 'failed') {
     return (
@@ -155,16 +142,12 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
   return (
     <article
       aria-labelledby={`contact-${contact.id}`}
-      className={`flex flex-col gap-4 ${editable && !panel ? 'pb-[calc(var(--k-bottom-bar-h)+5rem)] sm:pb-0' : ''}`}
+      className={`flex flex-col gap-4 ${editable ? 'pb-[calc(var(--k-bottom-bar-h)+5rem)] sm:pb-0' : ''}`}
     >
-      {panel ? (
-        <CloseLink to={list} />
-      ) : (
-        <Link to={list} className={`inline-flex items-center gap-1 self-start ${backLink}`}>
-          <IconArrowLeft aria-hidden="true" size={20} stroke={1.75} />
-          {t('contacts.view.back')}
-        </Link>
-      )}
+      <Link to={list} className={`inline-flex items-center gap-1 self-start ${backLink}`}>
+        <IconArrowLeft aria-hidden="true" size={20} stroke={1.75} />
+        {t('contacts.view.back')}
+      </Link>
 
       {conflict && (
         <div role="alert" className={warningAlert}>
@@ -205,16 +188,10 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
             {editable && (
               <div className="flex items-center gap-2">
                 {/* Na telefonu je *Uredi kontakt* v spodnji vrstici akcij nad spodnjo vrstico (FR-020-18). */}
-                <div
-                  className={
-                    panel
-                      ? ''
-                      : 'fixed inset-x-0 bottom-[calc(var(--k-bottom-bar-h)+env(safe-area-inset-bottom))] z-20 border-t border-border bg-popover p-3 sm:static sm:z-auto sm:border-0 sm:bg-transparent sm:p-0'
-                  }
-                >
+                <div className="fixed inset-x-0 bottom-[calc(var(--k-bottom-bar-h)+env(safe-area-inset-bottom))] z-20 border-t border-border bg-popover p-3 sm:static sm:z-auto sm:border-0 sm:bg-transparent sm:p-0">
                   <Link
                     to={`/groups/${group.id}/contacts/${contact.id}/edit${location.search}`}
-                    className={`${primaryButton} ${panel ? '' : 'w-full sm:w-auto'}`}
+                    className={`${primaryButton} w-full sm:w-auto`}
                   >
                     <IconPencil aria-hidden="true" size={20} stroke={1.75} />
                     {t('contacts.view.edit')}
@@ -242,9 +219,7 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
       </section>
 
       {sections && (
-        <div
-          className={`grid items-start gap-4 ${panel ? 'grid-cols-1' : 'sm:grid-cols-2 sm:gap-6'}`}
-        >
+        <div className="grid items-start gap-4 sm:grid-cols-2 sm:gap-6">
           {hasFields && (
             <section
               aria-labelledby={`fields-${contact.id}`}
@@ -391,16 +366,6 @@ export function ContactView({ contactId, panel }: { contactId: string; panel: bo
         </div>
       </section>
     </article>
-  );
-}
-
-function CloseLink({ to }: { to: string }) {
-  const { t } = useTranslation();
-  return (
-    <Link to={to} className={`inline-flex items-center gap-1 self-start ${backLink}`}>
-      <IconX aria-hidden="true" size={20} stroke={1.75} />
-      {t('contacts.view.close')}
-    </Link>
   );
 }
 

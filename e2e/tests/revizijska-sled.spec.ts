@@ -15,7 +15,6 @@ import { archive, createGroup, setRole } from './support/groups';
 // kontakta je viden od 1280 px. Kontakte za sled ustvarjajo testi prek vmesnika ali API (SQL ne ustvari vnosov).
 
 const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
-const hasPanel = (page: Page) => (page.viewportSize()?.width ?? 0) >= 1280;
 
 async function expectNoAxeViolations(page: Page) {
   const results = await new AxeBuilder({ page }).withTags(WCAG).analyze();
@@ -40,10 +39,7 @@ async function otherUser(browser: Browser, page: Page, name: string) {
   return { context, page: other, user };
 }
 
-const details = (page: Page) =>
-  hasPanel(page)
-    ? page.getByRole('region', { name: 'Podrobnosti kontakta' })
-    : page.getByRole('main');
+const details = (page: Page) => page.getByRole('main');
 const toast = (page: Page) => page.getByRole('region', { name: 'Obvestila' });
 const trail = (page: Page) => page.getByRole('list', { name: 'Vnosi revizijske sledi' });
 /** Vnosi sledi brez točke *Začetno stanje*. */

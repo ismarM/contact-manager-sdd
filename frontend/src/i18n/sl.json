@@ -442,7 +442,6 @@
       "label": "Strani rezultatov"
     },
     "view": {
-      "panel": "Podrobnosti kontakta",
       "address": "Naslov",
       "email": "E-naslov",
       "phone": "Telefon",
@@ -451,7 +450,6 @@
       "edit": "Uredi kontakt",
       "delete": "Izbriši kontakt",
       "back": "Nazaj na seznam kontaktov",
-      "close": "Zapri podrobnosti",
       "loadFailed": "Kontakta ni bilo mogoče naložiti. Poskusi znova.",
       "auditLink": "Spremembe tega kontakta v revizijski sledi",
       "company": "Podjetje",

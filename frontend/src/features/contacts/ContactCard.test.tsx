@@ -158,13 +158,11 @@ describe('Seznam kontaktov in izbor (FR-020-17, FR-020-21)', () => {
     expect((await axe(container)).violations).toEqual([]);
   });
 
-  it('od 1280 px je izbrani kontakt v lepljivi plošči ob seznamu, pod njo je svoja stran', async () => {
+  it('tudi od 1280 px je izbrani kontakt na svoji strani brez seznama', async () => {
     setViewport('panel');
     renderContactsApp(VIEW, { role: 'VIEWER', contacts: VIEW_HANDLERS });
 
-    const panel = await screen.findByRole('region', { name: 'Podrobnosti kontakta' });
-    expect(panel).toHaveClass('sticky');
-    expect(panel).toHaveClass('overflow-y-auto');
-    expect(await screen.findByRole('table', { name: /Kontakti skupine/ })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Nazaj na seznam kontaktov' })).toBeVisible();
+    expect(screen.queryByRole('table', { name: /Kontakti skupine/ })).not.toBeInTheDocument();
   });
 });

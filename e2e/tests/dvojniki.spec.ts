@@ -204,13 +204,7 @@ test('FR-011-01 FR-011-02 FR-011-04 FR-011-07 FR-011-08 FR-011-14 FR-011-15 FR-0
   expect(contactExists(first)).toBe(true);
   expect(contactExists(second)).toBe(false);
   await page.goto(`/groups/${groupId}/contacts/${second}`);
-  if ((page.viewportSize()?.width ?? 0) >= 1280) {
-    await expect(page.getByRole('region', { name: 'Podrobnosti kontakta' })).toContainText(
-      'Tega kontakta ni več',
-    );
-  } else {
-    await expect(page.getByRole('heading', { name: 'Te strani ni' })).toBeVisible();
-  }
+  await expect(page.getByRole('heading', { name: 'Te strani ni' })).toBeVisible();
   await expectNoAxeViolations(page);
 });
 
@@ -273,13 +267,7 @@ test('FR-011-01 FR-011-02 FR-011-07 FR-011-08 FR-011-14 FR-011-15 FR-011-18 SC-0
   await expectNoAxeViolations(en);
   expect(contactsWithEmail(groupId, 'janez@primer.si')).toBe(1);
   await en.goto(`/groups/${groupId}/contacts/${second}`);
-  if ((page.viewportSize()?.width ?? 0) >= 1280) {
-    await expect(en.getByRole('region', { name: 'Contact details' })).toContainText(
-      'This contact no longer exists',
-    );
-  } else {
-    await expect(en.getByRole('heading', { name: 'Page not found' })).toBeVisible();
-  }
+  await expect(en.getByRole('heading', { name: 'Page not found' })).toBeVisible();
   await context.close();
 });
 
