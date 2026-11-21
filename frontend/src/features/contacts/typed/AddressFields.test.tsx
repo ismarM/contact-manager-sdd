@@ -60,6 +60,20 @@ async function openNew() {
   return view;
 }
 
+/** Država kontakta je pri novem kontaktu skrita, zato se predizpolnitev države naslova preizkuša pri urejanju. */
+async function openEdit() {
+  const view = renderContactsApp(`${LIST}/${CONTACT_ID}/edit`, {
+    role: 'EDITOR',
+    contacts: {
+      get: () => ({ status: 200, body: contactDetail({ id: CONTACT_ID, version: 4 }) }),
+      update: () => ({ status: 200, body: contactDetail({ id: CONTACT_ID, version: 5 }) }),
+    },
+  });
+  await screen.findByRole('heading', { level: 2, name: 'Uredi kontakt' });
+  await screen.findByRole('combobox', { name: name.country() });
+  return view;
+}
+
 const addressGroup = () => screen.getByRole('group', { name: tr('address.legend') });
 
 describe('Naslov po delih', () => {
@@ -69,7 +83,7 @@ describe('Naslov po delih', () => {
 
   it('FR-016-12 FR-016-15: deli gredo v addressParts, država naslova je predizpolnjena z državo kontakta', async () => {
     suggestions(() => HttpResponse.json({ items: [] }));
-    const { user, api } = await openNew();
+    const { user, api } = await openEdit();
     await chooseCountry(
       user,
       screen.getByRole('combobox', { name: name.country() }),
@@ -87,7 +101,7 @@ describe('Naslov po delih', () => {
     await user.click(screen.getByRole('button', { name: name.save() }));
 
     await waitFor(() => expect(currentLocation()).toBe(`${LIST}/${CONTACT_ID}`));
-    const body = api.of('POST', CREATE)[0]?.body as Record<string, unknown>;
+    const body = api.of('PUT', UPDATE)[0]?.body as Record<string, unknown>;
     expect(body.address).toBeNull();
     expect(body.addressParts).toEqual({
       street: 'Hauptplatz 1',
@@ -167,7 +181,7 @@ describe('Naslov po delih', () => {
 
   it('FR-016-13: država kontakta gre v zahtevek predlogov; Esc zapre seznam', async () => {
     const seen = suggestions(() => HttpResponse.json({ items: [SLOVENSKA] }));
-    const { user } = await openNew();
+    const { user } = await openEdit();
     await chooseCountry(
       user,
       screen.getByRole('combobox', { name: name.country() }),

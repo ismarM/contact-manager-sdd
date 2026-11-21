@@ -25,6 +25,22 @@ async function openForm(options: Parameters<typeof renderContactsApp>[1] = {}) {
   return view;
 }
 
+/** Država kontakta je pri novem kontaktu skrita (poenostavljen obrazec), zato se polje preizkuša pri urejanju. */
+async function openEditForm(options: Parameters<typeof renderContactsApp>[1] = {}) {
+  const view = renderContactsApp(`${LIST}/${contactDetail().id}/edit`, {
+    role: 'EDITOR',
+    ...options,
+    contacts: {
+      get: () => ({ status: 200, body: contactDetail() }),
+      update: () => ({ status: 200, body: contactDetail({ version: 3 }) }),
+      ...options.contacts,
+    },
+  });
+  await screen.findByRole('heading', { level: 2, name: 'Uredi kontakt' });
+  await screen.findByRole('textbox', { name: 'Ime' });
+  return view;
+}
+
 describe('ContactForm', () => {
   beforeEach(async () => {
     await i18n.changeLanguage('sl');
@@ -397,8 +413,26 @@ describe('ContactForm', () => {
     expect((await axe(container)).violations).toEqual([]);
   });
 
+  it('nov kontakt nima polj Dodatna vrstica in Država; urejanje ju ima', async () => {
+    const { unmount } = await openForm();
+    const group = screen.getByRole('group', { name: tr('address.legend') });
+    expect(within(group).queryByRole('textbox', { name: tr('address.parts.extra') })).toBeNull();
+    expect(screen.queryByRole('combobox', { name: name.country() })).toBeNull();
+    expect(
+      within(group).getByRole('combobox', { name: tr('address.parts.country') }),
+    ).toBeVisible();
+    unmount();
+
+    await openEditForm();
+    const editGroup = screen.getByRole('group', { name: tr('address.legend') });
+    expect(
+      within(editGroup).getByRole('textbox', { name: tr('address.parts.extra') }),
+    ).toBeVisible();
+    expect(screen.getByRole('combobox', { name: name.country() })).toBeVisible();
+  });
+
   it('FR-013-01: Podjetje je po Priimku, Država po Naslovu; obe sta v obrazcu vidni z oznakama', async () => {
-    await openForm();
+    await openEditForm();
     const last = screen.getByRole('textbox', { name: tr('contacts.form.lastName') });
     const company = screen.getByRole('combobox', { name: name.company() });
     // 016: naslov je skupina delov (FR-016-12).
@@ -415,7 +449,7 @@ describe('ContactForm', () => {
   });
 
   it('FR-013-01: podjetje in država (koda) gresta v telo zahtevka; prazni polji sta null', async () => {
-    const { user, api } = await openForm();
+    const { user, api } = await openEditForm();
     await user.type(screen.getByRole('textbox', { name: tr('contacts.form.firstName') }), 'Janez');
     await user.type(screen.getByRole('combobox', { name: name.company() }), 'Acme d.o.o.');
     await chooseCountry(
@@ -427,8 +461,9 @@ describe('ContactForm', () => {
 
     await user.click(screen.getByRole('button', { name: name.save() }));
 
-    await waitFor(() => expect(api.of('POST', `/api/groups/${GROUP_ID}/contacts`)).toHaveLength(1));
-    expect(api.of('POST', `/api/groups/${GROUP_ID}/contacts`)[0]?.body).toMatchObject({
+    const update = `/api/groups/${GROUP_ID}/contacts/${contactDetail().id}`;
+    await waitFor(() => expect(api.of('PUT', update)).toHaveLength(1));
+    expect(api.of('PUT', update)[0]?.body).toMatchObject({
       company: 'Acme d.o.o.',
       country: 'SI',
     });
@@ -450,9 +485,9 @@ describe('ContactForm', () => {
   });
 
   it('FR-013-13: napaka strežnika za državo (INVALID_VALUE) se pokaže ob polju Država', async () => {
-    const { user } = await openForm({
+    const { user } = await openEditForm({
       contacts: {
-        create: () => validationFailedReply({ field: 'country', code: 'INVALID_VALUE' }),
+        update: () => validationFailedReply({ field: 'country', code: 'INVALID_VALUE' }),
       },
     });
     await user.type(screen.getByRole('textbox', { name: tr('contacts.form.firstName') }), 'Janez');
@@ -538,7 +573,7 @@ describe('ContactForm', () => {
   });
 
   it('FR-013-01: axe brez kršitev z novima poljema (sl in en)', async () => {
-    const { container } = await openForm();
+    const { container } = await openEditForm();
     expect((await axe(container)).violations).toEqual([]);
 
     await i18n.changeLanguage('en');

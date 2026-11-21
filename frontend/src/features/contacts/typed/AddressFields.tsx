@@ -195,6 +195,7 @@ export function AddressFields({
   value,
   defaultCountry,
   errors,
+  hideExtra = false,
   fieldId,
   errorId,
   onChange,
@@ -206,6 +207,8 @@ export function AddressFields({
   defaultCountry: string;
   /** Ključi sporočil napak po delih (prevodi). */
   errors: Partial<Record<AddressPart, string>>;
+  /** Skrije dodatno vrstico (nov kontakt); obstoječa vrednost se ohrani. */
+  hideExtra?: boolean;
   fieldId: (part: AddressPart) => string;
   errorId: (part: AddressPart) => string;
   onChange: (next: AddressDraft, changed: AddressPart[]) => void;
@@ -286,7 +289,7 @@ export function AddressFields({
     <fieldset className="flex flex-col gap-3 rounded-md border border-border p-3">
       <legend className="px-1 font-bold">{legend}</legend>
       {combo('street')}
-      {plain('extra')}
+      {(!hideExtra || value.extra !== '') && plain('extra')}
       <div className="grid gap-3 sm:grid-cols-2">
         {cityBeforePostalCode(country) ? (
           <>

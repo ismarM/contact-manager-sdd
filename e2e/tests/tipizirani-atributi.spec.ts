@@ -244,13 +244,13 @@ test('FR-016-12 FR-016-13: naslov po delih s samodokončanjem prek našega stre�
   await expect(address.getByRole('combobox', { name: 'Kraj', exact: true })).toHaveValue(
     'Ljubljana',
   );
-  await address.getByRole('textbox', { name: 'Dodatna vrstica' }).fill('3. nadstropje');
+  // Dodatna vrstica je pri novem kontaktu skrita.
+  await expect(address.getByRole('textbox', { name: 'Dodatna vrstica' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Shrani kontakt' }).click();
   await expect(toast(page)).toContainText('Kontakt Ana je shranjen.');
 
   expect(addressPartsOf(contactIdFromUrl(page))).toEqual({
     street: 'Slovenska cesta 1',
-    extra: '3. nadstropje',
     postalCode: '1000',
     city: 'Ljubljana',
     country: 'SI',
