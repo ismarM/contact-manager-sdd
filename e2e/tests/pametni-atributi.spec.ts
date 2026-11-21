@@ -58,13 +58,18 @@ test('FR-013-01 FR-013-03 FR-013-04 FR-013-12 FR-013-13: kontakt s podjetjem in 
   await page.getByRole('textbox', { name: 'Ime', exact: true }).fill('Janez');
   await page.getByRole('textbox', { name: 'Priimek' }).fill('Novak');
   await page.getByRole('combobox', { name: 'Podjetje' }).fill('Acme d.o.o.');
-  await chooseCountry(page, 'avs', 'Avstrija');
-  await expectNoAxeViolations(page);
+  // Nov kontakt nima polja Država kontakta: ob ustvarjanju je skrito, državo se doda pri urejanju.
+  await expect(page.getByRole('combobox', { name: 'Država', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Shrani kontakt' }).click();
 
   await expect(page).toHaveURL(new RegExp(`/groups/${id}/contacts/[0-9a-f-]{36}$`));
   await expect(toast(page)).toContainText('Kontakt Janez Novak je shranjen.');
   const created = contactId(page);
+  await page.goto(`/groups/${id}/contacts/${created}/edit`);
+  await chooseCountry(page, 'avs', 'Avstrija');
+  await expectNoAxeViolations(page);
+  await page.getByRole('button', { name: 'Shrani kontakt' }).click();
+  await expect(page).toHaveURL(new RegExp(`/groups/${id}/contacts/${created}$`));
   expect(country(created)).toBe('AT');
   expect(company(created)).toBe('Acme d.o.o.');
   await expect(page.getByRole('definition').filter({ hasText: 'Avstrija' })).toBeVisible();

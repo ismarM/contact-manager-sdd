@@ -256,6 +256,8 @@ export function ContactForm({
     initial ? validate(initial.values) : {},
   );
   const countryHint = initial?.countryHint ?? null;
+  // Nov kontakt brez podatkov iz kode QR: brez dodatne vrstice naslova in brez države kontakta.
+  const simpleNew = !contact && !prefill;
   const [summary, setSummary] = useState(false);
   const [failure, setFailure] = useState<FailureKey | null>(null);
   const [conflict, setConflict] = useState<ContactDetail | null>(null);
@@ -823,6 +825,7 @@ export function ContactForm({
               legend={t('address.legend')}
               value={values.addressParts}
               defaultCountry={values.country}
+              hideExtra={simpleNew}
               errors={Object.fromEntries(
                 ADDRESS_PARTS.flatMap((part) => {
                   const error = errors[`addressParts.${part}`];
@@ -835,31 +838,33 @@ export function ContactForm({
               onBlur={(part) => blur(`addressParts.${part}`)}
             />
           )}
-          <div className="flex flex-col gap-1">
-            <FieldLabel htmlFor={domId('country')} optional>
-              {t('contacts.form.country')}
-            </FieldLabel>
-            <CountryField
-              id={domId('country')}
-              value={values.country}
-              onChange={(code) => {
-                setValues((current) => ({ ...current, country: code }));
-                setErrors((current) => {
-                  const next = { ...current };
-                  delete next.country;
-                  return next;
-                });
-              }}
-              listLabel={countryList}
-              {...describe('country')}
-            />
-            {message('country')}
-            {countryHint && !values.country && (
-              <p role="note" className="text-muted-foreground">
-                {t('contacts.form.qrCountryHint', { text: countryHint })}
-              </p>
-            )}
-          </div>
+          {!simpleNew && (
+            <div className="flex flex-col gap-1">
+              <FieldLabel htmlFor={domId('country')} optional>
+                {t('contacts.form.country')}
+              </FieldLabel>
+              <CountryField
+                id={domId('country')}
+                value={values.country}
+                onChange={(code) => {
+                  setValues((current) => ({ ...current, country: code }));
+                  setErrors((current) => {
+                    const next = { ...current };
+                    delete next.country;
+                    return next;
+                  });
+                }}
+                listLabel={countryList}
+                {...describe('country')}
+              />
+              {message('country')}
+              {countryHint && !values.country && (
+                <p role="note" className="text-muted-foreground">
+                  {t('contacts.form.qrCountryHint', { text: countryHint })}
+                </p>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {textField('email', t('contacts.form.email'), { type: 'email', autoComplete: 'off' })}
             {textField('phone', t('contacts.form.phone'), { type: 'tel', autoComplete: 'off' })}
@@ -880,6 +885,7 @@ export function ContactForm({
                 (part) => errors[`attributes.${row.id}.parts.${part}`] ?? '',
               ).join('\u0000')}
               defaultCountry={values.country}
+              hideExtra={simpleNew}
               keysSignature={keysSignature}
               transferFailed={transferFailed === row.id}
               actions={rowActions}
@@ -976,6 +982,7 @@ const AttributeFields = memo(function AttributeFields({
   valueError,
   partErrors,
   defaultCountry,
+  hideExtra,
   keysSignature,
   transferFailed,
   actions,
@@ -989,6 +996,8 @@ const AttributeFields = memo(function AttributeFields({
   partErrors: string;
   /** Država kontakta (predizpolni državo novega naslova). */
   defaultCountry: string;
+  /** Skrije dodatno vrstico naslova (nov kontakt). */
+  hideExtra: boolean;
   /** Normalizirani ključi vseh vrstic (ločeni z `\u0000`): vrstica izloči ključe drugih vrstic iz predlogov. */
   keysSignature: string;
   transferFailed: boolean;
@@ -1076,6 +1085,7 @@ const AttributeFields = memo(function AttributeFields({
             legend={row.key.trim() || t('address.legend')}
             value={row.parts}
             defaultCountry={defaultCountry}
+            hideExtra={hideExtra}
             errors={Object.fromEntries(
               partErrors
                 .split('\u0000')

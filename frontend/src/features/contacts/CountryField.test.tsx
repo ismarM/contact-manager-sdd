@@ -13,7 +13,9 @@ import { chooseCountry, country, name, optionTexts, tr } from '../../test/smartA
 
 // Izbirno polje *Država* brez prostega besedila (FR-013-12, FR-013-13, FR-013-17; design.md 8.4).
 
-const NEW = `/groups/${GROUP_ID}/contacts/new`;
+// Država kontakta je pri novem kontaktu skrita (nov kontakt je poenostavljen), zato se polje preizkuša pri urejanju.
+const EDIT = `/groups/${GROUP_ID}/contacts/${contactDetail().id}/edit`;
+const UPDATE = `/api/groups/${GROUP_ID}/contacts/${contactDetail().id}`;
 
 const POPULAR = [
   { text: 'AT', count: 9 },
@@ -21,17 +23,22 @@ const POPULAR = [
 ];
 
 async function openForm(options: Parameters<typeof renderContactsApp>[1] = {}) {
-  const view = renderContactsApp(NEW, {
+  const view = renderContactsApp(EDIT, {
     role: 'EDITOR',
     ...options,
-    contacts: { suggestions: suggestionsServer({ country: POPULAR }), ...options.contacts },
+    contacts: {
+      get: () => ({ status: 200, body: contactDetail() }),
+      update: () => ({ status: 200, body: contactDetail({ version: 3 }) }),
+      suggestions: suggestionsServer({ country: POPULAR }),
+      ...options.contacts,
+    },
   });
-  await screen.findByRole('heading', { level: 2, name: tr('contacts.form.newHeading') });
-  return { ...view, field: screen.getByRole('combobox', { name: name.country() }) };
+  await screen.findByRole('heading', { level: 2, name: tr('contacts.form.editHeading') });
+  return { ...view, field: await screen.findByRole('combobox', { name: name.country() }) };
 }
 
 function sentBody(api: Awaited<ReturnType<typeof openForm>>['api']) {
-  return api.of('POST', `/api/groups/${GROUP_ID}/contacts`)[0]?.body as Record<string, unknown>;
+  return api.of('PUT', UPDATE)[0]?.body as Record<string, unknown>;
 }
 
 describe('CountryField', () => {
