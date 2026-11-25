@@ -14,7 +14,7 @@ import {
 } from './mergeModel';
 import type { MergeResultInput } from './types';
 
-// Čisti model tabele razlik (specs/011-dvojniki/research.md R-12; FR-011-09 … FR-011-13, FR-011-21).
+// Čisti model tabele razlik (docs/specs/011-dvojniki/research.md R-12; FR-011-09 … FR-011-13, FR-011-21).
 
 const A = compareContact({ n: 1, firstName: 'Janez', lastName: 'Novak', phone: null });
 const B = compareContact({ n: 2, firstName: 'Janez', lastName: 'Novak', phone: '041 111 222' });

@@ -13,7 +13,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Države po ISO 3166-1 alpha-2 (specs/013-pametni-atributi, FR-013-03, -13, -19; research R-01, R-03, R-07): seznam
+ * Države po ISO 3166-1 alpha-2 (docs/specs/013-pametni-atributi, FR-013-03, -13, -19; research R-01, R-03, R-07): seznam
  * uradnih kod, imena v slovenščini in angleščini, iskanje po imenu in kodi ter prepoznavanje države iz besedila.
  * Javna enota, ki jo ponovno uporabi uvoz (014). Prepoznavanje nikoli ne ugiba: samo natančno ujemanje je
  * {@link Resolution.Found}; delno ujemanje je {@link Resolution.Ambiguous}, brez ujemanja {@link Resolution.Unknown}.

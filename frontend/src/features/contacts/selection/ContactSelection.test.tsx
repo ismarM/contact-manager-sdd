@@ -31,7 +31,7 @@ import {
 import { groupId, listReply, summary } from '../../../test/groupsApi';
 import { setViewport } from '../../../test/viewport';
 
-// Izbor kontaktov v seznamu (FR-009-01, FR-009-02; specs/009-mnozicno-urejanje/plan.md – Key elements). Seznam podaja
+// Izbor kontaktov v seznamu (FR-009-01, FR-009-02; docs/specs/009-mnozicno-urejanje/plan.md – Key elements). Seznam podaja
 // test (MSW), izbor živi samo v vmesniku.
 
 const ALL = [JANEZ, ...contactSummaries(59, 2)];

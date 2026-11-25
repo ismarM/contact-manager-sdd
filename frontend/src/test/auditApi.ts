@@ -13,7 +13,7 @@ import { GROUP_ID, groupDetail, mockGroupsApi, type Reply } from './groupsApi';
 import { server } from './msw';
 import { mockProfileApi, renderApp } from './renderApp';
 
-// Gradniki odgovorov in MSW rokovalniki za API revizijske sledi (specs/005-revizijska-sled/contracts/openapi.yaml).
+// Gradniki odgovorov in MSW rokovalniki za API revizijske sledi (docs/specs/005-revizijska-sled/contracts/openapi.yaml).
 
 /** Edinstven uuid za n-ti testni vnos sledi. */
 export function entryId(n: number): string {

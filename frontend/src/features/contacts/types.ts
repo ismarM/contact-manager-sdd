@@ -1,9 +1,9 @@
 import type { UserRef } from '../groups/types';
 import type { Address, AttributeType } from '../attributes/types';
 
-// Oblike odgovorov API kontaktov (specs/004-kontakti/contracts/openapi.yaml).
+// Oblike odgovorov API kontaktov (docs/specs/004-kontakti/contracts/openapi.yaml).
 
-/** Oznaka *Povrnjeno* (specs/005-revizijska-sled/contracts/openapi.yaml – RevertInfo). */
+/** Oznaka *Povrnjeno* (docs/specs/005-revizijska-sled/contracts/openapi.yaml – RevertInfo). */
 export interface RevertInfo {
   rollbackEntryId: string;
   rolledBackAt: string;
@@ -112,7 +112,7 @@ export interface ContactFilterOptions {
   tags: string[];
 }
 
-// --- 009: izbor in množično urejanje (specs/009-mnozicno-urejanje/contracts/openapi.yaml) --------------------------
+// --- 009: izbor in množično urejanje (docs/specs/009-mnozicno-urejanje/contracts/openapi.yaml) --------------------------
 
 /** Odgovor `GET …/contact-ids`: pri `total > 10 000` je `ids` prazen in `truncated` resničen. */
 export interface ContactIds {

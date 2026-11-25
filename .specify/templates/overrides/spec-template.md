@@ -1,6 +1,6 @@
 # Feature Specification: [FEATURE NAME]
 
-**Feature Branch**: `[feature-slug]` (no number; the directory is `specs/[NNN-feature-slug]/`)
+**Feature Branch**: `[feature-slug]` (no number; the directory is `docs/specs/[NNN-feature-slug]/`)
 
 **Created**: [DATE]
 

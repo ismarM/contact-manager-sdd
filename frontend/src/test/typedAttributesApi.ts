@@ -14,7 +14,7 @@ import { server } from './msw';
 import { tr } from './smartAttributes';
 
 // Gradniki odgovorov in MSW rokovalniki za API ključev atributov
-// (specs/016-tipizirani-atributi/contracts/openapi.yaml). Zunanjih storitev OSM test ne kliče.
+// (docs/specs/016-tipizirani-atributi/contracts/openapi.yaml). Zunanjih storitev OSM test ne kliče.
 
 export { GROUP_ID };
 

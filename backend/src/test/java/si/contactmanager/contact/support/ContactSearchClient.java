@@ -10,7 +10,7 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Pomočniki testov iskanja (specs/008-iskanje/plan.md – Public Interfaces): sestavljanje poizvedbe z URL kodiranjem in
+ * Pomočniki testov iskanja (docs/specs/008-iskanje/plan.md – Public Interfaces): sestavljanje poizvedbe z URL kodiranjem in
  * branje odgovora. Ne posnema strežnika; pričakovanja piše vsak test dobesedno.
  */
 public final class ContactSearchClient {

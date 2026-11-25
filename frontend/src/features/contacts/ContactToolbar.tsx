@@ -67,6 +67,7 @@ export function ContactToolbar({
   total,
   searchRef,
   onClear,
+  clearShownBelow = false,
 }: {
   query: ContactQuery;
   update: (change: Partial<ContactQuery>, options?: UpdateOptions) => void;
@@ -78,6 +79,11 @@ export function ContactToolbar({
   /** Iskalno polje: sem preide fokus, ko se izgine gumb, s katerim je bil sprožen *Počisti filtre*. */
   searchRef: RefObject<HTMLInputElement | null>;
   onClear: () => void;
+  /**
+   * *Počisti filtre* je že v praznem stanju ali opozorilu pod orodno vrstico (FR-008-13, FR-008-14): gumb ob oznakah
+   * se skrije, da isto dejanje ni dvakrat zapored na zaslonu.
+   */
+  clearShownBelow?: boolean;
 }) {
   const { t } = useTranslation();
   const { state, retry } = useFilterOptions();
@@ -122,8 +128,9 @@ export function ContactToolbar({
       aria-label={t('contacts.search.region')}
       className="flex flex-col gap-3"
     >
-      {/* Pod 1280 px mreža: na telefonu iskanje čez vso širino, pod njim enako široka *Filtri* in *Razvrsti*. */}
-      <div className="grid grid-cols-2 items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] xl:flex xl:flex-wrap">
+      {/* Pod 1280 px mreža: na telefonu iskanje čez vso širino, pod njim *Filtri* v naravni širini in *Razvrsti* v
+          preostanku (pri enako širokih stolpcih je bilo izbrano polje pri 360 px odrezano, npr. »Priimek«). */}
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] xl:flex xl:flex-wrap">
         <SearchField
           id={searchId}
           value={searchText}
@@ -191,7 +198,7 @@ export function ContactToolbar({
 
       <div className="flex flex-wrap items-center gap-3 empty:hidden">
         <FilterChips filters={applied} onRemove={remove} fallbackFocus={filtersButton} />
-        {(applied.length > 0 || query.q !== '') && (
+        {(applied.length > 0 || query.q !== '') && !clearShownBelow && (
           <button
             type="button"
             className={`${ghostButton} text-primary`}

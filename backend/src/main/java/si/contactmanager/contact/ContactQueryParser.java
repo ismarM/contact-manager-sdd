@@ -13,7 +13,7 @@ import si.contactmanager.contact.ContactQuery.Kind;
 import si.contactmanager.shared.error.ValidationError.FieldError;
 
 /**
- * Razčleni parametre iskanja (specs/008-iskanje/research.md R-06, R-07) v {@link ContactQuery} ali seznam napak po
+ * Razčleni parametre iskanja (docs/specs/008-iskanje/research.md R-06, R-07) v {@link ContactQuery} ali seznam napak po
  * poljih; zbere vse napake naenkrat. Sprejme navaden {@code Map}, zato ni vezan na spletni sloj in ga lahko ponovno
  * uporabita 009 in 010. Obstoj dodatnega ključa v skupini preverja servis, ne razčlenjevalnik.
  */

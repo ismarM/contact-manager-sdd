@@ -2,10 +2,10 @@
 
 **Status:** v2 (2026-11-17) – prenova *Kartoteka, refined* (020); implementacija s Tailwind CSS v4 in (neobvezno) shadcn/ui, glej 13. Živi dokument; spreminja se s pull requestom (`constitution.md` §7).  
 **Velja za:** celoten React frontend (namizje, tablica, mobilni telefon, nameščen PWA).  
-**Povezano:** [`constitution.md`](constitution.md) (pravila in potek dela), [`feature-map.md`](feature-map.md) (funkcionalnosti in skupna pravila), `specs/*/spec.md` (zahteve)  
-**Viri v2** (zunanji, samo za branje): oblikovni sistem *Kartoteka, refined* (pravila in žetoni `tokens.json`) in platno *Contacts — app redesign* (25 zaslonov, 16 dialogov); povezavi sta v `specs/020-prenova-vmesnika/spec.md`.
+**Povezano:** [`constitution.md`](constitution.md) (pravila in potek dela), [`feature-map.md`](feature-map.md) (funkcionalnosti in skupna pravila), `docs/specs/*/spec.md` (zahteve)  
+**Viri v2** (zunanji, samo za branje): oblikovni sistem *Kartoteka, refined* (pravila in žetoni `tokens.json`) in platno *Contacts — app redesign* (25 zaslonov, 16 dialogov); povezavi sta v `docs/specs/020-prenova-vmesnika/spec.md`.
 
-> Ta dokument določa **videz in vedenje vmesnika**. *Kaj* aplikacija počne, določajo `specs/*/spec.md` in skupna pravila v `feature-map.md`; pri navzkrižju veljajo ti. Točna dostopna imena elementov so v prevodih (`frontend/src/i18n/`); imena v tem dokumentu so izhodišče zanje.
+> Ta dokument določa **videz in vedenje vmesnika**. *Kaj* aplikacija počne, določajo `docs/specs/*/spec.md` in skupna pravila v `feature-map.md`; pri navzkrižju veljajo ti. Točna dostopna imena elementov so v prevodih (`frontend/src/i18n/`); imena v tem dokumentu so izhodišče zanje.
 
 ---
 
@@ -594,7 +594,7 @@ Naslov »Arhivirane skupine«, ista orodna vrstica in kartice kot 9.2 (8.19); br
 | *Select* | **ne** – nativni `<select>` | razvrščanje, velikost strani |
 | *Card*, *Sidebar*, *Tooltip*, *Carousel*, *Chart* | **ne** | – (kartice in stranski pas so preprosti lastni elementi; pomembne informacije niso v namigih) |
 
-Za vsak vzorec se v funkcionalnosti 000 izbere **en** način (nativni element ali shadcn) in zabeleži v `docs/decisions/` (trenutna izbira: `2026-11-04-shadcn-ui-po-vzorcih.md`); mešanja ni.
+Za vsak vzorec se v funkcionalnosti 000 izbere **en** način (nativni element ali shadcn) in zabeleži v `docs/architecture-decisions.md` (trenutna izbira: razdelek `#2026-11-04-shadcn-ui-po-vzorcih`); mešanja ni.
 
 **Obvezna prilagoditev vsake prevzete komponente** (preveri se pri pregledu kode):
 

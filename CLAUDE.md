@@ -3,8 +3,8 @@
 ## Dokumenti
 - Pravila in potek dela: .specify/memory/constitution.md (edini dokument s pravili)
 - Skupna pravila izdelka (vloge, vrstni red preverjanj, kode napak, slovar podatkov): .specify/memory/feature-map.md
-- Oblikovanje: .specify/memory/design.md · arhitekturne odločitve: docs/decisions/
-- Zahteve funkcionalnosti: specs/NNN-ime/ (artefakti Spec Kit) · original_documentation/ je zgodovinski arhiv – ne spreminjaj ga
+- Oblikovanje: .specify/memory/design.md · arhitekturne odločitve: docs/architecture-decisions.md
+- Zahteve funkcionalnosti: docs/specs/NNN-ime/ (artefakti Spec Kit) · docs/original_documentation/ je zgodovinski arhiv – ne spreminjaj ga
 - Trenutna funkcionalnost: .specify/feature.json (veja `ime` brez številke; `scripts/feature.sh ime`)
 
 ## Preverjanje

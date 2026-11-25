@@ -12,7 +12,7 @@ import {
   withChange,
 } from './contactQuery';
 
-// Poizvedba seznama v naslovu strani (specs/008-iskanje/data-model.md, research.md R-07, R-09). Pričakovanja so
+// Poizvedba seznama v naslovu strani (docs/specs/008-iskanje/data-model.md, research.md R-07, R-09). Pričakovanja so
 // dobesedna; zapis v naslovu se primerja po parih ime/vrednost, ne po načinu kodiranja.
 
 function pairs(serialized: string): [string, string][] {

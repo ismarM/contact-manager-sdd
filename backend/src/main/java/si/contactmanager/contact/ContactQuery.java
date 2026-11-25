@@ -3,7 +3,7 @@ package si.contactmanager.contact;
 import java.util.List;
 
 /**
- * Nepremenljiva poizvedba seznama kontaktov (specs/008-iskanje/data-model.md): iskane besede, pogoji atributov, značke,
+ * Nepremenljiva poizvedba seznama kontaktov (docs/specs/008-iskanje/data-model.md): iskane besede, pogoji atributov, značke,
  * razvrščanje, stran in velikost. Brez odvisnosti od spletnega sloja, zato jo lahko ponovno uporabita 009 in 010.
  */
 public record ContactQuery(

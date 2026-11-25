@@ -1,6 +1,6 @@
 import type { GroupColor, UserRef } from '../groups/types';
 
-// Oblike odgovorov API povabil (specs/006-povabila/contracts/openapi.yaml).
+// Oblike odgovorov API povabil (docs/specs/006-povabila/contracts/openapi.yaml).
 
 /** Vloge, ki jih je mogoče ponuditi s povabilom (lastnik je samo ustanovitelj skupine). */
 export type OfferedRole = 'ADMIN' | 'EDITOR' | 'VIEWER';

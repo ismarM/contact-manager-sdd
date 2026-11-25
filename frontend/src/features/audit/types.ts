@@ -1,7 +1,7 @@
 import type { Address, AttributeType } from '../attributes/types';
 import type { UserRef } from '../groups/types';
 
-// Oblike odgovorov API revizijske sledi (specs/005-revizijska-sled/contracts/openapi.yaml).
+// Oblike odgovorov API revizijske sledi (docs/specs/005-revizijska-sled/contracts/openapi.yaml).
 
 /** Vrste dejanj, ki jih vmesnik pozna (filter, stavki); zaledje lahko zapiše tudi novejše (FR-015-18). */
 export const AUDIT_ACTIONS = [

@@ -92,11 +92,16 @@ export function GroupHeader({ group, focusTitle }: { group: GroupDetail; focusTi
               id={titleId}
               ref={title}
               tabIndex={-1}
-              className="min-w-0 flex-1 truncate text-xl font-bold outline-none"
+              className="min-w-0 truncate text-xl font-bold outline-none"
               title={group.title}
             >
               {group.title}
             </h1>
+            {/* Vloga v isti vrstici kot naziv (dolg naziv se skrajša); prej je bila sama v svoji vrstici. */}
+            <span className="flex shrink-0 items-center">
+              <RoleBadge value={group.role} />
+            </span>
+            <span aria-hidden="true" className="flex-1" />
             <GroupSwitcher triggerRef={switcher}>
               <button
                 ref={switcher}
@@ -109,7 +114,11 @@ export function GroupHeader({ group, focusTitle }: { group: GroupDetail; focusTi
               </button>
             </GroupSwitcher>
           </div>
-          <div className="flex flex-wrap items-center gap-2">{badges}</div>
+          {group.archived && (
+            <div className="flex flex-wrap items-center gap-2">
+              <ArchivedBadge permanent={group.permanentlyArchived} />
+            </div>
+          )}
         </div>
       )}
       <nav

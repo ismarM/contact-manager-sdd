@@ -1,7 +1,7 @@
 import type { Address, AttributeType } from '../../attributes/types';
 import type { Attribute } from '../types';
 
-// Kandidat iz vizitke (specs/014-uvoz-izvoz/data-model.md – ImportCandidate); enaka oblika kot v zaledju.
+// Kandidat iz vizitke (docs/specs/014-uvoz-izvoz/data-model.md – ImportCandidate); enaka oblika kot v zaledju.
 export interface CardCandidate {
   firstName: string | null;
   lastName: string | null;

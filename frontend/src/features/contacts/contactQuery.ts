@@ -2,7 +2,7 @@ import type { TFunction } from 'i18next';
 
 import { countryName, type UiLanguage } from './countries';
 
-// Poizvedba seznama kontaktov v naslovu strani (specs/008-iskanje/data-model.md, research.md R-07, R-09).
+// Poizvedba seznama kontaktov v naslovu strani (docs/specs/008-iskanje/data-model.md, research.md R-07, R-09).
 
 /** Polje pogoja ali razvrščanja: predefiniran atribut ali dodatni atribut s ključem. */
 export type FieldRef =
@@ -58,7 +58,7 @@ export const MAX_TAGS = 30;
 /** Polja, po katerih seznam ni razvrstljiv (013: samo filter). */
 const FILTER_ONLY: readonly FieldRef[] = ['company', 'country'];
 
-/** Predefinirana polja v vrstnem redu izbir (specs/008-iskanje/plan.md – Key elements; 013: *Podjetje*, *Država*). */
+/** Predefinirana polja v vrstnem redu izbir (docs/specs/008-iskanje/plan.md – Key elements; 013: *Podjetje*, *Država*). */
 export const PREDEFINED_FIELDS: readonly PredefinedField[] = PREDEFINED;
 
 function isPredefined(text: string): text is PredefinedField {

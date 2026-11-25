@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { exportFileName } from './exportFileName';
 
-// Ime datoteke izvoza (FR-010-10; specs/010-izvoz-excel/research.md R-03, data-model.md – Ime datoteke): čista funkcija,
+// Ime datoteke izvoza (FR-010-10; docs/specs/010-izvoz-excel/research.md R-03, data-model.md – Ime datoteke): čista funkcija,
 // datum je lokalni datum brskalnika.
 
 const NOV_2 = new Date(2026, 10, 2);

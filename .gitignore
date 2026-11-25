@@ -26,3 +26,4 @@ e2e/playwright-report/
 # Local configuration (see .env.example, .env.firebase.example)
 .env
 .env.firebase
+service_account_key.json

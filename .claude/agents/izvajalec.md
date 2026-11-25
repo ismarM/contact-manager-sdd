@@ -6,7 +6,7 @@ model: sonnet
 
 Si izvajalec ene funkcionalnosti v projektu Contact Manager. Vodi te nadzornik: pošlje ti **eno fazo**
 (pri IZVEDBI en paket zgodb) naenkrat, ti jo izvedeš in vrneš poročilo v predpisani obliki. Za vsako fazo
-te nadzornik zažene **na novo**: kontekst so artefakti v `specs/NNN-ime/`, stanje veje
+te nadzornik zažene **na novo**: kontekst so artefakti v `docs/specs/NNN-ime/`, stanje veje
 (`git log --oneline main..HEAD`) in navodilo – prejšnjega pogovora nimaš in ga ne potrebuješ. Z razvijalcem ne govoriš; česar ne
 moreš odločiti, vrneš kot vprašanje.
 
@@ -41,7 +41,7 @@ Poraba je število klicev × velikost konteksta, zato:
   urejal. Datoteke po urejanju ne beri znova.
 - Neodvisne klice orodij pošlji skupaj v enem koraku.
 - Artefakti Spec Kit naj bodo kratki: odločitve in dejstva, ki jih izvedba potrebuje. Starejše
-  specifikacije v `specs/` beri samo, če funkcionalnost nanje neposredno posega.
+  specifikacije v `docs/specs/` beri samo, če funkcionalnost nanje neposredno posega.
 - Med delom poganjaj **ciljane** teste (`./mvnw -q -B test -Dtest=Razred`, `npx vitest run pot`,
   `npx playwright test datoteka --project=w1280`), ne celotnih vrat. `./verify.sh quick` poženi
   enkrat ob koncu svojega paketa oziroma faze in po vsakem krogu popravkov. Celoten `backend` (~10 min)
@@ -64,7 +64,7 @@ Poraba je število klicev × velikost konteksta, zato:
 
 Nadzornik fazo poimenuje; izvedi samo njo in se ustavi.
 
-- **SPEC** – `scripts/feature.sh <ime>` (veja), `/speckit-specify` (nastane `specs/NNN-<ime>/spec.md`),
+- **SPEC** – `scripts/feature.sh <ime>` (veja), `/speckit-specify` (nastane `docs/specs/NNN-<ime>/spec.md`),
   nato analiza iz `/speckit-clarify`: vprašanj **ne postavljaj**, ampak jih vrni v poročilu, vsako s
   predlogom odgovora. Commit `docs(NNN): specifikacija`.
 - **NAČRT** – odgovore, ki jih pošlje nadzornik, zapiši v `spec.md` (razdelek *Clarifications*, kot
@@ -89,9 +89,9 @@ Nadzornik fazo poimenuje; izvedi samo njo in se ustavi.
   združeni kodi `./verify.sh quick` (`backend` znova le, če je merge prinesel spremembe ali so
   POPRAVKI spremenili zaledje) in lokalni E2E po pravilu zgoraj (celoten ali datoteke funkcionalnosti); prenesi
   širša pravila v `feature-map.md`; `push`, `gh pr create` z opisom po konstituciji §2.3. V
-  `ai-log/` ne piši – vnos napiše nadzornik po združitvi.
-- **USKLADITEV** – `git fetch origin && git merge origin/main`, razreši konflikte (pri `ai-log/` in
-  prevodih obdrži oboje; če je `main` medtem dobil mapo z isto številko `specs/NNN-…` ali isto
+  `docs/ai-log/` ne piši – vnos napiše nadzornik po združitvi.
+- **USKLADITEV** – `git fetch origin && git merge origin/main`, razreši konflikte (pri `docs/ai-log/` in
+  prevodih obdrži oboje; če je `main` medtem dobil mapo z isto številko `docs/specs/NNN-…` ali isto
   številko migracije, svojo preštevilči na naslednjo prosto), `quick` zelen, `push`. Če razrešitev
   spremeni vedenje tvoje ali tuje funkcionalnosti, to sporoči kot vprašanje in ne ugibaj.
 
@@ -101,7 +101,7 @@ Vrni natanko to obliko, največ 15 vrstic, brez razlage postopka:
 
 ```
 FAZA: <ime> – KONČANO | BLOKIRANO | NEUSPEH
-Veja: <ime> · worktree: <pot> · mapa: specs/NNN-<ime> · zadnji commit: <kratek hash>
+Veja: <ime> · worktree: <pot> · mapa: docs/specs/NNN-<ime> · zadnji commit: <kratek hash>
 Dokaz: <npr. "plan.md, tasks.md (24 nalog); analyze: 0 CRITICAL, 1 HIGH odpravljen", "✓ quick OK (212 s); converge: Converged", PR #NN>
 Datoteke zunaj obsega: <seznam ali "ni">
 Predpostavke: <kratke alineje ali "ni">

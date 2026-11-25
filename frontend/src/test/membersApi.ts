@@ -4,7 +4,7 @@ import type { Member, Members } from '../features/members/types';
 import { GROUP_ID, groupDetail, renderGroupsApp } from './groupsApi';
 import { server } from './msw';
 
-// Gradniki odgovorov in MSW rokovalniki za API članov (specs/007-clani/contracts/openapi.yaml).
+// Gradniki odgovorov in MSW rokovalniki za API članov (docs/specs/007-clani/contracts/openapi.yaml).
 
 export const MEMBER_ID = '0193c4a2-7a1f-7c3e-9b1a-cccccccccccc';
 

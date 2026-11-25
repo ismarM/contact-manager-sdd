@@ -10,11 +10,11 @@ services:
     image: node:22-alpine
     profiles: [seed]
     volumes:
-      - ./demo:/demo:ro
+      - ./docker/demo-seed.mjs:/seed/seed.mjs:ro
     environment:
       AUTH_URL: http://auth:9099
       API_URL: http://backend:8080
-    command: ["node", "/demo/seed.mjs"]
+    command: ["node", "/seed/seed.mjs"]
     depends_on:
       backend:
         condition: service_healthy

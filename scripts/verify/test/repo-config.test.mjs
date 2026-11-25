@@ -41,14 +41,20 @@ describe('Docker Compose', () => {
 });
 
 describe('Pravi Firebase (lokalni razvoj)', () => {
-  it('compose.firebase.yaml izklopi emulator, ne objavlja vrat in nima vdelanih skrivnosti', () => {
+  it('compose.firebase.yaml izklopi emulator, vrata objavi samo caddy (HTTPS) in nima vdelanih skrivnosti', () => {
     const file = read('compose.firebase.yaml');
+    // Od fec1b7c je edini vhod caddy (80 za ACME in preusmeritev, 443 TCP/UDP); frontend svoja vrata ponastavi.
+    const service = (name) => file.slice(file.indexOf(`\n  ${name}:`) + 1).split(/\n {2}\w/)[0];
+    assert.match(service('frontend'), /^\s*ports: !reset \[\]/m);
+    for (const name of ['auth', 'backend']) assert.doesNotMatch(service(name), /^\s*ports:/m);
+    const caddyPorts = [...service('caddy').matchAll(/^\s*- "(\d+:\d+(?:\/udp)?)"/gm)].map((m) => m[1]);
+    assert.deepEqual(caddyPorts, ['80:80', '443:443', '443:443/udp']);
+    assert.equal(file.match(/^\s*ports:/gm)?.length, 2, 'vrata smeta imeti samo frontend (ponastavitev) in caddy');
     assert.match(file, /auth:\s*\n\s*profiles: \[emulator\]/);
     assert.match(file, /FIREBASE_AUTH_EMULATOR_HOST: ""/);
     assert.match(file, /VITE_FIREBASE_EMULATOR: "false"/);
     assert.match(file, /user: "\$\{FIREBASE_CONTAINER_UID:-1000\}:\$\{FIREBASE_CONTAINER_GID:-1000\}"/);
     assert.match(file, /firebase-admin\.json:ro/);
-    assert.doesNotMatch(file, /^\s*ports:/m);
     assert.doesNotMatch(file, /AIza[\w-]{20,}/);
     for (const variable of ['FIREBASE_PROJECT_ID', 'FIREBASE_API_KEY', 'FIREBASE_SERVICE_ACCOUNT_FILE']) {
       assert.match(file, new RegExp(`\\$\\{${variable}:\\?`), `${variable} mora biti obvezen`);

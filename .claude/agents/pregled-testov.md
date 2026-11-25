@@ -10,12 +10,12 @@ spreminjaš: ne urejaš datotek, ne commitaš (Bash samo za `git diff`, `git log
 
 ## Vhod
 
-Klicatelj ti poda vejo ali razpon commitov in, če obstaja, mapo `specs/NNN-ime/`. Če kaj manjka, najdi
+Klicatelj ti poda vejo ali razpon commitov in, če obstaja, mapo `docs/specs/NNN-ime/`. Če kaj manjka, najdi
 sam: `git diff main...HEAD --stat`, `.specify/feature.json`.
 
 Preberi samo, kar potrebuješ:
 - razliko (`git diff main...HEAD`), najprej teste, nato kodo;
-- `specs/NNN-ime/spec.md` in tabele *Public Interfaces* v `plan.md`;
+- `docs/specs/NNN-ime/spec.md` in tabele *Public Interfaces* v `plan.md`;
 - `.specify/memory/constitution.md` §1 in §3; `.specify/memory/feature-map.md` §2, kadar sprememba
   zadeva vloge, arhivirane skupine ali kode napak.
 

@@ -16,7 +16,7 @@ import { tr } from '../../test/smartAttributes';
 import type { CompareContact } from './types';
 
 // Stran primerjave: stolpci, vrstice z izbiro vrednosti, enaka polja, značke, predogled, izločitev in razlaga o prvih 10
-// kontaktih (FR-011-08 … 12, 21; specs/011-dvojniki/plan.md – Key elements).
+// kontaktih (FR-011-08 … 12, 21; docs/specs/011-dvojniki/plan.md – Key elements).
 
 const PAGE = `/groups/${GROUP_ID}/duplicates`;
 const COMPARE = `${PAGE}/compare`;

@@ -7,7 +7,7 @@ import { readVcards } from './vcardRead';
 import type { CardCandidate, CardLanguage } from './vcardTypes';
 import { writeVcard } from './vcardWrite';
 
-// Skupne testne vizitke z zaledjem (specs/014-uvoz-izvoz/research.md R-03): isti vzorci kot `VcardMappingTest`.
+// Skupne testne vizitke z zaledjem (docs/specs/014-uvoz-izvoz/research.md R-03): isti vzorci kot `VcardMappingTest`.
 // Vitest teče v mapi frontend (verify.sh, CI).
 const SHARED = path.resolve(process.cwd(), '..', 'backend', 'src', 'test', 'resources', 'vcard');
 

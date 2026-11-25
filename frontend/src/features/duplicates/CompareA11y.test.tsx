@@ -15,7 +15,7 @@ import {
 import type { CompareContact } from './types';
 
 // Dostopnost primerjave: tipkovnica, dostopna imena, axe WCAG 2.1 A in AA (FR-011-08,
-// FR-011-12, FR-011-21; specs/011-dvojniki/plan.md – Key elements; design.md 8.11, 9.5).
+// FR-011-12, FR-011-21; docs/specs/011-dvojniki/plan.md – Key elements; design.md 8.11, 9.5).
 
 const PAGE = `/groups/${GROUP_ID}/duplicates`;
 const WCAG: RunOptions = {

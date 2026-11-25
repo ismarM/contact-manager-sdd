@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatDate } from './formatDate';
+import { formatDate, localCalendarDate } from './formatDate';
 
 describe('formatDate', () => {
   it.each([
@@ -24,4 +24,22 @@ describe('formatDate', () => {
       expect(formatDate(value, 'LOCALE', 'en')).toBe(value);
     },
   );
+});
+
+// Testi tečejo v Europe/Ljubljana (vitest.config.ts).
+describe('localCalendarDate', () => {
+  it.each([
+    ['2026-11-05T10:00:00Z', '2026-11-05'],
+    ['2026-11-25T23:30:00Z', '2026-11-26'],
+    ['2026-07-01T22:15:00.123456Z', '2026-07-02'],
+  ])(
+    'design.md 8.6a: trenutek %s je koledarski datum %s v časovnem pasu brskalnika',
+    (instant, expected) => {
+      expect(localCalendarDate(instant)).toBe(expected);
+    },
+  );
+
+  it('neveljaven trenutek ostane nespremenjen', () => {
+    expect(localCalendarDate('jutri')).toBe('jutri');
+  });
 });

@@ -12,7 +12,7 @@ import {
   resultsReply,
 } from '../../test/contactsApi';
 
-// Hitro iskanje po kontaktih (FR-008-01, FR-008-02, FR-008-10, FR-008-13, FR-008-17; specs/008-iskanje/plan.md –
+// Hitro iskanje po kontaktih (FR-008-01, FR-008-02, FR-008-10, FR-008-13, FR-008-17; docs/specs/008-iskanje/plan.md –
 // Key elements). Vsi elementi iskanja so v območju »Iskanje in filtri«. Zahtevke zabeleži MSW; zadetke podaja test.
 
 const PATH = `/groups/${GROUP_ID}/contacts`;
@@ -312,6 +312,29 @@ describe('ContactSearch', () => {
     expect(await searchBox()).toHaveValue('');
     expect(urlQuery().get('q')).toBeNull();
     expect(listQueries(api).at(-1)?.q).toBeNull();
+  });
+
+  it('FR-008-13: ob praznem stanju je »Počisti filtre« na zaslonu enkrat (ne še ob oznakah)', async () => {
+    renderContactsApp(`${PATH}?q=nihce`, {
+      role: 'VIEWER',
+      contacts: { list: (url) => resultsReply(url.searchParams.get('q') ? [] : [JANEZ])(url) },
+    });
+    await screen.findByRole('heading', { name: 'Ni kontaktov, ki ustrezajo filtrom.' });
+
+    expect(
+      within(screen.getByRole('main')).getAllByRole('button', { name: 'Počisti filtre' }),
+    ).toHaveLength(1);
+  });
+
+  it('FR-008-12: z zadetki je »Počisti filtre« ob iskanju (prazno stanje ni prikazano)', async () => {
+    renderContactsApp(`${PATH}?q=novak`, {
+      role: 'VIEWER',
+      contacts: { list: resultsReply([JANEZ]) },
+    });
+    await screen.findByRole('link', { name: 'Janez Novak' });
+
+    const search = within(screen.getByRole('search', { name: 'Iskanje in filtri' }));
+    expect(search.getByRole('button', { name: 'Počisti filtre' })).toBeInTheDocument();
   });
 
   it('FR-008-13: *Nazaj* po čiščenju vrne iskalni niz v polje (navigacija od zunaj)', async () => {

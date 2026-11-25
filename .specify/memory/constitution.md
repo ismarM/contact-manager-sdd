@@ -14,7 +14,7 @@ dnevnika sprememb testov in brez dokumentov, ki jih Spec Kit sam ne pozna.
 
 ### I. Specifikacija vodi delo, koda in testi ga dokazujejo
 
-- Vsaka funkcionalnost ima mapo `specs/NNN-ime/` z artefakti Spec Kit. `spec.md` določa *kaj* in
+- Vsaka funkcionalnost ima mapo `docs/specs/NNN-ime/` z artefakti Spec Kit. `spec.md` določa *kaj* in
   *zakaj*, `plan.md` javne vmesnike (endpointi, poti) in podatkovni model, `tasks.md` delo.
 - Zahteve imajo ID `FR-NNN-XX` in vsaj en scenarij *Given/When/Then*; zahteve nad podatki skupine
   imajo negativne scenarije (neprijavljen, nečlan, nezadostna vloga, arhivirana skupina).
@@ -80,7 +80,7 @@ dnevnika sprememb testov in brez dokumentov, ki jih Spec Kit sam ne pozna.
   na vseh njegovih napravah, kopija v brskalniku velja tudi pred prijavo in po odjavi. Oboje je v
   izvozu podatkov in se izbriše z računom.
 - Edina izjema od prepovedi klicev na tuje storitve je kartografska storitev OpenStreetMap (Nominatim,
-  Photon, ploščice; `docs/decisions/2026-11-16-kartografska-storitev-osm.md`): kliče jo samo zaledje,
+  Photon, ploščice; `docs/architecture-decisions.md#2026-11-16-kartografska-storitev-osm`): kliče jo samo zaledje,
   samo na izrecno zahtevo uporabnika (gumb zemljevida, samodokončanje naslova, *Razčleni naslov*),
   pošlje samo besedilo naslova brez podatkov uporabnika in kontakta, nič se ne shrani (predpomnilnik
   samo v pomnilniku, koordinate se ne hranijo) in besedilo naslova se ne beleži. Brskalnik ne kliče
@@ -103,7 +103,7 @@ dnevnika sprememb testov in brez dokumentov, ki jih Spec Kit sam ne pozna.
 | Velikost | Primeri | Postopek |
 |---|---|---|
 | **Majhna** | popravek napake, sprememba besedila ali videza, manjša dopolnitev obstoječega zaslona ali endpointa | veja → koda in testi → `./verify.sh quick` → PR. Brez artefaktov Spec Kit; če sprememba spremeni zahtevo iz obstoječega `spec.md`, se ta popravi v istem PR. |
-| **Funkcionalnost** | nova funkcionalnost ali opazna sprememba obstoječe | celoten cikel Spec Kit (§2.3) v mapi `specs/NNN-ime/` |
+| **Funkcionalnost** | nova funkcionalnost ali opazna sprememba obstoječe | celoten cikel Spec Kit (§2.3) v mapi `docs/specs/NNN-ime/` |
 | **Tvegana funkcionalnost** | avtentikacija in avtorizacija, nov tip klicatelja (npr. API ključi), migracija obstoječih podatkov, zunanje storitve, osebni podatki | celoten cikel; vprašanja o varnosti in podatkih vedno odloči razvijalec, `plan.md` se pred nalogami pokaže razvijalcu |
 
 V dvomu izberi manjšo velikost; če se med delom izkaže, da sprememba posega v varnost ali
@@ -111,7 +111,7 @@ podatkovni model, jo povišaj.
 
 ### 2.2 Dokumenti funkcionalnosti
 
-- Mapa je `specs/NNN-ime/` (zaporedna številka, ki jo dodeli `/speckit-specify`), veja je `ime`
+- Mapa je `docs/specs/NNN-ime/` (zaporedna številka, ki jo dodeli `/speckit-specify`), veja je `ime`
   brez številke. `scripts/feature.sh ime` ustvari ali preklopi vejo in, če mapa že obstaja, nastavi
   kazalec `.specify/feature.json`.
 - Nastajajo **samo artefakti Spec Kit**: `spec.md`, `checklists/requirements.md`, `plan.md`,
@@ -173,23 +173,24 @@ Agent dela sam od naloge do PR. Ustavi se in vpraša samo, če:
 - Zapiše se samo **arhitekturna odločitev**, ki je iz kode in `plan.md` ni mogoče razbrati: nova
   knjižnica ali zunanja storitev, sprememba avtentikacije, pomembna odločitev o shemi, odstop od
   teh pravil.
-- Ena datoteka na odločitev v `docs/decisions/LLLL-MM-DD-kratko-ime.md` (predloga v
-  `docs/decisions/README.md`). Brez skupnega številčenja, zato ni konfliktov med vejami.
+- Vse odločitve so v `docs/architecture-decisions.md`, ena na razdelek s sidrom `LLLL-MM-DD-kratko-ime`
+  (predloga na vrhu datoteke); nova gre na konec. Brez skupnega številčenja; ob sočasnih vejah je konflikt
+  le na koncu datoteke in se razreši z ohranitvijo obeh razdelkov.
 - Dnevnik `DECISIONS.md` prve različice (`D-01` … `D-104`) je odstranjen in ostaja v zgodovini Gita
   (§6); dnevnika odločitev, sprememb testov in utišanj ni več.
 - Vse drugo (spremembe testov, predpostavke, manjše izbire) sodi v opis commita ali PR.
 
-### 2.7 Seje z agentom in `ai-log/`
+### 2.7 Seje z agentom in `docs/ai-log/`
 
 - Ena seja za eno rezino dela. Podagenti dobijo kratek, samostojen opis naloge; ne dedujejo celotnega
   pogovora, razen ko je to nujno.
 - V kontekst se nalaga samo, kar naloga potrebuje: ta dokument, po potrebi ustrezni razdelek
   `feature-map.md` ali `design.md`, in `spec.md` trenutne funkcionalnosti.
 - Lokalno se poganja `quick` in prizadeti testi; `full` teče v CI.
-- `ai-log/` ostaja: za vsako sejo kratek vnos v `ai-log/<ime>.md` (datum, veja, kaj je bilo
-  naročeno in narejeno, težave) in vrstice s porabo v `ai-log/token-report-<ime>.md`. Številke
+- `docs/ai-log/` ostaja: za vsako sejo kratek vnos v `docs/ai-log/<ime>.md` (datum, veja, kaj je bilo
+  naročeno in narejeno, težave) in vrstice s porabo v `docs/ai-log/token-report-<ime>.md`. Številke
   izpiše `node scripts/token-report.mjs` iz dnevnikov seje (glavna seja in vsak podagent); ne
-  ocenjujejo se in ne računa jih model. Vnosi v `ai-log/` se commitajo **neposredno v `main`**, nikoli
+  ocenjujejo se in ne računa jih model. Vnosi v `docs/ai-log/` se commitajo **neposredno v `main`**, nikoli
   prek ločene veje ali PR.
 
 ### 2.8 Samodejno uvajanje (`/rollout`)
@@ -210,8 +211,8 @@ funkcionalnosti od naročila do združenega PR. Zanj veljajo vsa pravila tega do
   človeškega pregleda pred združitvijo v tem načinu ni, zato opis PR navaja sprejete predpostavke
   in neodpravljene ugotovitve. Zaščite veje se ne obide.
 - Konflikte razrešijo delavci po vsaki združitvi; nadzornik pričakovane konflikte sporoči vnaprej.
-- Vnos v `ai-log/` (celoten *Seja N* in vrstice porabe) napiše nadzornik po združitvi, neposredno v
-  `main`; delavci v `ai-log/` ne pišejo. Vsako fazo izvede nov, kratkoživ delavec (Sonnet; Opus le
+- Vnos v `docs/ai-log/` (celoten *Seja N* in vrstice porabe) napiše nadzornik po združitvi, neposredno v
+  `main`; delavci v `docs/ai-log/` ne pišejo. Vsako fazo izvede nov, kratkoživ delavec (Sonnet; Opus le
   za plan tvegane funkcionalnosti in zgodbe z avtentikacijo ali avtorizacijo).
 
 ## 3. Pravila testov
@@ -289,18 +290,18 @@ največ 20 vrstic; celoten izpis zadnjega zagona je v `.verify/last.log`.
   Testing Library, MSW, `vitest-axe` · Playwright, `@axe-core/playwright` · gitleaks · GitHub
   Actions · GitHub Spec Kit 1.2.6 (`specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`, `converge`).
 
-Nova knjižnica se uvede s točno različico in omembo v opisu PR; zapis v `docs/decisions/` dobi, če
+Nova knjižnica se uvede s točno različico in omembo v opisu PR; zapis v `docs/architecture-decisions.md` dobi, če
 gre za arhitekturno odločitev (§2.6).
 
 ## 6. Prva različica in arhiv
 
-- Specifikacije 000–012 ostajajo v `specs/` kot zapis prve različice in vzorec za nove. Vzdržujejo
+- Specifikacije 000–012 ostajajo v `docs/specs/` kot zapis prve različice in vzorec za nove. Vzdržujejo
   se po §1 I: popravijo se, ko se njihova funkcionalnost spremeni.
 - `DECISIONS.md`, datoteke `traceability.md` in dokument `workflow.md` so odstranjeni; ostajajo v
   zgodovini Gita (`git show 2365b23:DECISIONS.md`, `git show 2365b23:.specify/memory/workflow.md`).
-- Prvotni dokumenti v `original_documentation/` so zgodovinski arhiv in se ne spreminjajo.
+- Prvotni dokumenti v `docs/original_documentation/` so zgodovinski arhiv in se ne spreminjajo.
 - Oznake v komentarjih kode in imenih testov (`FR-NNN-XX`, `SC-NNN`, `D-NN`, `R-NN`, `T0NN`) kažejo
-  v `specs/NNN-ime/`. Oznake `D-NN` ter sklici na `DECISIONS.md`, `traceability.md` in `workflow.md`
+  v `docs/specs/NNN-ime/`. Oznake `D-NN` ter sklici na `DECISIONS.md`, `traceability.md` in `workflow.md`
   so zgodovinski in kažejo v zgodovino Gita.
 
 ## 7. Upravljanje

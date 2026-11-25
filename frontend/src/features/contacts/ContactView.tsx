@@ -27,6 +27,7 @@ import {
 } from '../../shared/ui/styles';
 import { useAuth } from '../auth/authContext';
 import { downloadBlob } from '../../shared/download';
+import { localCalendarDate } from '../formats/formatDate';
 import { useFormatters } from '../formats/useFormatters';
 import { useGroup } from '../groups/groupContext';
 import { ShowOnMapButton } from '../map/ShowOnMapButton';
@@ -179,8 +180,9 @@ export function ContactView({ contactId }: { contactId: string }) {
               </h2>
               <p className="text-sm text-muted-foreground">
                 {t('contacts.view.meta', {
-                  created: format.date(contact.createdAt),
-                  updated: format.date(contact.updatedAt),
+                  // design.md 8.6a: datum (ne trenutek ISO) po izbrani obliki zapisa (FR-016-16).
+                  created: format.date(localCalendarDate(contact.createdAt)),
+                  updated: format.date(localCalendarDate(contact.updatedAt)),
                   who,
                 })}
               </p>

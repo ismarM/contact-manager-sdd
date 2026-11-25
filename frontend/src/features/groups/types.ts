@@ -1,4 +1,4 @@
-// Oblike odgovorov API skupin (specs/002-skupine/contracts/openapi.yaml).
+// Oblike odgovorov API skupin (docs/specs/002-skupine/contracts/openapi.yaml).
 
 export const ROLES = ['OWNER', 'ADMIN', 'EDITOR', 'VIEWER'] as const;
 export type Role = (typeof ROLES)[number];

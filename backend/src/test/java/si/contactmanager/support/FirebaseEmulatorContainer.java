@@ -22,12 +22,14 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Firebase Auth Emulator prek Testcontainers (research R-05 v 000, R-09 v 001). Slika se zgradi iz
- * {@code firebase/Dockerfile}, ki ga uporablja tudi Docker Compose.
+ * {@code docker/firebase-emulator.Dockerfile}, ki ga uporablja tudi Docker Compose.
  */
 public final class FirebaseEmulatorContainer extends GenericContainer<FirebaseEmulatorContainer> {
 
     public static final String PROJECT_ID = "demo-contact-manager";
     public static final int PORT = 9099;
+    private static final Path DOCKER_DIR =
+            Path.of("..", "docker").toAbsolutePath().normalize();
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
@@ -59,8 +61,8 @@ public final class FirebaseEmulatorContainer extends GenericContainer<FirebaseEm
 
     public FirebaseEmulatorContainer() {
         super(new ImageFromDockerfile("contact-manager-firebase-test", false)
-                .withFileFromPath(
-                        ".", Path.of("..", "firebase").toAbsolutePath().normalize()));
+                .withFileFromPath("Dockerfile", DOCKER_DIR.resolve("firebase-emulator.Dockerfile"))
+                .withFileFromPath("firebase.json", DOCKER_DIR.resolve("firebase.json")));
         withExposedPorts(PORT);
         waitingFor(Wait.forHttp("/").forPort(PORT).withStartupTimeout(Duration.ofSeconds(120)));
     }

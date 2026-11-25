@@ -31,7 +31,7 @@ import {
   listReady,
 } from '../../../test/selection';
 
-// Dialog »Uredi izbrane« (FR-009-06, FR-009-07, FR-009-08, FR-009-09, FR-009-12, FR-009-17; specs/009-mnozicno-urejanje/
+// Dialog »Uredi izbrane« (FR-009-06, FR-009-07, FR-009-08, FR-009-09, FR-009-12, FR-009-17; docs/specs/009-mnozicno-urejanje/
 // plan.md – Key elements). Seznam, preverjanje in operacijo podaja test (MSW).
 
 const UPDATE = bulkPath('bulk-update');

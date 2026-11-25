@@ -21,7 +21,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Ločena varnostna veriga za programski vmesnik {@code /v1/**} (019, research R-02;
- * docs/decisions/2026-11-16-api-kljuc-jwt.md): stateless, brez CSRF, CORS, HTTP Basic in obrazca; velja samo API ključ
+ * docs/architecture-decisions.md#2026-11-16-api-kljuc-jwt): stateless, brez CSRF, CORS, HTTP Basic in obrazca; velja samo API ključ
  * v {@code Authorization: Bearer cmk_…}. Firebase žeton tu ne velja (ni {@code oauth2ResourceServer}). Javen je samo
  * {@code GET /v1/openapi.json}. Vrstni red: CardDAV {@code @Order(1)}, ta veriga {@code @Order(2)}, veriga
  * {@code /api} ({@code SecurityConfig}) za vse ostalo.

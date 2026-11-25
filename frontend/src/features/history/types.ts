@@ -2,7 +2,7 @@ import type { Address, AttributeType } from '../attributes/types';
 import type { ChangeField, PhotoChange } from '../audit/types';
 import type { UserRef } from '../groups/types';
 
-// Oblike odgovorov API zgodovine kontakta (specs/015-napredna-revizija/contracts/openapi.yaml).
+// Oblike odgovorov API zgodovine kontakta (docs/specs/015-napredna-revizija/contracts/openapi.yaml).
 
 export type ContactStatus = 'ACTIVE' | 'DELETED' | 'MERGED';
 export type ChangeKind = 'ADDED' | 'CHANGED' | 'REMOVED';

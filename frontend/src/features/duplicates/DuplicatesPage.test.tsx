@@ -6,7 +6,7 @@ import { i18n } from '../../i18n';
 import { duplicatesReply, GROUP_ID, renderDuplicatesApp } from '../../test/duplicatesApi';
 
 // Zavihek, razlaga za bralca in arhivirano skupino ter iskalni obrazec (FR-011-01, FR-011-02, FR-011-19;
-// specs/011-dvojniki/plan.md – Pages and routes, Key elements).
+// docs/specs/011-dvojniki/plan.md – Pages and routes, Key elements).
 
 const PAGE = `/groups/${GROUP_ID}/duplicates`;
 

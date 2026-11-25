@@ -36,7 +36,7 @@ veje in odpirajo PR-je ter da ti PR **združiš, ko je CI zelen** (konstitucija 
   kontrolnim seznamom (korak 3, faza NAČRT).
 - **Delavci so kratkoživi:** vsako fazo (pri IZVEDBI vsak paket zgodb) izvede **nov** delavec z
   navodilom po predlogi; prejšnjega ne nadaljuješ s `SendMessage`, razen da mu v isti fazi pošlješ
-  popravek oblike. Kontekst nosijo artefakti v `specs/NNN-ime/` in veja – tako se kontekst
+  popravek oblike. Kontekst nosijo artefakti v `docs/specs/NNN-ime/` in veja – tako se kontekst
   delavcev ne kopiči (poraba je število klicev × velikost konteksta).
 - **Ne ugibaš in ne napoveduješ izidov:** dokler delavec ali CI ne poroča, je faza odprta. Ne
   povprašuješ v zanki; na delavce in CI čakaš z obvestili (`run_in_background`).
@@ -55,7 +55,7 @@ Razvijalec (ai-log): <ime>
 ## Načrt
 - vrstni red združevanja: A → B → C
 - valovi: 1: A, B · 2: C (po planu A)
-- dodeljeno: mape A=specs/013-…, B=specs/014-… · migracije A=V9, B=V10 · skupne datoteke: App.tsx (A, B), sl.json/en.json (vsi)
+- dodeljeno: mape A=docs/specs/013-…, B=docs/specs/014-… · migracije A=V9, B=V10 · skupne datoteke: App.tsx (A, B), sl.json/en.json (vsi)
 ## Funkcionalnosti
 | Ime | Velikost | Delavec (id) | Worktree | Veja | Mapa specs | Faza | PR | Krogi CI |
 ## Odločitve nadzornika
@@ -81,9 +81,9 @@ Razvijalec (ai-log): <ime>
 4. Vsako funkcionalnost razvrsti po konstituciji §2.1 (majhna / funkcionalnost / tvegana) in ji
    določi ime (`[a-z][a-z0-9-]*`). Funkcionalnostim po vrsti dodeli **številke map**
    (`ls specs | tail -n 1` → naslednje proste), da jih vzporedni delavci ne izberejo enakih; delavec
-   jo poda `/speckit-specify` kot `SPECIFY_FEATURE_DIRECTORY=specs/NNN-ime`. Majhna sprememba nima
+   jo poda `/speckit-specify` kot `SPECIFY_FEATURE_DIRECTORY=docs/specs/NNN-ime`. Majhna sprememba nima
    mape in preskoči fazi SPEC in NAČRT.
-5. Ime razvijalca za `ai-log/<ime>.md` določi iz obstoječih datotek v `ai-log/` in
+5. Ime razvijalca za `docs/ai-log/<ime>.md` določi iz obstoječih datotek v `docs/ai-log/` in
    `git config user.name`; če ni očitno, ga vprašaj v posvetu.
 6. Za vsako funkcionalnost ustvari worktree in vejo, ki ju uporabljajo vsi njeni delavci:
    `git worktree add .claude/worktrees/<ime> -b <ime> main` (oziroma obstoječo vejo brez `-b`).
@@ -99,19 +99,19 @@ funkcionalnostmi hkrati. Vrne naj samo tabelo, brez izpisov datotek:
   `e2e/tests/support/**`, `.specify/memory/feature-map.md`), in odvisnosti od drugih naročenih
   funkcionalnosti;
 - zadnjo številko migracije v `backend/src/main/resources/db/migration/`;
-- obstoječe specifikacije (`specs/NNN-ime/`), v katere funkcionalnost posega.
+- obstoječe specifikacije (`docs/specs/NNN-ime/`), v katere funkcionalnost posega.
 
 Vsak par funkcionalnosti razvrsti:
 
 | Razmerje | Pomen | Ukrep |
 |---|---|---|
-| neodvisni | ločene mape, brez skupnih datotek razen prevodov in `ai-log/` | vzporedno, isti val |
+| neodvisni | ločene mape, brez skupnih datotek razen prevodov in `docs/ai-log/` | vzporedno, isti val |
 | skupne točke | ista skupna datoteka ali obe z migracijo | vzporedno; dodeli številke migracij in vrstni red združevanja, drugi se uskladi po prvi združitvi |
 | odvisni | B potrebuje model ali endpointe A | A najprej do konca faze NAČRT, nato B začne svojo fazo NAČRT s potjo do `plan.md`, `data-model.md` in `contracts/` funkcionalnosti A; A se združi pred B |
 | prekrivajoči | isti zaslon, ista tabela ali iste datoteke v jedru | **ne vzporedno**: zaporedna valova ali združitev v eno funkcionalnost |
 
 Omejitve števila funkcionalnosti ni; število valov določi ta analiza. Prevodi (`sl.json`,
-`en.json`) in `ai-log/` so vedno skupna točka – konflikt je pričakovan in ga razreši delavec v
+`en.json`) in `docs/ai-log/` so vedno skupna točka – konflikt je pričakovan in ga razreši delavec v
 fazi USKLADITEV.
 
 ### 2. Specifikacije in razjasnitev (edina načrtovana točka z razvijalcem)
@@ -125,7 +125,7 @@ fazi USKLADITEV.
    5-urno omejitev porabe in prekine delavca sredi zgodbe). Vse delavce zaženi v enem koraku – tudi tiste iz
    kasnejših valov, ker specifikacija ne potrebuje plana predhodnice.
 2. Ko poročila prispejo, preveri dokaz (`git -C <worktree> log --oneline -2`, obstoj
-   `specs/NNN-ime/spec.md`) in **razvrsti vprašanja** razjasnitve (spodaj).
+   `docs/specs/NNN-ime/spec.md`) in **razvrsti vprašanja** razjasnitve (spodaj).
 3. **Posvet:** razvijalcu v enem sporočilu pokaži
    - načrt: valovi, vrstni red združevanja, dodeljene številke map in migracij;
    - pričakovane konflikte (med funkcionalnostmi in z odprtim delom sodelavca) in kako bodo rešeni;
@@ -144,12 +144,12 @@ niso izpolnjena.
 
 | Faza | Koraki Spec Kit | Vrata, preden greš naprej |
 |---|---|---|
-| **NAČRT** (delavec) | odgovori razjasnitve v `spec.md` → `/speckit-plan` → `/speckit-tasks` → `/speckit-analyze` z enim krogom popravkov | v mapi obstajata `plan.md` in `tasks.md`; `grep -c "NEEDS CLARIFICATION" spec.md` je 0; poročilo navaja izid analize brez odprtih CRITICAL. Kontrolni seznam nadzornika (z `grep`, brez branja celote): `plan.md` ima tabele *Public Interfaces*; `tasks.md` ima za vsako vrstico teh tabel nalogo testa matrike izolacije (predloga nalog); `data-model.md` navede migracijo; nove odvisnosti imajo različico in zapis v `docs/decisions/`; zgodbe v `tasks.md` so ločene faze; **združljivost testnih podatkov**: če funkcionalnost zaostri preverjanje ali spremeni kanonično obliko obstoječih podatkov (npr. telefon, naslov, obvezno polje), ima Foundational nalogo, ki z `grep` najde in posodobi fixture zaledja, pomočnike in podatke E2E (`e2e/tests/support/**`, `e2e/tests/*.spec.ts`) ter pričakovane vrednosti obstoječih testov – v eni nalogi, ne po zgodbah. Pri **tvegani** funkcionalnosti povzetek javnih vmesnikov in podatkovnega modela iz poročila pokaži razvijalcu, preden pošlješ IZVEDBO |
+| **NAČRT** (delavec) | odgovori razjasnitve v `spec.md` → `/speckit-plan` → `/speckit-tasks` → `/speckit-analyze` z enim krogom popravkov | v mapi obstajata `plan.md` in `tasks.md`; `grep -c "NEEDS CLARIFICATION" spec.md` je 0; poročilo navaja izid analize brez odprtih CRITICAL. Kontrolni seznam nadzornika (z `grep`, brez branja celote): `plan.md` ima tabele *Public Interfaces*; `tasks.md` ima za vsako vrstico teh tabel nalogo testa matrike izolacije (predloga nalog); `data-model.md` navede migracijo; nove odvisnosti imajo različico in zapis v `docs/architecture-decisions.md`; zgodbe v `tasks.md` so ločene faze; **združljivost testnih podatkov**: če funkcionalnost zaostri preverjanje ali spremeni kanonično obliko obstoječih podatkov (npr. telefon, naslov, obvezno polje), ima Foundational nalogo, ki z `grep` najde in posodobi fixture zaledja, pomočnike in podatke E2E (`e2e/tests/support/**`, `e2e/tests/*.spec.ts`) ter pričakovane vrednosti obstoječih testov – v eni nalogi, ne po zgodbah. Pri **tvegani** funkcionalnosti povzetek javnih vmesnikov in podatkovnega modela iz poročila pokaži razvijalcu, preden pošlješ IZVEDBO |
 | **IZVEDBA** (nov delavec za vsak paket zgodb: Setup + Foundational, US1, US2 … – glej *Paketi zgodb*) | `/speckit-implement` za naloge paketa → `./verify.sh quick` in **ciljani** IT zaledja (`./mvnw -q -B verify -Dit.test=<razredi>`: novi in spremenjeni `*IT`/`*SecurityIT` ter IT paketov, ki jih paket spremeni); commit po zgodbi | poročilo z `✓ quick OK` in izidom ciljanih IT; naloge paketa `[x]`; `git -C <worktree> status --short` prazen. Naslednji paket pošlješ šele po vratih prejšnjega |
 | **KONVERGENCA** (nov delavec) | `/speckit-converge` (največ dve ponovitvi) → na koncu **celoten** `./verify.sh backend` (prvi celoten tek po izvedbi) | poročilo z izidom converge in `✓ backend OK`; `grep -c "^- \[ \]" tasks.md` je 0; `git -C <worktree> status --short` prazen; `git -C <worktree> diff main...HEAD --stat \| tail -n 1` kaže spremembe v pričakovanih mapah |
-| **Pregled** (ti) | svež podagent `pregled-testov` (`model: "sonnet"`) z vejo in mapo `specs/NNN-ime/` | zažene se **enkrat**; ugotovitve posreduješ delavcu dobesedno |
+| **Pregled** (ti) | svež podagent `pregled-testov` (`model: "sonnet"`) z vejo in mapo `docs/specs/NNN-ime/` | zažene se **enkrat**; ugotovitve posreduješ delavcu dobesedno |
 | **POPRAVKI** (delavec) | odprava utemeljenih ugotovitev | poročilo KONČANO; neodpravljene ugotovitve so naštete (gredo v opis PR) |
-| **PR** (nov delavec) | uskladitev z `main` (merge `origin/main`, preverba številke migracije) → `quick` na združeni kodi; `backend` znova le, če je merge prinesel spremembe ali so POPRAVKI spremenili zaledje → lokalni E2E: **celoten** `./verify.sh e2e`, kadar funkcionalnost spremeni skupne datoteke (`frontend/src/shared/**`, `frontend/src/app/**`, obrazec kontakta, `e2e/tests/support/**`) ali preverjanje oziroma prikaz obstoječih podatkov; sicer datoteke E2E funkcionalnosti (w360, w1280) → `feature-map.md` → `push`, `gh pr create`; **brez** `ai-log/` | številka PR; `gh pr view <n> --json state,mergeable,headRefName` |
+| **PR** (nov delavec) | uskladitev z `main` (merge `origin/main`, preverba številke migracije) → `quick` na združeni kodi; `backend` znova le, če je merge prinesel spremembe ali so POPRAVKI spremenili zaledje → lokalni E2E: **celoten** `./verify.sh e2e`, kadar funkcionalnost spremeni skupne datoteke (`frontend/src/shared/**`, `frontend/src/app/**`, obrazec kontakta, `e2e/tests/support/**`) ali preverjanje oziroma prikaz obstoječih podatkov; sicer datoteke E2E funkcionalnosti (w360, w1280) → `feature-map.md` → `push`, `gh pr create`; **brez** `docs/ai-log/` | številka PR; `gh pr view <n> --json state,mergeable,headRefName` |
 | **CI** (ti) | `gh pr checks <n> --watch` v ozadju (brez `--fail-fast`, da se počaka konec vseh poslov) | vsi posli (`quick`, `backend`, `e2e`) uspešni. Ob padcu novemu delavcu pošlji izpis `scripts/ci-failures.sh --pr <n>` in fazo POPRAVKI; največ **3** krogi, nato se obrneš na razvijalca |
 | **Združitev** (ti) | po vrstnem redu iz načrta | CI zelen **in** `mergeable == MERGEABLE` → `gh pr merge <n> --merge --delete-branch` |
 | **USKLADITEV** (delavci vseh še odprtih vej) | takoj po vsaki združitvi | poročilo KONČANO, nato znova faza CI |
@@ -173,8 +173,8 @@ niso izpolnjena.
 
 1. Ko so vsi PR-ji združeni (ali predani razvijalcu): `git switch main && git pull --ff-only`.
 2. **ai-log (po združitvi, neposredno v `main`, nikoli prek PR):** `node scripts/token-report.mjs`
-   (zadnja seja = ta; vsebuje tudi vse podagente) → vrstice seje v `ai-log/token-report-<ime>.md`
-   (oblika obstoječih vrstic, skupni seštevek); vnos *Seja N* v `ai-log/<ime>.md` v obliki prejšnjih
+   (zadnja seja = ta; vsebuje tudi vse podagente) → vrstice seje v `docs/ai-log/token-report-<ime>.md`
+   (oblika obstoječih vrstic, skupni seštevek); vnos *Seja N* v `docs/ai-log/<ime>.md` v obliki prejšnjih
    sej – vse faze od specifikacije do združitve (tabela korakov in *Povzetek seje N*), iz stanja in
    poročil delavcev. Commit `docs(ai-log): seja N – <funkcionalnosti>`, `git push origin main`. To
    je edina sprememba, ki jo narediš sam.
@@ -192,7 +192,7 @@ Funkcionalnost: <ime> – <opis v 1–3 stavkih>
 Velikost: <majhna | funkcionalnost | tvegana>
 Faza: <SPEC | NAČRT | IZVEDBA – paket <npr. Setup+Foundational, US1, US4+US5, US6 (zaledje)> | KONVERGENCA | POPRAVKI | PR | USKLADITEV>
 Worktree: .claude/worktrees/<ime> (cd vanj; veja <ime>) · stanje veje: <git log --oneline main..HEAD | head -5>
-Mapa: specs/<NNN>-<ime> (SPECIFY_FEATURE_DIRECTORY za /speckit-specify)
+Mapa: docs/specs/<NNN>-<ime> (SPECIFY_FEATURE_DIRECTORY za /speckit-specify)
 Obseg datotek: <mape in paketi iz analize>
 Skupne datoteke, ki jih smeš spremeniti: <seznam>
 Dodeljeno: migracija V<n> (preveri glede na main v fazi PR) · vrstni red združevanja: <mesto>
@@ -229,7 +229,7 @@ Druge funkcionalnosti medtem tečejo naprej.
 
 - **Delavec ne odgovori v obliki ali je zašel iz faze:** enkrat ga popravi s kratkim sporočilom
   (kaj manjka). Če se ponovi, zaženi novega delavca na **isti veji in worktreeju** z navodilom, ki
-  vsebuje pot do mape `specs/NNN-ime/`, stanje veje (`git log --oneline main..HEAD`) in preostanek
+  vsebuje pot do mape `docs/specs/NNN-ime/`, stanje veje (`git log --oneline main..HEAD`) in preostanek
   faze – artefakti Spec Kit nosijo ves kontekst, ki ga novi delavec potrebuje.
 - **Delavec presega fazo** (npr. v SPEC že piše kodo): ne zavrzi dela; zabeleži in nadaljuj z vrati
   naslednje faze.

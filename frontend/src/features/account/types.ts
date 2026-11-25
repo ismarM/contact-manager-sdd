@@ -1,4 +1,4 @@
-// Oblike odgovorov funkcionalnosti 012 (specs/012-moji-podatki/contracts/openapi.yaml).
+// Oblike odgovorov funkcionalnosti 012 (docs/specs/012-moji-podatki/contracts/openapi.yaml).
 
 export interface MyData {
   formatVersion: number;

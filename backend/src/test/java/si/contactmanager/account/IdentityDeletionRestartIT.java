@@ -12,6 +12,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.logging.LogLevel;
+import org.springframework.boot.logging.LoggingSystem;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -38,6 +40,11 @@ class IdentityDeletionRestartIT {
 
     private ConfigurableApplicationContext first;
     private ConfigurableApplicationContext second;
+    // Samostojni konteksti nastavijo raven korenskega dnevnika (WARN) za ves JVM; po testu se vrne prejšnja, sicer
+    // kasnejši testi z deljenim kontekstom ne vidijo svojih vrstic INFO (CapturedOutput, npr. ApiKeyAuthenticationIT).
+    private static final LoggingSystem LOGGING = LoggingSystem.get(IdentityDeletionRestartIT.class.getClassLoader());
+    private final LogLevel rootLevel =
+            LOGGING.getLoggerConfiguration(LoggingSystem.ROOT_LOGGER_NAME).getEffectiveLevel();
 
     @AfterEach
     void cleanUp() {
@@ -47,6 +54,7 @@ class IdentityDeletionRestartIT {
                 context.close();
             }
         }
+        LOGGING.setLogLevel(LoggingSystem.ROOT_LOGGER_NAME, rootLevel);
     }
 
     private ConfigurableApplicationContext start(boolean scheduler) {

@@ -19,7 +19,7 @@ import {
 import type { Reply } from '../../../test/groupsApi';
 import { actionBar, headerBox, LIST, listReady, noActionBar } from '../../../test/selection';
 
-// Množični izbris (FR-009-13, FR-009-17; specs/009-mnozicno-urejanje/plan.md – Key elements; design.md 8.11).
+// Množični izbris (FR-009-13, FR-009-17; docs/specs/009-mnozicno-urejanje/plan.md – Key elements; design.md 8.11).
 
 const DELETE = bulkPath('bulk-delete');
 const CHECK = bulkPath('selection-check');

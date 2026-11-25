@@ -1,6 +1,6 @@
 # Zemljevid izdelka – Contact Manager
 
-**Namen:** pregled funkcionalnosti in **skupna pravila izdelka**, ki veljajo čez vse funkcionalnosti (vloge, vrstni red preverjanj, arhivirane skupine, slovar podatkov, kode napak). Zahteve posamezne funkcionalnosti so v `specs/NNN-ime/spec.md`. Dokument se posodobi v istem PR kot koda, ki spremeni katero od skupnih pravil ali doda funkcionalnost.
+**Namen:** pregled funkcionalnosti in **skupna pravila izdelka**, ki veljajo čez vse funkcionalnosti (vloge, vrstni red preverjanj, arhivirane skupine, slovar podatkov, kode napak). Zahteve posamezne funkcionalnosti so v `docs/specs/NNN-ime/spec.md`. Dokument se posodobi v istem PR kot koda, ki spremeni katero od skupnih pravil ali doda funkcionalnost.
 
 **Povezano:** [`constitution.md`](constitution.md) (pravila in potek dela) · [`design.md`](design.md) (vmesnik)
 
@@ -8,7 +8,7 @@
 
 ## 1. Funkcionalnosti
 
-Številka je mapa `specs/NNN-ime/` in del oznak `FR-NNN-XX`; veja je `ime` brez številke. Nova funkcionalnost dobi naslednjo številko (`/speckit-specify`) in vrstico v tej tabeli.
+Številka je mapa `docs/specs/NNN-ime/` in del oznak `FR-NNN-XX`; veja je `ime` brez številke. Nova funkcionalnost dobi naslednjo številko (`/speckit-specify`) in vrstico v tej tabeli.
 
 | Oznaka | Funkcionalnost | Obseg | Koda |
 |---|---|---|---|

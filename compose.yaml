@@ -15,7 +15,9 @@ services:
       retries: 20
 
   auth:
-    build: ./firebase
+    build:
+      context: ./docker
+      dockerfile: firebase-emulator.Dockerfile
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9099/ >/dev/null || exit 1"]
       interval: 3s

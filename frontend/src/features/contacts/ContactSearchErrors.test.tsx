@@ -13,7 +13,7 @@ import {
   validationFailedReply,
 } from '../../test/contactsApi';
 
-// Napake, neveljavni parametri in arhivirane skupine (FR-008-14, FR-008-15, FR-008-17; specs/008-iskanje/plan.md –
+// Napake, neveljavni parametri in arhivirane skupine (FR-008-14, FR-008-15, FR-008-17; docs/specs/008-iskanje/plan.md –
 // Key elements). Prejšnja vsebina seznama ostane ob napaki osvežitve.
 
 const PATH = `/groups/${GROUP_ID}/contacts`;

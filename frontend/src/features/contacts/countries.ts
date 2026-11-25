@@ -1,4 +1,4 @@
-// Države za polje *Država* (specs/013-pametni-atributi, FR-013-13, FR-013-17): statični seznam uradnih kod ISO 3166-1
+// Države za polje *Država* (docs/specs/013-pametni-atributi, FR-013-13, FR-013-17): statični seznam uradnih kod ISO 3166-1
 // alpha-2 (enak kot `Locale.getISOCountries()` v zaledju, brez `XK`); imena prek `Intl.DisplayNames`, brez omrežja.
 
 export type UiLanguage = 'sl' | 'en';
