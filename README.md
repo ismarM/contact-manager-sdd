@@ -49,7 +49,7 @@ cp .env.firebase.example .env.firebase
 #    FIREBASE_CONTAINER_UID / _GID  – owner of that file (`id -u`, `id -g`, default 1000:1000); the backend container runs
 #                                     as this user, so the key never needs to be readable by anyone else
 # 2. Start (separate Compose project and database: contact-manager-firebase), http://localhost:8080
-docker compose --env-file .env.firebase -f compose.yaml -f compose.override.yaml -f compose.firebase.yaml up --build -d --wait
+docker compose --env-file .env --env-file .env.firebase -f compose.yaml -f compose.override.yaml -f compose.firebase.yaml up --build -d --wait
 # 3. Stop (-v also drops the data)
 docker compose -p contact-manager-firebase down -v
 ```
