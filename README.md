@@ -37,8 +37,9 @@ docker compose -f compose.yaml -f compose.override.yaml -f compose.demo.yaml run
 docker compose -p contact-manager-demo down
 ```
 
-## Real Firebase (Google sign-in in local development)
-The emulator stays the default for tests and CI. To sign in with a real Google account against your own Firebase project:
+## Real Firebase (Google sign-in, HTTPS through Caddy)
+The emulator stays the default for tests and CI. To sign in with a real Google account against your own Firebase project
+(locally or on a server; Caddy serves HTTPS on 443 and takes 80 for the certificate challenge and the redirect to HTTPS):
 ```bash
 # 1. Once: create the (git-ignored) config and fill in the values
 cp .env.firebase.example .env.firebase
@@ -48,7 +49,10 @@ cp .env.firebase.example .env.firebase
 #                                      the account needs the role "Firebase Authentication Admin"; keep it `chmod 600`)
 #    FIREBASE_CONTAINER_UID / _GID  – owner of that file (`id -u`, `id -g`, default 1000:1000); the backend container runs
 #                                     as this user, so the key never needs to be readable by anyone else
-# 2. Start (separate Compose project and database: contact-manager-firebase), http://localhost:8080
+#    SITE_ADDRESS                   – the server's public domain (Let's Encrypt certificate; ports 80 and 443 must be
+#                                     reachable) or `localhost` (Caddy's self-signed certificate); add the domain to
+#                                     Firebase → Authentication → Settings → Authorized domains
+# 2. Start (separate Compose project and database: contact-manager-firebase) behind Caddy: https://$SITE_ADDRESS (port 443)
 docker compose --env-file .env --env-file .env.firebase -f compose.yaml -f compose.override.yaml -f compose.firebase.yaml up --build -d --wait
 # 3. Stop (-v also drops the data)
 docker compose -p contact-manager-firebase down -v

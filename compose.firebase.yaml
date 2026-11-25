@@ -25,6 +25,29 @@ services:
         VITE_FIREBASE_AUTH_DOMAIN: ${FIREBASE_AUTH_DOMAIN:?nastavi FIREBASE_AUTH_DOMAIN v .env.firebase}
         VITE_FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
         VITE_FIREBASE_EMULATOR: "false"
+    ports: !reset [] # dostop samo prek caddy (HTTPS), ne na 127.0.0.1:8080
     depends_on: !override
       backend:
         condition: service_healthy
+
+  # HTTPS (443, 80 za izziv ACME in preusmeritev na HTTPS); potrdila ostanejo v caddy-data.
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      frontend:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  caddy-data:
+  caddy-config:

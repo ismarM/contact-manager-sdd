@@ -1,0 +1,10 @@
+# HTTPS pred vmesnikom za compose.firebase.yaml. SITE_ADDRESS iz .env.firebase:
+# javna domena → potrdilo Let's Encrypt (vrata 80 in 443 odprta navzven); localhost → notranji CA Caddyja.
+{$SITE_ADDRESS:localhost} {
+	encode zstd gzip
+	# Nad največjo mejo v frontend/nginx.conf (uvoz 25 MB), da meje ostanejo v nginx.
+	request_body {
+		max_size 30MB
+	}
+	reverse_proxy frontend:80
+}
