@@ -2,7 +2,7 @@
 
 **Branch**: `[feature-slug]` | **Date**: [DATE] | **Spec**: [link]
 
-**Input**: Feature specification from `/specs/[NNN-feature-slug]/spec.md`
+**Input**: Feature specification from `/docs/specs/[NNN-feature-slug]/spec.md`
 
 **Note**: This template is filled in by the `/speckit-plan` command; its definition describes the execution workflow.
 
@@ -25,7 +25,7 @@
 
 **Language/Version**: Java 21 (Spring Boot 3.x) · TypeScript (strict) + React
 
-**Primary Dependencies**: Spring Web, Spring Security (Firebase ID token verification), Spring Data JPA, Flyway · React, react-i18next, React Router, Tailwind CSS v4, shadcn/ui (per docs/decisions/)
+**Primary Dependencies**: Spring Web, Spring Security (Firebase ID token verification), Spring Data JPA, Flyway · React, react-i18next, React Router, Tailwind CSS v4, shadcn/ui (per docs/architecture-decisions.md)
 
 **Storage**: PostgreSQL
 
@@ -81,7 +81,7 @@
 ### Documentation (this feature)
 
 ```text
-specs/[NNN-feature-slug]/
+docs/specs/[NNN-feature-slug]/
 ├── spec.md              # /speckit-specify
 ├── plan.md              # This file (/speckit-plan command output)
 ├── research.md          # Phase 0 output (/speckit-plan command)

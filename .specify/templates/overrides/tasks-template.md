@@ -5,7 +5,7 @@ description: "Task list template for feature implementation (project override: o
 
 # Tasks: [FEATURE NAME]
 
-**Input**: Design documents from `/specs/[NNN-feature-slug]/`
+**Input**: Design documents from `/docs/specs/[NNN-feature-slug]/`
 
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 

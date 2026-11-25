@@ -30,7 +30,7 @@ import si.contactmanager.shared.security.ApiKeyPrincipal.Permission;
 import si.contactmanager.shared.security.ApiKeyPrincipal.Scope;
 
 /**
- * Izdaja in preverjanje API ključev (019, research R-01; docs/decisions/2026-11-16-api-kljuc-jwt.md): {@code cmk_} +
+ * Izdaja in preverjanje API ključev (019, research R-01; docs/architecture-decisions.md#2026-11-16-api-kljuc-jwt): {@code cmk_} +
  * JWT HS256 s trditvami {@code iss}, {@code aud}, {@code sub}, {@code jti}, {@code iat}, neobveznim {@code exp} in
  * obsegom {@code scp}. Namenoma <b>ni</b> bean tipa {@code JwtDecoder}: veriga {@code /api} injicira edini
  * {@code JwtDecoder} (Firebase) po tipu. Preverjanje vrstice (preklic, lastnik) opravi {@link ApiKeyAuthenticationFilter}.

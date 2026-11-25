@@ -410,14 +410,15 @@ function MethodRow({
   description?: string;
 }) {
   return (
-    <li className="grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-x-3 px-4 py-3">
+    <li className="grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 px-4 py-3 sm:grid-cols-[2rem_minmax(0,1fr)_auto] sm:gap-y-0">
       <span className="row-span-2 grid place-items-center self-center">{icon}</span>
       <span className="col-start-2 font-semibold">
         {name}
         <span className="sr-only">: </span>
       </span>
+      {/* Na telefonu je stanje pod imenom, da opis ne ostane v ozkem stolpcu ob njem (360 px). */}
       <span
-        className={`col-start-3 row-span-2 row-start-1 inline-flex items-center gap-1 rounded-xs px-2 py-0.5 text-sm ${
+        className={`col-start-2 inline-flex items-center gap-1 justify-self-start rounded-xs px-2 py-0.5 text-sm sm:col-start-3 sm:row-span-2 sm:row-start-1 sm:justify-self-auto ${
           linked ? 'bg-success-soft text-success' : 'border border-border text-muted-foreground'
         }`}
       >

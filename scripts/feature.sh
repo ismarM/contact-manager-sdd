@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Switch to a feature: branch "<slug>" (no number) + .specify/feature.json -> specs/NNN-<slug>.
+# Switch to a feature: branch "<slug>" (no number) + .specify/feature.json -> docs/specs/NNN-<slug>.
 # A new feature has no directory yet: the branch is created and /speckit-specify assigns the number.
 # Usage: scripts/feature.sh <slug>   e.g. scripts/feature.sh kontakti
 #        scripts/feature.sh          shows the current feature and branch
@@ -22,9 +22,9 @@ if [[ ! "$slug" =~ ^[a-z][a-z0-9]*(-[a-z0-9]+)*$ ]]; then
 fi
 
 shopt -s nullglob
-matches=(specs/[0-9][0-9][0-9]-"$slug")
+matches=(docs/specs/[0-9][0-9][0-9]-"$slug")
 if [[ ${#matches[@]} -gt 1 ]]; then
-  echo "error: more than one directory specs/NNN-$slug: ${matches[*]}" >&2
+  echo "error: more than one directory docs/specs/NNN-$slug: ${matches[*]}" >&2
   exit 1
 fi
 
@@ -39,5 +39,5 @@ if [[ ${#matches[@]} -eq 1 ]]; then
   echo "branch $slug -> ${matches[0]}"
 else
   rm -f "$pointer"
-  echo "branch $slug -> new feature; run /speckit-specify (it creates specs/NNN-$slug and the pointer)"
+  echo "branch $slug -> new feature; run /speckit-specify (it creates docs/specs/NNN-$slug and the pointer)"
 fi

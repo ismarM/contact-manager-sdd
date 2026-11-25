@@ -472,7 +472,7 @@ def main(argv: list[str]) -> int:
 
     has_git_repo = _local_has_git(repo_root)
 
-    specs_dir = repo_root / "specs"
+    specs_dir = repo_root / "docs" / "specs"
     config_file = repo_root / ".specify" / "extensions" / "git" / "git-config.yml"
 
     author_token = get_author_token(repo_root)

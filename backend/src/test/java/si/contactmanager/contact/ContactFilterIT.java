@@ -9,7 +9,7 @@ import si.contactmanager.contact.support.ContactSearchApiTest;
 
 /**
  * Filtri po atributih, dodatnih atributih in značkah ter njihova kombinacija z iskanjem (FR-008-03, FR-008-04,
- * FR-008-05; specs/008-iskanje/spec.md US2). Pričakovani zadetki so dobesedni.
+ * FR-008-05; docs/specs/008-iskanje/spec.md US2). Pričakovani zadetki so dobesedni.
  */
 class ContactFilterIT extends ContactSearchApiTest {
 

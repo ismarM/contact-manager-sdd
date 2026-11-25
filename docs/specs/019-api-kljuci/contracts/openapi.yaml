@@ -1,0 +1,91 @@
+# 019 API ključi – pogodba. ContactPage, ContactDetail, ValidationError: docs/specs/004-kontakti, 008, 016 (nespremenjeno).
+# Runtime opis /v1 (FR-019-15): backend/src/main/resources/api/openapi-v1.json – mora se ujemati s poti /v1 spodaj.
+openapi: 3.1.0
+info: { title: Contact Manager – API ključi, version: "1" }
+components:
+  securitySchemes:
+    firebase: { type: http, scheme: bearer, bearerFormat: Firebase ID token }   # samo /api
+    apiKey: { type: http, scheme: bearer, bearerFormat: "cmk_<JWT>" }          # samo /v1
+  schemas:
+    Permission: { type: string, enum: [READ, WRITE] }
+    ApiKeyCreate:
+      type: object
+      required: [name, expiresInDays]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 50 }
+        allGroups: { type: boolean, default: false }
+        allGroupsPermission: { $ref: "#/components/schemas/Permission" }   # obvezno, ko allGroups
+        groups:                                                            # 1–50, ko ni allGroups
+          type: array
+          items: { type: object, required: [groupId, permission],
+                   properties: { groupId: { type: string, format: uuid }, permission: { $ref: "#/components/schemas/Permission" } } }
+        expiresInDays: { type: [integer, "null"], enum: [30, 90, 365, null] }
+    ApiKey:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        hint: { type: string, description: "cmk_…xxxxxx" }
+        allGroups: { type: boolean }
+        allGroupsPermission: { $ref: "#/components/schemas/Permission" }
+        groups: { type: array, items: { type: object, properties: { groupId: { type: string }, title: { type: string }, permission: { $ref: "#/components/schemas/Permission" } } } }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: [string, "null"], format: date-time }
+        lastUsedAt: { type: [string, "null"], format: date-time }
+        revokedAt: { type: [string, "null"], format: date-time }
+        status: { type: string, enum: [ACTIVE, EXPIRED, REVOKED] }
+        expiringSoon: { type: boolean }
+        requestsLast24h: { type: integer }
+    ApiKeyCreated:
+      type: object
+      properties: { key: { $ref: "#/components/schemas/ApiKey" }, token: { type: string, description: "prikazan samo enkrat" } }
+    ApiKeyUsage:
+      type: object
+      properties:
+        days: { type: integer, enum: [7, 30] }
+        totals: { $ref: "#/components/schemas/UsageCounts" }
+        perDay: { type: array, items: { allOf: [ { $ref: "#/components/schemas/UsageCounts" } ], properties: { day: { type: string, format: date } } } }
+    UsageCounts:
+      type: object
+      properties: { total: { type: integer }, readOk: { type: integer }, writeOk: { type: integer }, errors: { type: integer }, rateLimited: { type: integer } }
+    ApiGroup:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        description: { type: [string, "null"] }
+        color: { type: string }
+        archived: { type: boolean }
+        role: { type: string, enum: [VIEWER, EDITOR, ADMIN, OWNER] }
+    ApiGroupPage:
+      type: object
+      properties: { total: { type: integer }, page: { type: integer }, size: { type: integer }, items: { type: array, items: { $ref: "#/components/schemas/ApiGroup" } } }
+    Error: { type: object, properties: { code: { type: string } } }
+paths:
+  /api/me/api-keys:
+    get: { security: [ { firebase: [] } ], responses: { "200": { description: "ApiKey[] (aktivni + preklicani/potekli ≤ 90 dni), novejši prvi" }, "401": { description: UNAUTHENTICATED } } }
+    post:
+      security: [ { firebase: [] } ]
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/ApiKeyCreate" } } } }
+      responses: { "201": { description: ApiKeyCreated }, "400": { description: VALIDATION_FAILED }, "401": { description: UNAUTHENTICATED }, "404": { description: "skupina, katere uporabnik ni član" }, "409": { description: API_KEY_LIMIT } }
+  /api/me/api-keys/{keyId}:
+    delete: { security: [ { firebase: [] } ], responses: { "204": { description: "preklican (idempotentno)" }, "401": { description: UNAUTHENTICATED }, "404": { description: "tuj ali neobstoječ" } } }
+  /api/me/api-keys/{keyId}/usage:
+    get:
+      security: [ { firebase: [] } ]
+      parameters: [ { name: days, in: query, schema: { type: integer, enum: [7, 30], default: 7 } } ]
+      responses: { "200": { description: ApiKeyUsage }, "400": { description: VALIDATION_FAILED }, "401": { description: UNAUTHENTICATED }, "404": { description: "tuj ali neobstoječ" } }
+  /v1/openapi.json:
+    get: { security: [], responses: { "200": { description: "OpenAPI 3.1 opis /v1" } } }
+  /v1/groups:
+    get:
+      security: [ { apiKey: [] } ]
+      parameters: [ { name: page, in: query, schema: { type: integer, default: 0 } }, { name: size, in: query, schema: { type: integer, default: 25, maximum: 100 } } ]
+      responses: { "200": { description: ApiGroupPage }, "401": { description: UNAUTHENTICATED }, "429": { description: "RATE_LIMITED + Retry-After" } }
+  /v1/groups/{groupId}/contacts:
+    get: { security: [ { apiKey: [] } ], description: "parametri kot GET /api/groups/{groupId}/contacts (008)", responses: { "200": { description: ContactPage }, "400": {description: VALIDATION_FAILED}, "401": {description: x}, "404": {description: x}, "429": {description: x} } }
+    post: { security: [ { apiKey: [] } ], description: "telo kot POST /api/groups/{groupId}/contacts", responses: { "201": { description: ContactDetail }, "400": {description: x}, "401": {description: x}, "403": {description: x}, "404": {description: x}, "409": {description: GROUP_ARCHIVED}, "429": {description: x} } }
+  /v1/groups/{groupId}/contacts/{contactId}:
+    get: { security: [ { apiKey: [] } ], responses: { "200": { description: ContactDetail }, "401": {description: x}, "404": {description: x}, "429": {description: x} } }
+    put: { security: [ { apiKey: [] } ], description: "telo kot PUT /api/… (verzija v telesu)", responses: { "200": { description: ContactDetail }, "400": {description: x}, "401": {description: x}, "403": {description: x}, "404": {description: x}, "409": {description: "GROUP_ARCHIVED | VERSION_CONFLICT"}, "429": {description: x} } }
+    delete: { security: [ { apiKey: [] } ], parameters: [ { name: version, in: query, required: true, schema: { type: integer } } ], responses: { "204": {description: x}, "400": {description: x}, "401": {description: x}, "403": {description: x}, "404": {description: x}, "409": {description: "GROUP_ARCHIVED | VERSION_CONFLICT"}, "429": {description: x} } }

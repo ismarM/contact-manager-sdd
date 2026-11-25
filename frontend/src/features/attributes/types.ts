@@ -1,4 +1,4 @@
-// Oblike API tipiziranih atributov (specs/016-tipizirani-atributi/contracts/openapi.yaml).
+// Oblike API tipiziranih atributov (docs/specs/016-tipizirani-atributi/contracts/openapi.yaml).
 
 /** Tip ključa atributa v skupini (FR-016-01); `OTHER` je privzeti. */
 export const ATTRIBUTE_TYPES = [

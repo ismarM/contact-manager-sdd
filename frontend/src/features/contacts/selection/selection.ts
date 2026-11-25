@@ -1,6 +1,6 @@
 import type { SelectionCheckResult } from '../types';
 
-// Čisti model izbora (specs/009-mnozicno-urejanje/data-model.md – Selection, research.md R-10, D-73). Vse operacije
+// Čisti model izbora (docs/specs/009-mnozicno-urejanje/data-model.md – Selection, research.md R-10, D-73). Vse operacije
 // vrnejo nov izbor ali `limit` (izbor se ne spremeni, FR-009-04); izbor ni v naslovu in ne v shrambi (FR-009-02).
 
 /** Največ kontaktov v izboru in v eni množični operaciji (FR-009-04). */

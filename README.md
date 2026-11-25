@@ -76,10 +76,12 @@ Protect `main` manually in GitHub: *Settings → Branches → Branch protection*
 - [Project rules](.specify/memory/constitution.md) – principles, workflow, test rules and verification (the only rules document)
 - [Product map](.specify/memory/feature-map.md) – features and shared rules (roles, order of checks, error codes, data dictionary)
 - [Design system »Kartoteka«](.specify/memory/design.md) – UI look and behaviour
-- [Specifications](specs/) – one Spec Kit folder per feature (`spec.md`, `plan.md`, `tasks.md`, …)
-- [Decisions](docs/decisions/) – architecture decisions, one file each (the first version's log: `git show 2365b23:DECISIONS.md`)
-- [AI log](ai-log/) – one entry per AI session and token usage (`node scripts/token-report.mjs`)
-- [Original documentation](original_documentation/) – historical, not maintained
+- [Specifications](docs/specs/) – one Spec Kit folder per feature (`spec.md`, `plan.md`, `tasks.md`, …)
+- [Decisions](docs/architecture-decisions.md) – architecture decisions in one file, one section each (the first version's log: `git show 2365b23:DECISIONS.md`)
+- [AI log](docs/ai-log/) – one entry per AI session and token usage (`node scripts/token-report.mjs`)
+- [Original documentation](docs/original_documentation/) – historical, not maintained
+- [Presentation](docs/presentation/) – screenshots at 1280/768/360 px (`screenshots/`) and one image per screen (`merged/`); retake with `cd e2e; npx playwright test -c screenshots.config.ts` against the seeded demo stack
+- [docker/](docker/) – files the Compose stacks use: Firebase Auth Emulator image (`firebase-emulator.Dockerfile`, `firebase.json`), `Caddyfile` for HTTPS with real Firebase, demo data (`demo-seed.mjs`)
 
 ## Working on a change
 - **Small change** (fix, UI tweak, small addition): branch → code and tests → `./verify.sh quick` → PR.

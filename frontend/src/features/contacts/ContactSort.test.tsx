@@ -12,7 +12,7 @@ import {
   resultsReply,
 } from '../../test/contactsApi';
 
-// Razvrščanje seznama (FR-008-07; specs/008-iskanje/plan.md – Key elements): izbira »Razvrsti«, gumb smeri in gumbi v
+// Razvrščanje seznama (FR-008-07; docs/specs/008-iskanje/plan.md – Key elements): izbira »Razvrsti«, gumb smeri in gumbi v
 // glavah stolpcev. Vrstni red zadetkov določa strežnik; test preverja stanje, naslov in zahtevke.
 
 const PATH = `/groups/${GROUP_ID}/contacts`;

@@ -1,4 +1,4 @@
-// Tipi API dvojnikov (specs/011-dvojniki/data-model.md, contracts/openapi.yaml).
+// Tipi API dvojnikov (docs/specs/011-dvojniki/data-model.md, contracts/openapi.yaml).
 
 export type DuplicateCategory = 'name' | 'email' | 'phone';
 

@@ -7,7 +7,7 @@ import org.springframework.jdbc.core.simple.JdbcClient.StatementSpec;
 import org.springframework.stereotype.Repository;
 
 /**
- * Predlogi ključev, vrednosti, podjetij, značk in držav skupine (specs/013, research R-04). Vsaka poizvedba ima pogoj
+ * Predlogi ključev, vrednosti, podjetij, značk in držav skupine (docs/specs/013, research R-04). Vsaka poizvedba ima pogoj
  * {@code group_id}; vrstni red: predpona pred ujemanjem v sredini, nato število kontaktov, nato besedilo. Ujemanje
  * je brez razlike velikosti črk in strešic ({@code search_fold}, V8).
  */

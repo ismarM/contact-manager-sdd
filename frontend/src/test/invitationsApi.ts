@@ -10,7 +10,7 @@ import type {
 import { groupId, renderGroupsApp } from './groupsApi';
 import { server } from './msw';
 
-// Gradniki odgovorov in MSW rokovalniki za API povabil (specs/006-povabila/contracts/openapi.yaml).
+// Gradniki odgovorov in MSW rokovalniki za API povabil (docs/specs/006-povabila/contracts/openapi.yaml).
 
 export const INVITATION_ID = '0193c4a2-7a1f-7c3e-9b1a-aaaaaaaaaaaa';
 

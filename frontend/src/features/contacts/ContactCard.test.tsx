@@ -45,7 +45,10 @@ describe('Kartica kontakta (FR-020-19)', () => {
     });
 
     await screen.findByRole('heading', { level: 2, name: 'Janez Novak' });
-    expect(screen.getByText(/^Dodano .* · nazadnje urejeno /)).toBeInTheDocument();
+    // design.md 8.6a: datuma po obliki zapisa, ne surova trenutka ISO (createdAt 2026-11-05T10:00:00Z).
+    expect(
+      screen.getByText('Dodano 5. 11. 2026 · nazadnje urejeno 5. 11. 2026, Ana Novak'),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Prenesi vizitko (.vcf)' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Deli s kodo QR' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 3, name: 'Kontakt' })).toBeInTheDocument();

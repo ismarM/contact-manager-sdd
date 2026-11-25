@@ -92,7 +92,7 @@ export function PendingInvitationsSection({ reloadToken }: { reloadToken: number
   if (loaded === null && !showLoader) return null;
 
   const cell =
-    'px-4 py-2 max-sm:flex max-sm:gap-2 max-sm:px-6 max-sm:py-1 max-sm:before:font-medium max-sm:before:content-[attr(data-label)]';
+    'px-4 py-2 max-sm:flex max-sm:items-center max-sm:gap-2 max-sm:px-6 max-sm:py-1 max-sm:before:font-medium max-sm:before:content-[attr(data-label)]';
 
   return (
     <section aria-labelledby={headingId} className={`${card} flex flex-col`}>
@@ -189,7 +189,7 @@ export function PendingInvitationsSection({ reloadToken }: { reloadToken: number
                 </td>
                 <td
                   data-label={t('invitations.pending.actions')}
-                  className={`${cell} sm:pr-6 sm:text-right`}
+                  className={`${cell} sm:pr-6 sm:text-right${invitation.canWithdraw ? '' : 'max-sm:hidden'}`}
                 >
                   {invitation.canWithdraw && (
                     <WithdrawInvitationDialog

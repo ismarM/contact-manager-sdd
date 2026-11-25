@@ -1,4 +1,4 @@
-// Oblike slik (specs/018-slike/contracts/openapi.yaml).
+// Oblike slik (docs/specs/018-slike/contracts/openapi.yaml).
 
 /** Odgovor na nalaganje ali odstranitev slike; `version` samo pri skupini in kontaktu. */
 export interface PhotoResult {

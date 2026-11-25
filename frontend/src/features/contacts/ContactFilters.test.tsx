@@ -15,7 +15,7 @@ import {
 } from '../../test/contactsApi';
 import { chooseCountry, country, name } from '../../test/smartAttributes';
 
-// Filtri po atributih in značkah (FR-008-03 … FR-008-06, FR-008-11, FR-008-12; specs/008-iskanje/plan.md – Key
+// Filtri po atributih in značkah (FR-008-03 … FR-008-06, FR-008-11, FR-008-12; docs/specs/008-iskanje/plan.md – Key
 // elements). Panel se ob odprtju napolni iz naslova; ob odprtju ima eno prazno vrstico pogoja (»Atribut 1«).
 
 const PATH = `/groups/${GROUP_ID}/contacts`;

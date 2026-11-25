@@ -12,7 +12,7 @@ import { contactId, GROUP_ID, renderContactsApp, type ContactsAppOptions } from 
 import type { Reply } from './groupsApi';
 import { server } from './msw';
 
-// Gradniki odgovorov in MSW rokovalniki za API dvojnikov (specs/011-dvojniki/contracts/openapi.yaml).
+// Gradniki odgovorov in MSW rokovalniki za API dvojnikov (docs/specs/011-dvojniki/contracts/openapi.yaml).
 
 export { contactId, GROUP_ID };
 

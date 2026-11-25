@@ -2,7 +2,7 @@ import type { Address, AttributeType } from '../attributes/types';
 import type { Attribute } from '../contacts/types';
 import type { CardCandidate } from '../contacts/qr/vcardTypes';
 
-// Oblike API uvoza (specs/014-uvoz-izvoz/contracts/openapi.yaml).
+// Oblike API uvoza (docs/specs/014-uvoz-izvoz/contracts/openapi.yaml).
 
 export type ImportSource = 'XLSX' | 'VCF';
 

@@ -20,7 +20,7 @@ import si.contactmanager.contact.ContactQueryParser.Parsed;
 import si.contactmanager.shared.error.ValidationError.FieldError;
 
 /**
- * Razčlenjevalnik parametrov iskanja (specs/008-iskanje/research.md R-06, R-07; data-model.md). Pričakovanja so
+ * Razčlenjevalnik parametrov iskanja (docs/specs/008-iskanje/research.md R-06, R-07; data-model.md). Pričakovanja so
  * dobesedna, napisana iz specifikacije, ne izračunana z izvedbo. Obstoj ključa v skupini preverja servis (T049), ne
  * razčlenjevalnik.
  */

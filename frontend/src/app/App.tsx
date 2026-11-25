@@ -18,6 +18,7 @@ import { RequireAuth } from '../features/auth/RequireAuth';
 import { VerifyEmailPage } from '../features/auth/VerifyEmailPage';
 import { AppShell } from '../shared/layout/AppShell';
 import { NotFoundPage } from '../shared/pages/NotFoundPage';
+import { ScrollToTop } from './ScrollToTop';
 
 // Poti iz plan.md 001, 002, 004 in 017 (Pages and routes): /login, /register, /forgot-password javno, /verify-email za
 // prijavljenega z nepotrjenim e-naslovom, ostalo zaščiteno v ogrodju. Podatkovni usmerjevalnik
@@ -35,6 +36,7 @@ function AppRoutes({ gateway }: { gateway: AuthGateway }) {
   return (
     <AuthProvider gateway={gateway}>
       <DisplayFormatsProvider>
+        <ScrollToTop />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />

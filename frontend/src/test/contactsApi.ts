@@ -20,7 +20,7 @@ import { GROUP_ID, groupDetail, mockGroupsApi, type Reply } from './groupsApi';
 import { server } from './msw';
 import { mockProfileApi, renderApp } from './renderApp';
 
-// Gradniki odgovorov in MSW rokovalniki za API kontaktov (specs/004-kontakti/contracts/openapi.yaml).
+// Gradniki odgovorov in MSW rokovalniki za API kontaktov (docs/specs/004-kontakti/contracts/openapi.yaml).
 
 export const CONTACT_ID = '0193c4a2-7a1f-7c3e-9b1a-c0ffee000001';
 

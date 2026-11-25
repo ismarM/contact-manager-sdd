@@ -6,7 +6,7 @@ import { i18n } from '../i18n';
 import type { PhotoResult } from '../shared/images/photoTypes';
 import { server } from './msw';
 
-// MSW rokovalniki in pomočniki za slike (specs/018-slike/contracts/openapi.yaml). Imena in sporočila v testih pridejo
+// MSW rokovalniki in pomočniki za slike (docs/specs/018-slike/contracts/openapi.yaml). Imena in sporočila v testih pridejo
 // iz prevodov (`imageText`), ne iz nizov, ponovljenih po datotekah (konstitucija §3.3).
 
 /** Besedilo iz prevodov v trenutnem jeziku testa. */

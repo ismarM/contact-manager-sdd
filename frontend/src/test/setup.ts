@@ -27,6 +27,9 @@ for (const [name, value] of missing) {
   }
 }
 
+// jsdom nima pomikanja okna (ScrollToTop ob prehodu na novo pot); brez vedenja.
+if (typeof window !== 'undefined') window.scrollTo = () => undefined;
+
 // Prelomna točka stranskega pasu (002, research R-10): privzeto ozek zaslon.
 if (typeof window !== 'undefined') installMatchMedia();
 

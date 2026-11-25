@@ -299,7 +299,7 @@ fi
 
 cd "$REPO_ROOT"
 
-SPECS_DIR="$REPO_ROOT/specs"
+SPECS_DIR="$REPO_ROOT/docs/specs"
 CONFIG_FILE="$REPO_ROOT/.specify/extensions/git/git-config.yml"
 
 read_git_config_value() {

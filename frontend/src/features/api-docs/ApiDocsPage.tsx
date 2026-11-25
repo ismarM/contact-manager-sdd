@@ -74,11 +74,18 @@ export function ApiDocsPage() {
 
   return (
     <div className="min-h-dvh bg-background px-4 py-4 md:px-12 md:py-8">
-      <header className="mx-auto mb-6 flex max-w-6xl flex-wrap items-center justify-between gap-x-3 gap-y-1 md:mb-10">
+      {/* Na telefonu: znak in jezik v prvi vrstici (kot prijava), povratni gumb čez vso širino pod njima – prej so
+          bili trije elementi v treh neporavnanih vrsticah. Od 640 px vse v eni vrstici. */}
+      <header className="mx-auto mb-6 grid max-w-6xl grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-3 sm:flex sm:flex-wrap sm:justify-between sm:gap-y-1 md:mb-10">
         <Wordmark />
-        <div className="flex flex-wrap items-center gap-x-2">
-          <LanguageButtons onChange={changeLanguage} />
-          <Link to={signedIn ? '/account' : '/login'} className={`${secondaryButton} h-9 px-3`}>
+        <div className="contents sm:flex sm:flex-wrap sm:items-center sm:gap-x-2">
+          <div className="justify-self-end">
+            <LanguageButtons onChange={changeLanguage} />
+          </div>
+          <Link
+            to={signedIn ? '/account' : '/login'}
+            className={`${secondaryButton} h-9 px-3 max-sm:col-span-2 max-sm:w-full`}
+          >
             {signedIn ? t('apiDocs.backToAccount') : t('apiDocs.backToLogin')}
           </Link>
         </div>

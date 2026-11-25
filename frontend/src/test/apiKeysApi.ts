@@ -5,7 +5,7 @@ import { server } from './msw';
 import { tr } from './smartAttributes';
 
 // Gradniki odgovorov in MSW rokovalniki za upravljanje API ključev 019
-// (specs/019-api-kljuci/contracts/openapi.yaml): `GET|POST /api/me/api-keys`, `DELETE /api/me/api-keys/{keyId}`,
+// (docs/specs/019-api-kljuci/contracts/openapi.yaml): `GET|POST /api/me/api-keys`, `DELETE /api/me/api-keys/{keyId}`,
 // `GET /api/me/api-keys/{keyId}/usage?days=7|30`.
 
 /** Odgovor: status s telesom ali brez, ali omrežna napaka (zahtevek ne dobi odgovora). */

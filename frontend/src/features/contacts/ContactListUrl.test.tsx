@@ -15,7 +15,7 @@ import {
 import { currentLocation } from '../../test/renderApp';
 import { setViewport } from '../../test/viewport';
 
-// Stanje seznama v naslovu strani (FR-008-08, FR-008-09; specs/008-iskanje/plan.md – Pages and routes): paginacija,
+// Stanje seznama v naslovu strani (FR-008-08, FR-008-09; docs/specs/008-iskanje/plan.md – Pages and routes): paginacija,
 // ponastavitev strani, osvežitev, *Nazaj*/*Naprej*, deljena povezava, povezave na kontakt ohranijo poizvedbo.
 
 const PATH = `/groups/${GROUP_ID}/contacts`;

@@ -29,7 +29,7 @@ import {
   pick,
 } from '../../../test/selection';
 
-// Izvoz izbranih kontaktov (FR-010-01, 02, 04, 07, 10, 11, 13, 14, 15, 16, SC-005; specs/010-izvoz-excel/plan.md – Key
+// Izvoz izbranih kontaktov (FR-010-01, 02, 04, 07, 10, 11, 13, 14, 15, 16, SC-005; docs/specs/010-izvoz-excel/plan.md – Key
 // elements and accessible names). Strežnik (MSW) vrne datoteko ali napako; test preveri zahtevke in odziv vmesnika.
 
 const EXPORT_PATH = /\/contacts\/export$/;

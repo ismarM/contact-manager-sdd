@@ -8,7 +8,7 @@ import { ANA, type AuthFake, createAuthFake } from './authFake';
 import { server } from './msw';
 import { mockProfileApi, renderApp } from './renderApp';
 
-// Gradniki odgovorov in MSW rokovalniki za API funkcionalnosti 012 (specs/012-moji-podatki/contracts/openapi.yaml):
+// Gradniki odgovorov in MSW rokovalniki za API funkcionalnosti 012 (docs/specs/012-moji-podatki/contracts/openapi.yaml):
 // `GET /api/me/export`, `GET /api/me/deletion-blockers`, `POST /api/me/deletion`.
 
 /** Odgovor: status s telesom ali brez, ali omrežna napaka (zahtevek ne dobi odgovora). */

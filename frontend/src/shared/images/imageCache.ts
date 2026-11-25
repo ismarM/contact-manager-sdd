@@ -1,4 +1,4 @@
-// Predpomnilnik zasebnih slik (specs/018-slike/research.md R-05, plan.md dopolnitev 4): slika se prenese z ID žetonom,
+// Predpomnilnik zasebnih slik (docs/specs/018-slike/research.md R-05, plan.md dopolnitev 4): slika se prenese z ID žetonom,
 // v pomnilniku pa je po ključu `pot + revizija`. Blob URL obstaja samo, dokler ga kdo uporablja (štetje referenc):
 // nastane ob prvi uporabi, `URL.revokeObjectURL` se pokliče ob zadnji odmontaži, izrivu in `clear()`.
 

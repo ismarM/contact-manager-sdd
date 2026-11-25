@@ -26,7 +26,7 @@ import type { Reply } from './groupsApi';
 import { server } from './msw';
 
 // Gradniki odgovorov in MSW rokovalniki za API zgodovine kontakta, različic, obnove in izbrisanih kontaktov
-// (specs/015-napredna-revizija/contracts/openapi.yaml).
+// (docs/specs/015-napredna-revizija/contracts/openapi.yaml).
 
 export { entryId, formatAuditTime, GROUP_ID } from './auditApi';
 export { CONTACT_ID };

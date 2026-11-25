@@ -22,7 +22,7 @@ import {
   rowBox,
 } from '../../../test/selection';
 
-// Akcijska vrstica izbora (FR-009-03, FR-009-04, FR-009-05, FR-009-15; specs/009-mnozicno-urejanje/plan.md – Key
+// Akcijska vrstica izbora (FR-009-03, FR-009-04, FR-009-05, FR-009-15; docs/specs/009-mnozicno-urejanje/plan.md – Key
 // elements). »Izvozi v Excel« je dodala 010 (FR-010-01, D-91): izriše se vsem vlogam, tudi v arhivirani skupini.
 
 const IDS_PATH = `/api/groups/${GROUP_ID}/contact-ids`;

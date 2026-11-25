@@ -29,7 +29,7 @@ import {
   pick,
 } from '../../../test/selection';
 
-// Preverjanje sprememb izbora pred končno akcijo (FR-009-10, FR-009-18; specs/009-mnozicno-urejanje/plan.md, spec.md
+// Preverjanje sprememb izbora pred končno akcijo (FR-009-10, FR-009-18; docs/specs/009-mnozicno-urejanje/plan.md, spec.md
 // US3-3, US3-6 … US3-8, Edge Cases). Strežnik (MSW) vrne izid preverjanja; test preveri telo zahtevka in odziv vmesnika.
 
 const UPDATE = bulkPath('bulk-update');

@@ -24,7 +24,7 @@ import { groupDetail, type Reply } from '../../test/groupsApi';
 import { tr } from '../../test/smartAttributes';
 import type { CompareContact, MergeRequest } from './types';
 
-// Združevanje: odjemalska validacija, potrditev, pošiljanje in izidi (FR-011-13 … 18; specs/011-dvojniki/plan.md –
+// Združevanje: odjemalska validacija, potrditev, pošiljanje in izidi (FR-011-13 … 18; docs/specs/011-dvojniki/plan.md –
 // Key elements, Sklanjanje).
 
 const PAGE = `/groups/${GROUP_ID}/duplicates`;

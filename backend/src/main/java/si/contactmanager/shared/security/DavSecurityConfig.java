@@ -19,7 +19,7 @@ import si.contactmanager.account.AppPasswordAuthenticator;
 import si.contactmanager.account.AppPasswordAuthenticator.DavAccount;
 
 /**
- * Ločena varnostna veriga za CardDAV (014 research R-08, R-09; docs/decisions/2026-11-15-gesla-za-aplikacijo-carddav.md):
+ * Ločena varnostna veriga za CardDAV (014 research R-08, R-09; docs/architecture-decisions.md#2026-11-15-gesla-za-aplikacijo-carddav):
  * poti {@code /dav/**} in {@code /.well-known/carddav}; stateless, brez CSRF, samo HTTP Basic z e-naslovom računa in
  * geslom za aplikacijo. Firebase JWT na teh poteh ne velja; neuspeh je {@code 401} z {@code WWW-Authenticate: Basic}.
  * Veriga {@code /api/**} ({@link SecurityConfig}) ostane nespremenjena. V produkciji je CardDAV dosegljiv samo prek HTTPS.

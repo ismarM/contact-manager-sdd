@@ -1,4 +1,4 @@
-// Oblike odgovorov funkcionalnosti 019 (specs/019-api-kljuci/contracts/openapi.yaml).
+// Oblike odgovorov funkcionalnosti 019 (docs/specs/019-api-kljuci/contracts/openapi.yaml).
 
 export type ApiKeyPermission = 'READ' | 'WRITE';
 

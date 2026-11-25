@@ -1,5 +1,6 @@
 import { LoadingState } from '../../shared/ui/Skeleton';
 import { EmptyState } from '../../shared/ui/EmptyState';
+import { NoContactsIllustration } from '../../shared/ui/illustrations';
 import {
   IconAlertTriangle,
   IconArrowDown,
@@ -297,6 +298,7 @@ export function ContactList() {
           total={data?.total ?? null}
           searchRef={searchField}
           onClear={clearFilters}
+          clearShownBelow={failure === 'invalid' || (!!data && data.total === 0 && state.filtered)}
         />
       )}
 
@@ -382,8 +384,11 @@ export function ContactList() {
             }
           />
         ) : (
+          // design.md 8.15: prazno stanje skupine na sredini vsebine z ilustracijo (8.21).
           <EmptyState
             headingLevel={3}
+            centered
+            illustration={<NoContactsIllustration size={180} />}
             title={t('contacts.list.empty')}
             action={
               editable ? (

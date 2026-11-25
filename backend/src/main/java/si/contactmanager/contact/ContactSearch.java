@@ -11,7 +11,7 @@ import si.contactmanager.contact.ContactQuery.Field;
 import si.contactmanager.contact.ContactQuery.Kind;
 
 /**
- * Gradnik poizvedb seznama kontaktov (specs/008-iskanje/research.md R-04, R-05, R-13). Besedilo SQL je sestavljeno iz
+ * Gradnik poizvedb seznama kontaktov (docs/specs/008-iskanje/research.md R-04, R-05, R-13). Besedilo SQL je sestavljeno iz
  * <b>zaprtih fragmentov</b>: od vnosa je odvisna samo oblika (število besed, pogojev in značk, vrsta polja, smer),
  * nikoli vrednost; vse vrednosti so imenovani parametri. Polje razvrščanja in stolpec pogoja izbira zaprta
  * preslikava, nikoli niz iz zahteve.

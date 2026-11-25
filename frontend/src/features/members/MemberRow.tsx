@@ -23,6 +23,7 @@ export function MemberRow({
   const { t } = useTranslation();
   const { group } = useGroup();
   const name = member.name ?? member.email;
+  const manageable = member.canManage && !group.archived;
   return (
     <tr className="border-t border-border max-sm:block max-sm:py-2">
       <MemberCell label={t('members.table.member')} className={cellClass}>
@@ -59,10 +60,12 @@ export function MemberRow({
       <MemberCell label={t('members.table.role')} className={cellClass}>
         <span className={roleChip}>{t(`roles.${member.role}`)}</span>
       </MemberCell>
-      <MemberCell label={t('members.table.actions')} className={cellClass}>
-        {member.canManage && !group.archived && (
-          <MemberActionsMenu member={member} onAction={onAction} />
-        )}
+      {/* Brez dejanj pod 640 px ni prazne vrstice »Dejanja«. */}
+      <MemberCell
+        label={t('members.table.actions')}
+        className={manageable ? cellClass : `${cellClass} max-sm:hidden`}
+      >
+        {manageable && <MemberActionsMenu member={member} onAction={onAction} />}
       </MemberCell>
     </tr>
   );

@@ -14,7 +14,7 @@ import {
 } from '../../test/duplicatesApi';
 
 // Rezultati iskanja dvojnikov: kartice, razlogi, prvih 10 + »Še N«, povezava na primerjavo, strani, prazno stanje,
-// napaka, obvestilo »skupine ni več« (FR-011-03 … 05, 07, 16, 21; specs/011-dvojniki/plan.md – Key elements).
+// napaka, obvestilo »skupine ni več« (FR-011-03 … 05, 07, 16, 21; docs/specs/011-dvojniki/plan.md – Key elements).
 
 const PAGE = `/groups/${GROUP_ID}/duplicates`;
 const COMPARE = `${PAGE}/compare`;

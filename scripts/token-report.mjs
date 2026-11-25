@@ -5,7 +5,7 @@
 //   node scripts/token-report.mjs <id-seje>       določena seja (zadošča začetek ID-ja)
 //   node scripts/token-report.mjs --list          seje tega repozitorija, najnovejša prva
 //
-// Izpiše vrstice Markdown za ai-log/token-report-<ime>.md: glavna seja, vsak podagent in skupaj.
+// Izpiše vrstice Markdown za docs/ai-log/token-report-<ime>.md: glavna seja, vsak podagent in skupaj.
 // Vsak odgovor API se šteje enkrat (dnevnik isti ID sporočila zapiše večkrat; velja zadnji zapis).
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';

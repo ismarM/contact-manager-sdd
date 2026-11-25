@@ -13,7 +13,7 @@ import { ANA, createAuthFake } from './authFake';
 import { server } from './msw';
 import { mockProfileApi, renderApp } from './renderApp';
 
-// Gradniki odgovorov in MSW rokovalniki za API skupin (specs/002-skupine/contracts/openapi.yaml).
+// Gradniki odgovorov in MSW rokovalniki za API skupin (docs/specs/002-skupine/contracts/openapi.yaml).
 
 export const GROUP_ID = '0193c4a2-7a1f-7c3e-9b1a-3d2f4e5a6b7c';
 

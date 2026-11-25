@@ -35,7 +35,7 @@ identity-deletion:
   connect-timeout: 2s
   tombstone-retention: 2h
 
-# 019 API ključi (specs/019-api-kljuci/research.md R-01, R-05 … R-07): ključ je cmk_ + JWT HS256, podpisan s skrivnostjo
+# 019 API ključi (docs/specs/019-api-kljuci/research.md R-01, R-05 … R-07): ključ je cmk_ + JWT HS256, podpisan s skrivnostjo
 # iz okolja (base64, vsaj 32 bajtov). Brez privzete vrednosti: brez API_KEY_SIGNING_SECRET se zaledje ne zažene.
 api-keys:
   signing-secret: ${API_KEY_SIGNING_SECRET:}
@@ -74,7 +74,7 @@ images:
     allowed-hosts:
       - '^lh[0-9]+\.googleusercontent\.com$'
 
-# 016 kartografski posrednik (specs/016-tipizirani-atributi/research.md R-08): OpenStreetMap samo prek strežnika;
+# 016 kartografski posrednik (docs/specs/016-tipizirani-atributi/research.md R-08): OpenStreetMap samo prek strežnika;
 # URL-ji so nastavljivi (v testih nadomestni strežnik). User-Agent brez osebnih podatkov. Vsi predpomnilniki so v pomnilniku.
 maps:
   enabled: ${MAPS_ENABLED:true}

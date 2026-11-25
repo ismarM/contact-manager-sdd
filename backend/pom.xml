@@ -73,7 +73,7 @@
             <artifactId>fastexcel</artifactId>
             <version>${fastexcel.version}</version>
         </dependency>
-        <!-- 014 (docs/decisions/2026-11-15-uvoz-izvoz-knjiznice.md): branje .xlsx pri uvozu (prej samo testi 010). -->
+        <!-- 014 (docs/architecture-decisions.md#2026-11-15-uvoz-izvoz-knjiznice): branje .xlsx pri uvozu (prej samo testi 010). -->
         <dependency>
             <groupId>org.dhatim</groupId>
             <artifactId>fastexcel-reader</artifactId>

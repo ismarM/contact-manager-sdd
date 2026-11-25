@@ -86,7 +86,8 @@ export function MembersSection() {
   const loading = loaded?.key !== key;
   const showLoader = useDelayed(loading);
   const result = loaded?.result;
-  const cell = 'px-4 py-2 max-sm:flex max-sm:gap-2 max-sm:px-6 max-sm:py-1';
+  // Pod 640 px: oznaka in vrednost poravnani po sredini (avatar, gumb ⋮ sta višja od besedila).
+  const cell = 'px-4 py-2 max-sm:flex max-sm:items-center max-sm:gap-2 max-sm:px-6 max-sm:py-1';
 
   return (
     <section aria-labelledby={headingId} className={`${card} flex flex-col`}>
@@ -154,7 +155,10 @@ export function MembersSection() {
                 <MemberCell label={t('members.table.role')} className={cell}>
                   <span className={roleChip}>{t('roles.OWNER')}</span>
                 </MemberCell>
-                <MemberCell label={t('members.table.actions')} className={cell} />
+                <MemberCell
+                  label={t('members.table.actions')}
+                  className={`${cell} max-sm:hidden`}
+                />
               </tr>
             )}
             {result.items.map((member) => (

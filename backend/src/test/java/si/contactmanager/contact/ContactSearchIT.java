@@ -12,7 +12,7 @@ import si.contactmanager.contact.support.ContactSearchApiTest;
 import si.contactmanager.contact.support.ContactSearchClient;
 
 /**
- * Prosto iskanje po predefiniranih atributih (FR-008-01, FR-008-02, FR-008-16; specs/008-iskanje/spec.md US1, Edge
+ * Prosto iskanje po predefiniranih atributih (FR-008-01, FR-008-02, FR-008-16; docs/specs/008-iskanje/spec.md US1, Edge
  * Cases). Pričakovani zadetki so dobesedni, napisani iz specifikacije.
  */
 class ContactSearchIT extends ContactSearchApiTest {

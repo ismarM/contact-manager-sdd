@@ -1,6 +1,6 @@
 import type { Role, UserRef } from '../groups/types';
 
-// Oblike odgovorov API članov (specs/007-clani/contracts/openapi.yaml).
+// Oblike odgovorov API članov (docs/specs/007-clani/contracts/openapi.yaml).
 
 /** Vloge, ki jih je mogoče dodeliti članu (lastnik nastane samo s prenosom lastništva). */
 export type AssignableRole = Exclude<Role, 'OWNER'>;
