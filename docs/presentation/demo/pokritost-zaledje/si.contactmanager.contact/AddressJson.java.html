@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AddressJson.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">AddressJson.java</span></div><h1>AddressJson.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * Zapis delov naslova v stolpcih {@code jsonb} ({@code contact.address_parts}, {@code contact_attribute.parts}; 016,
+ * research R-04): prazni deli izpuščeni, {@code null} ostane {@code null}.
+ */
+final class AddressJson {
+
+<span class="fc" id="L11">    private static final JsonMapper JSON = JsonMapper.builder().build();</span>
+
+    private AddressJson() {}
+
+    static String write(Address address) {
+<span class="fc bfc" id="L16" title="All 2 branches covered.">        return address == null ? null : JSON.writeValueAsString(address);</span>
+    }
+
+    static Address read(String json) {
+<span class="fc bfc" id="L20" title="All 2 branches covered.">        return json == null ? null : JSON.readValue(json, Address.class);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

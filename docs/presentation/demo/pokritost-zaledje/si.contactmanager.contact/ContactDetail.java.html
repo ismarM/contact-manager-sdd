@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContactDetail.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">ContactDetail.java</span></div><h1>ContactDetail.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+import si.contactmanager.group.UserRef;
+
+/** Kontakt z vsemi podatki (contracts/openapi.yaml – ContactDetail). {@code updatedBy == null}: izbrisan uporabnik. */
+<span class="fc" id="L10">public record ContactDetail(</span>
+        UUID id,
+        String firstName,
+        String lastName,
+        String displayName,
+        String address,
+        @JsonInclude(JsonInclude.Include.NON_NULL) Address addressParts,
+        String email,
+        String phone,
+        String company,
+        String country,
+        List&lt;Attribute&gt; attributes,
+        List&lt;String&gt; tags,
+        long version,
+        Instant createdAt,
+        Instant updatedAt,
+        UserRef updatedBy,
+        RevertInfo reverted,
+        Long photoRevision) {
+    /** Stanje brez razčlenjenega naslova (pred 016): {@code addressParts} je {@code null}. */
+    public ContactDetail(
+            UUID id,
+            String firstName,
+            String lastName,
+            String displayName,
+            String address,
+            String email,
+            String phone,
+            String company,
+            String country,
+            List&lt;Attribute&gt; attributes,
+            List&lt;String&gt; tags,
+            long version,
+            Instant createdAt,
+            Instant updatedAt,
+            UserRef updatedBy,
+            RevertInfo reverted,
+            Long photoRevision) {
+<span class="nc" id="L48">        this(</span>
+                id,
+                firstName,
+                lastName,
+                displayName,
+                address,
+                null,
+                email,
+                phone,
+                company,
+                country,
+                attributes,
+                tags,
+                version,
+                createdAt,
+                updatedAt,
+                updatedBy,
+                reverted,
+                photoRevision);
+<span class="nc" id="L67">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

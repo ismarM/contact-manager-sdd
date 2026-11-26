@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GroupService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.group</a> &gt; <span class="el_source">GroupService.java</span></div><h1>GroupService.java</h1><pre class="source lang-java linenums">package si.contactmanager.group;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.group.GroupInputParser.Parsed;
+import si.contactmanager.group.GroupRepository.Collation;
+import si.contactmanager.group.GroupRepository.LockState;
+import si.contactmanager.group.GroupRepository.LockedGroup;
+import si.contactmanager.shared.error.ForbiddenException;
+import si.contactmanager.shared.error.GroupArchivedException;
+import si.contactmanager.shared.error.GroupHasOtherMembersException;
+import si.contactmanager.shared.error.GroupNotArchivedException;
+import si.contactmanager.shared.error.NotFoundException;
+import si.contactmanager.shared.error.ValidationException;
+import si.contactmanager.shared.error.VersionConflictException;
+
+/** Primeri uporabe skupin (plan.md – REST endpoints); dostop preveri {@link GroupAccess} pred klicem. */
+@Service
+class GroupService {
+
+    private final GroupRepository groups;
+
+<span class="fc" id="L27">    GroupService(GroupRepository groups) {</span>
+<span class="fc" id="L28">        this.groups = groups;</span>
+<span class="fc" id="L29">    }</span>
+
+    /** Ustvarjalec postane edini član z vlogo OWNER (FR-002-03). */
+    @Transactional
+    GroupDetail create(GroupInput input, long creator) {
+<span class="fc" id="L34">        UUID id = groups.insertGroup(input, creator);</span>
+<span class="fc" id="L35">        groups.insertMember(id, creator, Role.OWNER);</span>
+<span class="fc" id="L36">        return groups.findDetail(id, creator).orElseThrow();</span>
+    }
+
+    GroupDetail read(Membership membership) {
+<span class="fc" id="L40">        return groups.findDetail(membership.groupId(), membership.userId()).orElseThrow(NotFoundException::new);</span>
+    }
+
+    /**
+     * Urejanje z optimističnim zaklepanjem (research R-06; feature-map §2.2 koraka 5 in 6): zaklep vrstice, verzija,
+     * šele nato podatki. Nespremenjeni podatki ne spremenijo verzije, izvajalca in časa (Clarifications 2026-11-05).
+     */
+    @Transactional
+    GroupDetail update(Membership membership, Parsed parsed) {
+<span class="fc" id="L49">        LockedGroup locked = groups.lock(membership.groupId()).orElseThrow(NotFoundException::new);</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        if (locked.archived()) {</span>
+            // Skupina je bila medtem arhivirana (research R-03): korak 4 §2.2 pred verzijo.
+<span class="fc" id="L52">            throw new GroupArchivedException();</span>
+        }
+<span class="fc bfc" id="L54" title="All 4 branches covered.">        if (parsed.version() != null &amp;&amp; parsed.version() != locked.version()) {</span>
+<span class="fc" id="L55">            throw new VersionConflictException(read(membership));</span>
+        }
+<span class="fc bfc" id="L57" title="All 2 branches covered.">        if (!parsed.valid()) {</span>
+<span class="fc" id="L58">            throw new ValidationException(parsed.errors());</span>
+        }
+<span class="fc" id="L60">        GroupInput input = parsed.input();</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        boolean unchanged = input.title().equals(locked.title())</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">                &amp;&amp; Objects.equals(input.description(), locked.description())</span>
+<span class="pc bpc" id="L63" title="1 of 2 branches missed.">                &amp;&amp; input.color() == locked.color();</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        if (!unchanged) {</span>
+<span class="fc" id="L65">            groups.update(membership.groupId(), input, membership.userId());</span>
+        }
+<span class="fc" id="L67">        return read(membership);</span>
+    }
+
+    /**
+     * Vloga klicatelja se pod zaklepom skupine prebere znova (007, R-03): sočasni prenos lastništva lahko prejšnjemu
+     * lastniku vzame vlogo, med tem ko je zahtevek čakal na zaklep.
+     */
+    private void requireOwnerUnderLock(Membership membership) {
+<span class="fc bfc" id="L75" title="All 2 branches covered.">        if (!currentRole(membership).atLeast(Role.OWNER)) {</span>
+<span class="fc" id="L76">            throw new ForbiddenException();</span>
+        }
+<span class="fc" id="L78">    }</span>
+
+    private Role currentRole(Membership membership) {
+<span class="fc" id="L81">        return groups.memberState(membership.groupId(), membership.userId())</span>
+<span class="fc" id="L82">                .orElseThrow(NotFoundException::new)</span>
+<span class="fc" id="L83">                .role();</span>
+    }
+
+    /** Arhiviranje (FR-003-01): pod zaklepom vrstice, drugi sočasni zahtevek vidi arhivirano skupino (R-03). */
+    @Transactional
+    GroupDetail archive(Membership membership) {
+<span class="fc" id="L89">        LockState state = groups.lockState(membership.groupId()).orElseThrow(NotFoundException::new);</span>
+<span class="fc" id="L90">        requireOwnerUnderLock(membership);</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        if (state.archived()) {</span>
+<span class="fc" id="L92">            throw new GroupArchivedException();</span>
+        }
+<span class="fc" id="L94">        groups.setArchived(membership.groupId(), true);</span>
+<span class="fc" id="L95">        return read(membership);</span>
+    }
+
+    /** Odarhiviranje (FR-003-06). */
+    @Transactional
+    GroupDetail unarchive(Membership membership) {
+<span class="fc" id="L101">        LockState state = groups.lockState(membership.groupId()).orElseThrow(NotFoundException::new);</span>
+<span class="fc" id="L102">        requireOwnerUnderLock(membership);</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">        if (!state.archived()) {</span>
+<span class="fc" id="L104">            throw new GroupNotArchivedException();</span>
+        }
+<span class="fc" id="L106">        groups.setArchived(membership.groupId(), false);</span>
+<span class="fc" id="L107">        return read(membership);</span>
+    }
+
+    /**
+     * Izbris (FR-003-09, FR-003-11): v trajno arhivirani skupini katera koli vloga, sicer samo lastnik (403); nato
+     * pod zaklepom število članov (409 GROUP_HAS_OTHER_MEMBERS).
+     */
+    @Transactional
+    void delete(Membership membership) {
+<span class="fc" id="L116">        LockState state = groups.lockState(membership.groupId()).orElseThrow(NotFoundException::new);</span>
+<span class="fc bfc" id="L117" title="All 4 branches covered.">        boolean permanent = state.archived() &amp;&amp; !state.hasOwner();</span>
+<span class="fc bfc" id="L118" title="All 4 branches covered.">        if (!permanent &amp;&amp; !currentRole(membership).atLeast(Role.OWNER)) {</span>
+<span class="fc" id="L119">            throw new ForbiddenException();</span>
+        }
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        if (groups.memberCount(membership.groupId()) &gt; 1) {</span>
+<span class="fc" id="L122">            throw new GroupHasOtherMembersException();</span>
+        }
+<span class="fc" id="L124">        groups.delete(membership.groupId());</span>
+<span class="fc" id="L125">    }</span>
+
+    /** Arhivirane skupine uporabnika (FR-003-07). */
+    ArchivedGroups listArchived(long user, String q, List&lt;Role&gt; roles, int page, int size, Collation collation) {
+<span class="fc" id="L129">        return new ArchivedGroups(</span>
+<span class="fc" id="L130">                groups.countArchived(user, q, roles),</span>
+                page,
+                size,
+<span class="fc" id="L133">                groups.pageArchived(user, q, roles, collation, size, page));</span>
+    }
+
+    /**
+     * Skupine uporabnika v obsegu API ključa (019, FR-019-06): {@code scope == null} pomeni vse skupine, ki so
+     * uporabniku dostopne ob zahtevi (tudi pozneje ustvarjene); odstranjen član skupine ne vidi.
+     */
+    ApiGroupPage listForApi(long user, java.util.Collection&lt;UUID&gt; scope, int page, int size) {
+<span class="fc" id="L141">        return new ApiGroupPage(</span>
+<span class="fc" id="L142">                groups.countForApi(user, scope),</span>
+                page,
+                size,
+<span class="fc" id="L145">                groups.pageForApi(user, scope, Collation.EN, size, page).stream()</span>
+<span class="fc" id="L146">                        .map(row -&gt; new ApiGroup(</span>
+<span class="fc" id="L147">                                row.id(), row.title(), row.description(), row.color(), row.archived(), row.role()))</span>
+<span class="fc" id="L148">                        .toList());</span>
+    }
+
+    /** Moje nearhivirane skupine kot en seznam z vlogo na elementu (FR-020-10, FR-020-11). */
+    GroupPage list(long user, String q, Role role, int page, int size, Collation collation) {
+<span class="fc" id="L153">        return new GroupPage(</span>
+<span class="fc" id="L154">                groups.countGroups(user, q, role), page, size, groups.pageGroups(user, q, role, collation, size, page));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

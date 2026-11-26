@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>HeaderMapping.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">HeaderMapping.java</span></div><h1>HeaderMapping.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * Predlagana preslikava glav Excela na polja kontakta (FR-014-02): glave izvoza 010/013 v sl in en (brez razlike
+ * velikosti črk) in rezervirana imena (FR-013-08, Edge Cases) na predefinirana polja; predefinirano polje dobi samo prvi
+ * stolpec (naslednji z isto glavo ostanejo neuvoženi); ostale glave so dodatni atribut s ključem, enakim glavi.
+ */
+final class HeaderMapping {
+
+<span class="fc" id="L17">    enum Target {</span>
+<span class="fc" id="L18">        FIRST_NAME,</span>
+<span class="fc" id="L19">        LAST_NAME,</span>
+<span class="fc" id="L20">        ADDRESS,</span>
+<span class="fc" id="L21">        EMAIL,</span>
+<span class="fc" id="L22">        PHONE,</span>
+<span class="fc" id="L23">        COUNTRY,</span>
+<span class="fc" id="L24">        COMPANY,</span>
+<span class="fc" id="L25">        TAGS,</span>
+<span class="fc" id="L26">        ATTRIBUTE,</span>
+<span class="fc" id="L27">        SKIP</span>
+    }
+
+<span class="fc" id="L30">    record Suggestion(int column, Target target, String key) {}</span>
+
+<span class="fc" id="L32">    private static final Map&lt;String, Target&gt; KNOWN = new HashMap&lt;&gt;();</span>
+
+    static {
+<span class="fc" id="L35">        List&lt;Target&gt; leading = List.of(</span>
+                Target.FIRST_NAME,
+                Target.LAST_NAME,
+                Target.ADDRESS,
+                Target.EMAIL,
+                Target.PHONE,
+                Target.COUNTRY,
+                Target.COMPANY);
+<span class="fc bfc" id="L43" title="All 2 branches covered.">        for (String language : List.of(&quot;sl&quot;, &quot;en&quot;)) {</span>
+<span class="fc" id="L44">            ExportLabels.Headers headers = ExportLabels.headers(language);</span>
+<span class="fc bfc" id="L45" title="All 2 branches covered.">            for (int i = 0; i &lt; leading.size(); i++) {</span>
+<span class="fc" id="L46">                KNOWN.put(AttributeKeys.reservedForm(headers.leading().get(i)), leading.get(i));</span>
+            }
+<span class="fc" id="L48">            KNOWN.put(AttributeKeys.reservedForm(headers.tags()), Target.TAGS);</span>
+<span class="fc" id="L49">        }</span>
+<span class="fc" id="L50">        KNOWN.put(&quot;e-mail&quot;, Target.EMAIL);</span>
+<span class="fc" id="L51">        KNOWN.put(&quot;e-pošta&quot;, Target.EMAIL);</span>
+<span class="fc" id="L52">    }</span>
+
+    private HeaderMapping() {}
+
+    static List&lt;Suggestion&gt; suggest(List&lt;String&gt; headers) {
+<span class="fc" id="L57">        Set&lt;Target&gt; used = EnumSet.noneOf(Target.class);</span>
+<span class="fc" id="L58">        List&lt;Suggestion&gt; suggestions = new ArrayList&lt;&gt;(headers.size());</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">        for (int i = 0; i &lt; headers.size(); i++) {</span>
+<span class="fc" id="L60">            String header = headers.get(i);</span>
+<span class="fc" id="L61">            Target known = KNOWN.get(AttributeKeys.reservedForm(header));</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">            if (known != null) {</span>
+<span class="fc" id="L63">                suggestions.add(</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">                        used.add(known) ? new Suggestion(i, known, null) : new Suggestion(i, Target.SKIP, null));</span>
+            } else {
+<span class="fc" id="L66">                suggestions.add(new Suggestion(i, Target.ATTRIBUTE, header));</span>
+            }
+        }
+<span class="fc" id="L69">        return List.copyOf(suggestions);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

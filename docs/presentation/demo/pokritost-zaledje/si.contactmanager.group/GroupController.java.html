@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GroupController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.group</a> &gt; <span class="el_source">GroupController.java</span></div><h1>GroupController.java</h1><pre class="source lang-java linenums">package si.contactmanager.group;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import si.contactmanager.account.UserDirectory;
+import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.group.GroupInputParser.Parsed;
+import si.contactmanager.group.GroupRepository.Collation;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+import si.contactmanager.shared.error.ValidationException;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * Endpointi skupin (plan.md – REST endpoints). {@code groupId} je niz, ki ga razčleni {@link GroupAccess} (research
+ * R-01); vloge in stanje skupine preveri samo {@link GroupAccess}.
+ */
+@RestController
+@RequestMapping(&quot;/api/groups&quot;)
+class GroupController {
+
+    private static final int DEFAULT_SIZE = 25;
+    private static final int MAX_SIZE = 100;
+
+    private final GroupService service;
+    private final GroupAccess access;
+    private final UserDirectory users;
+    private final GroupInputParser parser;
+
+<span class="fc" id="L42">    GroupController(GroupService service, GroupAccess access, UserDirectory users, JsonMapper json) {</span>
+<span class="fc" id="L43">        this.service = service;</span>
+<span class="fc" id="L44">        this.access = access;</span>
+<span class="fc" id="L45">        this.users = users;</span>
+<span class="fc" id="L46">        this.parser = new GroupInputParser(json);</span>
+<span class="fc" id="L47">    }</span>
+
+    /** Ustvarjanje skupine (FR-002-01, FR-002-02, FR-002-03). */
+    @PostMapping
+    ResponseEntity&lt;GroupDetail&gt; create(@AuthenticationPrincipal Jwt jwt, @RequestBody(required = false) String body) {
+<span class="fc" id="L52">        Parsed parsed = parser.parseCreate(body);</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        if (!parsed.valid()) {</span>
+<span class="fc" id="L54">            throw new ValidationException(parsed.errors());</span>
+        }
+<span class="fc" id="L56">        return ResponseEntity.status(HttpStatus.CREATED).body(service.create(parsed.input(), users.ensure(jwt)));</span>
+    }
+
+    /** Moje nearhivirane skupine kot en seznam z vlogo (FR-020-10, FR-020-11). */
+    @GetMapping
+    GroupPage list(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String page,
+            @RequestParam(required = false) String size,
+            @RequestParam(required = false) String lang) {
+<span class="fc" id="L68">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L69">        Role sectionRole = parseRole(role, errors);</span>
+<span class="fc" id="L70">        String search = parseSearch(q, errors);</span>
+<span class="fc" id="L71">        Integer pageNumber = parseInt(page, 0, 0, Integer.MAX_VALUE, &quot;page&quot;, errors);</span>
+<span class="fc" id="L72">        Integer pageSize = parseInt(size, DEFAULT_SIZE, 1, MAX_SIZE, &quot;size&quot;, errors);</span>
+<span class="fc" id="L73">        Collation collation = parseLang(lang, errors);</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">        if (!errors.isEmpty()) {</span>
+<span class="fc" id="L75">            throw new ValidationException(errors);</span>
+        }
+<span class="fc" id="L77">        return users.find(jwt)</span>
+<span class="fc" id="L78">                .map(user -&gt; service.list(user, search, sectionRole, pageNumber, pageSize, collation))</span>
+<span class="fc" id="L79">                .orElseGet(() -&gt; new GroupPage(0, pageNumber, pageSize, List.of()));</span>
+    }
+
+    /** Glava in Podatki skupine (FR-002-07, FR-002-08, FR-002-10); dovoljeno tudi v arhivirani skupini. */
+    @GetMapping(&quot;/{groupId}&quot;)
+    GroupDetail get(@AuthenticationPrincipal Jwt jwt, @PathVariable String groupId) {
+<span class="fc" id="L85">        Membership membership = access.require(jwt, groupId, Role.VIEWER, false);</span>
+<span class="fc" id="L86">        return service.read(membership);</span>
+    }
+
+    /** Urejanje podatkov skupine (FR-002-02, FR-002-11, FR-002-12). */
+    @PutMapping(&quot;/{groupId}&quot;)
+    GroupDetail update(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String groupId,
+            @RequestBody(required = false) String body) {
+<span class="fc" id="L95">        Parsed parsed = parser.parseUpdate(body);</span>
+<span class="fc" id="L96">        Membership membership = access.require(jwt, groupId, Role.ADMIN, true);</span>
+<span class="fc" id="L97">        return service.update(membership, parsed);</span>
+    }
+
+    /** Seznam arhiviranih skupin (FR-003-07, FR-003-08). */
+    @GetMapping(&quot;/archived&quot;)
+    ArchivedGroups archived(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) List&lt;String&gt; role,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String page,
+            @RequestParam(required = false) String size,
+            @RequestParam(required = false) String lang) {
+<span class="fc" id="L109">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L110">        List&lt;Role&gt; roles = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L111" title="All 4 branches covered.">        for (String value : role == null ? List.&lt;String&gt;of() : role) {</span>
+<span class="fc" id="L112">            Role parsed = parseRole(value, errors);</span>
+<span class="pc bpc" id="L113" title="1 of 4 branches missed.">            if (parsed != null &amp;&amp; !roles.contains(parsed)) {</span>
+<span class="fc" id="L114">                roles.add(parsed);</span>
+            }
+<span class="fc" id="L116">        }</span>
+<span class="fc" id="L117">        String search = parseSearch(q, errors);</span>
+<span class="fc" id="L118">        Integer pageNumber = parseInt(page, 0, 0, Integer.MAX_VALUE, &quot;page&quot;, errors);</span>
+<span class="fc" id="L119">        Integer pageSize = parseInt(size, DEFAULT_SIZE, 1, MAX_SIZE, &quot;size&quot;, errors);</span>
+<span class="fc" id="L120">        Collation collation = parseLang(lang, errors);</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        if (!errors.isEmpty()) {</span>
+<span class="fc" id="L122">            throw new ValidationException(errors);</span>
+        }
+<span class="fc" id="L124">        return users.find(jwt)</span>
+<span class="fc" id="L125">                .map(user -&gt; service.listArchived(user, search, roles, pageNumber, pageSize, collation))</span>
+<span class="fc" id="L126">                .orElseGet(() -&gt; new ArchivedGroups(0, pageNumber, pageSize, List.of()));</span>
+    }
+
+    /** Arhiviranje skupine (FR-003-01): samo lastnik. */
+    @PostMapping(&quot;/{groupId}/archive&quot;)
+    GroupDetail archive(@AuthenticationPrincipal Jwt jwt, @PathVariable String groupId) {
+<span class="fc" id="L132">        return service.archive(access.require(jwt, groupId, Role.OWNER, true));</span>
+    }
+
+    /** Odarhiviranje skupine (FR-003-06, FR-003-08): samo lastnik; trajno arhivirana skupina lastnika nima → 403. */
+    @PostMapping(&quot;/{groupId}/unarchive&quot;)
+    GroupDetail unarchive(@AuthenticationPrincipal Jwt jwt, @PathVariable String groupId) {
+<span class="fc" id="L138">        return service.unarchive(access.require(jwt, groupId, Role.OWNER, false));</span>
+    }
+
+    /** Izbris skupine (FR-003-09, FR-003-11): pravila po vlogi in številu članov preveri {@link GroupService}. */
+    @DeleteMapping(&quot;/{groupId}&quot;)
+    ResponseEntity&lt;Void&gt; delete(@AuthenticationPrincipal Jwt jwt, @PathVariable String groupId) {
+<span class="fc" id="L144">        service.delete(access.require(jwt, groupId, Role.VIEWER, false));</span>
+<span class="fc" id="L145">        return ResponseEntity.noContent().build();</span>
+    }
+
+    /** Iskani niz (FR-017-14): obrezan, prazen = brez iskanja, najdlje 100 znakov; vrne normaliziran niz. */
+    private static String parseSearch(String value, List&lt;FieldError&gt; errors) {
+<span class="fc bfc" id="L150" title="All 4 branches covered.">        if (value == null || value.isBlank()) {</span>
+<span class="fc" id="L151">            return null;</span>
+        }
+<span class="fc" id="L153">        String trimmed = value.strip();</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">        if (trimmed.length() &gt; GroupSearch.MAX_LENGTH) {</span>
+<span class="fc" id="L155">            errors.add(new FieldError(&quot;q&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L156">            return null;</span>
+        }
+<span class="fc" id="L158">        return GroupSearch.normalize(trimmed);</span>
+    }
+
+    private static Role parseRole(String value, List&lt;FieldError&gt; errors) {
+<span class="fc bfc" id="L162" title="All 2 branches covered.">        if (value == null) {</span>
+<span class="fc" id="L163">            return null;</span>
+        }
+        try {
+<span class="fc" id="L166">            return Role.valueOf(value);</span>
+<span class="fc" id="L167">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L168">            errors.add(new FieldError(&quot;role&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L169">            return null;</span>
+        }
+    }
+
+    private static Integer parseInt(
+            String value, int fallback, int min, int max, String field, List&lt;FieldError&gt; errors) {
+<span class="fc bfc" id="L175" title="All 2 branches covered.">        if (value == null) {</span>
+<span class="fc" id="L176">            return fallback;</span>
+        }
+        try {
+<span class="fc" id="L179">            int number = Integer.parseInt(value);</span>
+<span class="fc bfc" id="L180" title="All 4 branches covered.">            if (number &gt;= min &amp;&amp; number &lt;= max) {</span>
+<span class="fc" id="L181">                return number;</span>
+            }
+<span class="fc" id="L183">        } catch (NumberFormatException e) {</span>
+            // obravnavano spodaj
+<span class="fc" id="L185">        }</span>
+<span class="fc" id="L186">        errors.add(new FieldError(field, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L187">        return null;</span>
+    }
+
+    private static Collation parseLang(String value, List&lt;FieldError&gt; errors) {
+<span class="fc bfc" id="L191" title="All 4 branches covered.">        if (value == null || value.equals(&quot;en&quot;)) {</span>
+<span class="fc" id="L192">            return Collation.EN;</span>
+        }
+<span class="fc bfc" id="L194" title="All 2 branches covered.">        if (value.equals(&quot;sl&quot;)) {</span>
+<span class="fc" id="L195">            return Collation.SL;</span>
+        }
+<span class="fc" id="L197">        errors.add(new FieldError(&quot;lang&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L198">        return Collation.EN;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

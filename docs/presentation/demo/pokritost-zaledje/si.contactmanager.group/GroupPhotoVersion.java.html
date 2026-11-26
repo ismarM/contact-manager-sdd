@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GroupPhotoVersion.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.group</a> &gt; <span class="el_source">GroupPhotoVersion.java</span></div><h1>GroupPhotoVersion.java</h1><pre class="source lang-java linenums">package si.contactmanager.group;
+
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.shared.error.GroupArchivedException;
+import si.contactmanager.shared.error.NotFoundException;
+import si.contactmanager.shared.error.VersionConflictException;
+
+/**
+ * Optimistično zaklepanje skupine ob spremembi slike skupine (018, FR-018-06): poslana verzija se preveri pred
+ * obdelavo slike, ob zamenjavi pa pod zaklepom vrstice, ki zapre dirko z urejanjem in arhiviranjem.
+ */
+@Component
+public class GroupPhotoVersion {
+
+    private final GroupRepository groups;
+
+<span class="fc" id="L20">    GroupPhotoVersion(GroupRepository groups) {</span>
+<span class="fc" id="L21">        this.groups = groups;</span>
+<span class="fc" id="L22">    }</span>
+
+    /** Hitro preverjanje brez zaklepa (pred dragim dekodiranjem): zastarela verzija = {@code VERSION_CONFLICT}. */
+    public void check(Membership membership, long version) {
+<span class="fc" id="L26">        GroupDetail current =</span>
+<span class="fc" id="L27">                groups.findDetail(membership.groupId(), membership.userId()).orElseThrow(NotFoundException::new);</span>
+<span class="fc bfc" id="L28" title="All 2 branches covered.">        if (current.version() != version) {</span>
+<span class="fc" id="L29">            throw new VersionConflictException(current);</span>
+        }
+<span class="fc" id="L31">    }</span>
+
+    /**
+     * Zaklene skupino, še enkrat preveri arhiviranost in verzijo; kliče se v isti transakciji kot sprememba slike.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void lockAndCheck(Membership membership, long version) {
+<span class="fc" id="L38">        GroupRepository.LockedGroup locked = groups.lock(membership.groupId()).orElseThrow(NotFoundException::new);</span>
+<span class="pc bpc" id="L39" title="1 of 2 branches missed.">        if (locked.archived()) {</span>
+<span class="nc" id="L40">            throw new GroupArchivedException();</span>
+        }
+<span class="fc bfc" id="L42" title="All 2 branches covered.">        if (locked.version() != version) {</span>
+<span class="fc" id="L43">            throw new VersionConflictException(</span>
+<span class="fc" id="L44">                    groups.findDetail(membership.groupId(), membership.userId()).orElseThrow(NotFoundException::new));</span>
+        }
+<span class="fc" id="L46">    }</span>
+
+    /** Poveča verzijo zaklenjene skupine (izvajalec in čas kot pri urejanju); vrne novo verzijo. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public long bump(Membership membership, long version) {
+<span class="fc" id="L51">        groups.bumpVersion(membership.groupId(), membership.userId());</span>
+<span class="fc" id="L52">        return version + 1;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

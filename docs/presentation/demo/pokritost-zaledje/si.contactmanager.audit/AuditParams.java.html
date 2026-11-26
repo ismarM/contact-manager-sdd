@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuditParams.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.audit</a> &gt; <span class="el_source">AuditParams.java</span></div><h1>AuditParams.java</h1><pre class="source lang-java linenums">package si.contactmanager.audit;
+
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import si.contactmanager.shared.error.NotFoundException;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+
+/** Razčlenjevanje skupnih parametrov novih endpointov 015 (strani 0-osne; velikosti 25, 50, 100; neveljaven id = 404). */
+final class AuditParams {
+
+    static final int DEFAULT_SIZE = 25;
+<span class="fc" id="L13">    private static final Set&lt;Integer&gt; PAGE_SIZES = Set.of(25, 50, 100);</span>
+
+    private AuditParams() {}
+
+    static UUID id(String value) {
+        try {
+<span class="fc" id="L19">            return UUID.fromString(value);</span>
+<span class="nc" id="L20">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L21">            throw new NotFoundException();</span>
+        }
+    }
+
+    static Integer page(String value, List&lt;FieldError&gt; errors) {
+<span class="fc bfc" id="L26" title="All 2 branches covered.">        if (value == null) {</span>
+<span class="fc" id="L27">            return 0;</span>
+        }
+        try {
+<span class="fc" id="L30">            int number = Integer.parseInt(value);</span>
+<span class="fc bfc" id="L31" title="All 2 branches covered.">            if (number &gt;= 0) {</span>
+<span class="fc" id="L32">                return number;</span>
+            }
+<span class="nc" id="L34">        } catch (NumberFormatException e) {</span>
+            // obravnavano spodaj
+<span class="fc" id="L36">        }</span>
+<span class="fc" id="L37">        errors.add(new FieldError(&quot;page&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L38">        return null;</span>
+    }
+
+    static Integer size(String value, List&lt;FieldError&gt; errors) {
+<span class="fc bfc" id="L42" title="All 2 branches covered.">        if (value == null) {</span>
+<span class="fc" id="L43">            return DEFAULT_SIZE;</span>
+        }
+        try {
+<span class="fc" id="L46">            int number = Integer.parseInt(value);</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">            if (PAGE_SIZES.contains(number)) {</span>
+<span class="fc" id="L48">                return number;</span>
+            }
+<span class="nc" id="L50">        } catch (NumberFormatException e) {</span>
+            // obravnavano spodaj
+<span class="fc" id="L52">        }</span>
+<span class="fc" id="L53">        errors.add(new FieldError(&quot;size&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L54">        return null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

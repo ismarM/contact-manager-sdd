@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PhoneNormalizer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">PhoneNormalizer.java</span></div><h1>PhoneNormalizer.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import com.google.i18n.phonenumbers.NumberParseException;
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
+import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat;
+import com.google.i18n.phonenumbers.Phonenumber.PhoneNumber;
+import com.google.i18n.phonenumbers.ShortNumberInfo;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * Preverjanje in normalizacija telefona (016, research R-02): obrez, odcep pripone, dovoljeni znaki, {@code 00} =
+ * {@code +}, razčlenitev glede na državo kontakta (sicer {@code SI}), {@code isValidNumber} → E.164 (+ {@code ;ext=N}).
+ * Veljavna kratka številka se shrani kot števke. Črke se nikoli ne pretvarjajo v števke.
+ */
+final class PhoneNormalizer {
+
+    static final String DEFAULT_REGION = &quot;SI&quot;;
+    static final int MAX = 30;
+
+<span class="fc" id="L22">    private static final Pattern EXTENSION =</span>
+<span class="fc" id="L23">            Pattern.compile(&quot;(?i)\\s*(?:int\\.?|interna|ext\\.?|x|#|;ext=)\\s*(\\d{1,9})$&quot;);</span>
+<span class="fc" id="L24">    private static final Pattern ALLOWED = Pattern.compile(&quot;^[0-9+\\-()/. ]+$&quot;);</span>
+<span class="fc" id="L25">    private static final Pattern NON_DIGITS = Pattern.compile(&quot;\\D&quot;);</span>
+<span class="fc" id="L26">    private static final PhoneNumberUtil UTIL = PhoneNumberUtil.getInstance();</span>
+<span class="fc" id="L27">    private static final ShortNumberInfo SHORT = ShortNumberInfo.getInstance();</span>
+
+    private PhoneNormalizer() {}
+
+    /** Kanonična oblika ali prazno, če številka ni veljavna; {@code country}: koda ISO kontakta ali {@code null}. */
+    static Optional&lt;String&gt; normalize(String raw, String country) {
+<span class="pc bpc" id="L33" title="1 of 2 branches missed.">        if (raw == null) {</span>
+<span class="nc" id="L34">            return Optional.empty();</span>
+        }
+<span class="fc" id="L36">        String text = raw.strip();</span>
+<span class="fc" id="L37">        String extension = null;</span>
+<span class="fc" id="L38">        Matcher matcher = EXTENSION.matcher(text);</span>
+<span class="fc bfc" id="L39" title="All 2 branches covered.">        if (matcher.find()) {</span>
+<span class="fc" id="L40">            extension = matcher.group(1);</span>
+<span class="fc" id="L41">            text = text.substring(0, matcher.start()).strip();</span>
+        }
+<span class="fc bfc" id="L43" title="All 6 branches covered.">        if (text.isEmpty() || !ALLOWED.matcher(text).matches() || text.lastIndexOf('+') &gt; 0) {</span>
+<span class="fc" id="L44">            return Optional.empty();</span>
+        }
+<span class="fc bfc" id="L46" title="All 4 branches covered.">        String region = country != null &amp;&amp; UTIL.getSupportedRegions().contains(country) ? country : DEFAULT_REGION;</span>
+<span class="fc" id="L47">        String digits = NON_DIGITS.matcher(text).replaceAll(&quot;&quot;);</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        if (extension == null</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">                &amp;&amp; !text.startsWith(&quot;+&quot;)</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">                &amp;&amp; !text.startsWith(&quot;00&quot;)</span>
+<span class="fc bfc" id="L51" title="All 2 branches covered.">                &amp;&amp; digits.length() &lt;= 6</span>
+<span class="fc bfc" id="L52" title="All 2 branches covered.">                &amp;&amp; isShort(digits, region)) {</span>
+<span class="fc" id="L53">            return Optional.of(digits);</span>
+        }
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        if (text.startsWith(&quot;00&quot;)) {</span>
+<span class="fc" id="L56">            text = &quot;+&quot; + text.substring(2);</span>
+        }
+        PhoneNumber number;
+        try {
+<span class="fc" id="L60">            number = UTIL.parse(text, region);</span>
+<span class="fc" id="L61">        } catch (NumberParseException e) {</span>
+<span class="fc" id="L62">            return Optional.empty();</span>
+<span class="fc" id="L63">        }</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        if (!UTIL.isValidNumber(number)) {</span>
+<span class="fc" id="L65">            return Optional.empty();</span>
+        }
+<span class="fc" id="L67">        String e164 = UTIL.format(number, PhoneNumberFormat.E164);</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        String result = extension == null ? e164 : e164 + &quot;;ext=&quot; + extension;</span>
+<span class="pc bpc" id="L69" title="1 of 2 branches missed.">        return result.length() &lt;= MAX ? Optional.of(result) : Optional.empty();</span>
+    }
+
+    private static boolean isShort(String digits, String region) {
+        try {
+<span class="fc" id="L74">            return SHORT.isValidShortNumberForRegion(UTIL.parse(digits, region), region);</span>
+<span class="fc" id="L75">        } catch (NumberParseException e) {</span>
+<span class="fc" id="L76">            return false;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

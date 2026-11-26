@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProfileRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.account</a> &gt; <span class="el_source">ProfileRepository.java</span></div><h1>ProfileRepository.java</h1><pre class="source lang-java linenums">package si.contactmanager.account;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import si.contactmanager.account.DisplayFormat.AddressFormat;
+import si.contactmanager.account.DisplayFormat.DateFormat;
+import si.contactmanager.account.DisplayFormat.PhoneFormat;
+import si.contactmanager.shared.error.AccountConflictException;
+
+/**
+ * Profil v tabeli {@code app_user} (data-model.md). Vsaka operacija je en stavek {@code INSERT … ON CONFLICT}, zato
+ * sočasne prijave istega uporabnika ustvarijo natanko en profil (FR-001-03).
+ */
+@Repository
+class ProfileRepository {
+
+    /** Uporabnik iz žetona: Firebase UID ({@code sub}), ime (lahko {@code null}) in e-naslov. */
+<span class="fc" id="L21">    record Identity(String uid, String name, String email) {}</span>
+
+<span class="fc" id="L23">    record Result(Profile profile, boolean created) {}</span>
+
+    private static final String INSERT = &quot;INSERT INTO app_user&quot;
+            + &quot; (firebase_uid, name, email, language, theme, phone_format, date_format, address_format)&quot;
+            + &quot; VALUES (:uid, :name, :email, :language, :theme, :phone, :date, :address)&quot;
+            + &quot; ON CONFLICT (firebase_uid) DO UPDATE SET &quot;;
+
+    private static final String RETURNING = &quot;, updated_at = now()&quot;
+            + &quot; RETURNING name, email, language, theme, phone_format, date_format, address_format,&quot;
+            + &quot; (xmax = 0) AS created,&quot;
+            + &quot; (SELECT i.revision FROM image i WHERE i.kind = 'USER' AND i.user_id = app_user.id)&quot;
+            + &quot; AS photo_revision&quot;;
+
+    /** Ime in e-naslov iz žetona, izbira naprave samo v prazna polja profila (FR-001-19 b). */
+    private static final String SYNC = INSERT
+            + &quot;name = excluded.name, email = excluded.email,&quot;
+            + &quot; language = COALESCE(app_user.language, excluded.language),&quot;
+            + &quot; theme = COALESCE(app_user.theme, excluded.theme),&quot;
+            + &quot; phone_format = COALESCE(app_user.phone_format, excluded.phone_format),&quot;
+            + &quot; date_format = COALESCE(app_user.date_format, excluded.date_format),&quot;
+            + &quot; address_format = COALESCE(app_user.address_format, excluded.address_format)&quot;
+            + RETURNING;
+
+    /** Oblike zapisa: manjka = nespremenjeno (FR-016-17), {@code null} = privzeto. */
+    private static final String SAVE_PREFERENCES = INSERT
+            + &quot;language = excluded.language, theme = excluded.theme,&quot;
+            + &quot; phone_format = CASE WHEN :phoneSet THEN excluded.phone_format ELSE app_user.phone_format END,&quot;
+            + &quot; date_format = CASE WHEN :dateSet THEN excluded.date_format ELSE app_user.date_format END,&quot;
+            + &quot; address_format = CASE WHEN :addressSet THEN excluded.address_format ELSE app_user.address_format END&quot;
+            + RETURNING;
+
+    private final JdbcClient jdbc;
+
+<span class="fc" id="L56">    ProfileRepository(JdbcClient jdbc) {</span>
+<span class="fc" id="L57">        this.jdbc = jdbc;</span>
+<span class="fc" id="L58">    }</span>
+
+    /** Sinhronizacija ob prijavi (FR-001-02, FR-001-03, FR-001-19). */
+    Result sync(Identity identity, Preferences device) {
+<span class="fc" id="L62">        return execute(SYNC, identity, device);</span>
+    }
+
+    /** Sprememba izbire (FR-001-15, FR-001-17, FR-001-19); profil se po potrebi ustvari iz žetona. */
+    Result savePreferences(Identity identity, Preferences preferences) {
+<span class="fc" id="L67">        return execute(SAVE_PREFERENCES, identity, preferences);</span>
+    }
+
+    /**
+     * Sočasni prvi prijavi istega uporabnika: drugi vstavek lahko trči ob unikatni indeks e-naslova, še preden vidi
+     * vrstico prvega ({@code ON CONFLICT} velja samo za {@code firebase_uid}); ponovni poskus vidi potrjeno vrstico in
+     * jo posodobi (FR-001-02, 007 ga je razkril pod obremenitvijo).
+     */
+    private Result execute(String sql, Identity identity, Preferences preferences) {
+        try {
+<span class="fc" id="L77">            return executeOnce(sql, identity, preferences);</span>
+<span class="fc" id="L78">        } catch (DuplicateKeyException e) {</span>
+            try {
+<span class="fc" id="L80">                return executeOnce(sql, identity, preferences);</span>
+<span class="fc" id="L81">            } catch (DuplicateKeyException conflict) {</span>
+                // Tudi ponovni poskus trči: e-naslov (brez razlike velikosti črk) je pri drugem UID (FR-017-11).
+<span class="fc" id="L83">                throw new AccountConflictException();</span>
+            }
+        }
+    }
+
+    private Result executeOnce(String sql, Identity identity, Preferences preferences) {
+<span class="fc" id="L89">        return jdbc.sql(sql)</span>
+<span class="fc" id="L90">                .param(&quot;uid&quot;, identity.uid())</span>
+<span class="fc" id="L91">                .param(&quot;name&quot;, identity.name())</span>
+<span class="fc" id="L92">                .param(&quot;email&quot;, identity.email())</span>
+<span class="fc" id="L93">                .param(</span>
+                        &quot;language&quot;,
+<span class="fc bfc" id="L95" title="All 2 branches covered.">                        preferences.language() == null</span>
+<span class="fc" id="L96">                                ? null</span>
+<span class="fc" id="L97">                                : preferences.language().code())</span>
+<span class="fc" id="L98">                .param(</span>
+                        &quot;theme&quot;,
+<span class="fc bfc" id="L100" title="All 2 branches covered.">                        preferences.theme() == null ? null : preferences.theme().code())</span>
+<span class="fc" id="L101">                .param(&quot;phone&quot;, preferences.phoneFormat().name())</span>
+<span class="fc" id="L102">                .param(&quot;date&quot;, preferences.dateFormat().name())</span>
+<span class="fc" id="L103">                .param(&quot;address&quot;, preferences.addressFormat().name())</span>
+<span class="fc" id="L104">                .param(&quot;phoneSet&quot;, preferences.phoneFormat().present())</span>
+<span class="fc" id="L105">                .param(&quot;dateSet&quot;, preferences.dateFormat().present())</span>
+<span class="fc" id="L106">                .param(&quot;addressSet&quot;, preferences.addressFormat().present())</span>
+<span class="fc" id="L107">                .query(ProfileRepository::result)</span>
+<span class="fc" id="L108">                .single();</span>
+    }
+
+    private static Result result(ResultSet row, int rowNumber) throws SQLException {
+<span class="fc" id="L112">        Profile profile = new Profile(</span>
+<span class="fc" id="L113">                row.getString(&quot;name&quot;),</span>
+<span class="fc" id="L114">                row.getString(&quot;email&quot;),</span>
+<span class="fc" id="L115">                Language.fromCode(row.getString(&quot;language&quot;)).orElse(null),</span>
+<span class="fc" id="L116">                Theme.fromCode(row.getString(&quot;theme&quot;)).orElse(null),</span>
+<span class="fc" id="L117">                DisplayFormat.read(PhoneFormat.class, row.getString(&quot;phone_format&quot;)),</span>
+<span class="fc" id="L118">                DisplayFormat.read(DateFormat.class, row.getString(&quot;date_format&quot;)),</span>
+<span class="fc" id="L119">                DisplayFormat.read(AddressFormat.class, row.getString(&quot;address_format&quot;)),</span>
+<span class="fc" id="L120">                row.getObject(&quot;photo_revision&quot;, Long.class));</span>
+<span class="fc" id="L121">        return new Result(profile, row.getBoolean(&quot;created&quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

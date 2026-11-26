@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContactHistoryService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.audit</a> &gt; <span class="el_source">ContactHistoryService.java</span></div><h1>ContactHistoryService.java</h1><pre class="source lang-java linenums">package si.contactmanager.audit;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import si.contactmanager.audit.ContactHistoryRepository.Latest;
+import si.contactmanager.audit.ContactHistoryRepository.Live;
+import si.contactmanager.audit.HistoryViews.Compare;
+import si.contactmanager.audit.HistoryViews.ContactInfo;
+import si.contactmanager.audit.HistoryViews.Duplicate;
+import si.contactmanager.audit.HistoryViews.History;
+import si.contactmanager.audit.HistoryViews.RestorePreview;
+import si.contactmanager.audit.HistoryViews.StateView;
+import si.contactmanager.audit.HistoryViews.Status;
+import si.contactmanager.audit.HistoryViews.Version;
+import si.contactmanager.audit.HistoryViews.Violation;
+import si.contactmanager.contact.ContactSnapshots;
+import si.contactmanager.contact.ContactState;
+import si.contactmanager.contact.DuplicateLookup;
+import si.contactmanager.contact.RestoreRules;
+import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.shared.error.NotFoundException;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+import si.contactmanager.shared.error.ValidationException;
+
+/**
+ * Zgodovina, različice, primerjava in predogled obnove (015, research R-01, R-02, R-08). Vse je izpeljano iz sledi 005;
+ * dostop do skupine preveri {@code GroupAccess} pred klicem, kontakt mora biti živ ali znan sledi te skupine (sicer 404).
+ */
+@Service
+class ContactHistoryService {
+
+    private final ContactHistoryRepository repository;
+    private final ContactSnapshots snapshots;
+    private final DuplicateLookup duplicates;
+    private final RestoreRules rules;
+
+    ContactHistoryService(
+            ContactHistoryRepository repository,
+            ContactSnapshots snapshots,
+            DuplicateLookup duplicates,
+<span class="fc" id="L43">            RestoreRules rules) {</span>
+<span class="fc" id="L44">        this.rules = rules;</span>
+<span class="fc" id="L45">        this.repository = repository;</span>
+<span class="fc" id="L46">        this.snapshots = snapshots;</span>
+<span class="fc" id="L47">        this.duplicates = duplicates;</span>
+<span class="fc" id="L48">    }</span>
+
+    /** Kontakt te skupine (živ ali v sledi); sicer 404. */
+    Known known(Membership membership, UUID contact) {
+<span class="fc" id="L52">        UUID group = membership.groupId();</span>
+<span class="fc" id="L53">        Optional&lt;Live&gt; live = repository.live(group, contact);</span>
+<span class="fc" id="L54">        Optional&lt;Latest&gt; latest = repository.latest(group, contact);</span>
+<span class="fc bfc" id="L55" title="All 4 branches covered.">        if (live.isEmpty() &amp;&amp; latest.isEmpty()) {</span>
+<span class="fc" id="L56">            throw new NotFoundException();</span>
+        }
+<span class="fc" id="L58">        return new Known(live, latest, ContactHistoryRepository.status(live, latest));</span>
+    }
+
+<span class="fc" id="L61">    record Known(Optional&lt;Live&gt; live, Optional&lt;Latest&gt; latest, Status status) {</span>
+
+        String displayName() {
+<span class="fc" id="L64">            return live.map(Live::displayName)</span>
+<span class="fc" id="L65">                    .orElseGet(() -&gt; latest.map(Latest::displayName).orElse(null));</span>
+        }
+    }
+
+    History history(Membership membership, UUID contact, int page, int size) {
+<span class="fc" id="L70">        Known known = known(membership, contact);</span>
+<span class="fc" id="L71">        UUID group = membership.groupId();</span>
+<span class="fc" id="L72">        ContactInfo info = new ContactInfo(</span>
+                contact,
+<span class="fc" id="L74">                known.displayName(),</span>
+<span class="fc" id="L75">                known.status(),</span>
+<span class="fc" id="L76">                known.live().map(Live::version).orElse(null),</span>
+<span class="fc" id="L77">                known.latest().map(Latest::entryId).orElse(null),</span>
+<span class="fc" id="L78">                repository.hasInitial(group, contact));</span>
+<span class="fc" id="L79">        return new History(</span>
+<span class="fc" id="L80">                info, repository.count(group, contact), page, size, repository.page(group, contact, size, page));</span>
+    }
+
+    /** Različica kontakta: {@code ref} je id vnosa, {@code initial} ali (samo za živ kontakt) {@code current}. */
+    Version version(Membership membership, UUID contact, String ref) {
+<span class="fc" id="L85">        UUID group = membership.groupId();</span>
+<span class="fc" id="L86">        known(membership, contact);</span>
+<span class="fc" id="L87">        return resolve(group, contact, ref, true);</span>
+    }
+
+    Version resolve(UUID group, UUID contact, String ref, boolean allowCurrent) {
+<span class="pc bpc" id="L91" title="1 of 4 branches missed.">        if (&quot;current&quot;.equals(ref) &amp;&amp; allowCurrent) {</span>
+<span class="fc" id="L92">            ContactState state = snapshots.snapshot(group, contact);</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">            if (state == null) {</span>
+<span class="fc" id="L94">                throw new NotFoundException();</span>
+            }
+<span class="fc" id="L96">            return new Version(</span>
+<span class="fc" id="L97">                    &quot;current&quot;, state.updatedAt(), repository.userRef(state.updatedById()), null, StateView.of(state));</span>
+        }
+<span class="fc bfc" id="L99" title="All 2 branches covered.">        if (&quot;initial&quot;.equals(ref)) {</span>
+<span class="fc" id="L100">            return repository.initial(group, contact).orElseThrow(NotFoundException::new);</span>
+        }
+        UUID entry;
+        try {
+<span class="fc" id="L104">            entry = UUID.fromString(ref);</span>
+<span class="fc" id="L105">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L106">            throw new NotFoundException();</span>
+<span class="fc" id="L107">        }</span>
+<span class="fc" id="L108">        return repository.byEntry(group, contact, entry).orElseThrow(NotFoundException::new);</span>
+    }
+
+    Compare compare(Membership membership, UUID contact, String from, String to) {
+<span class="fc" id="L112">        UUID group = membership.groupId();</span>
+<span class="fc" id="L113">        known(membership, contact);</span>
+<span class="fc" id="L114">        Version a = resolve(group, contact, from, true);</span>
+<span class="fc" id="L115">        Version b = resolve(group, contact, to, true);</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">        if (a.ref().equals(b.ref())) {</span>
+<span class="fc" id="L117">            throw new ValidationException(List.of(new FieldError(&quot;to&quot;, &quot;INVALID_VALUE&quot;)));</span>
+        }
+<span class="fc" id="L119">        return new Compare(a, b, ChangeDiff.fields(state(a), state(b)));</span>
+    }
+
+    RestorePreview preview(Membership membership, UUID contact, String from) {
+<span class="fc" id="L123">        UUID group = membership.groupId();</span>
+<span class="fc" id="L124">        Known known = known(membership, contact);</span>
+<span class="fc" id="L125">        Version target = resolve(group, contact, from, false);</span>
+<span class="fc" id="L126">        ContactState now = snapshots.snapshot(group, contact);</span>
+<span class="fc" id="L127">        ContactState goal = state(target);</span>
+<span class="fc" id="L128">        List&lt;Violation&gt; violations = List.of();</span>
+        try {
+<span class="fc" id="L130">            goal = rules.conform(</span>
+<span class="fc" id="L131">                    group, repository.fullState(group, contact, from).orElseThrow(NotFoundException::new), now, false);</span>
+<span class="fc" id="L132">        } catch (ValidationException e) {</span>
+<span class="fc" id="L133">            violations = e.errors().stream()</span>
+<span class="fc" id="L134">                    .map(f -&gt; new Violation(f.field(), f.code()))</span>
+<span class="fc" id="L135">                    .toList();</span>
+<span class="fc" id="L136">        }</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">        boolean merged = known.status() == Status.MERGED;</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">        boolean invalid = !violations.isEmpty();</span>
+<span class="fc bfc" id="L139" title="All 6 branches covered.">        boolean same = !invalid &amp;&amp; now != null &amp;&amp; RollbackService.sameContent(now, goal);</span>
+<span class="fc bfc" id="L140" title="All 2 branches covered.">        List&lt;Duplicate&gt; found = now != null</span>
+<span class="fc" id="L141">                ? List.of()</span>
+<span class="fc" id="L142">                : duplicates.find(group, goal, contact).stream()</span>
+<span class="fc" id="L143">                        .map(m -&gt; new Duplicate(</span>
+<span class="fc" id="L144">                                m.contactId(), m.displayName(), m.reason().name()))</span>
+<span class="fc" id="L145">                        .toList();</span>
+<span class="fc" id="L146">        return new RestorePreview(</span>
+                target,
+<span class="fc" id="L148">                ChangeDiff.fields(now, goal),</span>
+<span class="fc bfc" id="L149" title="All 6 branches covered.">                known.status(),</span>
+                !merged &amp;&amp; !same &amp;&amp; !invalid,
+<span class="fc bfc" id="L151" title="All 6 branches covered.">                merged ? &quot;MERGED&quot; : invalid ? &quot;INVALID_STATE&quot; : same ? &quot;NO_CHANGES&quot; : null,</span>
+<span class="fc" id="L152">                known.live().map(Live::version).orElse(null),</span>
+<span class="fc" id="L153">                known.latest().map(Latest::entryId).orElse(null),</span>
+                found,
+                violations);
+    }
+
+    /** Vsebina različice kot {@link ContactState} (metapodatki so nepomembni za razlike). */
+    static ContactState state(Version version) {
+<span class="fc" id="L160">        StateView s = version.state();</span>
+<span class="fc" id="L161">        return new ContactState(</span>
+<span class="fc" id="L162">                s.firstName(),</span>
+<span class="fc" id="L163">                s.lastName(),</span>
+<span class="fc" id="L164">                s.address(),</span>
+<span class="fc" id="L165">                s.addressParts(),</span>
+<span class="fc" id="L166">                s.email(),</span>
+<span class="fc" id="L167">                s.phone(),</span>
+<span class="fc" id="L168">                s.company(),</span>
+<span class="fc" id="L169">                s.country(),</span>
+<span class="fc" id="L170">                s.attributes(),</span>
+<span class="fc" id="L171">                s.tags(),</span>
+<span class="fc" id="L172">                s.version(),</span>
+                java.time.Instant.EPOCH,
+                java.time.Instant.EPOCH,
+                null);
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

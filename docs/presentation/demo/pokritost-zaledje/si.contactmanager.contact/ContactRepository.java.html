@@ -1,0 +1,515 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContactRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">ContactRepository.java</span></div><h1>ContactRepository.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import si.contactmanager.group.UserRef;
+
+/**
+ * Kontakti, atributi in značke v tabelah {@code contact}, {@code contact_attribute} in {@code contact_tag}
+ * (data-model.md). Vsaka poizvedba kontakta ima pogoj {@code group_id} (izolacija skupin, konstitucija III).
+ */
+@Repository
+class ContactRepository {
+
+    /** Največ identitet v enem stavku (meja parametrov PostgreSQL je 32.767). */
+    private static final int CHUNK = 5000;
+
+    private static final String DETAIL =
+            &quot;SELECT c.id, c.first_name, c.last_name, c.address, c.address_parts::text AS address_parts, c.email, c.phone, c.company, c.country,&quot;
+                    + &quot; c.version, c.created_at, c.updated_at, u.name AS updated_by_name, u.email AS updated_by_email,&quot;
+                    + &quot; r.id AS rollback_id, r.created_at AS rollback_at, ru.name AS rollback_by_name,&quot;
+                    + &quot; ru.email AS rollback_by_email, r.target_initial AS rollback_initial, rt.id AS target_id,&quot;
+                    + &quot; rt.created_at AS target_at,&quot;
+                    + &quot; (SELECT i.revision FROM image i WHERE i.kind = 'CONTACT' AND i.group_id = c.group_id AND i.contact_id = c.id AND i.detached_at IS NULL) AS photo_revision&quot;
+                    + &quot; FROM contact c LEFT JOIN app_user u ON u.id = c.updated_by&quot;
+                    + &quot; LEFT JOIN audit_entry r ON r.id = c.reverted_entry_id&quot;
+                    + &quot; LEFT JOIN app_user ru ON ru.id = r.actor_id&quot;
+                    + &quot; LEFT JOIN audit_entry rt ON rt.id = r.target_entry_id&quot;
+                    + &quot; WHERE c.group_id = :group AND c.id = :id&quot;;
+
+    private final JdbcClient jdbc;
+
+<span class="fc" id="L44">    ContactRepository(JdbcClient jdbc) {</span>
+<span class="fc" id="L45">        this.jdbc = jdbc;</span>
+<span class="fc" id="L46">    }</span>
+
+    /** Prikazno ime: ime in priimek brez manjkajočega dela (data-model.md). */
+    static String displayName(String firstName, String lastName) {
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        if (firstName == null) {</span>
+<span class="fc" id="L51">            return lastName;</span>
+        }
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        return lastName == null ? firstName : firstName + &quot; &quot; + lastName;</span>
+    }
+
+    /** Ključ razvrščanja: male črke, razvrščeno po kodnih točkah (D-38); prazno = {@code null} (na koncu). */
+    private static String sortKey(String name) {
+<span class="fc bfc" id="L58" title="All 2 branches covered.">        return name == null ? null : name.toLowerCase(Locale.ROOT);</span>
+    }
+
+    /**
+     * Zaklene vrstico skupine za pisanje kontakta (research R-05): počaka na sočasno arhiviranje (ki skupino zaklene z
+     * {@code FOR UPDATE}) in vrne, ali je skupina arhivirana; prazno, če skupine ni več.
+     */
+    Optional&lt;Boolean&gt; lockGroupArchived(UUID group) {
+<span class="fc" id="L66">        return jdbc.sql(&quot;SELECT archived_at IS NOT NULL FROM contact_group WHERE id = :group FOR SHARE&quot;)</span>
+<span class="fc" id="L67">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L68">                .query(Boolean.class)</span>
+<span class="fc" id="L69">                .optional();</span>
+    }
+
+    /** Zaklene kontakt v skupini in vrne njegovo verzijo; prazno, če ga v tej skupini ni. */
+    Optional&lt;Long&gt; lockVersion(UUID group, UUID id) {
+<span class="fc" id="L74">        return jdbc.sql(&quot;SELECT version FROM contact WHERE group_id = :group AND id = :id FOR UPDATE&quot;)</span>
+<span class="fc" id="L75">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L76">                .param(&quot;id&quot;, id)</span>
+<span class="fc" id="L77">                .query(Long.class)</span>
+<span class="fc" id="L78">                .optional();</span>
+    }
+
+    /** Identitete vseh zadetkov poizvedbe (brez razvrščanja; »Izberi vse zadetke«, research R-09). */
+    List&lt;UUID&gt; ids(UUID group, ContactQuery query) {
+<span class="fc" id="L83">        Map&lt;String, Object&gt; parameters = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L84">        String where = ContactSearch.where(group, query, parameters);</span>
+<span class="fc" id="L85">        return jdbc.sql(&quot;SELECT c.id FROM contact c WHERE &quot; + where)</span>
+<span class="fc" id="L86">                .params(parameters)</span>
+<span class="fc" id="L87">                .query(UUID.class)</span>
+<span class="fc" id="L88">                .list();</span>
+    }
+
+    /** Identitete iz {@code ids}, ki so kontakti te skupine. */
+    Set&lt;UUID&gt; existing(UUID group, Collection&lt;UUID&gt; ids) {
+<span class="fc" id="L93">        Set&lt;UUID&gt; found = new LinkedHashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">        for (List&lt;UUID&gt; chunk : chunks(ids)) {</span>
+<span class="fc" id="L95">            found.addAll(jdbc.sql(&quot;SELECT id FROM contact WHERE group_id = :group AND id IN (:ids)&quot;)</span>
+<span class="fc" id="L96">                    .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L97">                    .param(&quot;ids&quot;, chunk)</span>
+<span class="fc" id="L98">                    .query(UUID.class)</span>
+<span class="fc" id="L99">                    .list());</span>
+<span class="fc" id="L100">        }</span>
+<span class="fc" id="L101">        return found;</span>
+    }
+
+    /**
+     * Zaklene obstoječe kontakte iz {@code ids} (research R-03): po kosih in v vrstnem redu {@code id}, zato se
+     * prekrivajoči operaciji ne zaklenita križno; vrne zaklenjene identitete.
+     */
+    Set&lt;UUID&gt; lockExisting(UUID group, Collection&lt;UUID&gt; ids) {
+<span class="fc" id="L109">        List&lt;UUID&gt; sorted = ids.stream().sorted().toList();</span>
+<span class="fc" id="L110">        Set&lt;UUID&gt; locked = new LinkedHashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">        for (List&lt;UUID&gt; chunk : chunks(sorted)) {</span>
+<span class="fc" id="L112">            locked.addAll(jdbc.sql(&quot;SELECT id FROM contact WHERE group_id = :group AND id IN (:ids)&quot;</span>
+                            + &quot; ORDER BY id FOR UPDATE&quot;)
+<span class="fc" id="L114">                    .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L115">                    .param(&quot;ids&quot;, chunk)</span>
+<span class="fc" id="L116">                    .query(UUID.class)</span>
+<span class="fc" id="L117">                    .list());</span>
+<span class="fc" id="L118">        }</span>
+<span class="fc" id="L119">        return locked;</span>
+    }
+
+    /** Identitete iz {@code ids}, ki se pojavijo v sledi te skupine (so bile njeni kontakti; R-02). */
+    Set&lt;UUID&gt; knownToGroup(UUID group, Collection&lt;UUID&gt; ids) {
+<span class="fc" id="L124">        Set&lt;UUID&gt; known = new LinkedHashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L125" title="All 2 branches covered.">        for (List&lt;UUID&gt; chunk : chunks(ids)) {</span>
+<span class="fc" id="L126">            known.addAll(jdbc.sql(&quot;SELECT DISTINCT ch.contact_id FROM audit_change ch&quot;</span>
+                            + &quot; JOIN audit_entry e ON e.id = ch.entry_id&quot;
+                            + &quot; WHERE e.group_id = :group AND ch.contact_id IN (:ids)&quot;)
+<span class="fc" id="L129">                    .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L130">                    .param(&quot;ids&quot;, chunk)</span>
+<span class="fc" id="L131">                    .query(UUID.class)</span>
+<span class="fc" id="L132">                    .list());</span>
+<span class="fc" id="L133">        }</span>
+<span class="fc" id="L134">        return known;</span>
+    }
+
+    /** Izbriše kontakte skupine (kaskada odstrani atribute in značke); vrne število izbrisanih. */
+    int deleteAll(UUID group, Collection&lt;UUID&gt; ids) {
+<span class="fc" id="L139">        int deleted = 0;</span>
+<span class="fc bfc" id="L140" title="All 2 branches covered.">        for (List&lt;UUID&gt; chunk : chunks(ids)) {</span>
+<span class="fc" id="L141">            deleted += jdbc.sql(&quot;DELETE FROM contact WHERE group_id = :group AND id IN (:ids)&quot;)</span>
+<span class="fc" id="L142">                    .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L143">                    .param(&quot;ids&quot;, chunk)</span>
+<span class="fc" id="L144">                    .update();</span>
+<span class="fc" id="L145">        }</span>
+<span class="fc" id="L146">        return deleted;</span>
+    }
+
+    private static List&lt;List&lt;UUID&gt;&gt; chunks(Collection&lt;UUID&gt; ids) {
+<span class="fc bfc" id="L150" title="All 2 branches covered.">        List&lt;UUID&gt; all = ids instanceof List&lt;UUID&gt; list ? list : new ArrayList&lt;&gt;(ids);</span>
+<span class="fc" id="L151">        List&lt;List&lt;UUID&gt;&gt; chunks = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">        for (int from = 0; from &lt; all.size(); from += CHUNK) {</span>
+<span class="fc" id="L153">            chunks.add(all.subList(from, Math.min(all.size(), from + CHUNK)));</span>
+        }
+<span class="fc" id="L155">        return chunks;</span>
+    }
+
+    boolean exists(UUID group, UUID id) {
+<span class="fc" id="L159">        return jdbc.sql(&quot;SELECT EXISTS (SELECT 1 FROM contact WHERE group_id = :group AND id = :id)&quot;)</span>
+<span class="fc" id="L160">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L161">                .param(&quot;id&quot;, id)</span>
+<span class="fc" id="L162">                .query(Boolean.class)</span>
+<span class="fc" id="L163">                .single();</span>
+    }
+
+    Optional&lt;ContactDetail&gt; find(UUID group, UUID id) {
+<span class="fc" id="L167">        Optional&lt;ContactDetail&gt; base = jdbc.sql(DETAIL)</span>
+<span class="fc" id="L168">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L169">                .param(&quot;id&quot;, id)</span>
+<span class="fc" id="L170">                .query(ContactRepository::detail)</span>
+<span class="fc" id="L171">                .optional();</span>
+<span class="fc" id="L172">        return base.map(contact -&gt;</span>
+<span class="fc" id="L173">                withChildren(contact, attributes(id), tags(List.of(id)).getOrDefault(id, List.of())));</span>
+    }
+
+    long count(UUID group, ContactQuery query) {
+<span class="fc" id="L177">        ContactSearch.Sql sql = ContactSearch.count(group, query);</span>
+<span class="fc" id="L178">        return jdbc.sql(sql.text()).params(sql.parameters()).query(Long.class).single();</span>
+    }
+
+    /**
+     * Stran zadetkov poizvedbe (iskanje, pogoji, značke, razvrščanje po slovenski abecedi, D-63); besedilo SQL gradi
+     * {@link ContactSearch}, vse vrednosti so imenovani parametri.
+     */
+    List&lt;ContactSummary&gt; page(UUID group, ContactQuery query) {
+<span class="fc" id="L186">        ContactSearch.Sql sql = ContactSearch.page(group, query);</span>
+<span class="fc" id="L187">        List&lt;ContactSummary&gt; rows = jdbc.sql(sql.text())</span>
+<span class="fc" id="L188">                .params(sql.parameters())</span>
+<span class="fc" id="L189">                .query((rs, row) -&gt; {</span>
+<span class="fc" id="L190">                    String first = rs.getString(&quot;first_name&quot;);</span>
+<span class="fc" id="L191">                    String last = rs.getString(&quot;last_name&quot;);</span>
+<span class="fc" id="L192">                    return new ContactSummary(</span>
+<span class="fc" id="L193">                            rs.getObject(&quot;id&quot;, UUID.class),</span>
+                            first,
+                            last,
+<span class="fc" id="L196">                            displayName(first, last),</span>
+<span class="fc" id="L197">                            rs.getString(&quot;email&quot;),</span>
+<span class="fc" id="L198">                            rs.getString(&quot;phone&quot;),</span>
+<span class="fc" id="L199">                            List.of(),</span>
+<span class="fc" id="L200">                            rs.getLong(&quot;version&quot;),</span>
+<span class="fc" id="L201">                            rs.getBoolean(&quot;reverted&quot;),</span>
+<span class="fc" id="L202">                            rs.getObject(&quot;photo_revision&quot;, Long.class));</span>
+                })
+<span class="fc" id="L204">                .list();</span>
+<span class="fc bfc" id="L205" title="All 2 branches covered.">        if (rows.isEmpty()) {</span>
+<span class="fc" id="L206">            return rows;</span>
+        }
+<span class="fc" id="L208">        Map&lt;UUID, List&lt;String&gt;&gt; tags =</span>
+<span class="fc" id="L209">                tags(rows.stream().map(ContactSummary::id).toList());</span>
+<span class="fc" id="L210">        return rows.stream()</span>
+<span class="fc" id="L211">                .map(c -&gt; new ContactSummary(</span>
+<span class="fc" id="L212">                        c.id(),</span>
+<span class="fc" id="L213">                        c.firstName(),</span>
+<span class="fc" id="L214">                        c.lastName(),</span>
+<span class="fc" id="L215">                        c.displayName(),</span>
+<span class="fc" id="L216">                        c.email(),</span>
+<span class="fc" id="L217">                        c.phone(),</span>
+<span class="fc" id="L218">                        tags.getOrDefault(c.id(), List.of()),</span>
+<span class="fc" id="L219">                        c.version(),</span>
+<span class="fc" id="L220">                        c.reverted(),</span>
+<span class="fc" id="L221">                        c.photoRevision()))</span>
+<span class="fc" id="L222">                .toList();</span>
+    }
+
+    /** Poveča verzijo kontakta ob spremembi slike (018): polja ostanejo, izvajalec in čas se zapišeta. */
+    void touch(UUID group, UUID id, long user) {
+<span class="fc" id="L227">        jdbc.sql(&quot;UPDATE contact SET version = version + 1, updated_by = :user, updated_at = now(),&quot;</span>
+                        + &quot; reverted_entry_id = NULL WHERE group_id = :group AND id = :id&quot;)
+<span class="fc" id="L229">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L230">                .param(&quot;id&quot;, id)</span>
+<span class="fc" id="L231">                .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L232">                .update();</span>
+<span class="fc" id="L233">    }</span>
+
+    UUID insert(UUID group, ContactInput input, long user) {
+<span class="fc" id="L236">        UUID id = jdbc.sql(&quot;INSERT INTO contact (group_id, first_name, last_name, address, address_parts, email,&quot;</span>
+                        + &quot; phone, company, country, sort_last, sort_first, updated_by)&quot;
+                        + &quot; VALUES (:group, :first, :last, :address, CAST(:parts AS jsonb), :email, :phone, :company,&quot;
+                        + &quot; :country, :sortLast, :sortFirst, :user)&quot;
+                        + &quot; RETURNING id&quot;)
+<span class="fc" id="L241">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L242">                .param(&quot;first&quot;, input.firstName())</span>
+<span class="fc" id="L243">                .param(&quot;last&quot;, input.lastName())</span>
+<span class="fc" id="L244">                .param(&quot;address&quot;, input.address())</span>
+<span class="fc" id="L245">                .param(&quot;parts&quot;, AddressJson.write(input.addressParts()))</span>
+<span class="fc" id="L246">                .param(&quot;email&quot;, input.email())</span>
+<span class="fc" id="L247">                .param(&quot;phone&quot;, input.phone())</span>
+<span class="fc" id="L248">                .param(&quot;company&quot;, input.company())</span>
+<span class="fc" id="L249">                .param(&quot;country&quot;, input.country())</span>
+<span class="fc" id="L250">                .param(&quot;sortLast&quot;, sortKey(input.lastName()))</span>
+<span class="fc" id="L251">                .param(&quot;sortFirst&quot;, sortKey(input.firstName()))</span>
+<span class="fc" id="L252">                .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L253">                .query(UUID.class)</span>
+<span class="fc" id="L254">                .single();</span>
+<span class="fc" id="L255">        insertChildren(id, input);</span>
+<span class="fc" id="L256">        return id;</span>
+    }
+
+    /** Zamenja vrednosti, poveča verzijo ter zapiše izvajalca in čas (FR-004-10). */
+    void update(UUID group, UUID id, ContactInput input, long user) {
+<span class="fc" id="L261">        jdbc.sql(&quot;UPDATE contact SET first_name = :first, last_name = :last, address = :address,&quot;</span>
+                        + &quot; address_parts = CAST(:parts AS jsonb), email = :email, phone = :phone, company = :company, country = :country, sort_last = :sortLast,&quot;
+                        + &quot; sort_first = :sortFirst, version = version + 1,&quot;
+                        + &quot; updated_by = :user, updated_at = now(), reverted_entry_id = NULL&quot;
+                        + &quot; WHERE group_id = :group AND id = :id&quot;)
+<span class="fc" id="L266">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L267">                .param(&quot;id&quot;, id)</span>
+<span class="fc" id="L268">                .param(&quot;first&quot;, input.firstName())</span>
+<span class="fc" id="L269">                .param(&quot;last&quot;, input.lastName())</span>
+<span class="fc" id="L270">                .param(&quot;address&quot;, input.address())</span>
+<span class="fc" id="L271">                .param(&quot;parts&quot;, AddressJson.write(input.addressParts()))</span>
+<span class="fc" id="L272">                .param(&quot;email&quot;, input.email())</span>
+<span class="fc" id="L273">                .param(&quot;phone&quot;, input.phone())</span>
+<span class="fc" id="L274">                .param(&quot;company&quot;, input.company())</span>
+<span class="fc" id="L275">                .param(&quot;country&quot;, input.country())</span>
+<span class="fc" id="L276">                .param(&quot;sortLast&quot;, sortKey(input.lastName()))</span>
+<span class="fc" id="L277">                .param(&quot;sortFirst&quot;, sortKey(input.firstName()))</span>
+<span class="fc" id="L278">                .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L279">                .update();</span>
+<span class="fc" id="L280">        jdbc.sql(&quot;DELETE FROM contact_attribute WHERE contact_id = :id&quot;)</span>
+<span class="fc" id="L281">                .param(&quot;id&quot;, id)</span>
+<span class="fc" id="L282">                .update();</span>
+<span class="fc" id="L283">        jdbc.sql(&quot;DELETE FROM contact_tag WHERE contact_id = :id&quot;)</span>
+<span class="fc" id="L284">                .param(&quot;id&quot;, id)</span>
+<span class="fc" id="L285">                .update();</span>
+<span class="fc" id="L286">        insertChildren(id, input);</span>
+<span class="fc" id="L287">    }</span>
+
+    void delete(UUID group, UUID id) {
+<span class="fc" id="L290">        jdbc.sql(&quot;DELETE FROM contact WHERE group_id = :group AND id = :id&quot;)</span>
+<span class="fc" id="L291">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L292">                .param(&quot;id&quot;, id)</span>
+<span class="fc" id="L293">                .update();</span>
+<span class="fc" id="L294">    }</span>
+
+    /** Normalizirani dodatni ključi iz {@code keys}, ki jih ima vsaj en kontakt te skupine (FR-008-14, R-06). */
+    java.util.Set&lt;String&gt; existingKeys(UUID group, Collection&lt;String&gt; keys) {
+<span class="fc" id="L298">        java.util.Set&lt;String&gt; existing = new java.util.LinkedHashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L299" title="All 2 branches covered.">        for (String key : keys) {</span>
+            // Korelirana skalarna podizbira ima stalen načrt: kontakti skupine, za vsakega točno iskanje po indeksu
+            // contact_attribute_key (key_norm, contact_id). Zapis z JOIN ali EXISTS planer združi in pri zastareli
+            // statistiki (po množičnem vstavljanju, pred samodejno analizo) izbere vgnezdeno zanko z ~8 M branji
+            // (D-71).
+<span class="fc" id="L304">            boolean found = jdbc.sql(&quot;SELECT EXISTS (SELECT 1 FROM contact c WHERE c.group_id = :group AND&quot;</span>
+                            + &quot; (SELECT 1 FROM contact_attribute a WHERE a.contact_id = c.id AND a.key_norm = :key&quot;
+                            + &quot; LIMIT 1) IS NOT NULL)&quot;)
+<span class="fc" id="L307">                    .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L308">                    .param(&quot;key&quot;, key)</span>
+<span class="fc" id="L309">                    .query(Boolean.class)</span>
+<span class="fc" id="L310">                    .single();</span>
+<span class="fc bfc" id="L311" title="All 2 branches covered.">            if (found) {</span>
+<span class="fc" id="L312">                existing.add(key);</span>
+            }
+<span class="fc" id="L314">        }</span>
+<span class="fc" id="L315">        return existing;</span>
+    }
+
+    /**
+     * Možnosti filtrov skupine (FR-008-06): različni ključi in značke, vsak v obliki najstarejšega kontakta, po
+     * slovenski abecedi (research R-08).
+     */
+    ContactFilterOptions filterOptions(UUID group) {
+<span class="fc" id="L323">        List&lt;String&gt; keys = jdbc.sql(&quot;SELECT key FROM (SELECT DISTINCT ON (a.key_norm) a.key_norm, a.key&quot;</span>
+                        + &quot; FROM contact_attribute a JOIN contact c ON c.id = a.contact_id WHERE c.group_id = :group&quot;
+                        + &quot; ORDER BY a.key_norm, c.created_at, c.id) s ORDER BY key_norm COLLATE sort_sl, key_norm&quot;)
+<span class="fc" id="L326">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L327">                .query(String.class)</span>
+<span class="fc" id="L328">                .list();</span>
+<span class="fc" id="L329">        List&lt;String&gt; tags = jdbc.sql(&quot;SELECT tag FROM (SELECT DISTINCT ON (t.tag_norm) t.tag_norm, t.tag&quot;</span>
+                        + &quot; FROM contact_tag t JOIN contact c ON c.id = t.contact_id WHERE c.group_id = :group&quot;
+                        + &quot; ORDER BY t.tag_norm, c.created_at, c.id) s ORDER BY tag_norm COLLATE sort_sl, tag_norm&quot;)
+<span class="fc" id="L332">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L333">                .query(String.class)</span>
+<span class="fc" id="L334">                .list();</span>
+<span class="fc" id="L335">        return new ContactFilterOptions(keys, tags);</span>
+    }
+
+    /**
+     * Kanonični zapis ključev (FR-013-10, R-05): za vsak normaliziran ključ iz {@code norms}, ki ga skupina ima, zapis z
+     * največ kontakti; pri izenačenju zapis najstarejšega kontakta, nato po abecedi zapisa.
+     */
+    Map&lt;String, String&gt; canonicalKeys(UUID group, Collection&lt;String&gt; norms) {
+<span class="fc" id="L343">        return canonical(&quot;contact_attribute&quot;, &quot;key&quot;, &quot;key_norm&quot;, group, norms);</span>
+    }
+
+    /** Kanonični zapis značk (FR-013-10), kot {@link #canonicalKeys}. */
+    Map&lt;String, String&gt; canonicalTags(UUID group, Collection&lt;String&gt; norms) {
+<span class="fc" id="L348">        return canonical(&quot;contact_tag&quot;, &quot;tag&quot;, &quot;tag_norm&quot;, group, norms);</span>
+    }
+
+    private Map&lt;String, String&gt; canonical(
+            String table, String column, String normColumn, UUID group, Collection&lt;String&gt; norms) {
+<span class="fc" id="L353">        Map&lt;String, String&gt; result = new LinkedHashMap&lt;&gt;();</span>
+<span class="pc bpc" id="L354" title="1 of 2 branches missed.">        if (norms.isEmpty()) {</span>
+<span class="nc" id="L355">            return result;</span>
+        }
+<span class="fc" id="L357">        jdbc.sql(&quot;SELECT DISTINCT ON (norm) norm, spelling FROM (SELECT t.&quot; + normColumn + &quot; AS norm, t.&quot; + column</span>
+                        + &quot; AS spelling, count(*) AS uses, min(c.created_at) AS first_at FROM &quot; + table
+                        + &quot; t JOIN contact c ON c.id = t.contact_id WHERE c.group_id = :group AND t.&quot; + normColumn
+                        + &quot; IN (:norms) GROUP BY t.&quot; + normColumn + &quot;, t.&quot; + column + &quot;) s&quot;
+                        + &quot; ORDER BY norm, uses DESC, first_at, spelling COLLATE \&quot;C\&quot;&quot;)
+<span class="fc" id="L362">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L363">                .param(&quot;norms&quot;, List.copyOf(norms))</span>
+<span class="fc" id="L364">                .query((ResultSet rs) -&gt; {</span>
+<span class="fc bfc" id="L365" title="All 2 branches covered.">                    while (rs.next()) {</span>
+<span class="fc" id="L366">                        result.put(rs.getString(&quot;norm&quot;), rs.getString(&quot;spelling&quot;));</span>
+                    }
+<span class="fc" id="L368">                    return result;</span>
+                });
+<span class="fc" id="L370">        return result;</span>
+    }
+
+    private void insertChildren(UUID id, ContactInput input) {
+<span class="fc" id="L374">        List&lt;Attribute&gt; attributes = input.attributes();</span>
+<span class="fc bfc" id="L375" title="All 2 branches covered.">        for (int i = 0; i &lt; attributes.size(); i++) {</span>
+<span class="fc" id="L376">            Attribute attribute = attributes.get(i);</span>
+<span class="fc" id="L377">            jdbc.sql(&quot;INSERT INTO contact_attribute (contact_id, position, key, key_norm, value, parts)&quot;</span>
+                            + &quot; VALUES (:id, :position, :key, :norm, :value, CAST(:parts AS jsonb))&quot;)
+<span class="fc" id="L379">                    .param(&quot;id&quot;, id)</span>
+<span class="fc" id="L380">                    .param(&quot;position&quot;, i)</span>
+<span class="fc" id="L381">                    .param(&quot;key&quot;, attribute.key())</span>
+<span class="fc" id="L382">                    .param(&quot;norm&quot;, ContactInputParser.normalize(attribute.key()))</span>
+<span class="fc bfc" id="L383" title="All 2 branches covered.">                    .param(&quot;value&quot;, attribute.parts() == null ? attribute.value() : null)</span>
+<span class="fc" id="L384">                    .param(&quot;parts&quot;, AddressJson.write(attribute.parts()))</span>
+<span class="fc" id="L385">                    .update();</span>
+        }
+<span class="fc bfc" id="L387" title="All 2 branches covered.">        if (!attributes.isEmpty()) {</span>
+            // Ključ v uporabi ima vedno vrstico s tipom (016); poti brez razreševanja tipov (uvoz) dobijo OTHER.
+<span class="fc" id="L389">            jdbc.sql(&quot;INSERT INTO attribute_key (group_id, key_norm)&quot;</span>
+                            + &quot; SELECT DISTINCT c.group_id, a.key_norm FROM contact_attribute a&quot;
+                            + &quot; JOIN contact c ON c.id = a.contact_id WHERE a.contact_id = :id&quot;
+                            + &quot; ON CONFLICT (group_id, key_norm) DO NOTHING&quot;)
+<span class="fc" id="L393">                    .param(&quot;id&quot;, id)</span>
+<span class="fc" id="L394">                    .update();</span>
+        }
+<span class="fc" id="L396">        List&lt;String&gt; tags = input.tags();</span>
+<span class="fc bfc" id="L397" title="All 2 branches covered.">        for (int i = 0; i &lt; tags.size(); i++) {</span>
+<span class="fc" id="L398">            jdbc.sql(</span>
+                            &quot;INSERT INTO contact_tag (contact_id, position, tag, tag_norm) VALUES (:id, :position, :tag, :norm)&quot;)
+<span class="fc" id="L400">                    .param(&quot;id&quot;, id)</span>
+<span class="fc" id="L401">                    .param(&quot;position&quot;, i)</span>
+<span class="fc" id="L402">                    .param(&quot;tag&quot;, tags.get(i))</span>
+<span class="fc" id="L403">                    .param(&quot;norm&quot;, ContactInputParser.normalize(tags.get(i)))</span>
+<span class="fc" id="L404">                    .update();</span>
+        }
+<span class="fc" id="L406">    }</span>
+
+    private List&lt;Attribute&gt; attributes(UUID id) {
+<span class="fc" id="L409">        return jdbc.sql(</span>
+                        &quot;SELECT a.key, a.value, a.parts::text AS parts, k.type FROM contact_attribute a JOIN contact c ON c.id = a.contact_id&quot;
+                                + &quot; LEFT JOIN attribute_key k ON k.group_id = c.group_id AND k.key_norm = a.key_norm&quot;
+                                + &quot; WHERE a.contact_id = :id ORDER BY a.position&quot;)
+<span class="fc" id="L413">                .param(&quot;id&quot;, id)</span>
+<span class="fc" id="L414">                .query((rs, row) -&gt; new Attribute(</span>
+<span class="fc" id="L415">                        rs.getString(&quot;key&quot;),</span>
+<span class="fc bfc" id="L416" title="All 2 branches covered.">                        rs.getString(&quot;type&quot;) == null ? null : AttributeType.valueOf(rs.getString(&quot;type&quot;)),</span>
+<span class="fc" id="L417">                        rs.getString(&quot;value&quot;),</span>
+<span class="fc" id="L418">                        AddressJson.read(rs.getString(&quot;parts&quot;))))</span>
+<span class="fc" id="L419">                .list();</span>
+    }
+
+    private Map&lt;UUID, List&lt;String&gt;&gt; tags(Collection&lt;UUID&gt; ids) {
+<span class="fc" id="L423">        Map&lt;UUID, List&lt;String&gt;&gt; tags = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L424">        jdbc.sql(&quot;SELECT contact_id, tag FROM contact_tag WHERE contact_id IN (:ids) ORDER BY contact_id, position&quot;)</span>
+<span class="fc" id="L425">                .param(&quot;ids&quot;, ids)</span>
+<span class="fc" id="L426">                .query((ResultSet rs) -&gt; {</span>
+<span class="fc bfc" id="L427" title="All 2 branches covered.">                    while (rs.next()) {</span>
+<span class="fc" id="L428">                        tags.computeIfAbsent(rs.getObject(&quot;contact_id&quot;, UUID.class), key -&gt; new ArrayList&lt;&gt;())</span>
+<span class="fc" id="L429">                                .add(rs.getString(&quot;tag&quot;));</span>
+                    }
+<span class="fc" id="L431">                    return tags;</span>
+                });
+<span class="fc" id="L433">        return tags;</span>
+    }
+
+    private static ContactDetail withChildren(ContactDetail c, List&lt;Attribute&gt; attributes, List&lt;String&gt; tags) {
+<span class="fc" id="L437">        return new ContactDetail(</span>
+<span class="fc" id="L438">                c.id(),</span>
+<span class="fc" id="L439">                c.firstName(),</span>
+<span class="fc" id="L440">                c.lastName(),</span>
+<span class="fc" id="L441">                c.displayName(),</span>
+<span class="fc" id="L442">                c.address(),</span>
+<span class="fc" id="L443">                c.addressParts(),</span>
+<span class="fc" id="L444">                c.email(),</span>
+<span class="fc" id="L445">                c.phone(),</span>
+<span class="fc" id="L446">                c.company(),</span>
+<span class="fc" id="L447">                c.country(),</span>
+<span class="fc" id="L448">                List.copyOf(attributes),</span>
+<span class="fc" id="L449">                List.copyOf(tags),</span>
+<span class="fc" id="L450">                c.version(),</span>
+<span class="fc" id="L451">                c.createdAt(),</span>
+<span class="fc" id="L452">                c.updatedAt(),</span>
+<span class="fc" id="L453">                c.updatedBy(),</span>
+<span class="fc" id="L454">                c.reverted(),</span>
+<span class="fc" id="L455">                c.photoRevision());</span>
+    }
+
+    private static RevertInfo revert(ResultSet rs) throws SQLException {
+<span class="fc" id="L459">        UUID rollback = rs.getObject(&quot;rollback_id&quot;, UUID.class);</span>
+<span class="fc bfc" id="L460" title="All 2 branches covered.">        if (rollback == null) {</span>
+<span class="fc" id="L461">            return null;</span>
+        }
+<span class="fc" id="L463">        String by = rs.getString(&quot;rollback_by_email&quot;);</span>
+<span class="fc" id="L464">        UUID target = rs.getObject(&quot;target_id&quot;, UUID.class);</span>
+<span class="fc" id="L465">        return new RevertInfo(</span>
+                rollback,
+<span class="fc" id="L467">                rs.getTimestamp(&quot;rollback_at&quot;).toInstant(),</span>
+<span class="pc bpc" id="L468" title="1 of 2 branches missed.">                by == null ? null : new UserRef(rs.getString(&quot;rollback_by_name&quot;), by),</span>
+                target,
+<span class="fc bfc" id="L470" title="All 2 branches covered.">                target == null ? null : rs.getTimestamp(&quot;target_at&quot;).toInstant(),</span>
+<span class="fc" id="L471">                rs.getBoolean(&quot;rollback_initial&quot;));</span>
+    }
+
+    private static ContactDetail detail(ResultSet rs, int row) throws SQLException {
+<span class="fc" id="L475">        String first = rs.getString(&quot;first_name&quot;);</span>
+<span class="fc" id="L476">        String last = rs.getString(&quot;last_name&quot;);</span>
+<span class="fc" id="L477">        String email = rs.getString(&quot;updated_by_email&quot;);</span>
+<span class="fc" id="L478">        return new ContactDetail(</span>
+<span class="fc" id="L479">                rs.getObject(&quot;id&quot;, UUID.class),</span>
+                first,
+                last,
+<span class="fc" id="L482">                displayName(first, last),</span>
+<span class="fc" id="L483">                rs.getString(&quot;address&quot;),</span>
+<span class="fc" id="L484">                AddressJson.read(rs.getString(&quot;address_parts&quot;)),</span>
+<span class="fc" id="L485">                rs.getString(&quot;email&quot;),</span>
+<span class="fc" id="L486">                rs.getString(&quot;phone&quot;),</span>
+<span class="fc" id="L487">                rs.getString(&quot;company&quot;),</span>
+<span class="fc" id="L488">                rs.getString(&quot;country&quot;),</span>
+<span class="fc" id="L489">                List.of(),</span>
+<span class="fc" id="L490">                List.of(),</span>
+<span class="fc" id="L491">                rs.getLong(&quot;version&quot;),</span>
+<span class="fc" id="L492">                rs.getTimestamp(&quot;created_at&quot;).toInstant(),</span>
+<span class="fc" id="L493">                rs.getTimestamp(&quot;updated_at&quot;).toInstant(),</span>
+<span class="fc bfc" id="L494" title="All 2 branches covered.">                email == null ? null : new UserRef(rs.getString(&quot;updated_by_name&quot;), email),</span>
+<span class="fc" id="L495">                revert(rs),</span>
+<span class="fc" id="L496">                rs.getObject(&quot;photo_revision&quot;, Long.class));</span>
+    }
+
+    /** Kontakti skupine za iskanje dvojnikov, razvrščeni po {@code created_at}, {@code id} (FR-011-07). */
+    List&lt;DuplicateCandidate&gt; duplicateCandidates(UUID group) {
+<span class="fc" id="L501">        return jdbc.sql(&quot;SELECT id, first_name, last_name, email, phone, country, created_at FROM contact&quot;</span>
+                        + &quot; WHERE group_id = :group ORDER BY created_at, id&quot;)
+<span class="fc" id="L503">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L504">                .query((rs, row) -&gt; new DuplicateCandidate(</span>
+<span class="fc" id="L505">                        rs.getObject(&quot;id&quot;, UUID.class),</span>
+<span class="fc" id="L506">                        rs.getString(&quot;first_name&quot;),</span>
+<span class="fc" id="L507">                        rs.getString(&quot;last_name&quot;),</span>
+<span class="fc" id="L508">                        rs.getString(&quot;email&quot;),</span>
+<span class="fc" id="L509">                        rs.getString(&quot;phone&quot;),</span>
+<span class="fc" id="L510">                        rs.getString(&quot;country&quot;),</span>
+<span class="fc" id="L511">                        rs.getTimestamp(&quot;created_at&quot;).toInstant()))</span>
+<span class="fc" id="L512">                .list();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

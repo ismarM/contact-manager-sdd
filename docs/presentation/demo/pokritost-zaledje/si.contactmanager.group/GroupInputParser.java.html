@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GroupInputParser.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.group</a> &gt; <span class="el_source">GroupInputParser.java</span></div><h1>GroupInputParser.java</h1><pre class="source lang-java linenums">package si.contactmanager.group;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * Razčlenitev telesa {@code POST}/{@code PUT /api/groups} (research R-07, feature-map §2.6): naslov obrezan, 1–100
+ * znakov; opis do 1000 znakov, prazen ali samo presledki = brez opisa; barva ena od osmih imen (pri ustvarjanju privzeto
+ * tinta). Znaki so kodne točke. Vrne podatke, poslano verzijo in vse napake po poljih; nikoli ne vrže, ker se napake
+ * podatkov po feature-map §2.2 sporočijo šele po preverjanju dostopa in verzije.
+ */
+public final class GroupInputParser {
+
+    static final int TITLE_MAX = 100;
+    static final int DESCRIPTION_MAX = 1000;
+
+<span class="fc" id="L23">    private static final Set&lt;String&gt; CREATE_FIELDS = Set.of(&quot;title&quot;, &quot;description&quot;, &quot;color&quot;);</span>
+<span class="fc" id="L24">    private static final Set&lt;String&gt; UPDATE_FIELDS = Set.of(&quot;title&quot;, &quot;description&quot;, &quot;color&quot;, &quot;version&quot;);</span>
+
+    /** Rezultat: {@code input} je {@code null} ob kateri koli napaki; {@code version} je {@code null}, če ga ni. */
+<span class="fc" id="L27">    public record Parsed(GroupInput input, Long version, List&lt;FieldError&gt; errors) {</span>
+
+        public boolean valid() {
+<span class="fc" id="L30">            return errors.isEmpty();</span>
+        }
+    }
+
+    private final JsonMapper json;
+
+    public GroupInputParser() {
+<span class="fc" id="L37">        this(JsonMapper.builder().build());</span>
+<span class="fc" id="L38">    }</span>
+
+<span class="fc" id="L40">    public GroupInputParser(JsonMapper json) {</span>
+<span class="fc" id="L41">        this.json = json;</span>
+<span class="fc" id="L42">    }</span>
+
+    public Parsed parseCreate(String body) {
+<span class="fc" id="L45">        return parse(body, false);</span>
+    }
+
+    public Parsed parseUpdate(String body) {
+<span class="fc" id="L49">        return parse(body, true);</span>
+    }
+
+    private Parsed parse(String body, boolean update) {
+        JsonNode root;
+        try {
+<span class="pc bpc" id="L55" title="1 of 2 branches missed.">            root = json.readTree(body == null ? &quot;&quot; : body);</span>
+<span class="fc" id="L56">        } catch (JacksonException e) {</span>
+<span class="fc" id="L57">            return malformed();</span>
+<span class="fc" id="L58">        }</span>
+<span class="pc bpc" id="L59" title="1 of 4 branches missed.">        if (root == null || !root.isObject()) {</span>
+<span class="fc" id="L60">            return malformed();</span>
+        }
+<span class="fc" id="L62">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        Set&lt;String&gt; allowed = update ? UPDATE_FIELDS : CREATE_FIELDS;</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        for (Map.Entry&lt;String, JsonNode&gt; property : root.properties()) {</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">            if (!allowed.contains(property.getKey())) {</span>
+<span class="fc" id="L66">                errors.add(new FieldError(property.getKey(), &quot;UNKNOWN_FIELD&quot;));</span>
+            }
+<span class="fc" id="L68">        }</span>
+<span class="fc" id="L69">        String title = title(root, errors);</span>
+<span class="fc" id="L70">        String description = description(root, update, errors);</span>
+<span class="fc" id="L71">        GroupColor color = color(root, update, errors);</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">        Long version = update ? version(root, errors) : null;</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">        GroupInput input = errors.isEmpty() ? new GroupInput(title, description, color) : null;</span>
+<span class="fc" id="L74">        return new Parsed(input, version, List.copyOf(errors));</span>
+    }
+
+    private static String title(JsonNode root, List&lt;FieldError&gt; errors) {
+<span class="fc" id="L78">        JsonNode node = root.get(&quot;title&quot;);</span>
+<span class="pc bpc" id="L79" title="1 of 4 branches missed.">        if (node == null || node.isNull()) {</span>
+<span class="fc" id="L80">            errors.add(new FieldError(&quot;title&quot;, &quot;REQUIRED&quot;));</span>
+<span class="fc" id="L81">            return null;</span>
+        }
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">        if (!node.isString()) {</span>
+<span class="nc" id="L84">            errors.add(new FieldError(&quot;title&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="nc" id="L85">            return null;</span>
+        }
+<span class="fc" id="L87">        String title = node.asString().strip();</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        if (title.isEmpty()) {</span>
+<span class="fc" id="L89">            errors.add(new FieldError(&quot;title&quot;, &quot;REQUIRED&quot;));</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        } else if (length(title) &gt; TITLE_MAX) {</span>
+<span class="fc" id="L91">            errors.add(new FieldError(&quot;title&quot;, &quot;TOO_LONG&quot;));</span>
+        }
+<span class="fc" id="L93">        return title;</span>
+    }
+
+    private static String description(JsonNode root, boolean update, List&lt;FieldError&gt; errors) {
+<span class="fc bfc" id="L97" title="All 2 branches covered.">        if (!root.has(&quot;description&quot;)) {</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">            if (update) {</span>
+<span class="fc" id="L99">                errors.add(new FieldError(&quot;description&quot;, &quot;REQUIRED&quot;));</span>
+            }
+<span class="fc" id="L101">            return null;</span>
+        }
+<span class="fc" id="L103">        JsonNode node = root.get(&quot;description&quot;);</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">        if (node.isNull()) {</span>
+<span class="fc" id="L105">            return null;</span>
+        }
+<span class="pc bpc" id="L107" title="1 of 2 branches missed.">        if (!node.isString()) {</span>
+<span class="nc" id="L108">            errors.add(new FieldError(&quot;description&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="nc" id="L109">            return null;</span>
+        }
+<span class="fc" id="L111">        String description = node.asString();</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">        if (description.isBlank()) {</span>
+<span class="fc" id="L113">            return null;</span>
+        }
+<span class="fc bfc" id="L115" title="All 2 branches covered.">        if (length(description) &gt; DESCRIPTION_MAX) {</span>
+<span class="fc" id="L116">            errors.add(new FieldError(&quot;description&quot;, &quot;TOO_LONG&quot;));</span>
+        }
+<span class="fc" id="L118">        return description;</span>
+    }
+
+    private static GroupColor color(JsonNode root, boolean update, List&lt;FieldError&gt; errors) {
+<span class="fc" id="L122">        JsonNode node = root.get(&quot;color&quot;);</span>
+<span class="fc bfc" id="L123" title="All 4 branches covered.">        if (node == null || node.isNull()) {</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">            if (update) {</span>
+<span class="fc" id="L125">                errors.add(new FieldError(&quot;color&quot;, &quot;REQUIRED&quot;));</span>
+<span class="fc" id="L126">                return null;</span>
+            }
+<span class="fc" id="L128">            return GroupColor.DEFAULT;</span>
+        }
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">        if (!node.isString()) {</span>
+<span class="nc" id="L131">            errors.add(new FieldError(&quot;color&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="nc" id="L132">            return null;</span>
+        }
+<span class="fc" id="L134">        return GroupColor.fromCode(node.asString()).orElseGet(() -&gt; {</span>
+<span class="fc" id="L135">            errors.add(new FieldError(&quot;color&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L136">            return null;</span>
+        });
+    }
+
+    private static Long version(JsonNode root, List&lt;FieldError&gt; errors) {
+<span class="fc" id="L141">        JsonNode node = root.get(&quot;version&quot;);</span>
+<span class="pc bpc" id="L142" title="1 of 4 branches missed.">        if (node == null || node.isNull()) {</span>
+<span class="fc" id="L143">            errors.add(new FieldError(&quot;version&quot;, &quot;REQUIRED&quot;));</span>
+<span class="fc" id="L144">            return null;</span>
+        }
+<span class="pc bpc" id="L146" title="1 of 4 branches missed.">        if (!node.isIntegralNumber() || !node.canConvertToLong()) {</span>
+<span class="fc" id="L147">            errors.add(new FieldError(&quot;version&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L148">            return null;</span>
+        }
+<span class="fc" id="L150">        return node.longValue();</span>
+    }
+
+    private static int length(String text) {
+<span class="fc" id="L154">        return text.codePointCount(0, text.length());</span>
+    }
+
+    private static Parsed malformed() {
+<span class="fc" id="L158">        return new Parsed(null, null, List.of(new FieldError(&quot;body&quot;, &quot;MALFORMED&quot;)));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

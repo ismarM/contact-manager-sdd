@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ApiKeyRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.apikey</a> &gt; <span class="el_source">ApiKeyRepository.java</span></div><h1>ApiKeyRepository.java</h1><pre class="source lang-java linenums">package si.contactmanager.apikey;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import si.contactmanager.shared.security.ApiKeyPrincipal.Permission;
+
+/** Tabeli {@code api_key} in {@code api_key_group} (019 data-model.md); vsaka poizvedba je vezana na lastnika. */
+@Repository
+class ApiKeyRepository {
+
+    /** Vrstica ključa za seznam (brez žetona). */
+<span class="fc" id="L23">    record Row(</span>
+            UUID id,
+            String name,
+            String hint,
+            Permission allGroupsPermission,
+            Instant createdAt,
+            Instant expiresAt,
+            Instant lastUsedAt,
+            Instant revokedAt,
+            int requestsLast24h) {}
+
+    /** Skupina v prikaznem obsegu ključa (naslov iz skupine). */
+<span class="fc" id="L35">    record GroupRow(UUID keyId, UUID groupId, String title, Permission permission) {}</span>
+
+    private final JdbcClient jdbc;
+
+<span class="fc" id="L39">    ApiKeyRepository(JdbcClient jdbc) {</span>
+<span class="fc" id="L40">        this.jdbc = jdbc;</span>
+<span class="fc" id="L41">    }</span>
+
+    /**
+     * Ime veljavnega ključa za prijavo na {@code /v1}: vrstica obstaja, pripada uporabniku {@code user} in ni preklicana.
+     * Rok preveri že podpis žetona ({@code exp}).
+     */
+    Optional&lt;String&gt; activeKeyName(UUID keyId, long user) {
+<span class="fc" id="L48">        return jdbc.sql(&quot;SELECT name FROM api_key WHERE id = :id AND user_id = :user AND revoked_at IS NULL&quot;)</span>
+<span class="fc" id="L49">                .param(&quot;id&quot;, keyId)</span>
+<span class="fc" id="L50">                .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L51">                .query(String.class)</span>
+<span class="fc" id="L52">                .optional();</span>
+    }
+
+    /**
+     * Ključi uporabnika, novejši prvi; preklicani in potekli samo še 90 dni od preklica oziroma poteka (FR-019-21).
+     * {@code requestsLast24h} je vsota statistike zadnjih 24 ur.
+     */
+    List&lt;Row&gt; list(long user) {
+<span class="fc" id="L60">        return jdbc.sql(&quot;SELECT k.id, k.name, k.hint, k.all_groups_permission, k.created_at, k.expires_at,&quot;</span>
+                        + &quot; k.last_used_at, k.revoked_at,&quot;
+                        + &quot; (SELECT coalesce(sum(u.read_ok + u.write_ok + u.errors + u.rate_limited), 0)&quot;
+                        + &quot;    FROM api_key_usage u WHERE u.key_id = k.id AND u.hour &gt; now() - interval '24 hours')&quot;
+                        + &quot;   AS requests&quot;
+                        + &quot; FROM api_key k WHERE k.user_id = :user&quot;
+                        + &quot; AND (least(k.revoked_at, k.expires_at) IS NULL&quot;
+                        + &quot;      OR least(k.revoked_at, k.expires_at) &gt; now() - interval '90 days')&quot;
+                        + &quot; ORDER BY k.created_at DESC, k.id DESC&quot;)
+<span class="fc" id="L69">                .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L70">                .query(ApiKeyRepository::row)</span>
+<span class="fc" id="L71">                .list();</span>
+    }
+
+    /** Ključ obstaja, pripada uporabniku in ni končan pred več kot 90 dnevi (kot seznam; FR-019-21). */
+    boolean visible(long user, UUID id) {
+<span class="fc" id="L76">        return jdbc.sql(&quot;SELECT count(*) FROM api_key k WHERE k.id = :id AND k.user_id = :user&quot;</span>
+                                + &quot; AND (least(k.revoked_at, k.expires_at) IS NULL&quot;
+                                + &quot;      OR least(k.revoked_at, k.expires_at) &gt; now() - interval '90 days')&quot;)
+<span class="fc" id="L79">                        .param(&quot;id&quot;, id)</span>
+<span class="fc" id="L80">                        .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L81">                        .query(Integer.class)</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">                        .single()</span>
+                &gt; 0;
+    }
+
+    /** Skupine ključev po id-ju ključa, razvrščene po naslovu. */
+    Map&lt;UUID, List&lt;GroupRow&gt;&gt; groups(Collection&lt;UUID&gt; keys) {
+<span class="fc" id="L88">        Map&lt;UUID, List&lt;GroupRow&gt;&gt; result = new LinkedHashMap&lt;&gt;();</span>
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">        if (keys.isEmpty()) {</span>
+<span class="nc" id="L90">            return result;</span>
+        }
+<span class="fc" id="L92">        jdbc.sql(&quot;SELECT kg.key_id, kg.group_id, g.title, kg.permission FROM api_key_group kg&quot;</span>
+                        + &quot; JOIN contact_group g ON g.id = kg.group_id WHERE kg.key_id IN (:keys)&quot;
+                        + &quot; ORDER BY g.title, g.id&quot;)
+<span class="fc" id="L95">                .param(&quot;keys&quot;, keys)</span>
+<span class="fc" id="L96">                .query((rs, n) -&gt; new GroupRow(</span>
+<span class="fc" id="L97">                        rs.getObject(&quot;key_id&quot;, UUID.class),</span>
+<span class="fc" id="L98">                        rs.getObject(&quot;group_id&quot;, UUID.class),</span>
+<span class="fc" id="L99">                        rs.getString(&quot;title&quot;),</span>
+<span class="fc" id="L100">                        Permission.valueOf(rs.getString(&quot;permission&quot;))))</span>
+<span class="fc" id="L101">                .list()</span>
+<span class="fc" id="L102">                .forEach(row -&gt; result.computeIfAbsent(row.keyId(), k -&gt; new ArrayList&lt;&gt;())</span>
+<span class="fc" id="L103">                        .add(row));</span>
+<span class="fc" id="L104">        return result;</span>
+    }
+
+    /** Zaklene vrstico uporabnika (meja brez dirke, research R-09) in vrne število aktivnih ključev. */
+    int lockAndCountActive(long user) {
+<span class="fc" id="L109">        jdbc.sql(&quot;SELECT id FROM app_user WHERE id = :user FOR UPDATE&quot;)</span>
+<span class="fc" id="L110">                .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L111">                .query(Long.class)</span>
+<span class="fc" id="L112">                .optional();</span>
+<span class="fc" id="L113">        return jdbc.sql(&quot;SELECT count(*) FROM api_key WHERE user_id = :user AND revoked_at IS NULL&quot;</span>
+                        + &quot; AND (expires_at IS NULL OR expires_at &gt; now())&quot;)
+<span class="fc" id="L115">                .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L116">                .query(Integer.class)</span>
+<span class="fc" id="L117">                .single();</span>
+    }
+
+    /** Nov id ključa (uuidv7, enak {@code jti}). */
+    UUID newId() {
+<span class="fc" id="L122">        return jdbc.sql(&quot;SELECT uuidv7()&quot;).query(UUID.class).single();</span>
+    }
+
+    void insert(
+            UUID id,
+            long user,
+            String name,
+            String hint,
+            Permission allGroupsPermission,
+            Instant createdAt,
+            Instant expiresAt) {
+<span class="fc" id="L133">        jdbc.sql(&quot;INSERT INTO api_key (id, user_id, name, hint, all_groups, all_groups_permission, created_at,&quot;</span>
+                        + &quot; expires_at) VALUES (:id, :user, :name, :hint, :all, :permission, :created, :expires)&quot;)
+<span class="fc" id="L135">                .param(&quot;id&quot;, id)</span>
+<span class="fc" id="L136">                .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L137">                .param(&quot;name&quot;, name)</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">                .param(&quot;hint&quot;, hint)</span>
+<span class="fc" id="L139">                .param(&quot;all&quot;, allGroupsPermission != null)</span>
+<span class="fc bfc" id="L140" title="All 2 branches covered.">                .param(&quot;permission&quot;, allGroupsPermission == null ? null : allGroupsPermission.name())</span>
+<span class="fc" id="L141">                .param(&quot;created&quot;, Timestamp.from(createdAt))</span>
+<span class="fc bfc" id="L142" title="All 2 branches covered.">                .param(&quot;expires&quot;, expiresAt == null ? null : Timestamp.from(expiresAt))</span>
+<span class="fc" id="L143">                .update();</span>
+<span class="fc" id="L144">    }</span>
+
+    void insertGroup(UUID key, UUID group, Permission permission) {
+<span class="fc" id="L147">        jdbc.sql(&quot;INSERT INTO api_key_group (key_id, group_id, permission) VALUES (:key, :group, :permission)&quot;)</span>
+<span class="fc" id="L148">                .param(&quot;key&quot;, key)</span>
+<span class="fc" id="L149">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L150">                .param(&quot;permission&quot;, permission.name())</span>
+<span class="fc" id="L151">                .update();</span>
+<span class="fc" id="L152">    }</span>
+
+    /** Preklic (idempotenten): {@code false}, če ključ ne obstaja ali je tuj. */
+    boolean revoke(long user, UUID id) {
+<span class="fc" id="L156">        jdbc.sql(&quot;UPDATE api_key SET revoked_at = now() WHERE user_id = :user AND id = :id AND revoked_at IS NULL&quot;)</span>
+<span class="fc" id="L157">                .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L158">                .param(&quot;id&quot;, id)</span>
+<span class="fc" id="L159">                .update();</span>
+<span class="fc" id="L160">        return jdbc.sql(&quot;SELECT count(*) FROM api_key WHERE user_id = :user AND id = :id&quot;)</span>
+<span class="fc" id="L161">                        .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L162">                        .param(&quot;id&quot;, id)</span>
+<span class="fc" id="L163">                        .query(Integer.class)</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">                        .single()</span>
+                &gt; 0;
+    }
+
+    private static Row row(ResultSet rs, int n) throws SQLException {
+<span class="fc" id="L169">        String permission = rs.getString(&quot;all_groups_permission&quot;);</span>
+<span class="fc" id="L170">        return new Row(</span>
+<span class="fc" id="L171">                rs.getObject(&quot;id&quot;, UUID.class),</span>
+<span class="fc" id="L172">                rs.getString(&quot;name&quot;),</span>
+<span class="fc" id="L173">                rs.getString(&quot;hint&quot;),</span>
+<span class="fc bfc" id="L174" title="All 2 branches covered.">                permission == null ? null : Permission.valueOf(permission),</span>
+<span class="fc" id="L175">                instant(rs.getTimestamp(&quot;created_at&quot;)),</span>
+<span class="fc" id="L176">                instant(rs.getTimestamp(&quot;expires_at&quot;)),</span>
+<span class="fc" id="L177">                instant(rs.getTimestamp(&quot;last_used_at&quot;)),</span>
+<span class="fc" id="L178">                instant(rs.getTimestamp(&quot;revoked_at&quot;)),</span>
+<span class="fc" id="L179">                rs.getInt(&quot;requests&quot;));</span>
+    }
+
+    private static Instant instant(Timestamp timestamp) {
+<span class="fc bfc" id="L183" title="All 2 branches covered.">        return timestamp == null ? null : timestamp.toInstant();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

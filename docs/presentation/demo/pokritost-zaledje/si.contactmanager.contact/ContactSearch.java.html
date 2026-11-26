@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContactSearch.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">ContactSearch.java</span></div><h1>ContactSearch.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import si.contactmanager.contact.ContactQuery.Condition;
+import si.contactmanager.contact.ContactQuery.Direction;
+import si.contactmanager.contact.ContactQuery.Field;
+import si.contactmanager.contact.ContactQuery.Kind;
+
+/**
+ * Gradnik poizvedb seznama kontaktov (docs/specs/008-iskanje/research.md R-04, R-05, R-13). Besedilo SQL je sestavljeno iz
+ * &lt;b&gt;zaprtih fragmentov&lt;/b&gt;: od vnosa je odvisna samo oblika (število besed, pogojev in značk, vrsta polja, smer),
+ * nikoli vrednost; vse vrednosti so imenovani parametri. Polje razvrščanja in stolpec pogoja izbira zaprta
+ * preslikava, nikoli niz iz zahteve.
+ *
+ * &lt;p&gt;Gradnik je neodvisen od spletnega sloja; 009 (izbor vseh zadetkov) in 010 (izvoz) uporabita isti {@link #where}
+ * in {@link #orderBy} z istim pomenom.
+ */
+public final class ContactSearch {
+
+    /** Besedilo SQL in imenovani parametri. */
+<span class="fc" id="L25">    public record Sql(String text, Map&lt;String, Object&gt; parameters) {}</span>
+
+    private static final String SEARCH = &quot; COLLATE search_fold&quot;;
+
+    private ContactSearch() {}
+
+    /** Stran kontaktov (stolpci vrstice seznama; značke strani se preberejo posebej). */
+    public static Sql page(UUID group, ContactQuery query) {
+<span class="fc" id="L33">        Map&lt;String, Object&gt; parameters = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L34">        String where = where(group, query, parameters);</span>
+<span class="fc" id="L35">        String order = orderBy(query, parameters);</span>
+<span class="fc" id="L36">        parameters.put(&quot;size&quot;, query.size());</span>
+<span class="fc" id="L37">        parameters.put(&quot;offset&quot;, (long) query.page() * query.size());</span>
+<span class="fc" id="L38">        return new Sql(</span>
+                &quot;SELECT c.id, c.first_name, c.last_name, c.email, c.phone, c.version,&quot;
+                        + &quot; c.reverted_entry_id IS NOT NULL AS reverted,&quot;
+                        + &quot; (SELECT i.revision FROM image i WHERE i.kind = 'CONTACT' AND i.group_id = c.group_id AND i.contact_id = c.id AND i.detached_at IS NULL) AS photo_revision FROM contact c WHERE &quot;
+                        + where
+                        + &quot; ORDER BY &quot; + order + &quot; LIMIT :size OFFSET :offset&quot;,
+                parameters);
+    }
+
+    /** Skupno število zadetkov. */
+    public static Sql count(UUID group, ContactQuery query) {
+<span class="fc" id="L49">        Map&lt;String, Object&gt; parameters = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L50">        String where = where(group, query, parameters);</span>
+<span class="fc" id="L51">        return new Sql(&quot;SELECT count(*) FROM contact c WHERE &quot; + where, parameters);</span>
+    }
+
+    /** Pogoj {@code WHERE}: skupina, besede (AND), pogoji atributov (AND) in značke (AND). */
+    public static String where(UUID group, ContactQuery query, Map&lt;String, Object&gt; parameters) {
+<span class="fc" id="L56">        List&lt;String&gt; parts = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L57">        parameters.put(&quot;group&quot;, group);</span>
+<span class="fc" id="L58">        parts.add(&quot;c.group_id = :group&quot;);</span>
+<span class="fc" id="L59">        List&lt;String&gt; words = query.words();</span>
+<span class="fc" id="L60">        List&lt;String&gt; wordParts = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        for (int i = 0; i &lt; words.size(); i++) {</span>
+<span class="fc" id="L62">            String parameter = &quot;w&quot; + i;</span>
+<span class="fc" id="L63">            parameters.put(parameter, words.get(i));</span>
+<span class="fc" id="L64">            List&lt;String&gt; columns = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">            for (String column : List.of(&quot;first_name&quot;, &quot;last_name&quot;, &quot;address&quot;, &quot;email&quot;, &quot;phone&quot;, &quot;company&quot;)) {</span>
+<span class="fc" id="L66">                columns.add(&quot;strpos(coalesce(c.&quot; + column + &quot;, '')&quot; + SEARCH + &quot;, :&quot; + parameter + &quot;) &gt; 0&quot;);</span>
+<span class="fc" id="L67">            }</span>
+            // Deli razčlenjenega naslova (016, R-06) kot besedilo.
+<span class="fc" id="L69">            columns.add(</span>
+<span class="fc" id="L70">                    &quot;strpos(coalesce(&quot; + partsText(&quot;c.address_parts&quot;) + &quot;, '')&quot; + SEARCH + &quot;, :&quot; + parameter + &quot;) &gt; 0&quot;);</span>
+            // Država: koda ali ime v slovenščini in angleščini, neodvisno od jezika vmesnika (FR-013-03); tudi država
+            // razčlenjenega naslova (016).
+<span class="fc" id="L73">            List&lt;String&gt; codes = CountryNames.matching(words.get(i));</span>
+<span class="fc" id="L74">            columns.add(countryIn(&quot;wc&quot; + i, codes, parameters));</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">            if (!codes.isEmpty()) {</span>
+<span class="fc" id="L76">                columns.add(&quot;c.address_parts-&gt;&gt;'country' IN (:wc&quot; + i + &quot;)&quot;);</span>
+            }
+<span class="fc" id="L78">            typedColumns(i, words.get(i), columns, parameters);</span>
+<span class="fc" id="L79">            wordParts.add(&quot;(&quot; + String.join(&quot; OR &quot;, columns) + &quot;)&quot;);</span>
+        }
+<span class="fc" id="L81">        String phone = phoneDigits(words, parameters);</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        if (phone != null) {</span>
+<span class="fc" id="L83">            parts.add(&quot;((&quot; + String.join(&quot; AND &quot;, wordParts) + &quot;) OR &quot; + phone + &quot;)&quot;);</span>
+        } else {
+<span class="fc" id="L85">            parts.addAll(wordParts);</span>
+        }
+<span class="fc" id="L87">        List&lt;Condition&gt; conditions = query.conditions();</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        for (int i = 0; i &lt; conditions.size(); i++) {</span>
+<span class="fc" id="L89">            Condition condition = conditions.get(i);</span>
+<span class="fc" id="L90">            String value = &quot;cv&quot; + i;</span>
+<span class="fc" id="L91">            parameters.put(value, condition.value());</span>
+<span class="fc bfc" id="L92" title="All 2 branches covered.">            if (condition.field().kind() == Kind.ATTRIBUTE) {</span>
+<span class="fc" id="L93">                String key = &quot;ck&quot; + i;</span>
+<span class="fc" id="L94">                parameters.put(key, condition.field().keyNorm());</span>
+<span class="fc" id="L95">                parts.add(&quot;EXISTS (SELECT 1 FROM contact_attribute a WHERE a.contact_id = c.id AND a.key_norm = :&quot; + key</span>
+<span class="fc" id="L96">                        + &quot; AND strpos(coalesce(a.value, &quot; + partsText(&quot;a.parts&quot;) + &quot;)&quot; + SEARCH + &quot;, :&quot; + value</span>
+                        + &quot;) &gt; 0)&quot;);
+<span class="fc bfc" id="L98" title="All 2 branches covered.">            } else if (condition.field().kind() == Kind.COUNTRY) {</span>
+<span class="fc" id="L99">                parts.add(countryIn(value, CountryNames.matching(condition.value()), parameters));</span>
+            } else {
+<span class="fc" id="L101">                parts.add(&quot;strpos(coalesce(&quot; + expression(condition.field().kind()) + &quot;, '')&quot; + SEARCH + &quot;, :&quot; + value</span>
+                        + &quot;) &gt; 0&quot;);
+            }
+        }
+<span class="fc" id="L105">        List&lt;String&gt; tags = query.tags();</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">        for (int i = 0; i &lt; tags.size(); i++) {</span>
+<span class="fc" id="L107">            String parameter = &quot;t&quot; + i;</span>
+<span class="fc" id="L108">            parameters.put(parameter, tags.get(i));</span>
+<span class="fc" id="L109">            parts.add(&quot;EXISTS (SELECT 1 FROM contact_tag t WHERE t.contact_id = c.id AND t.tag_norm = :&quot; + parameter</span>
+                    + &quot;)&quot;);
+        }
+<span class="fc" id="L112">        return String.join(&quot; AND &quot;, parts);</span>
+    }
+
+    /**
+     * Telefon po števkah (016, FR-016-10, R-06): če so vse besede videti kot telefon, so števke celotnega iskanja (vsaj
+     * 3, brez vodilnih {@code 00} oz. ene {@code 0}) podniz števk telefona – predefiniranega ali atributa tipa
+     * {@code PHONE}; »041 123«, »041123« in »+38641« najdejo {@code +38641123456}. Sicer {@code null}.
+     */
+    private static String phoneDigits(List&lt;String&gt; words, Map&lt;String, Object&gt; parameters) {
+<span class="fc bfc" id="L121" title="All 4 branches covered.">        if (words.isEmpty() || !words.stream().allMatch(w -&gt; w.matches(&quot;[0-9+\\-()/.]+&quot;))) {</span>
+<span class="fc" id="L122">            return null;</span>
+        }
+<span class="fc" id="L124">        String digits = String.join(&quot;&quot;, words).replaceAll(&quot;\\D&quot;, &quot;&quot;);</span>
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">        if (digits.startsWith(&quot;00&quot;)) {</span>
+<span class="nc" id="L126">            digits = digits.substring(2);</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">        } else if (digits.startsWith(&quot;0&quot;)) {</span>
+<span class="fc" id="L128">            digits = digits.substring(1);</span>
+        }
+<span class="fc bfc" id="L130" title="All 2 branches covered.">        if (digits.length() &lt; 3) {</span>
+<span class="fc" id="L131">            return null;</span>
+        }
+<span class="fc" id="L133">        parameters.put(&quot;wd&quot;, digits);</span>
+<span class="fc" id="L134">        return &quot;(strpos(regexp_replace(coalesce(c.phone, ''), '\\D', '', 'g'), :wd) &gt; 0&quot;</span>
+                + &quot; OR EXISTS (SELECT 1 FROM contact_attribute a JOIN attribute_key k ON k.group_id = c.group_id&quot;
+                + &quot; AND k.key_norm = a.key_norm WHERE a.contact_id = c.id AND k.type = 'PHONE'&quot;
+                + &quot; AND strpos(regexp_replace(coalesce(a.value, ''), '\\D', '', 'g'), :wd) &gt; 0))&quot;;
+    }
+
+    /** Vrednosti atributov tipa {@code EMAIL} in {@code ADDRESS} kot besedilo ({@code search_fold}, 016). */
+    private static void typedColumns(int index, String word, List&lt;String&gt; columns, Map&lt;String, Object&gt; parameters) {
+<span class="fc" id="L142">        String text = &quot;wt&quot; + index;</span>
+<span class="fc" id="L143">        parameters.put(text, word);</span>
+<span class="fc" id="L144">        String typed = &quot;EXISTS (SELECT 1 FROM contact_attribute a JOIN attribute_key k ON k.group_id = c.group_id&quot;</span>
+                + &quot; AND k.key_norm = a.key_norm WHERE a.contact_id = c.id AND k.type IN ('EMAIL', 'ADDRESS')&quot;
+<span class="fc" id="L146">                + &quot; AND strpos(coalesce(a.value, &quot; + partsText(&quot;a.parts&quot;) + &quot;, '')&quot; + SEARCH + &quot;, :&quot; + text</span>
+                + &quot;) &gt; 0)&quot;;
+<span class="fc" id="L148">        columns.add(typed);</span>
+<span class="fc" id="L149">    }</span>
+
+    /** Izraz predefiniranega polja; naslov je besedilo ali deli razčlenjenega naslova (016). */
+    private static String expression(Kind kind) {
+<span class="fc bfc" id="L153" title="All 2 branches covered.">        if (kind == Kind.ADDRESS) {</span>
+<span class="fc" id="L154">            return &quot;coalesce(c.address, &quot; + partsText(&quot;c.address_parts&quot;) + &quot;)&quot;;</span>
+        }
+<span class="fc" id="L156">        return &quot;c.&quot; + column(kind);</span>
+    }
+
+    /** Vrednosti delov naslova {@code jsonb} kot besedilo, ločene s presledkom ({@code null}, če delov ni). */
+    private static String partsText(String column) {
+<span class="fc" id="L161">        return &quot;(SELECT string_agg(e.value, ' ') FROM jsonb_each_text(&quot; + column + &quot;) e)&quot;;</span>
+    }
+
+    /**
+     * Razvrščanje (D-63, R-05): izbrano polje, prazno vedno na koncu, nato priimek, ime, čas nastanka in id, zato je
+     * vrstni red popolnoma določen.
+     */
+    public static String orderBy(ContactQuery query, Map&lt;String, Object&gt; parameters) {
+<span class="fc" id="L169">        Field sort = query.sort();</span>
+<span class="fc bfc" id="L170" title="All 2 branches covered.">        String direction = query.direction() == Direction.DESC ? &quot;DESC&quot; : &quot;ASC&quot;;</span>
+<span class="fc" id="L171">        String tail = &quot;c.created_at, c.id&quot;;</span>
+<span class="pc bpc" id="L172" title="1 of 5 branches missed.">        return switch (sort.kind()) {</span>
+<span class="fc" id="L173">            case LAST_NAME -&gt; &quot;c.sort_last &quot; + direction + &quot; NULLS LAST, c.sort_first ASC NULLS LAST, &quot; + tail;</span>
+<span class="fc" id="L174">            case FIRST_NAME -&gt; &quot;c.sort_first &quot; + direction + &quot; NULLS LAST, c.sort_last ASC NULLS LAST, &quot; + tail;</span>
+<span class="nc" id="L175">            case COMPANY, COUNTRY -&gt; throw new IllegalArgumentException(&quot;razvrščanje po tem polju ni podprto&quot;);</span>
+            case ADDRESS, EMAIL, PHONE -&gt;
+<span class="fc" id="L177">                expression(sort.kind()) + &quot; COLLATE sort_sl &quot; + direction</span>
+                        + &quot; NULLS LAST, c.sort_last ASC NULLS LAST, c.sort_first ASC NULLS LAST, &quot; + tail;
+            case ATTRIBUTE -&gt; {
+<span class="fc" id="L180">                parameters.put(&quot;sortKey&quot;, sort.keyNorm());</span>
+<span class="fc" id="L181">                yield &quot;(SELECT a.value FROM contact_attribute a WHERE a.contact_id = c.id AND a.key_norm = :sortKey)&quot;</span>
+                        + &quot; COLLATE sort_sl &quot; + direction
+                        + &quot; NULLS LAST, c.sort_last ASC NULLS LAST, c.sort_first ASC NULLS LAST, &quot; + tail;
+            }
+        };
+    }
+
+    /** Pogoj na državi: seznam kod (prazen seznam ne ujame nič); imenovani parameter se razširi v {@code IN}. */
+    private static String countryIn(String parameter, List&lt;String&gt; codes, Map&lt;String, Object&gt; parameters) {
+<span class="fc bfc" id="L190" title="All 2 branches covered.">        if (codes.isEmpty()) {</span>
+<span class="fc" id="L191">            return &quot;FALSE&quot;;</span>
+        }
+<span class="fc" id="L193">        parameters.put(parameter, codes);</span>
+<span class="fc" id="L194">        return &quot;c.country IN (:&quot; + parameter + &quot;)&quot;;</span>
+    }
+
+    /** Stolpec predefiniranega polja (zaprta preslikava). */
+    private static String column(Kind kind) {
+<span class="pc bpc" id="L199" title="3 of 8 branches missed.">        return switch (kind) {</span>
+<span class="fc" id="L200">            case FIRST_NAME -&gt; &quot;first_name&quot;;</span>
+<span class="fc" id="L201">            case LAST_NAME -&gt; &quot;last_name&quot;;</span>
+<span class="nc" id="L202">            case ADDRESS -&gt; &quot;address&quot;;</span>
+<span class="fc" id="L203">            case EMAIL -&gt; &quot;email&quot;;</span>
+<span class="fc" id="L204">            case PHONE -&gt; &quot;phone&quot;;</span>
+<span class="fc" id="L205">            case COMPANY -&gt; &quot;company&quot;;</span>
+<span class="nc" id="L206">            case COUNTRY -&gt; &quot;country&quot;;</span>
+<span class="nc" id="L207">            case ATTRIBUTE -&gt; throw new IllegalArgumentException(&quot;dodatni atribut nima stolpca&quot;);</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

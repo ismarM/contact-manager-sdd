@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FirebaseJwtDecoder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.shared.security</a> &gt; <span class="el_source">FirebaseJwtDecoder.java</span></div><h1>FirebaseJwtDecoder.java</h1><pre class="source lang-java linenums">package si.contactmanager.shared.security;
+
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.proc.JWSVerificationKeySelector;
+import com.nimbusds.jose.proc.SecurityContext;
+import com.nimbusds.jwt.JWT;
+import com.nimbusds.jwt.JWTParser;
+import com.nimbusds.jwt.PlainJWT;
+import com.nimbusds.jwt.proc.DefaultJWTProcessor;
+import java.text.ParseException;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
+import org.springframework.security.oauth2.jwt.BadJwtException;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimNames;
+import org.springframework.security.oauth2.jwt.JwtClaimValidator;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtIssuerValidator;
+import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
+import org.springframework.security.oauth2.jwt.JwtValidationException;
+import org.springframework.security.oauth2.jwt.MappedJwtClaimSetConverter;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+
+/**
+ * Preverjanje ID žetonov Firebase (FR-001-07, research R-01).
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;produkcija: podpis RS256 po ključih JWK Googla;
+ *   &lt;li&gt;emulator: samo nepodpisani žetoni ({@code alg: none}), ki jih izdaja Firebase Auth Emulator.
+ * &lt;/ul&gt;
+ *
+ * V obeh načinih: izdajatelj {@code https://securetoken.google.com/&lt;projekt&gt;}, občinstvo {@code &lt;projekt&gt;}, veljaven
+ * {@code exp}, {@code iat} ne v prihodnosti (60 s zamika), neprazen {@code sub} in prisoten {@code email}.
+ */
+public final class FirebaseJwtDecoder {
+
+    /** Javni ključi Googla za ID žetone Firebase. */
+    public static final String GOOGLE_JWK_SET_URI =
+            &quot;https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com&quot;;
+
+<span class="fc" id="L49">    private static final Duration CLOCK_SKEW = Duration.ofSeconds(60);</span>
+
+    private FirebaseJwtDecoder() {}
+
+    public static JwtDecoder production(String projectId, JWKSource&lt;SecurityContext&gt; keys, Clock clock) {
+<span class="fc" id="L54">        DefaultJWTProcessor&lt;SecurityContext&gt; processor = new DefaultJWTProcessor&lt;&gt;();</span>
+<span class="fc" id="L55">        processor.setJWSKeySelector(new JWSVerificationKeySelector&lt;&gt;(JWSAlgorithm.RS256, keys));</span>
+        // Zahtevke preverijo validatorji Spring Security spodaj (z isto uro kot v načinu emulatorja).
+<span class="fc" id="L57">        processor.setJWTClaimsSetVerifier((claims, context) -&gt; {});</span>
+<span class="fc" id="L58">        NimbusJwtDecoder decoder = new NimbusJwtDecoder(processor);</span>
+<span class="fc" id="L59">        decoder.setJwtValidator(validator(projectId, clock));</span>
+<span class="fc" id="L60">        return decoder;</span>
+    }
+
+    public static JwtDecoder emulator(String projectId, Clock clock) {
+<span class="fc" id="L64">        OAuth2TokenValidator&lt;Jwt&gt; validator = validator(projectId, clock);</span>
+<span class="fc" id="L65">        MappedJwtClaimSetConverter claimsConverter = MappedJwtClaimSetConverter.withDefaults(Map.of());</span>
+<span class="fc" id="L66">        return token -&gt; {</span>
+            JWT parsed;
+            try {
+<span class="fc" id="L69">                parsed = JWTParser.parse(token);</span>
+<span class="fc" id="L70">            } catch (ParseException e) {</span>
+<span class="fc" id="L71">                throw new BadJwtException(&quot;malformed token&quot;, e);</span>
+<span class="fc" id="L72">            }</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">            if (!(parsed instanceof PlainJWT)) {</span>
+<span class="fc" id="L74">                throw new BadJwtException(&quot;emulator mode accepts only unsigned emulator tokens&quot;);</span>
+            }
+            Jwt jwt;
+            try {
+<span class="fc" id="L78">                Map&lt;String, Object&gt; claims =</span>
+<span class="fc" id="L79">                        claimsConverter.convert(parsed.getJWTClaimsSet().getClaims());</span>
+<span class="fc" id="L80">                jwt = Jwt.withTokenValue(token)</span>
+<span class="fc" id="L81">                        .headers(headers -&gt; headers.putAll(parsed.getHeader().toJSONObject()))</span>
+<span class="fc" id="L82">                        .claims(values -&gt; values.putAll(claims))</span>
+<span class="fc" id="L83">                        .build();</span>
+<span class="fc" id="L84">            } catch (ParseException | IllegalArgumentException e) {</span>
+<span class="fc" id="L85">                throw new BadJwtException(&quot;malformed claims&quot;, e);</span>
+<span class="fc" id="L86">            }</span>
+<span class="fc" id="L87">            OAuth2TokenValidatorResult result = validator.validate(jwt);</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">            if (result.hasErrors()) {</span>
+<span class="fc" id="L89">                throw new JwtValidationException(&quot;invalid token&quot;, result.getErrors());</span>
+            }
+<span class="fc" id="L91">            return jwt;</span>
+        };
+    }
+
+    static OAuth2TokenValidator&lt;Jwt&gt; validator(String projectId, Clock clock) {
+<span class="fc" id="L96">        JwtTimestampValidator timestamps = new JwtTimestampValidator(CLOCK_SKEW);</span>
+<span class="fc" id="L97">        timestamps.setClock(clock);</span>
+<span class="fc" id="L98">        return new DelegatingOAuth2TokenValidator&lt;&gt;(List.of(</span>
+                timestamps,
+                new JwtIssuerValidator(&quot;https://securetoken.google.com/&quot; + projectId),
+                new JwtClaimValidator&lt;List&lt;String&gt;&gt;(
+<span class="pc bpc" id="L102" title="1 of 4 branches missed.">                        JwtClaimNames.AUD, audience -&gt; audience != null &amp;&amp; audience.contains(projectId)),</span>
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">                new JwtClaimValidator&lt;Instant&gt;(JwtClaimNames.EXP, expiresAt -&gt; expiresAt != null),</span>
+                new JwtClaimValidator&lt;Instant&gt;(
+                        JwtClaimNames.IAT,
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">                        issuedAt -&gt; issuedAt != null</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">                                &amp;&amp; !issuedAt.isAfter(clock.instant().plus(CLOCK_SKEW))),</span>
+<span class="pc bpc" id="L108" title="1 of 4 branches missed.">                new JwtClaimValidator&lt;String&gt;(JwtClaimNames.SUB, subject -&gt; subject != null &amp;&amp; !subject.isBlank()),</span>
+                FirebaseJwtDecoder::requireEmail));
+    }
+
+    private static OAuth2TokenValidatorResult requireEmail(Jwt jwt) {
+<span class="fc" id="L113">        Object email = jwt.getClaims().get(&quot;email&quot;);</span>
+<span class="pc bpc" id="L114" title="1 of 4 branches missed.">        return email instanceof String value &amp;&amp; !value.isBlank()</span>
+<span class="fc" id="L115">                ? OAuth2TokenValidatorResult.success()</span>
+<span class="fc" id="L116">                : OAuth2TokenValidatorResult.failure(new OAuth2Error(&quot;invalid_token&quot;, &quot;email claim is required&quot;, null));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

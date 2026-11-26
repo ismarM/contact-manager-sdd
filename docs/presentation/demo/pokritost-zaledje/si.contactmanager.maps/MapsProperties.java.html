@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MapsProperties.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.maps</a> &gt; <span class="el_source">MapsProperties.java</span></div><h1>MapsProperties.java</h1><pre class="source lang-java linenums">package si.contactmanager.maps;
+
+import java.time.Duration;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+/**
+ * Nastavitve kartografskega posrednika (016, research R-08; vrednosti v {@code application.yaml}). Vse so nastavljive
+ * iz okolja; {@code enabled=false} izklopi vse zunanje klice (lokacija in ploščice 503, predlogi prazni).
+ *
+ * @param nominatimUrl osnovni naslov Nominatim (iskanje lokacije)
+ * @param photonUrl osnovni naslov Photon (samodokončanje)
+ * @param tileUrl predloga ploščic z {@code {z}}, {@code {x}}, {@code {y}}
+ * @param userAgent glava {@code User-Agent} zahtev OSM (brez osebnih podatkov)
+ */
+@ConfigurationProperties(&quot;maps&quot;)
+public record MapsProperties(
+        boolean enabled,
+        String nominatimUrl,
+        String photonUrl,
+        String tileUrl,
+        String userAgent,
+        Duration connectTimeout,
+        Duration readTimeout,
+        Cache locations,
+        Cache suggestions,
+        Tiles tiles,
+        Limits limits) {
+
+    /** Predpomnilnik z omejitvijo števila vnosov in življenjsko dobo. */
+    public record Cache(int entries, Duration ttl) {
+
+<span class="fc" id="L32">        public Cache {</span>
+<span class="pc bpc" id="L33" title="3 of 8 branches missed.">            if (entries &lt; 1 || ttl == null || ttl.isNegative() || ttl.isZero()) {</span>
+<span class="fc" id="L34">                throw new IllegalArgumentException(&quot;maps cache needs entries &gt;= 1 and a positive ttl&quot;);</span>
+            }
+<span class="fc" id="L36">        }</span>
+    }
+
+    /** Predpomnilnik ploščic: skupna velikost v bajtih in zgornja meja {@code max-age}. */
+    public record Tiles(long maxCacheBytes, Duration maxAge) {
+
+<span class="fc" id="L42">        public Tiles {</span>
+<span class="pc bpc" id="L43" title="3 of 8 branches missed.">            if (maxCacheBytes &lt; 1 || maxAge == null || maxAge.isNegative() || maxAge.isZero()) {</span>
+<span class="fc" id="L44">                throw new IllegalArgumentException(&quot;maps.tiles needs max-cache-bytes &gt;= 1 and a positive max-age&quot;);</span>
+            }
+<span class="fc" id="L46">        }</span>
+    }
+
+    /** Omejitve pogostosti (en primerek zaledja, v pomnilniku). */
+    public record Limits(
+            int nominatimPerSecond,
+            Duration maxWait,
+            int photonPerSecond,
+            int photonPerUserPerSecond,
+            int tilesPerUserPerWindow,
+            Duration tilesWindow,
+            int tilesPerSecond) {
+
+<span class="fc" id="L59">        public Limits {</span>
+<span class="pc bpc" id="L60" title="5 of 12 branches missed.">            if (nominatimPerSecond &lt; 1</span>
+                    || photonPerSecond &lt; 1
+                    || photonPerUserPerSecond &lt; 1
+                    || tilesPerUserPerWindow &lt; 1
+                    || tilesPerSecond &lt; 1
+                    || maxWait == null
+<span class="pc bpc" id="L66" title="2 of 4 branches missed.">                    || maxWait.isNegative()</span>
+                    || tilesWindow == null
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">                    || tilesWindow.isNegative()</span>
+<span class="pc bpc" id="L69" title="1 of 2 branches missed.">                    || tilesWindow.isZero()) {</span>
+<span class="fc" id="L70">                throw new IllegalArgumentException(&quot;maps.limits needs positive rates and windows&quot;);</span>
+            }
+<span class="fc" id="L72">        }</span>
+    }
+
+<span class="fc" id="L75">    public MapsProperties {</span>
+<span class="pc bpc" id="L76" title="4 of 8 branches missed.">        if (connectTimeout == null || readTimeout == null || connectTimeout.isNegative() || readTimeout.isNegative()) {</span>
+<span class="nc" id="L77">            throw new IllegalArgumentException(&quot;maps timeouts must be set and not negative&quot;);</span>
+        }
+<span class="pc bpc" id="L79" title="2 of 4 branches missed.">        if (userAgent == null || userAgent.isBlank()) {</span>
+<span class="nc" id="L80">            throw new IllegalArgumentException(&quot;maps.user-agent must be set&quot;);</span>
+        }
+<span class="fc" id="L82">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

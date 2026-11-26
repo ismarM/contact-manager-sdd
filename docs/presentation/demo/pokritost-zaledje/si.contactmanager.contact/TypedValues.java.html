@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TypedValues.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">TypedValues.java</span></div><h1>TypedValues.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.time.DateTimeException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.ResolverStyle;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.regex.Pattern;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+
+/**
+ * Preverjanje in normalizacija vrednosti po tipu ključa (016, data-model.md – Pravila po tipu; research R-02 … R-04).
+ * Čista logika brez dostopa do baze: napaka je koda polja ({@code REQUIRED}, {@code TOO_LONG}, {@code INVALID_VALUE}).
+ * Nespremenjene vrednosti (enake shranjenim, FR-016-09) se ne preverjajo – to odloča kličoči.
+ */
+public final class TypedValues {
+
+    static final int OTHER_MAX = 500;
+    static final int NOTES_MAX = 500;
+    static final int EMAIL_MAX = 254;
+    static final int URL_MAX = 500;
+    static final int ADDRESS_TEXT_MAX = 500;
+    static final int STREET_MAX = 200;
+    static final int EXTRA_MAX = 200;
+    static final int POSTAL_MAX = 20;
+    static final int CITY_MAX = 100;
+    static final int REGION_MAX = 100;
+
+<span class="fc" id="L32">    private static final Pattern EMAIL = Pattern.compile(&quot;^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$&quot;);</span>
+<span class="fc" id="L33">    private static final Pattern SPACES = Pattern.compile(&quot;\\s+&quot;);</span>
+<span class="fc" id="L34">    private static final DateTimeFormatter DATE =</span>
+<span class="fc" id="L35">            DateTimeFormatter.ofPattern(&quot;uuuu-MM-dd&quot;).withResolverStyle(ResolverStyle.STRICT);</span>
+
+    private TypedValues() {}
+
+    /** Rezultat: {@code value} ob uspehu, sicer {@code error} (koda). */
+<span class="fc" id="L40">    public record Result(String value, String error) {</span>
+
+        public boolean valid() {
+<span class="fc bfc" id="L43" title="All 2 branches covered.">            return error == null;</span>
+        }
+
+        static Result ok(String value) {
+<span class="fc" id="L47">            return new Result(value, null);</span>
+        }
+
+        static Result fail(String error) {
+<span class="fc" id="L51">            return new Result(null, error);</span>
+        }
+    }
+
+    /** Rezultat naslova po delih: normaliziran naslov ali napake po delih ({@code street}, {@code country} …). */
+<span class="fc" id="L56">    public record AddressResult(Address address, List&lt;FieldError&gt; errors) {</span>
+
+        public boolean valid() {
+<span class="fc" id="L59">            return errors.isEmpty();</span>
+        }
+    }
+
+    /**
+     * Normalizira besedilno vrednost po tipu. {@code country}: koda ISO države kontakta za telefon ({@code null}:
+     * privzeta {@code SI}). Za {@code ADDRESS} velja nerazčlenjen naslov (do 500; krajšo mejo predefiniranega polja
+     * preveri razčlenjevalnik kontakta).
+     */
+    public static Result normalize(AttributeType type, String raw, String country) {
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        if (raw == null) {</span>
+<span class="fc" id="L70">            return Result.fail(&quot;REQUIRED&quot;);</span>
+        }
+<span class="fc bfc" id="L72" title="All 7 branches covered.">        return switch (type) {</span>
+<span class="fc" id="L73">            case OTHER -&gt; text(raw.strip(), OTHER_MAX);</span>
+<span class="fc" id="L74">            case NOTES -&gt; notes(raw);</span>
+<span class="fc" id="L75">            case EMAIL -&gt; email(raw.strip());</span>
+<span class="fc" id="L76">            case PHONE -&gt; phone(raw.strip(), country);</span>
+<span class="fc" id="L77">            case URL -&gt; url(raw.strip());</span>
+<span class="fc" id="L78">            case DATE -&gt; date(raw.strip());</span>
+<span class="fc" id="L79">            case ADDRESS -&gt; text(unifyLines(raw), ADDRESS_TEXT_MAX);</span>
+        };
+    }
+
+    /** Samo preverjanje: ali je vrednost veljavna za tip (npr. pri spremembi tipa ključa). */
+    public static boolean isValid(AttributeType type, String raw, String country) {
+<span class="fc" id="L85">        return normalize(type, raw, country).valid();</span>
+    }
+
+    private static String unifyLines(String raw) {
+<span class="fc" id="L89">        return raw.replace(&quot;\r\n&quot;, &quot;\n&quot;).replace('\r', '\n').strip();</span>
+    }
+
+    private static Result text(String value, int max) {
+<span class="fc bfc" id="L93" title="All 2 branches covered.">        if (value.isEmpty()) {</span>
+<span class="fc" id="L94">            return Result.fail(&quot;REQUIRED&quot;);</span>
+        }
+<span class="fc bfc" id="L96" title="All 2 branches covered.">        return length(value) &gt; max ? Result.fail(&quot;TOO_LONG&quot;) : Result.ok(value);</span>
+    }
+
+    /** Opombe so dobesedne: brez obreza; vsaj en nepresledni znak, do 500 kodnih točk. */
+    private static Result notes(String raw) {
+<span class="fc bfc" id="L101" title="All 2 branches covered.">        if (raw.isBlank()) {</span>
+<span class="fc" id="L102">            return Result.fail(&quot;REQUIRED&quot;);</span>
+        }
+<span class="fc bfc" id="L104" title="All 2 branches covered.">        return length(raw) &gt; NOTES_MAX ? Result.fail(&quot;TOO_LONG&quot;) : Result.ok(raw);</span>
+    }
+
+    private static Result email(String value) {
+<span class="pc bpc" id="L108" title="1 of 2 branches missed.">        if (value.isEmpty()) {</span>
+<span class="nc" id="L109">            return Result.fail(&quot;REQUIRED&quot;);</span>
+        }
+<span class="fc bfc" id="L111" title="All 2 branches covered.">        if (length(value) &gt; EMAIL_MAX) {</span>
+<span class="fc" id="L112">            return Result.fail(&quot;TOO_LONG&quot;);</span>
+        }
+<span class="fc bfc" id="L114" title="All 2 branches covered.">        if (!EMAIL.matcher(value).matches()) {</span>
+<span class="fc" id="L115">            return Result.fail(&quot;INVALID_VALUE&quot;);</span>
+        }
+<span class="fc" id="L117">        int at = value.lastIndexOf('@');</span>
+<span class="fc" id="L118">        return Result.ok(value.substring(0, at + 1) + value.substring(at + 1).toLowerCase(Locale.ROOT));</span>
+    }
+
+    private static Result phone(String value, String country) {
+<span class="fc bfc" id="L122" title="All 2 branches covered.">        if (value.isEmpty()) {</span>
+<span class="fc" id="L123">            return Result.fail(&quot;REQUIRED&quot;);</span>
+        }
+<span class="fc" id="L125">        Optional&lt;String&gt; normalized = PhoneNormalizer.normalize(value, country);</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">        if (normalized.isPresent()) {</span>
+<span class="fc" id="L127">            return Result.ok(normalized.get());</span>
+        }
+<span class="fc bfc" id="L129" title="All 2 branches covered.">        return Result.fail(length(value) &gt; PhoneNormalizer.MAX ? &quot;TOO_LONG&quot; : &quot;INVALID_VALUE&quot;);</span>
+    }
+
+    private static Result url(String value) {
+<span class="fc bfc" id="L133" title="All 2 branches covered.">        if (value.isEmpty()) {</span>
+<span class="fc" id="L134">            return Result.fail(&quot;REQUIRED&quot;);</span>
+        }
+<span class="fc bfc" id="L136" title="All 2 branches covered.">        if (length(value) &gt; URL_MAX) {</span>
+<span class="fc" id="L137">            return Result.fail(&quot;TOO_LONG&quot;);</span>
+        }
+<span class="fc" id="L139">        Optional&lt;String&gt; normalized = UrlNormalizer.normalize(value);</span>
+<span class="pc bpc" id="L140" title="1 of 4 branches missed.">        if (normalized.isPresent() &amp;&amp; length(normalized.get()) &gt; URL_MAX) {</span>
+<span class="nc" id="L141">            return Result.fail(&quot;TOO_LONG&quot;);</span>
+        }
+<span class="fc" id="L143">        return normalized.map(Result::ok).orElseGet(() -&gt; Result.fail(&quot;INVALID_VALUE&quot;));</span>
+    }
+
+    private static Result date(String value) {
+<span class="pc bpc" id="L147" title="1 of 2 branches missed.">        if (value.isEmpty()) {</span>
+<span class="nc" id="L148">            return Result.fail(&quot;REQUIRED&quot;);</span>
+        }
+        try {
+<span class="fc" id="L151">            LocalDate date = LocalDate.parse(value, DATE);</span>
+<span class="pc bpc" id="L152" title="1 of 4 branches missed.">            if (date.getYear() &lt; 1 || date.getYear() &gt; 9999) {</span>
+<span class="fc" id="L153">                return Result.fail(&quot;INVALID_VALUE&quot;);</span>
+            }
+<span class="fc" id="L155">            return Result.ok(date.toString());</span>
+<span class="fc" id="L156">        } catch (DateTimeException e) {</span>
+<span class="fc" id="L157">            return Result.fail(&quot;INVALID_VALUE&quot;);</span>
+        }
+    }
+
+    /**
+     * Normalizira naslov po delih (R-04): obrez in strnitev presledkov v vsakem delu, poštna številka z velikimi
+     * črkami, država kot koda ISO; prazni deli odpadejo; obvezen je {@code street} ali {@code city}; meje
+     * 200/200/20/100/100.
+     */
+    public static AddressResult normalizeAddress(Address address) {
+<span class="fc" id="L167">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L168" title="All 2 branches covered.">        if (address == null) {</span>
+<span class="fc" id="L169">            errors.add(new FieldError(&quot;street&quot;, &quot;REQUIRED&quot;));</span>
+<span class="fc" id="L170">            return new AddressResult(null, List.copyOf(errors));</span>
+        }
+<span class="fc" id="L172">        String street = part(address.street(), &quot;street&quot;, STREET_MAX, errors);</span>
+<span class="fc" id="L173">        String extra = part(address.extra(), &quot;extra&quot;, EXTRA_MAX, errors);</span>
+<span class="fc" id="L174">        String postal = part(address.postalCode(), &quot;postalCode&quot;, POSTAL_MAX, errors);</span>
+<span class="fc" id="L175">        String city = part(address.city(), &quot;city&quot;, CITY_MAX, errors);</span>
+<span class="fc" id="L176">        String region = part(address.region(), &quot;region&quot;, REGION_MAX, errors);</span>
+<span class="fc bfc" id="L177" title="All 2 branches covered.">        String country = address.country() == null ? &quot;&quot; : address.country().strip();</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">        if (country.isEmpty()) {</span>
+<span class="fc" id="L179">            country = null;</span>
+        } else {
+<span class="fc" id="L181">            country = country.toUpperCase(Locale.ROOT);</span>
+<span class="fc bfc" id="L182" title="All 2 branches covered.">            if (!CountryNames.isValid(country)) {</span>
+<span class="fc" id="L183">                errors.add(new FieldError(&quot;country&quot;, &quot;INVALID_VALUE&quot;));</span>
+            }
+        }
+<span class="fc" id="L186">        boolean placeFailed = errors.stream()</span>
+<span class="fc bfc" id="L187" title="All 4 branches covered.">                .anyMatch(e -&gt; e.field().equals(&quot;street&quot;) || e.field().equals(&quot;city&quot;));</span>
+<span class="pc bpc" id="L188" title="1 of 6 branches missed.">        if (street == null &amp;&amp; city == null &amp;&amp; !placeFailed) {</span>
+<span class="fc" id="L189">            errors.add(new FieldError(&quot;street&quot;, &quot;REQUIRED&quot;));</span>
+        }
+<span class="fc bfc" id="L191" title="All 2 branches covered.">        if (!errors.isEmpty()) {</span>
+<span class="fc" id="L192">            return new AddressResult(null, List.copyOf(errors));</span>
+        }
+<span class="fc bfc" id="L194" title="All 2 branches covered.">        String postalCode = postal == null ? null : postal.toUpperCase(Locale.ROOT);</span>
+<span class="fc" id="L195">        return new AddressResult(new Address(street, extra, postalCode, city, region, country), List.of());</span>
+    }
+
+    /** Del naslova: obrezan, presledki strnjeni, prazen = {@code null}; predolg del je napaka. */
+    private static String part(String raw, String field, int max, List&lt;FieldError&gt; errors) {
+<span class="fc bfc" id="L200" title="All 2 branches covered.">        if (raw == null) {</span>
+<span class="fc" id="L201">            return null;</span>
+        }
+<span class="fc" id="L203">        String value = SPACES.matcher(raw.strip()).replaceAll(&quot; &quot;);</span>
+<span class="fc bfc" id="L204" title="All 2 branches covered.">        if (value.isEmpty()) {</span>
+<span class="fc" id="L205">            return null;</span>
+        }
+<span class="fc bfc" id="L207" title="All 2 branches covered.">        if (length(value) &gt; max) {</span>
+<span class="fc" id="L208">            errors.add(new FieldError(field, &quot;TOO_LONG&quot;));</span>
+        }
+<span class="fc" id="L210">        return value;</span>
+    }
+
+    static int length(String value) {
+<span class="fc" id="L214">        return value.codePointCount(0, value.length());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

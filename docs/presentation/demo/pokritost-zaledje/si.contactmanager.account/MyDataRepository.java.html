@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MyDataRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.account</a> &gt; <span class="el_source">MyDataRepository.java</span></div><h1>MyDataRepository.java</h1><pre class="source lang-java linenums">package si.contactmanager.account;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import si.contactmanager.account.DisplayFormat.AddressFormat;
+import si.contactmanager.account.DisplayFormat.DateFormat;
+import si.contactmanager.account.DisplayFormat.PhoneFormat;
+import si.contactmanager.account.ExportAssembler.MembershipRow;
+import si.contactmanager.account.ExportAssembler.OwnedRow;
+import si.contactmanager.account.ExportAssembler.ProfileRow;
+import si.contactmanager.account.ExportAssembler.ReceivedRow;
+import si.contactmanager.account.ExportAssembler.SentRow;
+
+/**
+ * Poizvedbe za izvoz mojih podatkov (012, data-model.md *Izvoz*). Kličejo se v eni transakciji {@code REPEATABLE READ}
+ * (posnetek); brez kontaktov, sledi, notranjih id-jev in e-naslova pošiljatelja (FR-012-03).
+ */
+@Repository
+class MyDataRepository {
+
+    /** Profil z notranjim id-jem (id ne zapusti zaledja). */
+<span class="fc" id="L36">    record ProfileWithId(long id, ProfileRow profile) {}</span>
+
+    private final JdbcClient jdbc;
+    private final String statsZone;
+
+<span class="fc" id="L41">    MyDataRepository(JdbcClient jdbc, @Value(&quot;${api-keys.stats-zone}&quot;) ZoneId statsZone) {</span>
+<span class="fc" id="L42">        this.jdbc = jdbc;</span>
+<span class="fc" id="L43">        this.statsZone = statsZone.getId();</span>
+<span class="fc" id="L44">    }</span>
+
+    Optional&lt;ProfileWithId&gt; profile(String firebaseUid) {
+<span class="fc" id="L47">        return jdbc.sql(&quot;SELECT id, name, email, created_at, language, theme, phone_format, date_format, address_format&quot;</span>
+                        + &quot; FROM app_user WHERE firebase_uid = :uid&quot;)
+<span class="fc" id="L49">                .param(&quot;uid&quot;, firebaseUid)</span>
+<span class="fc" id="L50">                .query((rs, row) -&gt; new ProfileWithId(</span>
+<span class="fc" id="L51">                        rs.getLong(&quot;id&quot;),</span>
+                        new ProfileRow(
+<span class="fc" id="L53">                                rs.getString(&quot;name&quot;),</span>
+<span class="fc" id="L54">                                rs.getString(&quot;email&quot;),</span>
+<span class="fc" id="L55">                                instant(rs, &quot;created_at&quot;),</span>
+<span class="fc" id="L56">                                rs.getString(&quot;language&quot;),</span>
+<span class="fc" id="L57">                                rs.getString(&quot;theme&quot;),</span>
+<span class="fc" id="L58">                                known(PhoneFormat.class, rs.getString(&quot;phone_format&quot;)),</span>
+<span class="fc" id="L59">                                known(DateFormat.class, rs.getString(&quot;date_format&quot;)),</span>
+<span class="fc" id="L60">                                known(AddressFormat.class, rs.getString(&quot;address_format&quot;)))))</span>
+<span class="fc" id="L61">                .optional();</span>
+    }
+
+    /** Lastna profilna slika, največja različica do 512 (018, FR-018-18); prazno, če slike ni. */
+    Optional&lt;MyData.Photo&gt; photo(long user) {
+<span class="fc" id="L66">        return jdbc.sql(&quot;SELECT v.content_type, v.data FROM image i JOIN image_variant v ON v.image_id = i.id&quot;</span>
+                        + &quot; WHERE i.kind = 'USER' AND i.user_id = :user AND v.size =&quot;
+                        + &quot; (SELECT max(m.size) FROM image_variant m WHERE m.image_id = i.id AND m.size &lt;= 512)&quot;)
+<span class="fc" id="L69">                .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L70">                .query((rs, row) -&gt; new MyData.Photo(</span>
+<span class="fc" id="L71">                        rs.getString(&quot;content_type&quot;), Base64.getEncoder().encodeToString(rs.getBytes(&quot;data&quot;))))</span>
+<span class="fc" id="L72">                .optional();</span>
+    }
+
+    /** Neznana vrednost v bazi se izvozi kot privzeta ({@code null}), enako kot v profilu. */
+    private static &lt;E extends Enum&lt;E&gt;&gt; String known(Class&lt;E&gt; type, String name) {
+<span class="fc" id="L77">        E value = DisplayFormat.read(type, name);</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        return value == null ? null : value.name();</span>
+    }
+
+    List&lt;MembershipRow&gt; memberships(long user) {
+<span class="fc" id="L82">        return jdbc.sql(&quot;SELECT g.title, m.role, m.created_at, g.archived_at IS NOT NULL AS archived,&quot;</span>
+                        + &quot; EXISTS (SELECT 1 FROM group_member o WHERE o.group_id = g.id AND o.role = 'OWNER') AS has_owner&quot;
+                        + &quot; FROM group_member m JOIN contact_group g ON g.id = m.group_id WHERE m.user_id = :user&quot;)
+<span class="fc" id="L85">                .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L86">                .query((rs, row) -&gt; new MembershipRow(</span>
+<span class="fc" id="L87">                        rs.getString(&quot;title&quot;),</span>
+<span class="fc" id="L88">                        rs.getString(&quot;role&quot;),</span>
+<span class="fc" id="L89">                        instant(rs, &quot;created_at&quot;),</span>
+<span class="fc" id="L90">                        rs.getBoolean(&quot;archived&quot;),</span>
+<span class="fc" id="L91">                        rs.getBoolean(&quot;has_owner&quot;)))</span>
+<span class="fc" id="L92">                .list();</span>
+    }
+
+    List&lt;ReceivedRow&gt; receivedInvitations(long user) {
+<span class="fc" id="L96">        return jdbc.sql(</span>
+                        &quot;SELECT g.title, i.role, i.created_at, s.name AS sender_name, i.inviter_id IS NULL AS sender_deleted&quot;
+                                + &quot; FROM invitation i JOIN contact_group g ON g.id = i.group_id&quot;
+                                + &quot; LEFT JOIN app_user s ON s.id = i.inviter_id WHERE i.invitee_id = :user&quot;)
+<span class="fc" id="L100">                .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L101">                .query((rs, row) -&gt; new ReceivedRow(</span>
+<span class="fc" id="L102">                        rs.getString(&quot;title&quot;),</span>
+<span class="fc" id="L103">                        rs.getString(&quot;role&quot;),</span>
+<span class="fc" id="L104">                        rs.getString(&quot;sender_name&quot;),</span>
+<span class="fc" id="L105">                        rs.getBoolean(&quot;sender_deleted&quot;),</span>
+<span class="fc" id="L106">                        instant(rs, &quot;created_at&quot;)))</span>
+<span class="fc" id="L107">                .list();</span>
+    }
+
+    /** Poslana čakajoča povabila: po {@code inviter_id}, neodvisno od trenutne vloge ali članstva (FR-012-02 (d)). */
+    List&lt;SentRow&gt; sentInvitations(long user) {
+<span class="fc" id="L112">        return jdbc.sql(&quot;SELECT g.title, i.role, i.created_at, u.email AS invitee_email&quot;</span>
+                        + &quot; FROM invitation i JOIN contact_group g ON g.id = i.group_id&quot;
+                        + &quot; JOIN app_user u ON u.id = i.invitee_id WHERE i.inviter_id = :user&quot;)
+<span class="fc" id="L115">                .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L116">                .query((rs, row) -&gt; new SentRow(</span>
+<span class="fc" id="L117">                        rs.getString(&quot;title&quot;),</span>
+<span class="fc" id="L118">                        rs.getString(&quot;role&quot;),</span>
+<span class="fc" id="L119">                        rs.getString(&quot;invitee_email&quot;),</span>
+<span class="fc" id="L120">                        instant(rs, &quot;created_at&quot;)))</span>
+<span class="fc" id="L121">                .list();</span>
+    }
+
+    List&lt;OwnedRow&gt; ownedGroups(long user) {
+<span class="fc" id="L125">        return jdbc.sql(&quot;SELECT g.title, g.description, g.color, g.archived_at IS NOT NULL AS archived, g.created_at&quot;</span>
+                        + &quot; FROM contact_group g JOIN group_member m ON m.group_id = g.id&quot;
+                        + &quot; WHERE m.user_id = :user AND m.role = 'OWNER'&quot;)
+<span class="fc" id="L128">                .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L129">                .query((rs, row) -&gt; new OwnedRow(</span>
+<span class="fc" id="L130">                        rs.getString(&quot;title&quot;),</span>
+<span class="fc" id="L131">                        rs.getString(&quot;description&quot;),</span>
+<span class="fc" id="L132">                        rs.getString(&quot;color&quot;),</span>
+<span class="fc" id="L133">                        rs.getBoolean(&quot;archived&quot;),</span>
+<span class="fc" id="L134">                        instant(rs, &quot;created_at&quot;)))</span>
+<span class="fc" id="L135">                .list();</span>
+    }
+
+    /** Gesla za aplikacijo (014, FR-014-25): samo ime in časi. */
+    List&lt;ExportAssembler.AppPasswordRow&gt; appPasswords(long user) {
+<span class="fc" id="L140">        return jdbc.sql(&quot;SELECT name, created_at, last_used_at FROM app_password WHERE user_id = :user&quot;)</span>
+<span class="fc" id="L141">                .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L142">                .query((rs, row) -&gt; new ExportAssembler.AppPasswordRow(</span>
+<span class="fc" id="L143">                        rs.getString(&quot;name&quot;),</span>
+<span class="fc" id="L144">                        instant(rs, &quot;created_at&quot;),</span>
+<span class="pc bpc" id="L145" title="1 of 2 branches missed.">                        rs.getObject(&quot;last_used_at&quot;) == null ? null : instant(rs, &quot;last_used_at&quot;)))</span>
+<span class="fc" id="L146">                .list();</span>
+    }
+
+    /**
+     * API ključi (019, FR-019-05, -21): ime, obseg, časi in dnevni povzetki statistike v časovnem pasu statistike; brez
+     * ključa in prepoznavnega dela.
+     */
+    List&lt;ExportAssembler.ApiKeyRow&gt; apiKeys(long user) {
+<span class="fc" id="L154">        Map&lt;UUID, List&lt;MyData.ApiKeyGroup&gt;&gt; groups = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L155">        jdbc.sql(&quot;SELECT kg.key_id, g.title, kg.permission FROM api_key_group kg&quot;</span>
+                        + &quot; JOIN api_key k ON k.id = kg.key_id JOIN contact_group g ON g.id = kg.group_id&quot;
+                        + &quot; WHERE k.user_id = :user&quot;)
+<span class="fc" id="L158">                .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L159">                .query((rs, row) -&gt; {</span>
+<span class="fc" id="L160">                    groups.computeIfAbsent(rs.getObject(&quot;key_id&quot;, UUID.class), k -&gt; new ArrayList&lt;&gt;())</span>
+<span class="fc" id="L161">                            .add(new MyData.ApiKeyGroup(rs.getString(&quot;title&quot;), rs.getString(&quot;permission&quot;)));</span>
+<span class="fc" id="L162">                    return null;</span>
+                })
+<span class="fc" id="L164">                .list();</span>
+<span class="fc" id="L165">        Map&lt;UUID, List&lt;MyData.ApiKeyUsageDay&gt;&gt; usage = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L166">        jdbc.sql(&quot;SELECT u.key_id, (u.hour AT TIME ZONE :zone)::date AS day, sum(u.read_ok) AS read_ok,&quot;</span>
+                        + &quot; sum(u.write_ok) AS write_ok, sum(u.errors) AS errors, sum(u.rate_limited) AS rate_limited&quot;
+                        + &quot; FROM api_key_usage u JOIN api_key k ON k.id = u.key_id WHERE k.user_id = :user&quot;
+                        + &quot; GROUP BY u.key_id, day&quot;)
+<span class="fc" id="L170">                .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L171">                .param(&quot;zone&quot;, statsZone)</span>
+<span class="fc" id="L172">                .query((rs, row) -&gt; {</span>
+<span class="fc" id="L173">                    usage.computeIfAbsent(rs.getObject(&quot;key_id&quot;, UUID.class), k -&gt; new ArrayList&lt;&gt;())</span>
+<span class="fc" id="L174">                            .add(new MyData.ApiKeyUsageDay(</span>
+<span class="fc" id="L175">                                    rs.getObject(&quot;day&quot;, LocalDate.class),</span>
+<span class="fc" id="L176">                                    rs.getInt(&quot;read_ok&quot;),</span>
+<span class="fc" id="L177">                                    rs.getInt(&quot;write_ok&quot;),</span>
+<span class="fc" id="L178">                                    rs.getInt(&quot;errors&quot;),</span>
+<span class="fc" id="L179">                                    rs.getInt(&quot;rate_limited&quot;)));</span>
+<span class="fc" id="L180">                    return null;</span>
+                })
+<span class="fc" id="L182">                .list();</span>
+<span class="fc" id="L183">        return jdbc.sql(&quot;SELECT id, name, all_groups_permission, created_at, expires_at, last_used_at, revoked_at&quot;</span>
+                        + &quot; FROM api_key WHERE user_id = :user&quot;)
+<span class="fc" id="L185">                .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L186">                .query((rs, row) -&gt; {</span>
+<span class="fc" id="L187">                    UUID id = rs.getObject(&quot;id&quot;, UUID.class);</span>
+<span class="fc" id="L188">                    return new ExportAssembler.ApiKeyRow(</span>
+<span class="fc" id="L189">                            rs.getString(&quot;name&quot;),</span>
+<span class="fc" id="L190">                            rs.getString(&quot;all_groups_permission&quot;),</span>
+<span class="fc" id="L191">                            groups.getOrDefault(id, List.of()),</span>
+<span class="fc" id="L192">                            instant(rs, &quot;created_at&quot;),</span>
+<span class="fc" id="L193">                            nullableInstant(rs, &quot;expires_at&quot;),</span>
+<span class="fc" id="L194">                            nullableInstant(rs, &quot;last_used_at&quot;),</span>
+<span class="fc" id="L195">                            nullableInstant(rs, &quot;revoked_at&quot;),</span>
+<span class="fc" id="L196">                            usage.getOrDefault(id, List.of()));</span>
+                })
+<span class="fc" id="L198">                .list();</span>
+    }
+
+    private static Instant nullableInstant(ResultSet rs, String column) throws SQLException {
+<span class="fc bfc" id="L202" title="All 2 branches covered.">        return rs.getObject(column) == null ? null : instant(rs, column);</span>
+    }
+
+    private static Instant instant(ResultSet rs, String column) throws SQLException {
+<span class="fc" id="L206">        return rs.getObject(column, OffsetDateTime.class).toInstant();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

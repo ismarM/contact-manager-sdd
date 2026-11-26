@@ -1,0 +1,556 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContactSnapshots.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">ContactSnapshots.java</span></div><h1>ContactSnapshots.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Component;
+
+/**
+ * Branje in uveljavljanje stanj več kontaktov skupine za revizijsko sled (research R-04, R-12): branje s tremi
+ * stavki na skupino id-jev, uveljavljanje s paketnimi stavki; vedno s pogojem {@code group_id} (izolacija skupin).
+ */
+@Component
+public class ContactSnapshots {
+
+    /** Največ id-jev v enem stavku (meja parametrov PostgreSQL je 32.767). */
+    private static final int CHUNK = 5000;
+
+    /** Največ vrstic v enem stavku {@code unnest}. */
+    private static final int ROWS = 20_000;
+
+    /**
+     * Ciljno stanje kontakta pri rollbacku: {@code state == null} odstrani kontakt, {@code exists == false} ga obnovi
+     * z istim id, sicer zamenja njegove vrednosti.
+     */
+<span class="fc" id="L37">    public record Target(UUID contactId, ContactState state, boolean exists) {}</span>
+
+    private final JdbcClient jdbc;
+    private final NamedParameterJdbcTemplate batch;
+    private final AttributeKeyRepository keys;
+
+<span class="fc" id="L43">    ContactSnapshots(JdbcClient jdbc, NamedParameterJdbcTemplate batch, AttributeKeyRepository keys) {</span>
+<span class="fc" id="L44">        this.jdbc = jdbc;</span>
+<span class="fc" id="L45">        this.batch = batch;</span>
+<span class="fc" id="L46">        this.keys = keys;</span>
+<span class="fc" id="L47">    }</span>
+
+    /** Stanja izbranih kontaktov skupine; kontakti, ki jih ni, manjkajo v odgovoru. */
+    public Map&lt;UUID, ContactState&gt; load(UUID groupId, Collection&lt;UUID&gt; ids) {
+<span class="fc" id="L51">        Map&lt;UUID, ContactState&gt; states = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L52">        List&lt;UUID&gt; all = new ArrayList&lt;&gt;(ids);</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        for (int from = 0; from &lt; all.size(); from += CHUNK) {</span>
+<span class="fc" id="L54">            List&lt;UUID&gt; chunk = all.subList(from, Math.min(all.size(), from + CHUNK));</span>
+<span class="fc" id="L55">            Map&lt;UUID, List&lt;Attribute&gt;&gt; attributes = attributes(chunk);</span>
+<span class="fc" id="L56">            Map&lt;UUID, List&lt;String&gt;&gt; tags = tags(chunk);</span>
+<span class="fc" id="L57">            jdbc.sql(</span>
+                            &quot;SELECT id, first_name, last_name, address, address_parts::text AS address_parts, email, phone,&quot;
+                                    + &quot; company, country, version,&quot;
+                                    + &quot; created_at, updated_at, updated_by FROM contact WHERE group_id = :group AND id IN (:ids)&quot;)
+<span class="fc" id="L61">                    .param(&quot;group&quot;, groupId)</span>
+<span class="fc" id="L62">                    .param(&quot;ids&quot;, chunk)</span>
+<span class="fc" id="L63">                    .query((ResultSet rs) -&gt; {</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">                        while (rs.next()) {</span>
+<span class="fc" id="L65">                            UUID id = rs.getObject(&quot;id&quot;, UUID.class);</span>
+<span class="fc" id="L66">                            states.put(</span>
+                                    id,
+<span class="fc" id="L68">                                    state(</span>
+                                            rs,
+<span class="fc" id="L70">                                            attributes.getOrDefault(id, List.of()),</span>
+<span class="fc" id="L71">                                            tags.getOrDefault(id, List.of())));</span>
+<span class="fc" id="L72">                        }</span>
+<span class="fc" id="L73">                        return states;</span>
+                    });
+        }
+<span class="fc" id="L76">        return states;</span>
+    }
+
+    /** Stanje enega kontakta skupine; {@code null}, če ga v tej skupini ni. */
+    public ContactState snapshot(UUID groupId, UUID id) {
+<span class="fc" id="L81">        return load(groupId, List.of(id)).get(id);</span>
+    }
+
+    /**
+     * Uveljavi ciljna stanja (research R-12): odstranitve, obnovitve z istim id in zamenjave vrednosti, vse s paketnimi
+     * stavki. Spremenjeni in obnovljeni kontakti dobijo oznako {@code reverted_entry_id}; uporabnik zadnje spremembe,
+     * ki ne obstaja več, postane {@code NULL}.
+     */
+    public void apply(UUID groupId, UUID rollbackEntry, List&lt;Target&gt; targets) {
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        List&lt;Target&gt; removed = targets.stream().filter(t -&gt; t.state() == null).toList();</span>
+<span class="fc" id="L91">        List&lt;Target&gt; restored =</span>
+<span class="fc bfc" id="L92" title="All 4 branches covered.">                targets.stream().filter(t -&gt; t.state() != null &amp;&amp; !t.exists()).toList();</span>
+<span class="fc" id="L93">        List&lt;Target&gt; updated =</span>
+<span class="fc bfc" id="L94" title="All 4 branches covered.">                targets.stream().filter(t -&gt; t.state() != null &amp;&amp; t.exists()).toList();</span>
+
+<span class="fc" id="L96">        batch.batchUpdate(</span>
+                &quot;DELETE FROM contact WHERE group_id = :group AND id = :id&quot;,
+<span class="fc" id="L98">                removed.stream()</span>
+<span class="fc" id="L99">                        .map(t -&gt; (SqlParameterSource) new MapSqlParameterSource()</span>
+<span class="fc" id="L100">                                .addValue(&quot;group&quot;, groupId)</span>
+<span class="fc" id="L101">                                .addValue(&quot;id&quot;, t.contactId()))</span>
+<span class="fc" id="L102">                        .toArray(SqlParameterSource[]::new));</span>
+<span class="fc" id="L103">        batch.batchUpdate(</span>
+                &quot;INSERT INTO contact (id, group_id, first_name, last_name, address, address_parts, email, phone,&quot;
+                        + &quot; company, country, sort_last, sort_first, version, created_at, updated_at, updated_by,&quot;
+                        + &quot; reverted_entry_id)&quot;
+                        + &quot; VALUES (:id, :group, :first, :last, :address, CAST(:parts AS jsonb), :email, :phone, :company, :country,&quot;
+                        + &quot; :sortLast, :sortFirst, :version, :createdAt, :updatedAt,&quot;
+                        + &quot; (SELECT id FROM app_user WHERE id = :by), :entry)&quot;,
+<span class="fc" id="L110">                rows(groupId, rollbackEntry, restored));</span>
+<span class="fc" id="L111">        batch.batchUpdate(</span>
+                &quot;UPDATE contact SET first_name = :first, last_name = :last, address = :address,&quot;
+                        + &quot; address_parts = CAST(:parts AS jsonb), email = :email,&quot;
+                        + &quot; phone = :phone, company = :company, country = :country, sort_last = :sortLast,&quot;
+                        + &quot; sort_first = :sortFirst, version = :version,&quot;
+                        + &quot; created_at = :createdAt, updated_at = :updatedAt,&quot;
+                        + &quot; updated_by = (SELECT id FROM app_user WHERE id = :by), reverted_entry_id = :entry&quot;
+                        + &quot; WHERE group_id = :group AND id = :id&quot;,
+<span class="fc" id="L119">                rows(groupId, rollbackEntry, updated));</span>
+
+<span class="fc" id="L121">        List&lt;UUID&gt; replaced = updated.stream().map(Target::contactId).toList();</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">        for (int from = 0; from &lt; replaced.size(); from += CHUNK) {</span>
+<span class="fc" id="L123">            List&lt;UUID&gt; chunk = replaced.subList(from, Math.min(replaced.size(), from + CHUNK));</span>
+<span class="fc" id="L124">            jdbc.sql(&quot;DELETE FROM contact_attribute WHERE contact_id IN (:ids)&quot;)</span>
+<span class="fc" id="L125">                    .param(&quot;ids&quot;, chunk)</span>
+<span class="fc" id="L126">                    .update();</span>
+<span class="fc" id="L127">            jdbc.sql(&quot;DELETE FROM contact_tag WHERE contact_id IN (:ids)&quot;)</span>
+<span class="fc" id="L128">                    .param(&quot;ids&quot;, chunk)</span>
+<span class="fc" id="L129">                    .update();</span>
+        }
+<span class="fc" id="L131">        List&lt;Target&gt; withChildren = new ArrayList&lt;&gt;(restored);</span>
+<span class="fc" id="L132">        withChildren.addAll(updated);</span>
+<span class="fc" id="L133">        insertChildren(withChildren);</span>
+<span class="fc" id="L134">    }</span>
+
+    /**
+     * Rollback (016, FR-016-26, research R-07): tip vsakega ključa, ki ga imajo obnovljeni kontakti, se nastavi na tip iz
+     * posnetka (verzija ključa + 1). Vrednosti obnovljenih kontaktov so dobesedne in se ne preverjajo; vrednosti
+     * kontaktov, ki jih rollback ni zajel, morajo biti veljavne za obnovljeni tip, sicer {@code 409
+     * ATTRIBUTE_TYPE_CONFLICT} in nič se ne spremeni (transakcija). Ključi so zaklenjeni po vrstnem redu {@code key_norm}.
+     */
+    public void restoreKeyTypes(UUID groupId, List&lt;Target&gt; targets) {
+<span class="fc" id="L143">        Map&lt;String, AttributeType&gt; wanted = new java.util.TreeMap&lt;&gt;();</span>
+<span class="fc" id="L144">        java.util.Set&lt;UUID&gt; restored = new java.util.HashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">        for (Target target : targets) {</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">            if (target.state() == null) {</span>
+<span class="fc" id="L147">                continue;</span>
+            }
+<span class="fc" id="L149">            restored.add(target.contactId());</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">            for (Attribute attribute : target.state().attributes()) {</span>
+<span class="fc" id="L151">                wanted.putIfAbsent(ContactInputParser.normalize(attribute.key()), attribute.type());</span>
+<span class="fc" id="L152">            }</span>
+<span class="fc" id="L153">        }</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">        for (Map.Entry&lt;String, AttributeType&gt; entry : wanted.entrySet()) {</span>
+<span class="fc" id="L155">            String norm = entry.getKey();</span>
+<span class="fc" id="L156">            keys.register(groupId, norm);</span>
+<span class="fc" id="L157">            AttributeKeyRepository.Row row = keys.lockForUpdate(groupId, norm).orElseThrow();</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">            if (row.type() == entry.getValue()) {</span>
+<span class="fc" id="L159">                continue;</span>
+            }
+<span class="fc" id="L161">            List&lt;TypeConflict.Item&gt; conflicts = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L162">            long invalid = 0;</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">            for (AttributeKeyRepository.Value value : keys.values(groupId, norm)) {</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">                if (restored.contains(value.contactId())) {</span>
+<span class="fc" id="L165">                    continue;</span>
+                }
+<span class="pc bpc" id="L167" title="1 of 2 branches missed.">                String text = value.parts() != null ? AddressFormats.text(value.parts()) : value.value();</span>
+<span class="pc bpc" id="L168" title="1 of 2 branches missed.">                if (!TypedValues.isValid(entry.getValue(), text, value.country())) {</span>
+<span class="fc" id="L169">                    invalid++;</span>
+<span class="pc bpc" id="L170" title="1 of 2 branches missed.">                    if (conflicts.size() &lt; 100) {</span>
+<span class="fc" id="L171">                        conflicts.add(new TypeConflict.Item(</span>
+<span class="fc" id="L172">                                value.contactId(),</span>
+<span class="fc" id="L173">                                ContactRepository.displayName(value.firstName(), value.lastName()),</span>
+                                text));
+                    }
+                }
+<span class="fc" id="L177">            }</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">            if (invalid &gt; 0) {</span>
+<span class="fc" id="L179">                throw new si.contactmanager.shared.error.AttributeTypeConflictException(</span>
+<span class="fc" id="L180">                        new TypeConflict(List.copyOf(conflicts), invalid));</span>
+            }
+<span class="fc" id="L182">            keys.setType(groupId, norm, entry.getValue());</span>
+<span class="fc" id="L183">        }</span>
+<span class="fc" id="L184">    }</span>
+
+    /**
+     * Uvoz (FR-014-05): nove kontakte vstavi s stavki {@code unnest} po kosih, v vrstnem redu seznama (id-ji
+     * {@code uuidv7()} naraščajo, kontakti imajo enak čas nastanka); vrne id-je v istem vrstnem redu.
+     */
+    List&lt;UUID&gt; insertNew(UUID groupId, long actor, List&lt;ContactInput&gt; inputs) {
+<span class="fc" id="L191">        List&lt;UUID&gt; ids = jdbc.sql(&quot;SELECT uuidv7() AS id FROM generate_series(1, :n) ORDER BY id&quot;)</span>
+<span class="fc" id="L192">                .param(&quot;n&quot;, inputs.size())</span>
+<span class="fc" id="L193">                .query(UUID.class)</span>
+<span class="fc" id="L194">                .list();</span>
+<span class="fc bfc" id="L195" title="All 2 branches covered.">        for (int from = 0; from &lt; inputs.size(); from += CHUNK) {</span>
+<span class="fc" id="L196">            int to = Math.min(inputs.size(), from + CHUNK);</span>
+<span class="fc" id="L197">            List&lt;ContactInput&gt; chunk = inputs.subList(from, to);</span>
+<span class="fc" id="L198">            update(</span>
+                    &quot;INSERT INTO contact (id, group_id, first_name, last_name, address, address_parts, email, phone,&quot;
+                            + &quot; company, country, sort_last, sort_first, updated_by)&quot;
+                            + &quot; SELECT v.id, ?, v.first_name, v.last_name, v.address, v.address_parts::jsonb, v.email,&quot;
+                            + &quot; v.phone, v.company, v.country, v.sort_last, v.sort_first, ?&quot;
+                            + &quot; FROM unnest(?::uuid[], ?::text[], ?::text[], ?::text[], ?::text[], ?::text[], ?::text[],&quot;
+                            + &quot; ?::text[], ?::text[], ?::text[], ?::text[])&quot;
+                            + &quot; AS v(id, first_name, last_name, address, address_parts, email, phone, company, country,&quot;
+                            + &quot; sort_last, sort_first)&quot;,
+                    groupId,
+<span class="fc" id="L208">                    actor,</span>
+<span class="fc" id="L209">                    array(&quot;uuid&quot;, ids.subList(from, to).stream()),</span>
+<span class="fc" id="L210">                    array(&quot;text&quot;, chunk.stream().map(ContactInput::firstName)),</span>
+<span class="fc" id="L211">                    array(&quot;text&quot;, chunk.stream().map(ContactInput::lastName)),</span>
+<span class="fc" id="L212">                    array(&quot;text&quot;, chunk.stream().map(ContactInput::address)),</span>
+<span class="fc" id="L213">                    array(&quot;text&quot;, chunk.stream().map(c -&gt; AddressJson.write(c.addressParts()))),</span>
+<span class="fc" id="L214">                    array(&quot;text&quot;, chunk.stream().map(ContactInput::email)),</span>
+<span class="fc" id="L215">                    array(&quot;text&quot;, chunk.stream().map(ContactInput::phone)),</span>
+<span class="fc" id="L216">                    array(&quot;text&quot;, chunk.stream().map(ContactInput::company)),</span>
+<span class="fc" id="L217">                    array(&quot;text&quot;, chunk.stream().map(ContactInput::country)),</span>
+<span class="fc" id="L218">                    array(&quot;text&quot;, chunk.stream().map(c -&gt; sortKey(c.lastName()))),</span>
+<span class="fc" id="L219">                    array(&quot;text&quot;, chunk.stream().map(c -&gt; sortKey(c.firstName()))));</span>
+        }
+<span class="fc" id="L221">        List&lt;Target&gt; children = new ArrayList&lt;&gt;(inputs.size());</span>
+<span class="fc bfc" id="L222" title="All 2 branches covered.">        for (int i = 0; i &lt; inputs.size(); i++) {</span>
+<span class="fc" id="L223">            ContactInput input = inputs.get(i);</span>
+<span class="fc" id="L224">            children.add(new Target(</span>
+<span class="fc" id="L225">                    ids.get(i),</span>
+                    new ContactState(
+<span class="fc" id="L227">                            input.firstName(),</span>
+<span class="fc" id="L228">                            input.lastName(),</span>
+<span class="fc" id="L229">                            input.address(),</span>
+<span class="fc" id="L230">                            input.addressParts(),</span>
+<span class="fc" id="L231">                            input.email(),</span>
+<span class="fc" id="L232">                            input.phone(),</span>
+<span class="fc" id="L233">                            input.company(),</span>
+<span class="fc" id="L234">                            input.country(),</span>
+<span class="fc" id="L235">                            input.attributes(),</span>
+<span class="fc" id="L236">                            input.tags(),</span>
+                            0,
+                            java.time.Instant.EPOCH,
+                            java.time.Instant.EPOCH,
+<span class="fc" id="L240">                            actor),</span>
+                    false));
+        }
+<span class="fc" id="L243">        insertChildren(children);</span>
+<span class="fc" id="L244">        return ids;</span>
+    }
+
+    /**
+     * Obnova enega kontakta (015, research R-05): vrstica dobi vrednosti ciljnega stanja, novo verzijo, dejanskega
+     * izvajalca in čas obnove ({@code now()}), brez oznake rollbacka; {@code exists == false} vstavi izbrisan kontakt z
+     * istim id. Atributi in značke se zamenjajo. Vedno s pogojem {@code group_id}; drugih kontaktov se ne dotakne.
+     */
+    public void restore(UUID groupId, UUID contactId, ContactState goal, long version, long actor, boolean exists) {
+<span class="fc" id="L253">        MapSqlParameterSource p = new MapSqlParameterSource()</span>
+<span class="fc" id="L254">                .addValue(&quot;id&quot;, contactId)</span>
+<span class="fc" id="L255">                .addValue(&quot;group&quot;, groupId)</span>
+<span class="fc" id="L256">                .addValue(&quot;first&quot;, goal.firstName())</span>
+<span class="fc" id="L257">                .addValue(&quot;last&quot;, goal.lastName())</span>
+<span class="fc" id="L258">                .addValue(&quot;address&quot;, goal.address())</span>
+<span class="fc" id="L259">                .addValue(&quot;parts&quot;, AddressJson.write(goal.addressParts()))</span>
+<span class="fc" id="L260">                .addValue(&quot;email&quot;, goal.email())</span>
+<span class="fc" id="L261">                .addValue(&quot;phone&quot;, goal.phone())</span>
+<span class="fc" id="L262">                .addValue(&quot;company&quot;, goal.company())</span>
+<span class="fc" id="L263">                .addValue(&quot;country&quot;, goal.country())</span>
+<span class="fc" id="L264">                .addValue(&quot;sortLast&quot;, sortKey(goal.lastName()))</span>
+<span class="fc" id="L265">                .addValue(&quot;sortFirst&quot;, sortKey(goal.firstName()))</span>
+<span class="fc" id="L266">                .addValue(&quot;version&quot;, version)</span>
+<span class="fc" id="L267">                .addValue(&quot;createdAt&quot;, Timestamp.from(goal.createdAt()))</span>
+<span class="fc" id="L268">                .addValue(&quot;by&quot;, actor);</span>
+<span class="fc bfc" id="L269" title="All 2 branches covered.">        if (exists) {</span>
+<span class="fc" id="L270">            batch.update(</span>
+                    &quot;UPDATE contact SET first_name = :first, last_name = :last, address = :address,&quot;
+                            + &quot; address_parts = CAST(:parts AS jsonb), email = :email,&quot;
+                            + &quot; phone = :phone, company = :company, country = :country, sort_last = :sortLast,&quot;
+                            + &quot; sort_first = :sortFirst, version = :version, created_at = :createdAt,&quot;
+                            + &quot; updated_at = now(), updated_by = :by, reverted_entry_id = NULL&quot;
+                            + &quot; WHERE group_id = :group AND id = :id&quot;,
+                    p);
+<span class="fc" id="L278">            jdbc.sql(&quot;DELETE FROM contact_attribute WHERE contact_id = :id&quot;)</span>
+<span class="fc" id="L279">                    .param(&quot;id&quot;, contactId)</span>
+<span class="fc" id="L280">                    .update();</span>
+<span class="fc" id="L281">            jdbc.sql(&quot;DELETE FROM contact_tag WHERE contact_id = :id&quot;)</span>
+<span class="fc" id="L282">                    .param(&quot;id&quot;, contactId)</span>
+<span class="fc" id="L283">                    .update();</span>
+        } else {
+<span class="fc" id="L285">            batch.update(</span>
+                    &quot;INSERT INTO contact (id, group_id, first_name, last_name, address, address_parts, email, phone,&quot;
+                            + &quot; company, country, sort_last, sort_first, version, created_at, updated_at, updated_by)&quot;
+                            + &quot; VALUES (:id, :group, :first, :last, :address, CAST(:parts AS jsonb), :email, :phone, :company, :country,&quot;
+                            + &quot; :sortLast, :sortFirst, :version, :createdAt, now(), :by)&quot;,
+                    p);
+        }
+<span class="fc" id="L292">        insertChildren(List.of(new Target(contactId, goal, true)));</span>
+<span class="fc" id="L293">    }</span>
+
+    /** Sprememba vsebine enega kontakta pri množičnem urejanju (ime se ne spreminja). */
+<span class="fc" id="L296">    public record Change(UUID contactId, ContactState before, ContactState after) {}</span>
+
+    /**
+     * Množično urejanje (research R-07): paketni {@code UPDATE contact} (vrednosti polj, {@code version + 1}, izvajalec,
+     * {@code updated_at = now()}, brez oznake rollbacka); atributi in značke so zamenjani samo pri kontaktih, kjer so se
+     * spremenili. Vrstice so že zaklenjene (R-03); vedno s pogojem {@code group_id}.
+     */
+    public void replaceContent(UUID groupId, long actor, List&lt;Change&gt; changes) {
+        // Po en stavek na kos (unnest, brez stavka na kontakt): število potovanj do baze ne raste s številom kontaktov.
+<span class="fc bfc" id="L305" title="All 2 branches covered.">        for (int from = 0; from &lt; changes.size(); from += CHUNK) {</span>
+<span class="fc" id="L306">            List&lt;Change&gt; chunk = changes.subList(from, Math.min(changes.size(), from + CHUNK));</span>
+<span class="fc" id="L307">            update(</span>
+                    &quot;UPDATE contact c SET address = v.address, address_parts = v.address_parts::jsonb,&quot;
+                            + &quot; email = v.email, phone = v.phone, company = v.company, country = v.country,&quot;
+                            + &quot; version = c.version + 1, updated_by = ?, updated_at = now(), reverted_entry_id = NULL&quot;
+                            + &quot; FROM unnest(?::uuid[], ?::text[], ?::text[], ?::text[], ?::text[], ?::text[], ?::text[])&quot;
+                            + &quot; AS v(id, address, address_parts, email, phone, company, country)&quot;
+                            + &quot; WHERE c.group_id = ? AND c.id = v.id&quot;,
+<span class="fc" id="L314">                    actor,</span>
+<span class="fc" id="L315">                    array(&quot;uuid&quot;, chunk.stream().map(Change::contactId)),</span>
+<span class="fc" id="L316">                    array(&quot;text&quot;, chunk.stream().map(c -&gt; c.after().address())),</span>
+<span class="fc" id="L317">                    array(</span>
+                            &quot;text&quot;,
+<span class="fc" id="L319">                            chunk.stream().map(c -&gt; AddressJson.write(c.after().addressParts()))),</span>
+<span class="fc" id="L320">                    array(&quot;text&quot;, chunk.stream().map(c -&gt; c.after().email())),</span>
+<span class="fc" id="L321">                    array(&quot;text&quot;, chunk.stream().map(c -&gt; c.after().phone())),</span>
+<span class="fc" id="L322">                    array(&quot;text&quot;, chunk.stream().map(c -&gt; c.after().company())),</span>
+<span class="fc" id="L323">                    array(&quot;text&quot;, chunk.stream().map(c -&gt; c.after().country())),</span>
+                    groupId);
+        }
+<span class="fc" id="L326">        List&lt;Target&gt; withChildren = changes.stream()</span>
+<span class="fc bfc" id="L327" title="All 2 branches covered.">                .filter(c -&gt; !c.before().attributes().equals(c.after().attributes())</span>
+<span class="fc bfc" id="L328" title="All 2 branches covered.">                        || !c.before().tags().equals(c.after().tags()))</span>
+<span class="fc" id="L329">                .map(c -&gt; new Target(c.contactId(), c.after(), true))</span>
+<span class="fc" id="L330">                .toList();</span>
+<span class="fc bfc" id="L331" title="All 2 branches covered.">        for (int from = 0; from &lt; withChildren.size(); from += CHUNK) {</span>
+<span class="fc" id="L332">            List&lt;UUID&gt; chunk = withChildren.subList(from, Math.min(withChildren.size(), from + CHUNK)).stream()</span>
+<span class="fc" id="L333">                    .map(Target::contactId)</span>
+<span class="fc" id="L334">                    .toList();</span>
+<span class="fc" id="L335">            jdbc.sql(&quot;DELETE FROM contact_attribute WHERE contact_id IN (:ids)&quot;)</span>
+<span class="fc" id="L336">                    .param(&quot;ids&quot;, chunk)</span>
+<span class="fc" id="L337">                    .update();</span>
+<span class="fc" id="L338">            jdbc.sql(&quot;DELETE FROM contact_tag WHERE contact_id IN (:ids)&quot;)</span>
+<span class="fc" id="L339">                    .param(&quot;ids&quot;, chunk)</span>
+<span class="fc" id="L340">                    .update();</span>
+        }
+<span class="fc" id="L342">        insertChildren(withChildren);</span>
+<span class="fc" id="L343">    }</span>
+
+    private static SqlParameterSource[] rows(UUID groupId, UUID entry, List&lt;Target&gt; targets) {
+<span class="fc" id="L346">        return targets.stream()</span>
+<span class="fc" id="L347">                .map(t -&gt; {</span>
+<span class="fc" id="L348">                    ContactState s = t.state();</span>
+<span class="fc" id="L349">                    return (SqlParameterSource) new MapSqlParameterSource()</span>
+<span class="fc" id="L350">                            .addValue(&quot;id&quot;, t.contactId())</span>
+<span class="fc" id="L351">                            .addValue(&quot;group&quot;, groupId)</span>
+<span class="fc" id="L352">                            .addValue(&quot;first&quot;, s.firstName())</span>
+<span class="fc" id="L353">                            .addValue(&quot;last&quot;, s.lastName())</span>
+<span class="fc" id="L354">                            .addValue(&quot;address&quot;, s.address())</span>
+<span class="fc" id="L355">                            .addValue(&quot;parts&quot;, AddressJson.write(s.addressParts()))</span>
+<span class="fc" id="L356">                            .addValue(&quot;email&quot;, s.email())</span>
+<span class="fc" id="L357">                            .addValue(&quot;phone&quot;, s.phone())</span>
+<span class="fc" id="L358">                            .addValue(&quot;company&quot;, s.company())</span>
+<span class="fc" id="L359">                            .addValue(&quot;country&quot;, s.country())</span>
+<span class="fc" id="L360">                            .addValue(&quot;sortLast&quot;, sortKey(s.lastName()))</span>
+<span class="fc" id="L361">                            .addValue(&quot;sortFirst&quot;, sortKey(s.firstName()))</span>
+<span class="fc" id="L362">                            .addValue(&quot;version&quot;, s.version())</span>
+<span class="fc" id="L363">                            .addValue(&quot;createdAt&quot;, Timestamp.from(s.createdAt()))</span>
+<span class="fc" id="L364">                            .addValue(&quot;updatedAt&quot;, Timestamp.from(s.updatedAt()))</span>
+<span class="fc" id="L365">                            .addValue(&quot;by&quot;, s.updatedById())</span>
+<span class="fc" id="L366">                            .addValue(&quot;entry&quot;, entry);</span>
+                })
+<span class="fc" id="L368">                .toArray(SqlParameterSource[]::new);</span>
+    }
+
+    /** Vstavljanje atributov in značk z večvrstičnimi stavki (unnest); neodvisno od {@code reWriteBatchedInserts}. */
+    void insertChildren(List&lt;Target&gt; targets) {
+<span class="fc" id="L373">        List&lt;UUID&gt; attributeContact = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L374">        List&lt;Integer&gt; attributePosition = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L375">        List&lt;String&gt; attributeKey = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L376">        List&lt;String&gt; attributeNorm = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L377">        List&lt;String&gt; attributeValue = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L378">        List&lt;String&gt; attributeParts = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L379">        List&lt;UUID&gt; tagContact = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L380">        List&lt;Integer&gt; tagPosition = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L381">        List&lt;String&gt; tagName = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L382">        List&lt;String&gt; tagNorm = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L383" title="All 2 branches covered.">        for (Target target : targets) {</span>
+<span class="fc" id="L384">            List&lt;Attribute&gt; attrs = target.state().attributes();</span>
+<span class="fc bfc" id="L385" title="All 2 branches covered.">            for (int i = 0; i &lt; attrs.size(); i++) {</span>
+<span class="fc" id="L386">                attributeContact.add(target.contactId());</span>
+<span class="fc" id="L387">                attributePosition.add(i);</span>
+<span class="fc" id="L388">                attributeKey.add(attrs.get(i).key());</span>
+<span class="fc" id="L389">                attributeNorm.add(ContactInputParser.normalize(attrs.get(i).key()));</span>
+<span class="fc" id="L390">                Attribute attribute = attrs.get(i);</span>
+<span class="fc bfc" id="L391" title="All 2 branches covered.">                attributeValue.add(attribute.parts() == null ? attribute.value() : null);</span>
+<span class="fc" id="L392">                attributeParts.add(AddressJson.write(attribute.parts()));</span>
+            }
+<span class="fc" id="L394">            List&lt;String&gt; names = target.state().tags();</span>
+<span class="fc bfc" id="L395" title="All 2 branches covered.">            for (int i = 0; i &lt; names.size(); i++) {</span>
+<span class="fc" id="L396">                tagContact.add(target.contactId());</span>
+<span class="fc" id="L397">                tagPosition.add(i);</span>
+<span class="fc" id="L398">                tagName.add(names.get(i));</span>
+<span class="fc" id="L399">                tagNorm.add(ContactInputParser.normalize(names.get(i)));</span>
+            }
+<span class="fc" id="L401">        }</span>
+<span class="fc bfc" id="L402" title="All 2 branches covered.">        for (int from = 0; from &lt; attributeContact.size(); from += ROWS) {</span>
+<span class="fc" id="L403">            int to = Math.min(attributeContact.size(), from + ROWS);</span>
+<span class="fc" id="L404">            update(</span>
+                    &quot;INSERT INTO contact_attribute (contact_id, position, key, key_norm, value, parts)&quot;
+                            + &quot; SELECT t.c, t.p, t.k, t.n, t.v, t.pa::jsonb&quot;
+                            + &quot; FROM unnest(?::uuid[], ?::int[], ?::text[], ?::text[], ?::text[], ?::text[])&quot;
+                            + &quot; AS t(c, p, k, n, v, pa)&quot;,
+<span class="fc" id="L409">                    array(&quot;uuid&quot;, attributeContact.subList(from, to).stream()),</span>
+<span class="fc" id="L410">                    array(&quot;int4&quot;, attributePosition.subList(from, to).stream()),</span>
+<span class="fc" id="L411">                    array(&quot;text&quot;, attributeKey.subList(from, to).stream()),</span>
+<span class="fc" id="L412">                    array(&quot;text&quot;, attributeNorm.subList(from, to).stream()),</span>
+<span class="fc" id="L413">                    array(&quot;text&quot;, attributeValue.subList(from, to).stream()),</span>
+<span class="fc" id="L414">                    array(&quot;text&quot;, attributeParts.subList(from, to).stream()));</span>
+        }
+<span class="fc bfc" id="L416" title="All 2 branches covered.">        for (int from = 0; from &lt; attributeContact.size(); from += ROWS) {</span>
+<span class="fc" id="L417">            int to = Math.min(attributeContact.size(), from + ROWS);</span>
+            // Ključ v uporabi ima vedno vrstico s tipom (016): ponovno vstavljeni atributi (rollback, združitev, uvoz).
+<span class="fc" id="L419">            update(</span>
+                    &quot;INSERT INTO attribute_key (group_id, key_norm)&quot;
+                            + &quot; SELECT DISTINCT c.group_id, t.key_norm&quot;
+                            + &quot; FROM unnest(?::uuid[], ?::text[]) AS t(contact_id, key_norm)&quot;
+                            + &quot; JOIN contact c ON c.id = t.contact_id&quot;
+                            + &quot; ON CONFLICT (group_id, key_norm) DO NOTHING&quot;,
+<span class="fc" id="L425">                    array(&quot;uuid&quot;, attributeContact.subList(from, to).stream()),</span>
+<span class="fc" id="L426">                    array(&quot;text&quot;, attributeNorm.subList(from, to).stream()));</span>
+        }
+<span class="fc bfc" id="L428" title="All 2 branches covered.">        for (int from = 0; from &lt; tagContact.size(); from += ROWS) {</span>
+<span class="fc" id="L429">            int to = Math.min(tagContact.size(), from + ROWS);</span>
+<span class="fc" id="L430">            update(</span>
+                    &quot;INSERT INTO contact_tag (contact_id, position, tag, tag_norm)&quot;
+                            + &quot; SELECT * FROM unnest(?::uuid[], ?::int[], ?::text[], ?::text[])&quot;,
+<span class="fc" id="L433">                    array(&quot;uuid&quot;, tagContact.subList(from, to).stream()),</span>
+<span class="fc" id="L434">                    array(&quot;int4&quot;, tagPosition.subList(from, to).stream()),</span>
+<span class="fc" id="L435">                    array(&quot;text&quot;, tagName.subList(from, to).stream()),</span>
+<span class="fc" id="L436">                    array(&quot;text&quot;, tagNorm.subList(from, to).stream()));</span>
+        }
+<span class="fc" id="L438">    }</span>
+
+    /** Polje SQL za {@code unnest}: tip elementa in vrednosti (lahko {@code null}). */
+<span class="fc" id="L441">    private record SqlArray(String type, Object[] values) {}</span>
+
+    private static SqlArray array(String type, java.util.stream.Stream&lt;?&gt; values) {
+<span class="fc" id="L444">        return new SqlArray(type, values.toArray());</span>
+    }
+
+    /** Stavek s pozicijskimi parametri; {@link SqlArray} se veže kot polje PostgreSQL. */
+    private void update(String sql, Object... parameters) {
+<span class="fc" id="L449">        batch.getJdbcOperations().update(sql, (PreparedStatement ps) -&gt; {</span>
+<span class="fc bfc" id="L450" title="All 2 branches covered.">            for (int i = 0; i &lt; parameters.length; i++) {</span>
+<span class="fc bfc" id="L451" title="All 2 branches covered.">                if (parameters[i] instanceof SqlArray a) {</span>
+<span class="fc" id="L452">                    ps.setArray(i + 1, ps.getConnection().createArrayOf(a.type(), a.values()));</span>
+                } else {
+<span class="fc" id="L454">                    ps.setObject(i + 1, parameters[i]);</span>
+                }
+            }
+<span class="fc" id="L457">        });</span>
+<span class="fc" id="L458">    }</span>
+
+    private static String sortKey(String name) {
+<span class="pc bpc" id="L461" title="1 of 2 branches missed.">        return name == null ? null : name.toLowerCase(Locale.ROOT);</span>
+    }
+
+    private Map&lt;UUID, List&lt;Attribute&gt;&gt; attributes(List&lt;UUID&gt; ids) {
+<span class="fc" id="L465">        Map&lt;UUID, List&lt;Attribute&gt;&gt; result = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L466">        jdbc.sql(&quot;SELECT a.contact_id, a.key, a.value, a.parts::text AS parts, k.type FROM contact_attribute a&quot;</span>
+                        + &quot; JOIN contact c ON c.id = a.contact_id&quot;
+                        + &quot; LEFT JOIN attribute_key k ON k.group_id = c.group_id AND k.key_norm = a.key_norm&quot;
+                        + &quot; WHERE a.contact_id IN (:ids) ORDER BY a.contact_id, a.position&quot;)
+<span class="fc" id="L470">                .param(&quot;ids&quot;, ids)</span>
+<span class="fc" id="L471">                .query((ResultSet rs) -&gt; {</span>
+<span class="fc bfc" id="L472" title="All 2 branches covered.">                    while (rs.next()) {</span>
+<span class="fc" id="L473">                        result.computeIfAbsent(rs.getObject(&quot;contact_id&quot;, UUID.class), k -&gt; new ArrayList&lt;&gt;())</span>
+<span class="fc" id="L474">                                .add(new Attribute(</span>
+<span class="fc" id="L475">                                        rs.getString(&quot;key&quot;),</span>
+<span class="fc bfc" id="L476" title="All 2 branches covered.">                                        rs.getString(&quot;type&quot;) == null</span>
+<span class="fc" id="L477">                                                ? null</span>
+<span class="fc" id="L478">                                                : AttributeType.valueOf(rs.getString(&quot;type&quot;)),</span>
+<span class="fc" id="L479">                                        rs.getString(&quot;value&quot;),</span>
+<span class="fc" id="L480">                                        AddressJson.read(rs.getString(&quot;parts&quot;))));</span>
+                    }
+<span class="fc" id="L482">                    return result;</span>
+                });
+<span class="fc" id="L484">        return result;</span>
+    }
+
+    private Map&lt;UUID, List&lt;String&gt;&gt; tags(List&lt;UUID&gt; ids) {
+<span class="fc" id="L488">        Map&lt;UUID, List&lt;String&gt;&gt; result = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L489">        jdbc.sql(&quot;SELECT contact_id, tag FROM contact_tag WHERE contact_id IN (:ids) ORDER BY contact_id, position&quot;)</span>
+<span class="fc" id="L490">                .param(&quot;ids&quot;, ids)</span>
+<span class="fc" id="L491">                .query((ResultSet rs) -&gt; {</span>
+<span class="fc bfc" id="L492" title="All 2 branches covered.">                    while (rs.next()) {</span>
+<span class="fc" id="L493">                        result.computeIfAbsent(rs.getObject(&quot;contact_id&quot;, UUID.class), k -&gt; new ArrayList&lt;&gt;())</span>
+<span class="fc" id="L494">                                .add(rs.getString(&quot;tag&quot;));</span>
+                    }
+<span class="fc" id="L496">                    return result;</span>
+                });
+<span class="fc" id="L498">        return result;</span>
+    }
+
+    private static ContactState state(ResultSet rs, List&lt;Attribute&gt; attributes, List&lt;String&gt; tags) throws SQLException {
+<span class="fc" id="L502">        return new ContactState(</span>
+<span class="fc" id="L503">                rs.getString(&quot;first_name&quot;),</span>
+<span class="fc" id="L504">                rs.getString(&quot;last_name&quot;),</span>
+<span class="fc" id="L505">                rs.getString(&quot;address&quot;),</span>
+<span class="fc" id="L506">                AddressJson.read(rs.getString(&quot;address_parts&quot;)),</span>
+<span class="fc" id="L507">                rs.getString(&quot;email&quot;),</span>
+<span class="fc" id="L508">                rs.getString(&quot;phone&quot;),</span>
+<span class="fc" id="L509">                rs.getString(&quot;company&quot;),</span>
+<span class="fc" id="L510">                rs.getString(&quot;country&quot;),</span>
+<span class="fc" id="L511">                List.copyOf(attributes),</span>
+<span class="fc" id="L512">                List.copyOf(tags),</span>
+<span class="fc" id="L513">                rs.getLong(&quot;version&quot;),</span>
+<span class="fc" id="L514">                rs.getTimestamp(&quot;created_at&quot;).toInstant(),</span>
+<span class="fc" id="L515">                rs.getTimestamp(&quot;updated_at&quot;).toInstant(),</span>
+<span class="fc" id="L516">                rs.getObject(&quot;updated_by&quot;, Long.class));</span>
+    }
+
+    /**
+     * Zapis združenega ohranjenega kontakta (FR-011-15, research R-09): vrednosti polj, ključi razvrščanja,
+     * {@code version + 1} (tudi ob nespremenjenih vrednostih, O-3), izvajalec, {@code updated_at = now()}, brez oznake
+     * rollbacka; atributi in značke se zamenjajo. Vrstica je že zaklenjena; vedno s pogojem {@code group_id}.
+     */
+    public void replaceMerged(UUID groupId, long actor, UUID keeperId, ContactState after) {
+<span class="fc" id="L525">        int rows = jdbc.sql(&quot;UPDATE contact SET first_name = :first, last_name = :last, address = :address,&quot;</span>
+                        + &quot; address_parts = CAST(:parts AS jsonb), email = :email, phone = :phone, company = :company, country = :country,&quot;
+                        + &quot; sort_last = :sortLast, sort_first = :sortFirst,&quot;
+                        + &quot; version = version + 1, updated_by = :actor, updated_at = now(), reverted_entry_id = NULL&quot;
+                        + &quot; WHERE group_id = :group AND id = :id&quot;)
+<span class="fc" id="L530">                .param(&quot;first&quot;, after.firstName())</span>
+<span class="fc" id="L531">                .param(&quot;last&quot;, after.lastName())</span>
+<span class="fc" id="L532">                .param(&quot;address&quot;, after.address())</span>
+<span class="fc" id="L533">                .param(&quot;parts&quot;, AddressJson.write(after.addressParts()))</span>
+<span class="fc" id="L534">                .param(&quot;email&quot;, after.email())</span>
+<span class="fc" id="L535">                .param(&quot;phone&quot;, after.phone())</span>
+<span class="fc" id="L536">                .param(&quot;company&quot;, after.company())</span>
+<span class="fc" id="L537">                .param(&quot;country&quot;, after.country())</span>
+<span class="fc" id="L538">                .param(&quot;sortLast&quot;, sortKey(after.lastName()))</span>
+<span class="fc" id="L539">                .param(&quot;sortFirst&quot;, sortKey(after.firstName()))</span>
+<span class="fc" id="L540">                .param(&quot;actor&quot;, actor)</span>
+<span class="fc" id="L541">                .param(&quot;group&quot;, groupId)</span>
+<span class="fc" id="L542">                .param(&quot;id&quot;, keeperId)</span>
+<span class="fc" id="L543">                .update();</span>
+<span class="pc bpc" id="L544" title="1 of 2 branches missed.">        if (rows != 1) {</span>
+<span class="nc" id="L545">            throw new IllegalStateException(&quot;ohranjeni kontakt ni v skupini&quot;);</span>
+        }
+<span class="fc" id="L547">        jdbc.sql(&quot;DELETE FROM contact_attribute WHERE contact_id = :id&quot;)</span>
+<span class="fc" id="L548">                .param(&quot;id&quot;, keeperId)</span>
+<span class="fc" id="L549">                .update();</span>
+<span class="fc" id="L550">        jdbc.sql(&quot;DELETE FROM contact_tag WHERE contact_id = :id&quot;)</span>
+<span class="fc" id="L551">                .param(&quot;id&quot;, keeperId)</span>
+<span class="fc" id="L552">                .update();</span>
+<span class="fc" id="L553">        insertChildren(List.of(new Target(keeperId, after, true)));</span>
+<span class="fc" id="L554">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

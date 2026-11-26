@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RateLimiter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.maps</a> &gt; <span class="el_source">RateLimiter.java</span></div><h1>RateLimiter.java</h1><pre class="source lang-java linenums">package si.contactmanager.maps;
+
+import java.time.Duration;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.LongConsumer;
+import java.util.function.LongSupplier;
+
+/**
+ * Omejevalnik pogostosti z vedrom žetonov (016, research R-08): {@code permits} žetonov na {@code window}, vedro je
+ * polno ob začetku (dovoljen je izbruh do {@code permits}). Brez čakanja ({@link #tryAcquire}) ali s čakanjem na žeton
+ * do meje ({@link #acquire}). Ob preseganju se zahtevek zavrne, nikoli se ne čaka v neskončnost. Varen za sočasno
+ * uporabo; en primerek zaledja (v pomnilniku).
+ */
+public final class RateLimiter {
+
+    private final long capacity;
+    private final double nanosPerToken;
+    private final LongSupplier nanoTime;
+    private final LongConsumer sleeper;
+    private double tokens;
+    private long lastRefill;
+
+    public RateLimiter(int permits, Duration window) {
+<span class="fc" id="L24">        this(permits, window, System::nanoTime, RateLimiter::sleepNanos);</span>
+<span class="fc" id="L25">    }</span>
+
+<span class="fc" id="L27">    RateLimiter(int permits, Duration window, LongSupplier nanoTime, LongConsumer sleeper) {</span>
+<span class="pc bpc" id="L28" title="2 of 8 branches missed.">        if (permits &lt; 1 || window == null || window.isNegative() || window.isZero()) {</span>
+<span class="fc" id="L29">            throw new IllegalArgumentException(&quot;omejevalnik potrebuje pozitivno število žetonov in okno&quot;);</span>
+        }
+<span class="fc" id="L31">        this.capacity = permits;</span>
+<span class="fc" id="L32">        this.nanosPerToken = (double) window.toNanos() / permits;</span>
+<span class="fc" id="L33">        this.nanoTime = nanoTime;</span>
+<span class="fc" id="L34">        this.sleeper = sleeper;</span>
+<span class="fc" id="L35">        this.tokens = permits;</span>
+<span class="fc" id="L36">        this.lastRefill = nanoTime.getAsLong();</span>
+<span class="fc" id="L37">    }</span>
+
+    /** Vzame žeton, če je prost; sicer {@code false} brez čakanja. */
+    public synchronized boolean tryAcquire() {
+<span class="fc" id="L41">        refill();</span>
+<span class="fc bfc" id="L42" title="All 2 branches covered.">        if (tokens &gt;= 1) {</span>
+<span class="fc" id="L43">            tokens -= 1;</span>
+<span class="fc" id="L44">            return true;</span>
+        }
+<span class="fc" id="L46">        return false;</span>
+    }
+
+    /**
+     * Počaka na žeton največ {@code maxWait}; {@code false}, če bi bilo čakanje daljše (žeton se v tem primeru ne
+     * rezervira).
+     */
+    public boolean acquire(Duration maxWait) {
+        long waitNanos;
+<span class="fc" id="L55">        synchronized (this) {</span>
+<span class="fc" id="L56">            refill();</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">            if (tokens &gt;= 1) {</span>
+<span class="fc" id="L58">                tokens -= 1;</span>
+<span class="fc" id="L59">                return true;</span>
+            }
+<span class="fc" id="L61">            waitNanos = (long) Math.ceil((1 - tokens) * nanosPerToken);</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">            if (waitNanos &gt; maxWait.toNanos()) {</span>
+<span class="fc" id="L63">                return false;</span>
+            }
+<span class="fc" id="L65">            tokens -= 1; // rezervacija: vedro gre v dolg, ki ga poplača čas</span>
+<span class="fc" id="L66">        }</span>
+<span class="fc" id="L67">        sleeper.accept(waitNanos);</span>
+<span class="fc" id="L68">        return true;</span>
+    }
+
+    private void refill() {
+<span class="fc" id="L72">        long now = nanoTime.getAsLong();</span>
+<span class="fc" id="L73">        long elapsed = now - lastRefill;</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">        if (elapsed &gt; 0) {</span>
+<span class="fc" id="L75">            tokens = Math.min(capacity, tokens + elapsed / nanosPerToken);</span>
+<span class="fc" id="L76">            lastRefill = now;</span>
+        }
+<span class="fc" id="L78">    }</span>
+
+    private static void sleepNanos(long nanos) {
+        try {
+<span class="fc" id="L82">            Thread.sleep(Duration.ofNanos(nanos));</span>
+<span class="nc" id="L83">        } catch (InterruptedException e) {</span>
+<span class="nc" id="L84">            Thread.currentThread().interrupt();</span>
+<span class="fc" id="L85">        }</span>
+<span class="fc" id="L86">    }</span>
+
+    /**
+     * Omejevalnik na ključ (npr. uporabnika): vsak ključ ima svoje vedro. Neaktivni ključi (vedro spet polno) se
+     * odstranijo, ko števec preseže mejo, da pomnilnik ne raste z uporabniki.
+     *
+     * @param &lt;K&gt; ključ
+     */
+    public static final class Keyed&lt;K&gt; {
+
+        private static final int PURGE_THRESHOLD = 10_000;
+
+        private final int permits;
+        private final Duration window;
+        private final LongSupplier nanoTime;
+<span class="fc" id="L101">        private final ConcurrentHashMap&lt;K, RateLimiter&gt; limiters = new ConcurrentHashMap&lt;&gt;();</span>
+
+        public Keyed(int permits, Duration window) {
+<span class="fc" id="L104">            this(permits, window, System::nanoTime);</span>
+<span class="fc" id="L105">        }</span>
+
+<span class="fc" id="L107">        Keyed(int permits, Duration window, LongSupplier nanoTime) {</span>
+<span class="fc" id="L108">            new RateLimiter(permits, window); // preveri argumente</span>
+<span class="fc" id="L109">            this.permits = permits;</span>
+<span class="fc" id="L110">            this.window = window;</span>
+<span class="fc" id="L111">            this.nanoTime = nanoTime;</span>
+<span class="fc" id="L112">        }</span>
+
+        /** Vzame žeton ključa, če je prost; sicer {@code false}. */
+        public boolean tryAcquire(K key) {
+<span class="pc bpc" id="L116" title="1 of 2 branches missed.">            if (limiters.size() &gt; PURGE_THRESHOLD) {</span>
+<span class="nc" id="L117">                limiters.values().removeIf(RateLimiter::idle);</span>
+            }
+<span class="fc" id="L119">            return limiters.computeIfAbsent(</span>
+<span class="fc" id="L120">                            key, k -&gt; new RateLimiter(permits, window, nanoTime, RateLimiter::sleepNanos))</span>
+<span class="fc" id="L121">                    .tryAcquire();</span>
+        }
+
+        /** Število ključev z vedrom (za teste in nadzor pomnilnika). */
+        public int size() {
+<span class="fc" id="L126">            return limiters.size();</span>
+        }
+    }
+
+    private synchronized boolean idle() {
+<span class="nc" id="L131">        refill();</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">        return tokens &gt;= capacity;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

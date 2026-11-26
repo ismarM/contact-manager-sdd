@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DuplicateKeys.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">DuplicateKeys.java</span></div><h1>DuplicateKeys.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.text.Normalizer;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.regex.Pattern;
+
+/**
+ * Normalizirani ključ ujemanja po kategoriji (FR-011-03 … FR-011-06, research R-03): samo pravila iz specifikacije –
+ * brez podobnosti, fonetike ali pretvorbe nacionalne oblike telefona.
+ */
+final class DuplicateKeys {
+
+<span class="fc" id="L14">    private static final Pattern COMBINING_MARKS = Pattern.compile(&quot;\\p{M}+&quot;);</span>
+<span class="fc" id="L15">    private static final Pattern WHITESPACE_RUNS = Pattern.compile(&quot;[\\p{Z}\\s]+&quot;);</span>
+<span class="fc" id="L16">    private static final Pattern EDGE_WHITESPACE = Pattern.compile(&quot;^[\\p{Z}\\s]+|[\\p{Z}\\s]+$&quot;);</span>
+<span class="fc" id="L17">    private static final Pattern NON_DIGITS = Pattern.compile(&quot;[^0-9]&quot;);</span>
+
+    /** Ločilo med imenom in priimkom v ključu; ne more nastopiti v normaliziranem besedilu. */
+    private static final char SEPARATOR = '\u0000';
+
+    private DuplicateKeys() {}
+
+    /** Ključ kategorije {@code name}, {@code email} ali {@code phone}; prazno = kontakt je izpuščen iz iskanja. */
+    static Optional&lt;String&gt; key(String category, String first, String last, String email, String phone) {
+<span class="fc" id="L26">        return key(category, first, last, email, phone, null);</span>
+    }
+
+    /** Kot zgoraj; {@code country} določa območje za normalizacijo telefona (016, FR-016-11). */
+    static Optional&lt;String&gt; key(
+            String category, String first, String last, String email, String phone, String country) {
+<span class="pc bpc" id="L32" title="1 of 4 branches missed.">        return switch (category) {</span>
+<span class="fc" id="L33">            case &quot;name&quot; -&gt; name(first, last);</span>
+<span class="fc" id="L34">            case &quot;email&quot; -&gt; email(email);</span>
+<span class="fc" id="L35">            case &quot;phone&quot; -&gt; phone(phone, country);</span>
+<span class="nc" id="L36">            default -&gt; throw new IllegalArgumentException(&quot;neznana kategorija: &quot; + category);</span>
+        };
+    }
+
+    /** Vsaka komponenta posebej: NFD, brez kombinirnih znakov, male črke, strnjeni presledki, obrez. */
+    private static Optional&lt;String&gt; name(String first, String last) {
+<span class="fc" id="L42">        String f = component(first);</span>
+<span class="fc" id="L43">        String l = component(last);</span>
+<span class="fc bfc" id="L44" title="All 4 branches covered.">        if (f.isEmpty() &amp;&amp; l.isEmpty()) {</span>
+<span class="fc" id="L45">            return Optional.empty();</span>
+        }
+<span class="fc" id="L47">        return Optional.of(f + SEPARATOR + l);</span>
+    }
+
+    private static String component(String value) {
+<span class="fc bfc" id="L51" title="All 2 branches covered.">        if (value == null) {</span>
+<span class="fc" id="L52">            return &quot;&quot;;</span>
+        }
+<span class="fc" id="L54">        String decomposed = Normalizer.normalize(value, Normalizer.Form.NFD);</span>
+<span class="fc" id="L55">        String bare = COMBINING_MARKS.matcher(decomposed).replaceAll(&quot;&quot;).toLowerCase(Locale.ROOT);</span>
+<span class="fc" id="L56">        return trim(WHITESPACE_RUNS.matcher(bare).replaceAll(&quot; &quot;));</span>
+    }
+
+    /** Obrez, nato male črke; diakritik in notranjih presledkov se ne dotika. */
+    private static Optional&lt;String&gt; email(String email) {
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        if (email == null) {</span>
+<span class="fc" id="L62">            return Optional.empty();</span>
+        }
+<span class="fc" id="L64">        String key = trim(email).toLowerCase(Locale.ROOT);</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        return key.isEmpty() ? Optional.empty() : Optional.of(key);</span>
+    }
+
+    /**
+     * Veljaven telefon se primerja v kanonični obliki (E.164 brez {@code +}, z {@code ;ext=}); stara, neveljavna
+     * vrednost: samo števke, vodilni {@code 00} se odstrani enkrat; brez števk = izpuščen. Podatki se ne spreminjajo.
+     */
+    private static Optional&lt;String&gt; phone(String phone, String country) {
+<span class="fc bfc" id="L73" title="All 2 branches covered.">        if (phone == null) {</span>
+<span class="fc" id="L74">            return Optional.empty();</span>
+        }
+<span class="fc" id="L76">        Optional&lt;String&gt; canonical = PhoneNormalizer.normalize(phone, country);</span>
+<span class="pc bpc" id="L77" title="1 of 4 branches missed.">        if (canonical.isPresent() &amp;&amp; canonical.get().startsWith(&quot;+&quot;)) {</span>
+<span class="fc" id="L78">            return Optional.of(canonical.get().substring(1));</span>
+        }
+<span class="fc" id="L80">        String digits = NON_DIGITS.matcher(phone).replaceAll(&quot;&quot;);</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">        if (digits.startsWith(&quot;00&quot;)) {</span>
+<span class="fc" id="L82">            digits = digits.substring(2);</span>
+        }
+<span class="fc bfc" id="L84" title="All 2 branches covered.">        return digits.isEmpty() ? Optional.empty() : Optional.of(digits);</span>
+    }
+
+    private static String trim(String text) {
+<span class="fc" id="L88">        return EDGE_WHITESPACE.matcher(text).replaceAll(&quot;&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

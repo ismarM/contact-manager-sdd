@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GroupSearch.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.group</a> &gt; <span class="el_source">GroupSearch.java</span></div><h1>GroupSearch.java</h1><pre class="source lang-java linenums">package si.contactmanager.group;
+
+import java.text.Normalizer;
+import java.util.Locale;
+
+/**
+ * Iskanje skupin po nazivu brez razlike velikosti črk in šumnikov (FR-017-14). Normalizacija je ista v bazi
+ * ({@code translate(lower(naziv), …)}, brez migracije in razširitve) in v Javi ({@link Normalizer}): preslikava znakov
+ * z diakritiko je izpeljana iz iste tabele, zato se naziv in iskani niz vedno normalizirata enako. Poizvedba uporablja
+ * {@code strpos}, zato posebni znaki ({@code %}, {@code _}, {@code \}) ne potrebujejo ubežanja.
+ */
+final class GroupSearch {
+
+    static final int MAX_LENGTH = 100;
+
+    private static final String FROM;
+    private static final String TO;
+
+    static {
+<span class="fc" id="L20">        StringBuilder from = new StringBuilder();</span>
+<span class="fc" id="L21">        StringBuilder to = new StringBuilder();</span>
+<span class="fc bfc" id="L22" title="All 2 branches covered.">        for (char c = 0xC0; c &lt;= 0x24F; c++) {</span>
+<span class="fc bfc" id="L23" title="All 4 branches covered.">            if (Character.toLowerCase(c) != c || !Character.isLetter(c)) {</span>
+<span class="fc" id="L24">                continue;</span>
+            }
+<span class="fc" id="L26">            String base = base(c);</span>
+<span class="pc bpc" id="L27" title="1 of 4 branches missed.">            if (base.length() == 1 &amp;&amp; base.charAt(0) != c) {</span>
+<span class="fc" id="L28">                from.append(c);</span>
+<span class="fc" id="L29">                to.append(base);</span>
+            }
+        }
+<span class="fc" id="L32">        FROM = from.toString();</span>
+<span class="fc" id="L33">        TO = to.toString();</span>
+<span class="fc" id="L34">    }</span>
+
+    private GroupSearch() {}
+
+    /** Znak brez diakritike; črke, ki se ne razgradijo (đ, ł, ø …), so preslikane ročno. */
+    private static String base(char c) {
+<span class="fc bfc" id="L40" title="All 7 branches covered.">        return switch (c) {</span>
+<span class="fc" id="L41">            case 'đ' -&gt; &quot;d&quot;;</span>
+<span class="fc" id="L42">            case 'ł' -&gt; &quot;l&quot;;</span>
+<span class="fc" id="L43">            case 'ø' -&gt; &quot;o&quot;;</span>
+<span class="fc" id="L44">            case 'ħ' -&gt; &quot;h&quot;;</span>
+<span class="fc" id="L45">            case 'ŧ' -&gt; &quot;t&quot;;</span>
+<span class="fc" id="L46">            case 'ı' -&gt; &quot;i&quot;;</span>
+            default -&gt;
+<span class="fc" id="L48">                Normalizer.normalize(String.valueOf(c), Normalizer.Form.NFD).replaceAll(&quot;\\p{M}+&quot;, &quot;&quot;);</span>
+        };
+    }
+
+    /** Iskani niz: obrezan, male črke, brez diakritike (enako kot izraz v bazi). */
+    static String normalize(String text) {
+<span class="fc" id="L54">        String lower = text.toLowerCase(Locale.ROOT);</span>
+<span class="fc" id="L55">        StringBuilder out = new StringBuilder(lower.length());</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">        for (int i = 0; i &lt; lower.length(); i++) {</span>
+<span class="fc" id="L57">            char c = lower.charAt(i);</span>
+<span class="fc" id="L58">            int index = FROM.indexOf(c);</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">            out.append(index &gt;= 0 ? TO.charAt(index) : c);</span>
+        }
+<span class="fc" id="L61">        return Normalizer.normalize(out, Normalizer.Form.NFD).replaceAll(&quot;\\p{M}+&quot;, &quot;&quot;);</span>
+    }
+
+    /** SQL izraz normaliziranega naziva; konstante so iz zaprte tabele, brez uporabniškega vnosa. */
+    static String titleExpression(String column) {
+<span class="fc" id="L66">        return &quot;translate(lower(&quot; + column + &quot;), '&quot; + FROM + &quot;', '&quot; + TO + &quot;')&quot;;</span>
+    }
+
+    /** Pogoj {@code strpos} za parameter {@code :q}; prazen niz, kadar iskanja ni. */
+    static String condition(String normalized) {
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        return normalized == null ? &quot;&quot; : &quot; AND strpos(&quot; + titleExpression(&quot;g.title&quot;) + &quot;, :q) &gt; 0&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

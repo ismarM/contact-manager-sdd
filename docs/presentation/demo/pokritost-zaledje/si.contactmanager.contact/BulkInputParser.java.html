@@ -1,0 +1,523 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BulkInputParser.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">BulkInputParser.java</span></div><h1>BulkInputParser.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.regex.Pattern;
+import si.contactmanager.contact.BulkEditInput.AttributeSet;
+import si.contactmanager.contact.BulkEditInput.Field;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * Razčlenitev teles množičnih endpointov (research R-05, data-model.md); nikoli ne vrže. Vrednosti so obrezane, prazna
+ * vrednost atributa pomeni odstranitev, pravila vrednosti so slovar §2.6 iz {@link ContactInputParser}. Napake
+ * podatkov se po feature-map §2.2 sporočijo šele po preverjanju dostopa (to opravi klicatelj).
+ */
+public final class BulkInputParser {
+
+    /** Največ identitet v izboru (FR-009-04). */
+    public static final int MAX_IDS = 10_000;
+
+    static final int MAX_QUERIES = 20;
+    static final int MAX_ATTRIBUTES = 10;
+
+<span class="fc" id="L32">    private static final Pattern UUID_TEXT =</span>
+<span class="fc" id="L33">            Pattern.compile(&quot;^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$&quot;);</span>
+<span class="fc" id="L34">    private static final Set&lt;String&gt; UPDATE_FIELDS = Set.of(&quot;contactIds&quot;, &quot;addTags&quot;, &quot;removeTags&quot;, &quot;attributes&quot;);</span>
+<span class="fc" id="L35">    private static final Set&lt;String&gt; DELETE_FIELDS = Set.of(&quot;contactIds&quot;);</span>
+<span class="fc" id="L36">    private static final Set&lt;String&gt; CHECK_FIELDS = Set.of(&quot;contactIds&quot;, &quot;queries&quot;);</span>
+<span class="fc" id="L37">    private static final Set&lt;String&gt; QUERY_FIELDS = Set.of(&quot;q&quot;, &quot;f&quot;, &quot;tag&quot;, &quot;contactIds&quot;, &quot;excludedIds&quot;);</span>
+<span class="fc" id="L38">    private static final Set&lt;String&gt; ATTRIBUTE_FIELDS = Set.of(&quot;field&quot;, &quot;key&quot;, &quot;value&quot;, &quot;type&quot;, &quot;parts&quot;);</span>
+
+    /** Rezultat: {@code value} je {@code null} ob kateri koli napaki. */
+<span class="fc" id="L41">    public record Parsed&lt;T&gt;(T value, List&lt;FieldError&gt; errors) {</span>
+
+        public boolean valid() {
+<span class="fc" id="L44">            return errors.isEmpty();</span>
+        }
+    }
+
+    private final JsonMapper json;
+<span class="fc" id="L49">    private final ContactQueryParser queryParser = new ContactQueryParser();</span>
+
+    public BulkInputParser() {
+<span class="fc" id="L52">        this(JsonMapper.builder().build());</span>
+<span class="fc" id="L53">    }</span>
+
+<span class="fc" id="L55">    public BulkInputParser(JsonMapper json) {</span>
+<span class="fc" id="L56">        this.json = json;</span>
+<span class="fc" id="L57">    }</span>
+
+    public Parsed&lt;BulkEditInput&gt; parseUpdate(String body) {
+<span class="fc" id="L60">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L61">        JsonNode root = root(body, errors);</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">        if (root == null) {</span>
+<span class="fc" id="L63">            return failed(errors);</span>
+        }
+<span class="fc" id="L65">        unknown(root, UPDATE_FIELDS, &quot;&quot;, errors);</span>
+<span class="fc" id="L66">        List&lt;UUID&gt; ids = ids(root.get(&quot;contactIds&quot;), &quot;contactIds&quot;, true, errors);</span>
+<span class="fc" id="L67">        int before = errors.size();</span>
+<span class="fc" id="L68">        List&lt;String&gt; addTags = tags(root.get(&quot;addTags&quot;), &quot;addTags&quot;, errors);</span>
+<span class="fc" id="L69">        List&lt;String&gt; removeTags = tags(root.get(&quot;removeTags&quot;), &quot;removeTags&quot;, errors);</span>
+<span class="fc" id="L70">        Set&lt;String&gt; added = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L71">        addTags.forEach(t -&gt; added.add(ContactInputParser.normalize(t)));</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">        for (int i = 0; i &lt; removeTags.size(); i++) {</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">            if (added.contains(ContactInputParser.normalize(removeTags.get(i)))) {</span>
+<span class="fc" id="L74">                errors.add(new FieldError(&quot;removeTags[&quot; + i + &quot;]&quot;, &quot;DUPLICATE&quot;));</span>
+            }
+        }
+<span class="fc" id="L77">        List&lt;AttributeSet&gt; attributes = attributes(root.get(&quot;attributes&quot;), errors);</span>
+<span class="fc bfc" id="L78" title="All 8 branches covered.">        if (errors.size() == before &amp;&amp; addTags.isEmpty() &amp;&amp; removeTags.isEmpty() &amp;&amp; attributes.isEmpty()) {</span>
+<span class="fc" id="L79">            errors.add(new FieldError(&quot;body&quot;, &quot;EMPTY_OPERATION&quot;));</span>
+        }
+<span class="fc bfc" id="L81" title="All 2 branches covered.">        if (!errors.isEmpty()) {</span>
+<span class="fc" id="L82">            return failed(errors);</span>
+        }
+<span class="fc" id="L84">        return new Parsed&lt;&gt;(new BulkEditInput(ids, addTags, removeTags, attributes), List.of());</span>
+    }
+
+    public Parsed&lt;BulkTarget&gt; parseDelete(String body) {
+<span class="fc" id="L88">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L89">        JsonNode root = root(body, errors);</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        if (root == null) {</span>
+<span class="fc" id="L91">            return failed(errors);</span>
+        }
+<span class="fc" id="L93">        unknown(root, DELETE_FIELDS, &quot;&quot;, errors);</span>
+<span class="fc" id="L94">        List&lt;UUID&gt; ids = ids(root.get(&quot;contactIds&quot;), &quot;contactIds&quot;, true, errors);</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        if (!errors.isEmpty()) {</span>
+<span class="fc" id="L96">            return failed(errors);</span>
+        }
+<span class="fc" id="L98">        return new Parsed&lt;&gt;(new BulkTarget(ids), List.of());</span>
+    }
+
+    public Parsed&lt;SelectionCheck.Request&gt; parseCheck(String body) {
+<span class="fc" id="L102">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L103">        JsonNode root = root(body, errors);</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">        if (root == null) {</span>
+<span class="fc" id="L105">            return failed(errors);</span>
+        }
+<span class="fc" id="L107">        unknown(root, CHECK_FIELDS, &quot;&quot;, errors);</span>
+<span class="fc" id="L108">        List&lt;UUID&gt; ids = ids(root.get(&quot;contactIds&quot;), &quot;contactIds&quot;, true, errors);</span>
+<span class="fc" id="L109">        List&lt;SelectionCheck.Query&gt; queries = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L110">        JsonNode node = root.get(&quot;queries&quot;);</span>
+<span class="pc bpc" id="L111" title="1 of 4 branches missed.">        if (node != null &amp;&amp; !node.isNull()) {</span>
+<span class="pc bpc" id="L112" title="1 of 2 branches missed.">            if (!node.isArray()) {</span>
+<span class="nc" id="L113">                errors.add(new FieldError(&quot;queries&quot;, &quot;INVALID_VALUE&quot;));</span>
+            } else {
+<span class="fc bfc" id="L115" title="All 2 branches covered.">                if (node.size() &gt; MAX_QUERIES) {</span>
+<span class="fc" id="L116">                    errors.add(new FieldError(&quot;queries&quot;, &quot;TOO_MANY&quot;));</span>
+                }
+<span class="fc" id="L118">                int index = 0;</span>
+<span class="fc" id="L119">                long added = 0;</span>
+<span class="fc" id="L120">                long excluded = 0;</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">                for (JsonNode item : node) {</span>
+<span class="fc" id="L122">                    SelectionCheck.Query query = query(item, &quot;queries[&quot; + index + &quot;]&quot;, errors);</span>
+<span class="fc" id="L123">                    index++;</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">                    if (query != null) {</span>
+<span class="fc" id="L125">                        added += query.contactIds().size();</span>
+<span class="fc" id="L126">                        excluded += query.excludedIds().size();</span>
+<span class="fc" id="L127">                        queries.add(query);</span>
+                    }
+<span class="fc" id="L129">                }</span>
+<span class="fc bfc" id="L130" title="All 4 branches covered.">                if (added &gt; MAX_IDS || excluded &gt; MAX_IDS) {</span>
+<span class="fc" id="L131">                    errors.add(new FieldError(&quot;queries&quot;, &quot;TOO_MANY&quot;));</span>
+                }
+            }
+        }
+<span class="fc bfc" id="L135" title="All 2 branches covered.">        if (!errors.isEmpty()) {</span>
+<span class="fc" id="L136">            return failed(errors);</span>
+        }
+<span class="fc" id="L138">        return new Parsed&lt;&gt;(new SelectionCheck.Request(ids, List.copyOf(queries)), List.of());</span>
+    }
+
+    /**
+     * Veljavne identitete iz poljubnega telesa za korak 2 (404 pred 403): iz {@code contactIds} in, če jih je, iz
+     * {@code queries[].contactIds} in {@code queries[].excludedIds}; neveljavni zapisi se preskočijo, napake poroča
+     * šele razčlenjevalnik. Pri več kot {@code limit} različnih identitetah vrne {@code null} (razčlenjevalnik bo telo
+     * zavrnil, baza se ne obišče, R-15).
+     */
+    public Set&lt;UUID&gt; identities(String body, boolean withQueries, int limit) {
+        JsonNode root;
+        try {
+<span class="pc bpc" id="L150" title="1 of 2 branches missed.">            root = json.readTree(body == null ? &quot;&quot; : body);</span>
+<span class="fc" id="L151">        } catch (JacksonException e) {</span>
+<span class="fc" id="L152">            return Set.of();</span>
+<span class="fc" id="L153">        }</span>
+<span class="pc bpc" id="L154" title="1 of 4 branches missed.">        if (root == null || !root.isObject()) {</span>
+<span class="fc" id="L155">            return Set.of();</span>
+        }
+<span class="fc" id="L157">        Set&lt;UUID&gt; found = new LinkedHashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">        if (!collect(root.get(&quot;contactIds&quot;), found, limit)) {</span>
+<span class="fc" id="L159">            return null;</span>
+        }
+<span class="fc" id="L161">        JsonNode queries = root.get(&quot;queries&quot;);</span>
+<span class="pc bpc" id="L162" title="1 of 6 branches missed.">        if (withQueries &amp;&amp; queries != null &amp;&amp; queries.isArray()) {</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">            for (JsonNode query : queries) {</span>
+<span class="pc bpc" id="L164" title="1 of 2 branches missed.">                if (query.isObject()</span>
+<span class="pc bpc" id="L165" title="1 of 2 branches missed.">                        &amp;&amp; (!collect(query.get(&quot;contactIds&quot;), found, limit)</span>
+<span class="pc bpc" id="L166" title="1 of 2 branches missed.">                                || !collect(query.get(&quot;excludedIds&quot;), found, limit))) {</span>
+<span class="nc" id="L167">                    return null;</span>
+                }
+<span class="fc" id="L169">            }</span>
+        }
+<span class="fc" id="L171">        return found;</span>
+    }
+
+    private static boolean collect(JsonNode list, Set&lt;UUID&gt; found, int limit) {
+<span class="pc bpc" id="L175" title="1 of 4 branches missed.">        if (list == null || !list.isArray()) {</span>
+<span class="fc" id="L176">            return true;</span>
+        }
+<span class="fc bfc" id="L178" title="All 2 branches covered.">        for (JsonNode item : list) {</span>
+<span class="pc bpc" id="L179" title="1 of 4 branches missed.">            if (item.isString() &amp;&amp; UUID_TEXT.matcher(item.asString()).matches()) {</span>
+<span class="fc" id="L180">                found.add(UUID.fromString(item.asString()));</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">                if (found.size() &gt; limit) {</span>
+<span class="fc" id="L182">                    return false;</span>
+                }
+            }
+<span class="fc" id="L185">        }</span>
+<span class="fc" id="L186">        return true;</span>
+    }
+
+    private JsonNode root(String body, List&lt;FieldError&gt; errors) {
+        JsonNode root;
+        try {
+<span class="fc bfc" id="L192" title="All 2 branches covered.">            root = json.readTree(body == null ? &quot;&quot; : body);</span>
+<span class="fc" id="L193">        } catch (JacksonException e) {</span>
+<span class="fc" id="L194">            root = null;</span>
+<span class="fc" id="L195">        }</span>
+<span class="fc bfc" id="L196" title="All 4 branches covered.">        if (root == null || !root.isObject()) {</span>
+<span class="fc" id="L197">            errors.add(new FieldError(&quot;body&quot;, &quot;MALFORMED&quot;));</span>
+<span class="fc" id="L198">            return null;</span>
+        }
+<span class="fc" id="L200">        return root;</span>
+    }
+
+    private static &lt;T&gt; Parsed&lt;T&gt; failed(List&lt;FieldError&gt; errors) {
+<span class="fc" id="L204">        return new Parsed&lt;&gt;(null, List.copyOf(errors));</span>
+    }
+
+    private static void unknown(JsonNode node, Set&lt;String&gt; allowed, String prefix, List&lt;FieldError&gt; errors) {
+<span class="fc bfc" id="L208" title="All 2 branches covered.">        for (Map.Entry&lt;String, JsonNode&gt; property : node.properties()) {</span>
+<span class="fc bfc" id="L209" title="All 2 branches covered.">            if (!allowed.contains(property.getKey())) {</span>
+<span class="fc" id="L210">                errors.add(new FieldError(prefix + property.getKey(), &quot;UNKNOWN_FIELD&quot;));</span>
+            }
+<span class="fc" id="L212">        }</span>
+<span class="fc" id="L213">    }</span>
+
+    /** Identitete: UUID, podvojene zlite, 1–10 000 (ob {@code required} vsaj ena). */
+    private static List&lt;UUID&gt; ids(JsonNode node, String field, boolean required, List&lt;FieldError&gt; errors) {
+<span class="pc bpc" id="L217" title="1 of 4 branches missed.">        if (node == null || node.isNull()) {</span>
+<span class="fc bfc" id="L218" title="All 2 branches covered.">            if (required) {</span>
+<span class="fc" id="L219">                errors.add(new FieldError(field, &quot;REQUIRED&quot;));</span>
+            }
+<span class="fc" id="L221">            return List.of();</span>
+        }
+<span class="pc bpc" id="L223" title="1 of 2 branches missed.">        if (!node.isArray()) {</span>
+<span class="nc" id="L224">            errors.add(new FieldError(field, &quot;INVALID_VALUE&quot;));</span>
+<span class="nc" id="L225">            return List.of();</span>
+        }
+<span class="fc" id="L227">        Set&lt;UUID&gt; ids = new LinkedHashSet&lt;&gt;();</span>
+<span class="fc" id="L228">        int index = 0;</span>
+<span class="fc bfc" id="L229" title="All 2 branches covered.">        for (JsonNode item : node) {</span>
+<span class="pc bpc" id="L230" title="1 of 4 branches missed.">            if (!item.isString() || !UUID_TEXT.matcher(item.asString()).matches()) {</span>
+<span class="fc" id="L231">                errors.add(new FieldError(field + &quot;[&quot; + index + &quot;]&quot;, &quot;INVALID_VALUE&quot;));</span>
+            } else {
+<span class="fc" id="L233">                ids.add(UUID.fromString(item.asString()));</span>
+            }
+<span class="fc" id="L235">            index++;</span>
+<span class="fc" id="L236">        }</span>
+<span class="fc bfc" id="L237" title="All 2 branches covered.">        if (ids.size() &gt; MAX_IDS) {</span>
+<span class="fc" id="L238">            errors.add(new FieldError(field, &quot;TOO_MANY&quot;));</span>
+<span class="pc bpc" id="L239" title="1 of 6 branches missed.">        } else if (required &amp;&amp; ids.isEmpty() &amp;&amp; node.size() == 0) {</span>
+<span class="fc" id="L240">            errors.add(new FieldError(field, &quot;REQUIRED&quot;));</span>
+        }
+<span class="fc" id="L242">        return List.copyOf(ids);</span>
+    }
+
+    /** Seznam značk: do 30, vsaka 1–50 znakov brez presledkov; podvojene (ne glede na velikost črk) se zlijejo. */
+    private static List&lt;String&gt; tags(JsonNode node, String field, List&lt;FieldError&gt; errors) {
+<span class="pc bpc" id="L247" title="1 of 4 branches missed.">        if (node == null || node.isNull()) {</span>
+<span class="fc" id="L248">            return List.of();</span>
+        }
+<span class="pc bpc" id="L250" title="1 of 2 branches missed.">        if (!node.isArray()) {</span>
+<span class="nc" id="L251">            errors.add(new FieldError(field, &quot;INVALID_VALUE&quot;));</span>
+<span class="nc" id="L252">            return List.of();</span>
+        }
+<span class="fc bfc" id="L254" title="All 2 branches covered.">        if (node.size() &gt; ContactInputParser.TAGS_MAX) {</span>
+<span class="fc" id="L255">            errors.add(new FieldError(field, &quot;TOO_MANY&quot;));</span>
+        }
+<span class="fc" id="L257">        List&lt;String&gt; tags = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L258">        Set&lt;String&gt; seen = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L259">        int index = 0;</span>
+<span class="fc bfc" id="L260" title="All 2 branches covered.">        for (JsonNode item : node) {</span>
+<span class="fc" id="L261">            String name = field + &quot;[&quot; + index + &quot;]&quot;;</span>
+<span class="fc" id="L262">            index++;</span>
+<span class="pc bpc" id="L263" title="1 of 2 branches missed.">            if (!item.isString()) {</span>
+<span class="nc" id="L264">                errors.add(new FieldError(name, &quot;INVALID_VALUE&quot;));</span>
+<span class="nc" id="L265">                continue;</span>
+            }
+<span class="fc" id="L267">            String tag = item.asString().strip();</span>
+<span class="fc bfc" id="L268" title="All 2 branches covered.">            if (tag.isEmpty()) {</span>
+<span class="fc" id="L269">                errors.add(new FieldError(name, &quot;REQUIRED&quot;));</span>
+<span class="fc bfc" id="L270" title="All 2 branches covered.">            } else if (ContactInputParser.WHITESPACE.matcher(tag).find()) {</span>
+<span class="fc" id="L271">                errors.add(new FieldError(name, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc bfc" id="L272" title="All 2 branches covered.">            } else if (ContactInputParser.length(tag) &gt; ContactInputParser.TAG_MAX) {</span>
+<span class="fc" id="L273">                errors.add(new FieldError(name, &quot;TOO_LONG&quot;));</span>
+<span class="pc bpc" id="L274" title="1 of 2 branches missed.">            } else if (seen.add(ContactInputParser.normalize(tag))) {</span>
+<span class="fc" id="L275">                tags.add(tag);</span>
+            }
+<span class="fc" id="L277">        }</span>
+<span class="fc" id="L278">        return List.copyOf(tags);</span>
+    }
+
+    private static List&lt;AttributeSet&gt; attributes(JsonNode node, List&lt;FieldError&gt; errors) {
+<span class="pc bpc" id="L282" title="1 of 4 branches missed.">        if (node == null || node.isNull()) {</span>
+<span class="fc" id="L283">            return List.of();</span>
+        }
+<span class="pc bpc" id="L285" title="1 of 2 branches missed.">        if (!node.isArray()) {</span>
+<span class="nc" id="L286">            errors.add(new FieldError(&quot;attributes&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="nc" id="L287">            return List.of();</span>
+        }
+<span class="fc bfc" id="L289" title="All 2 branches covered.">        if (node.size() &gt; MAX_ATTRIBUTES) {</span>
+<span class="fc" id="L290">            errors.add(new FieldError(&quot;attributes&quot;, &quot;TOO_MANY&quot;));</span>
+        }
+<span class="fc" id="L292">        List&lt;AttributeSet&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L293">        Set&lt;String&gt; used = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L294">        int index = 0;</span>
+<span class="fc bfc" id="L295" title="All 2 branches covered.">        for (JsonNode row : node) {</span>
+<span class="fc" id="L296">            String prefix = &quot;attributes[&quot; + index + &quot;]&quot;;</span>
+<span class="fc" id="L297">            index++;</span>
+<span class="pc bpc" id="L298" title="1 of 2 branches missed.">            if (!row.isObject()) {</span>
+<span class="nc" id="L299">                errors.add(new FieldError(prefix, &quot;INVALID_VALUE&quot;));</span>
+<span class="nc" id="L300">                continue;</span>
+            }
+<span class="fc" id="L302">            unknown(row, ATTRIBUTE_FIELDS, prefix + &quot;.&quot;, errors);</span>
+<span class="fc" id="L303">            Field field = field(row.get(&quot;field&quot;), prefix, errors);</span>
+<span class="fc" id="L304">            String key = key(row.get(&quot;key&quot;), field, prefix, used, errors);</span>
+<span class="fc bfc" id="L305" title="All 6 branches covered.">            if (field != null &amp;&amp; field != Field.CUSTOM &amp;&amp; !used.add(field.name())) {</span>
+<span class="fc" id="L306">                errors.add(new FieldError(prefix + &quot;.field&quot;, &quot;DUPLICATE&quot;));</span>
+            }
+<span class="fc" id="L308">            Address parts = null;</span>
+            String value;
+<span class="pc bpc" id="L310" title="1 of 4 branches missed.">            boolean hasParts = row.get(&quot;parts&quot;) != null &amp;&amp; !row.get(&quot;parts&quot;).isNull();</span>
+<span class="fc bfc" id="L311" title="All 2 branches covered.">            if (hasParts) {</span>
+                // Deli naslova (016, FR-016-06): samo pri naslovu; vrednost ni dovoljena hkrati z deli.
+<span class="pc bpc" id="L313" title="1 of 4 branches missed.">                if (field != Field.ADDRESS &amp;&amp; field != Field.CUSTOM) {</span>
+<span class="nc" id="L314">                    errors.add(new FieldError(prefix + &quot;.parts&quot;, &quot;INVALID_VALUE&quot;));</span>
+                }
+<span class="pc bpc" id="L316" title="1 of 4 branches missed.">                if (row.get(&quot;value&quot;) != null &amp;&amp; !row.get(&quot;value&quot;).isNull()) {</span>
+<span class="fc" id="L317">                    errors.add(new FieldError(prefix + &quot;.value&quot;, &quot;INVALID_VALUE&quot;));</span>
+                }
+<span class="fc" id="L319">                parts = ContactInputParser.parts(row.get(&quot;parts&quot;), prefix + &quot;.parts&quot;, errors);</span>
+<span class="fc" id="L320">                value = &quot;&quot;;</span>
+            } else {
+<span class="fc" id="L322">                value = value(row.get(&quot;value&quot;), field, prefix, errors);</span>
+            }
+<span class="fc" id="L324">            AttributeType type = type(row.get(&quot;type&quot;), field, prefix, errors);</span>
+<span class="pc bpc" id="L325" title="3 of 6 branches missed.">            if (hasParts &amp;&amp; type != null &amp;&amp; type != AttributeType.ADDRESS) {</span>
+<span class="nc" id="L326">                errors.add(new FieldError(prefix + &quot;.type&quot;, &quot;INVALID_VALUE&quot;));</span>
+            }
+            // Nova rezervirana imena (FR-013-08): nastavitev je zavrnjena, odstranitev (prazna vrednost) ostane mogoča.
+<span class="pc bpc" id="L329" title="2 of 6 branches missed.">            if (field == Field.CUSTOM</span>
+                    &amp;&amp; key != null
+                    &amp;&amp; value != null
+<span class="fc bfc" id="L332" title="All 4 branches covered.">                    &amp;&amp; (!value.isEmpty() || hasParts)</span>
+<span class="fc bfc" id="L333" title="All 2 branches covered.">                    &amp;&amp; AttributeKeys.NEW_RESERVED.contains(AttributeKeys.reservedForm(key))) {</span>
+<span class="fc" id="L334">                errors.add(new FieldError(prefix + &quot;.key&quot;, &quot;RESERVED_KEY&quot;));</span>
+            }
+<span class="pc bpc" id="L336" title="1 of 8 branches missed.">            if (field != null &amp;&amp; value != null &amp;&amp; (!hasParts || parts != null)) {</span>
+<span class="fc bfc" id="L337" title="All 2 branches covered.">                result.add(new AttributeSet(field, field == Field.CUSTOM ? key : null, value, type, parts));</span>
+            }
+<span class="fc" id="L339">        }</span>
+<span class="fc" id="L340">        return List.copyOf(result);</span>
+    }
+
+    /** Neobvezen {@code type} (016): samo pri {@code custom}; neznan tip ali tip pri drugem polju je neveljaven. */
+    private static AttributeType type(JsonNode node, Field field, String prefix, List&lt;FieldError&gt; errors) {
+<span class="pc bpc" id="L345" title="1 of 4 branches missed.">        if (node == null || node.isNull()) {</span>
+<span class="fc" id="L346">            return null;</span>
+        }
+<span class="pc bpc" id="L348" title="2 of 4 branches missed.">        if (field == Field.CUSTOM &amp;&amp; node.isString()) {</span>
+<span class="fc bfc" id="L349" title="All 2 branches covered.">            for (AttributeType type : AttributeType.values()) {</span>
+<span class="fc bfc" id="L350" title="All 2 branches covered.">                if (type.name().equals(node.asString())) {</span>
+<span class="fc" id="L351">                    return type;</span>
+                }
+            }
+        }
+<span class="pc bpc" id="L355" title="1 of 2 branches missed.">        if (field != null) {</span>
+<span class="fc" id="L356">            errors.add(new FieldError(prefix + &quot;.type&quot;, &quot;INVALID_VALUE&quot;));</span>
+        }
+<span class="fc" id="L358">        return null;</span>
+    }
+
+    private static Field field(JsonNode node, String prefix, List&lt;FieldError&gt; errors) {
+<span class="pc bpc" id="L362" title="2 of 4 branches missed.">        if (node == null || node.isNull()) {</span>
+<span class="nc" id="L363">            errors.add(new FieldError(prefix + &quot;.field&quot;, &quot;REQUIRED&quot;));</span>
+<span class="nc" id="L364">            return null;</span>
+        }
+<span class="pc bpc" id="L366" title="1 of 2 branches missed.">        String text = node.isString() ? node.asString() : &quot;&quot;;</span>
+<span class="fc bfc" id="L367" title="All 7 branches covered.">        Field field = switch (text) {</span>
+<span class="fc" id="L368">            case &quot;address&quot; -&gt; Field.ADDRESS;</span>
+<span class="fc" id="L369">            case &quot;email&quot; -&gt; Field.EMAIL;</span>
+<span class="fc" id="L370">            case &quot;phone&quot; -&gt; Field.PHONE;</span>
+<span class="fc" id="L371">            case &quot;company&quot; -&gt; Field.COMPANY;</span>
+<span class="fc" id="L372">            case &quot;country&quot; -&gt; Field.COUNTRY;</span>
+<span class="fc" id="L373">            case &quot;custom&quot; -&gt; Field.CUSTOM;</span>
+<span class="fc" id="L374">            default -&gt; null;</span>
+        };
+<span class="fc bfc" id="L376" title="All 2 branches covered.">        if (field == null) {</span>
+<span class="fc" id="L377">            errors.add(new FieldError(prefix + &quot;.field&quot;, &quot;INVALID_VALUE&quot;));</span>
+        }
+<span class="fc" id="L379">        return field;</span>
+    }
+
+    /** Ključ: obvezen samo pri {@code custom}, pri predefiniranih poljih ni dovoljen (D-75). */
+    private static String key(JsonNode node, Field field, String prefix, Set&lt;String&gt; used, List&lt;FieldError&gt; errors) {
+<span class="fc" id="L384">        String name = prefix + &quot;.key&quot;;</span>
+<span class="pc bpc" id="L385" title="1 of 4 branches missed.">        boolean present = node != null &amp;&amp; !node.isNull();</span>
+<span class="pc bpc" id="L386" title="1 of 4 branches missed.">        if (present &amp;&amp; !node.isString()) {</span>
+<span class="nc" id="L387">            errors.add(new FieldError(name, &quot;INVALID_VALUE&quot;));</span>
+<span class="nc" id="L388">            return null;</span>
+        }
+<span class="fc bfc" id="L390" title="All 2 branches covered.">        String key = present ? node.asString().strip() : &quot;&quot;;</span>
+<span class="fc bfc" id="L391" title="All 2 branches covered.">        if (field == null) {</span>
+<span class="fc" id="L392">            return null;</span>
+        }
+<span class="fc bfc" id="L394" title="All 2 branches covered.">        if (field != Field.CUSTOM) {</span>
+<span class="fc bfc" id="L395" title="All 2 branches covered.">            if (!key.isEmpty()) {</span>
+<span class="fc" id="L396">                errors.add(new FieldError(name, &quot;INVALID_VALUE&quot;));</span>
+            }
+<span class="fc" id="L398">            return null;</span>
+        }
+<span class="fc" id="L400">        String normalized = ContactInputParser.normalize(key);</span>
+<span class="fc bfc" id="L401" title="All 2 branches covered.">        if (key.isEmpty()) {</span>
+<span class="fc" id="L402">            errors.add(new FieldError(name, &quot;REQUIRED&quot;));</span>
+<span class="fc bfc" id="L403" title="All 2 branches covered.">        } else if (ContactInputParser.length(key) &gt; ContactInputParser.KEY_MAX) {</span>
+<span class="fc" id="L404">            errors.add(new FieldError(name, &quot;TOO_LONG&quot;));</span>
+<span class="fc bfc" id="L405" title="All 2 branches covered.">        } else if (ContactInputParser.RESERVED_KEYS.contains(</span>
+<span class="fc" id="L406">                ContactInputParser.SPACES.matcher(normalized).replaceAll(&quot; &quot;))) {</span>
+<span class="fc" id="L407">            errors.add(new FieldError(name, &quot;RESERVED_KEY&quot;));</span>
+<span class="fc bfc" id="L408" title="All 2 branches covered.">        } else if (!used.add(&quot;custom:&quot; + normalized)) {</span>
+<span class="fc" id="L409">            errors.add(new FieldError(name, &quot;DUPLICATE&quot;));</span>
+        }
+<span class="fc" id="L411">        return key;</span>
+    }
+
+    /** Vrednost: obrezana, prazna je veljavna (odstrani / izprazni); neprazna po pravilih slovarja polja. */
+    private static String value(JsonNode node, Field field, String prefix, List&lt;FieldError&gt; errors) {
+<span class="fc" id="L416">        String name = prefix + &quot;.value&quot;;</span>
+<span class="pc bpc" id="L417" title="1 of 4 branches missed.">        if (node == null || node.isNull()) {</span>
+<span class="fc" id="L418">            errors.add(new FieldError(name, &quot;REQUIRED&quot;));</span>
+<span class="fc" id="L419">            return null;</span>
+        }
+<span class="pc bpc" id="L421" title="1 of 2 branches missed.">        if (!node.isString()) {</span>
+<span class="nc" id="L422">            errors.add(new FieldError(name, &quot;INVALID_VALUE&quot;));</span>
+<span class="nc" id="L423">            return null;</span>
+        }
+<span class="fc" id="L425">        String value = node.asString().replace(&quot;\r\n&quot;, &quot;\n&quot;).replace('\r', '\n').strip();</span>
+<span class="fc bfc" id="L426" title="All 4 branches covered.">        if (value.isEmpty() || field == null) {</span>
+<span class="fc" id="L427">            return value;</span>
+        }
+<span class="fc" id="L429">        int length = ContactInputParser.length(value);</span>
+<span class="pc bpc" id="L430" title="1 of 7 branches missed.">        switch (field) {</span>
+            case ADDRESS -&gt; {
+<span class="fc bfc" id="L432" title="All 2 branches covered.">                if (length &gt; ContactInputParser.ADDRESS_MAX) {</span>
+<span class="fc" id="L433">                    errors.add(new FieldError(name, &quot;TOO_LONG&quot;));</span>
+                }
+            }
+            case EMAIL -&gt; {
+<span class="pc bpc" id="L437" title="1 of 2 branches missed.">                if (length &gt; ContactInputParser.EMAIL_MAX) {</span>
+<span class="nc" id="L438">                    errors.add(new FieldError(name, &quot;TOO_LONG&quot;));</span>
+<span class="fc bfc" id="L439" title="All 2 branches covered.">                } else if (!ContactInputParser.EMAIL.matcher(value).matches()) {</span>
+<span class="fc" id="L440">                    errors.add(new FieldError(name, &quot;INVALID_VALUE&quot;));</span>
+                }
+            }
+            case PHONE -&gt; {
+<span class="pc bpc" id="L444" title="1 of 2 branches missed.">                if (length &gt; ContactInputParser.PHONE_MAX) {</span>
+<span class="nc" id="L445">                    errors.add(new FieldError(name, &quot;TOO_LONG&quot;));</span>
+<span class="fc bfc" id="L446" title="All 2 branches covered.">                } else if (!ContactInputParser.PHONE.matcher(value).matches()) {</span>
+<span class="fc" id="L447">                    errors.add(new FieldError(name, &quot;INVALID_VALUE&quot;));</span>
+                }
+            }
+            case COMPANY -&gt; {
+<span class="pc bpc" id="L451" title="1 of 2 branches missed.">                if (length &gt; ContactInputParser.COMPANY_MAX) {</span>
+<span class="fc" id="L452">                    errors.add(new FieldError(name, &quot;TOO_LONG&quot;));</span>
+                }
+            }
+            case COUNTRY -&gt; {
+<span class="fc bfc" id="L456" title="All 2 branches covered.">                if (!CountryNames.isValid(value)) {</span>
+<span class="fc" id="L457">                    errors.add(new FieldError(name, &quot;INVALID_VALUE&quot;));</span>
+                }
+            }
+            case CUSTOM -&gt; {
+<span class="fc bfc" id="L461" title="All 2 branches covered.">                if (length &gt; ContactInputParser.VALUE_MAX) {</span>
+<span class="fc" id="L462">                    errors.add(new FieldError(name, &quot;TOO_LONG&quot;));</span>
+                }
+            }
+        }
+<span class="fc" id="L466">        return value;</span>
+    }
+
+    /** Poizvedba izbora; napake pravil 008 imajo predpono {@code queries[i].}. */
+    private SelectionCheck.Query query(JsonNode node, String prefix, List&lt;FieldError&gt; errors) {
+<span class="pc bpc" id="L471" title="1 of 2 branches missed.">        if (!node.isObject()) {</span>
+<span class="nc" id="L472">            errors.add(new FieldError(prefix, &quot;INVALID_VALUE&quot;));</span>
+<span class="nc" id="L473">            return null;</span>
+        }
+<span class="fc" id="L475">        unknown(node, QUERY_FIELDS, prefix + &quot;.&quot;, errors);</span>
+<span class="fc" id="L476">        int before = errors.size();</span>
+<span class="fc" id="L477">        Map&lt;String, List&lt;String&gt;&gt; parameters = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L478">        String q = null;</span>
+<span class="fc" id="L479">        JsonNode qNode = node.get(&quot;q&quot;);</span>
+<span class="pc bpc" id="L480" title="1 of 4 branches missed.">        if (qNode != null &amp;&amp; !qNode.isNull()) {</span>
+<span class="pc bpc" id="L481" title="1 of 2 branches missed.">            if (qNode.isString()) {</span>
+<span class="fc" id="L482">                q = qNode.asString();</span>
+<span class="fc" id="L483">                parameters.put(&quot;q&quot;, List.of(q));</span>
+            } else {
+<span class="nc" id="L485">                errors.add(new FieldError(prefix + &quot;.q&quot;, &quot;INVALID_VALUE&quot;));</span>
+            }
+        }
+<span class="fc" id="L488">        List&lt;String&gt; f = strings(node.get(&quot;f&quot;), prefix + &quot;.f&quot;, errors);</span>
+<span class="fc" id="L489">        List&lt;String&gt; tag = strings(node.get(&quot;tag&quot;), prefix + &quot;.tag&quot;, errors);</span>
+<span class="fc" id="L490">        parameters.put(&quot;f&quot;, f);</span>
+<span class="fc" id="L491">        parameters.put(&quot;tag&quot;, tag);</span>
+<span class="pc bpc" id="L492" title="1 of 2 branches missed.">        if (errors.size() == before) {</span>
+<span class="fc bfc" id="L493" title="All 2 branches covered.">            for (FieldError error : queryParser.parse(parameters).errors()) {</span>
+<span class="fc" id="L494">                errors.add(new FieldError(prefix + &quot;.&quot; + error.field(), error.code()));</span>
+<span class="fc" id="L495">            }</span>
+        }
+<span class="fc" id="L497">        List&lt;UUID&gt; contactIds = ids(node.get(&quot;contactIds&quot;), prefix + &quot;.contactIds&quot;, false, errors);</span>
+<span class="fc" id="L498">        List&lt;UUID&gt; excluded = ids(node.get(&quot;excludedIds&quot;), prefix + &quot;.excludedIds&quot;, false, errors);</span>
+<span class="fc bfc" id="L499" title="All 2 branches covered.">        return errors.size() == before ? new SelectionCheck.Query(q, f, tag, contactIds, excluded) : null;</span>
+    }
+
+    private static List&lt;String&gt; strings(JsonNode node, String field, List&lt;FieldError&gt; errors) {
+<span class="pc bpc" id="L503" title="1 of 4 branches missed.">        if (node == null || node.isNull()) {</span>
+<span class="fc" id="L504">            return List.of();</span>
+        }
+<span class="pc bpc" id="L506" title="1 of 2 branches missed.">        if (!node.isArray()) {</span>
+<span class="nc" id="L507">            errors.add(new FieldError(field, &quot;INVALID_VALUE&quot;));</span>
+<span class="nc" id="L508">            return List.of();</span>
+        }
+<span class="fc" id="L510">        List&lt;String&gt; values = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L511">        int index = 0;</span>
+<span class="fc bfc" id="L512" title="All 2 branches covered.">        for (JsonNode item : node) {</span>
+<span class="pc bpc" id="L513" title="1 of 2 branches missed.">            if (item.isString()) {</span>
+<span class="fc" id="L514">                values.add(item.asString());</span>
+            } else {
+<span class="nc" id="L516">                errors.add(new FieldError(field + &quot;[&quot; + index + &quot;]&quot;, &quot;INVALID_VALUE&quot;));</span>
+            }
+<span class="fc" id="L518">            index++;</span>
+<span class="fc" id="L519">        }</span>
+<span class="fc" id="L520">        return List.copyOf(values);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

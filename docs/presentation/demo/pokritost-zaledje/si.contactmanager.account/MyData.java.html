@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MyData.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.account</a> &gt; <span class="el_source">MyData.java</span></div><h1>MyData.java</h1><pre class="source lang-java linenums">package si.contactmanager.account;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+
+/** Izvoz mojih podatkov (contracts/openapi.yaml – MyData): kode in ISO 8601 datumi, brez notranjih identifikatorjev. */
+<span class="fc" id="L8">public record MyData(</span>
+        int formatVersion,
+        Instant exportedAt,
+        Profile profile,
+        List&lt;Membership&gt; memberships,
+        List&lt;ReceivedInvitation&gt; receivedInvitations,
+        List&lt;SentInvitation&gt; sentInvitations,
+        List&lt;OwnedGroup&gt; ownedGroups,
+        List&lt;AppPassword&gt; appPasswords,
+        List&lt;ApiKey&gt; apiKeys) {
+
+    /**
+     * Profil: nastavitve vmesnika (001), oblike zapisa (016, FR-016-17; {@code null} = privzeto) in lastna profilna
+     * slika ({@code photo}, 018, FR-018-18; {@code null} = brez slike). Slike kontaktov in skupin niso del izvoza.
+     */
+<span class="fc" id="L23">    public record Profile(</span>
+            String name,
+            String email,
+            Instant registeredAt,
+            String language,
+            String theme,
+            String phoneFormat,
+            String dateFormat,
+            String addressFormat,
+            Photo photo) {
+
+        public Profile(
+                String name,
+                String email,
+                Instant registeredAt,
+                String language,
+                String theme,
+                String phoneFormat,
+                String dateFormat,
+                String addressFormat) {
+<span class="fc" id="L43">            this(name, email, registeredAt, language, theme, phoneFormat, dateFormat, addressFormat, null);</span>
+<span class="fc" id="L44">        }</span>
+    }
+
+    /** Obdelana slika (različica 512) kot base64. */
+<span class="fc" id="L48">    public record Photo(String contentType, String base64) {}</span>
+
+<span class="fc" id="L50">    public record Membership(String groupTitle, String role, Instant joinedAt, String state) {}</span>
+
+    /** Izbrisan pošiljatelj: {@code name = »izbrisan uporabnik«}, {@code deleted = true}; brez e-naslova (FR-012-03). */
+<span class="fc" id="L53">    public record Sender(String name, boolean deleted) {}</span>
+
+<span class="fc" id="L55">    public record ReceivedInvitation(String groupTitle, String offeredRole, Sender sender, Instant createdAt) {}</span>
+
+<span class="fc" id="L57">    public record SentInvitation(String groupTitle, String offeredRole, String inviteeEmail, Instant createdAt) {}</span>
+
+<span class="fc" id="L59">    public record OwnedGroup(String title, String description, String color, String state, Instant createdAt) {}</span>
+
+    /** Geslo za aplikacijo (014, FR-014-25): ime in časi, nikoli geslo ali zgoščena vrednost. */
+<span class="fc" id="L62">    public record AppPassword(String name, Instant createdAt, Instant lastUsedAt) {}</span>
+
+    /**
+     * API ključ (019, FR-019-05, -21): ime, obseg, časi in dnevni povzetki statistike; nikoli ključ ali prepoznavni del.
+     * {@code allGroupsPermission} je {@code null}, kadar ključ velja za izbrane skupine.
+     */
+<span class="fc" id="L68">    public record ApiKey(</span>
+            String name,
+            boolean allGroups,
+            String allGroupsPermission,
+            List&lt;ApiKeyGroup&gt; groups,
+            Instant createdAt,
+            Instant expiresAt,
+            Instant lastUsedAt,
+            Instant revokedAt,
+            List&lt;ApiKeyUsageDay&gt; usage) {}
+
+<span class="fc" id="L79">    public record ApiKeyGroup(String title, String permission) {}</span>
+
+    /** Dnevni povzetek v časovnem pasu statistike ({@code api-keys.stats-zone}). */
+<span class="fc" id="L82">    public record ApiKeyUsageDay(LocalDate day, int readOk, int writeOk, int errors, int rateLimited) {}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

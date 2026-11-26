@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ApiKeyPurgeJob.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.apikey</a> &gt; <span class="el_source">ApiKeyPurgeJob.java</span></div><h1>ApiKeyPurgeJob.java</h1><pre class="source lang-java linenums">package si.contactmanager.apikey;
+
+import java.sql.Timestamp;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+/**
+ * Čiščenje po 90 dneh (019, FR-019-21, research R-07): izbriše ključe, preklicane ali potekle pred več kot 90 dnevi
+ * (kaskadno s statistiko), in urne števce starejše od 90 dni. Aktivni ključi ostanejo. Seznam ključev stare skrije
+ * tudi, če čiščenje še ni teklo.
+ */
+@Component
+class ApiKeyPurgeJob {
+
+    /** Hramba preklicanih, potekle ključev in statistike (FR-019-21). */
+<span class="fc" id="L22">    static final Duration RETENTION = Duration.ofDays(90);</span>
+
+<span class="fc" id="L24">    private static final Logger LOG = LoggerFactory.getLogger(ApiKeyPurgeJob.class);</span>
+
+    /** Število izbrisanih ključev in ur statistike. */
+<span class="fc" id="L27">    record Result(int keys, int hours) {}</span>
+
+    private final JdbcClient jdbc;
+    private final Clock clock;
+
+<span class="fc" id="L32">    ApiKeyPurgeJob(JdbcClient jdbc, Clock clock) {</span>
+<span class="fc" id="L33">        this.jdbc = jdbc;</span>
+<span class="fc" id="L34">        this.clock = clock;</span>
+<span class="fc" id="L35">    }</span>
+
+    @Scheduled(fixedDelayString = &quot;${api-keys.purge-interval}&quot;, initialDelayString = &quot;${api-keys.purge-interval}&quot;)
+    void run() {
+        try {
+<span class="nc" id="L40">            Result result = purge(clock.instant());</span>
+<span class="nc bnc" id="L41" title="All 4 branches missed.">            if (result.keys() &gt; 0 || result.hours() &gt; 0) {</span>
+<span class="nc" id="L42">                LOG.info(&quot;API key purge: keys={}, usage hours={}&quot;, result.keys(), result.hours());</span>
+            }
+<span class="nc" id="L44">        } catch (RuntimeException e) {</span>
+<span class="nc" id="L45">            LOG.warn(&quot;API key purge failed ({})&quot;, e.getClass().getSimpleName());</span>
+<span class="nc" id="L46">        }</span>
+<span class="nc" id="L47">    }</span>
+
+    Result purge(Instant now) {
+<span class="fc" id="L50">        Timestamp limit = Timestamp.from(now.minus(RETENTION));</span>
+<span class="fc" id="L51">        int hours = jdbc.sql(&quot;DELETE FROM api_key_usage WHERE hour &lt; :limit&quot;)</span>
+<span class="fc" id="L52">                .param(&quot;limit&quot;, limit)</span>
+<span class="fc" id="L53">                .update();</span>
+<span class="fc" id="L54">        int keys = jdbc.sql(&quot;DELETE FROM api_key WHERE least(revoked_at, expires_at) &lt; :limit&quot;)</span>
+<span class="fc" id="L55">                .param(&quot;limit&quot;, limit)</span>
+<span class="fc" id="L56">                .update();</span>
+<span class="fc" id="L57">        return new Result(keys, hours);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

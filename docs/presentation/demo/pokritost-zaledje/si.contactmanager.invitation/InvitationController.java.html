@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InvitationController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.invitation</a> &gt; <span class="el_source">InvitationController.java</span></div><h1>InvitationController.java</h1><pre class="source lang-java linenums">package si.contactmanager.invitation;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import si.contactmanager.account.UserDirectory;
+import si.contactmanager.invitation.GroupInvitationController.Paging;
+import si.contactmanager.invitation.InvitationService.AcceptOutcome;
+import si.contactmanager.shared.error.AlreadyMemberException;
+import si.contactmanager.shared.error.NotFoundException;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+import si.contactmanager.shared.error.ValidationException;
+
+/**
+ * Endpointi povabil, vezani na prijavljenega uporabnika (plan.md – REST endpoints). Uporabnik je vedno {@code sub} iz
+ * žetona; vsaka poizvedba je omejena z {@code invitee_id} (FR-006-11, FR-006-12).
+ */
+@RestController
+@RequestMapping(&quot;/api/invitations&quot;)
+class InvitationController {
+
+    private final InvitationService service;
+    private final UserDirectory users;
+
+<span class="fc" id="L34">    InvitationController(InvitationService service, UserDirectory users) {</span>
+<span class="fc" id="L35">        this.service = service;</span>
+<span class="fc" id="L36">        this.users = users;</span>
+<span class="fc" id="L37">    }</span>
+
+    /** Prejeta povabila (FR-006-05, FR-006-07); uporabnik brez profila ima prazen seznam. */
+    @GetMapping
+    ReceivedInvitations list(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) String page,
+            @RequestParam(required = false) String size) {
+<span class="fc" id="L45">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L46">        Integer pageNumber = Paging.parse(page, 0, 0, Integer.MAX_VALUE, &quot;page&quot;, errors);</span>
+<span class="fc" id="L47">        Integer pageSize = Paging.parse(size, Paging.DEFAULT_SIZE, 1, Paging.MAX_SIZE, &quot;size&quot;, errors);</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        if (!errors.isEmpty()) {</span>
+<span class="fc" id="L49">            throw new ValidationException(errors);</span>
+        }
+<span class="fc" id="L51">        Optional&lt;Long&gt; user = users.find(jwt);</span>
+<span class="fc" id="L52">        return user.map(id -&gt; service.listReceived(id, pageNumber, pageSize))</span>
+<span class="fc" id="L53">                .orElseGet(() -&gt; new ReceivedInvitations(0, pageNumber, pageSize, List.of()));</span>
+    }
+
+    /** Število povabil za zgornjo vrstico (FR-006-06). */
+    @GetMapping(&quot;/count&quot;)
+    InvitationCount count(@AuthenticationPrincipal Jwt jwt) {
+<span class="fc" id="L59">        return users.find(jwt).map(service::countReceived).orElseGet(() -&gt; new InvitationCount(0));</span>
+    }
+
+    /** Sprejem (FR-006-08, FR-006-09): dovoljen tudi v arhivirano skupino; že član → 409 po potrditvi. */
+    @PostMapping(&quot;/{invitationId}/accept&quot;)
+    AcceptedInvitation accept(@AuthenticationPrincipal Jwt jwt, @PathVariable String invitationId) {
+<span class="fc" id="L65">        var id = Paging.uuid(invitationId);</span>
+<span class="fc" id="L66">        long user = users.find(jwt).orElseThrow(NotFoundException::new);</span>
+<span class="fc" id="L67">        AcceptOutcome outcome = service.accept(user, id);</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        if (outcome.accepted() == null) {</span>
+<span class="fc" id="L69">            throw new AlreadyMemberException();</span>
+        }
+<span class="fc" id="L71">        return outcome.accepted();</span>
+    }
+
+    /** Zavrnitev (FR-006-10): dovoljena tudi za arhivirano skupino. */
+    @PostMapping(&quot;/{invitationId}/decline&quot;)
+    ResponseEntity&lt;Void&gt; decline(@AuthenticationPrincipal Jwt jwt, @PathVariable String invitationId) {
+<span class="fc" id="L77">        var id = Paging.uuid(invitationId);</span>
+<span class="fc" id="L78">        long user = users.find(jwt).orElseThrow(NotFoundException::new);</span>
+<span class="fc" id="L79">        service.decline(user, id);</span>
+<span class="fc" id="L80">        return ResponseEntity.noContent().build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

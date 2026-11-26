@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FreshAuthentication.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.shared.security</a> &gt; <span class="el_source">FreshAuthentication.java</span></div><h1>FreshAuthentication.java</h1><pre class="source lang-java linenums">package si.contactmanager.shared.security;
+
+import java.time.Duration;
+import java.time.Instant;
+import org.springframework.security.oauth2.jwt.Jwt;
+import si.contactmanager.shared.error.ReauthenticationRequiredException;
+
+/**
+ * Ponovna avtentikacija pred občutljivimi operacijami (FR-017-12): zahtevek {@code auth_time} Firebase žetona
+ * (čas zadnje prave prijave, ne osvežitve žetona) ne sme biti starejši od 300 s. Manjkajoč ali nerazumljiv zahtevek
+ * velja za neveljaven čas, zato zahteva novo prijavo.
+ */
+public final class FreshAuthentication {
+
+    static final String CLAIM = &quot;auth_time&quot;;
+<span class="fc" id="L16">    static final Duration MAX_AGE = Duration.ofSeconds(300);</span>
+
+    private FreshAuthentication() {}
+
+    /** Vrže {@link ReauthenticationRequiredException}, če prijava ni dovolj sveža. */
+    public static void require(Jwt jwt) {
+<span class="fc" id="L22">        require(jwt, Instant.now());</span>
+<span class="fc" id="L23">    }</span>
+
+    static void require(Jwt jwt, Instant now) {
+<span class="fc bfc" id="L26" title="All 2 branches covered.">        if (!isFresh(jwt, now)) {</span>
+<span class="fc" id="L27">            throw new ReauthenticationRequiredException();</span>
+        }
+<span class="fc" id="L29">    }</span>
+
+    static boolean isFresh(Jwt jwt, Instant now) {
+<span class="fc" id="L32">        Object claim = jwt.getClaims().get(CLAIM);</span>
+        Instant authTime;
+<span class="fc bfc" id="L34" title="All 2 branches covered.">        if (claim instanceof Instant instant) {</span>
+<span class="fc" id="L35">            authTime = instant;</span>
+<span class="fc bfc" id="L36" title="All 2 branches covered.">        } else if (claim instanceof Number number) {</span>
+<span class="fc" id="L37">            authTime = Instant.ofEpochSecond(number.longValue());</span>
+        } else {
+<span class="fc" id="L39">            return false;</span>
+        }
+<span class="fc bfc" id="L41" title="All 4 branches covered.">        return !authTime.isBefore(now.minus(MAX_AGE)) &amp;&amp; !authTime.isAfter(now.plusSeconds(60));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

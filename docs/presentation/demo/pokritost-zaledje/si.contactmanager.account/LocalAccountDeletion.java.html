@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LocalAccountDeletion.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.account</a> &gt; <span class="el_source">LocalAccountDeletion.java</span></div><h1>LocalAccountDeletion.java</h1><pre class="source lang-java linenums">package si.contactmanager.account;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+import si.contactmanager.account.AccountDeletionRepository.UserRow;
+import si.contactmanager.shared.error.OwnsActiveGroupsException;
+import si.contactmanager.shared.error.UnauthenticatedException;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+import si.contactmanager.shared.error.ValidationException;
+
+/**
+ * Lokalni izbris računa v ENI kratki transakciji (FR-012-13; research R-04, R-05): zaklep vseh skupin po naraščajočem
+ * {@code id}, odločitev na ponovno prebranem stanju pod zaklepi, izbris skupin z edinim članom, izbris uporabnika (kaskade
+ * V3–V8) in nadgrobnik z zakupom. V transakciji ni zunanjih klicev.
+ */
+@Component
+class LocalAccountDeletion {
+
+    private static final int LOCK_ATTEMPTS = 3;
+
+    private final AccountDeletionRepository repository;
+    private final DeletedIdentities deleted;
+    private final IdentityDeletionProperties properties;
+
+    LocalAccountDeletion(
+<span class="fc" id="L29">            AccountDeletionRepository repository, DeletedIdentities deleted, IdentityDeletionProperties properties) {</span>
+<span class="fc" id="L30">        this.repository = repository;</span>
+<span class="fc" id="L31">        this.deleted = deleted;</span>
+<span class="fc" id="L32">        this.properties = properties;</span>
+<span class="fc" id="L33">    }</span>
+
+    /** Vrne Firebase UID izbrisanega uporabnika. */
+    @Transactional
+    String execute(long user, String email) {
+<span class="fc" id="L38">        lockAllGroups(user);</span>
+<span class="fc" id="L39">        UserRow row = repository.findById(user).orElseThrow(UnauthenticatedException::new);</span>
+<span class="pc bpc" id="L40" title="1 of 2 branches missed.">        if (!DeleteAccountInputParser.matches(email, row.email())) {</span>
+<span class="nc" id="L41">            throw new ValidationException(List.of(new FieldError(&quot;email&quot;, &quot;MISMATCH&quot;)));</span>
+        }
+<span class="fc" id="L43">        List&lt;BlockingGroup&gt; blocking = repository.blockingGroups(user);</span>
+<span class="fc bfc" id="L44" title="All 2 branches covered.">        if (!blocking.isEmpty()) {</span>
+<span class="fc" id="L45">            throw new OwnsActiveGroupsException(blocking);</span>
+        }
+<span class="fc" id="L47">        repository.deleteGroups(repository.groupsToDelete(user));</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        if (repository.deleteUser(user) == 0) {</span>
+<span class="fc" id="L49">            throw new UnauthenticatedException();</span>
+        }
+<span class="fc" id="L51">        deleted.insert(row.uid(), properties.lease());</span>
+<span class="fc" id="L52">        return row.uid();</span>
+    }
+
+    /** Zaklene skupine; če se je množica skupin med zaklepanjem spremenila (sočasen sprejem povabila), ponovi. */
+    private void lockAllGroups(long user) {
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">        for (int attempt = 0; attempt &lt; LOCK_ATTEMPTS; attempt++) {</span>
+<span class="fc" id="L58">            List&lt;UUID&gt; locked = repository.lockGroups(user);</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">            if (new HashSet&lt;&gt;(locked).equals(new HashSet&lt;&gt;(repository.memberGroupIds(user)))) {</span>
+<span class="fc" id="L60">                return;</span>
+            }
+        }
+<span class="nc" id="L63">        throw new IllegalStateException(&quot;group membership kept changing while locking&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SuggestionRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">SuggestionRepository.java</span></div><h1>SuggestionRepository.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.util.List;
+import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.core.simple.JdbcClient.StatementSpec;
+import org.springframework.stereotype.Repository;
+
+/**
+ * Predlogi ključev, vrednosti, podjetij, značk in držav skupine (docs/specs/013, research R-04). Vsaka poizvedba ima pogoj
+ * {@code group_id}; vrstni red: predpona pred ujemanjem v sredini, nato število kontaktov, nato besedilo. Ujemanje
+ * je brez razlike velikosti črk in strešic ({@code search_fold}, V8).
+ */
+@Repository
+class SuggestionRepository {
+
+    /** Največ predlogov (FR-013-09). */
+    static final int LIMIT = 10;
+
+    private static final String COLLATE = &quot; COLLATE search_fold&quot;;
+
+    private final JdbcClient jdbc;
+
+<span class="fc" id="L24">    SuggestionRepository(JdbcClient jdbc) {</span>
+<span class="fc" id="L25">        this.jdbc = jdbc;</span>
+<span class="fc" id="L26">    }</span>
+
+    /** Ključi atributov v kanonični obliki po številu kontaktov; rezervirana imena so izločena. */
+    List&lt;Suggestion&gt; keys(UUID group, String q) {
+<span class="fc" id="L30">        List&lt;Suggestion&gt; items = aggregated(&quot;contact_attribute&quot;, &quot;key&quot;, &quot;key_norm&quot;, group, q, true);</span>
+<span class="fc bfc" id="L31" title="All 2 branches covered.">        if (items.isEmpty()) {</span>
+<span class="fc" id="L32">            return items;</span>
+        }
+        // Tip ključa v skupini (016); ključ brez vrstice je tipa OTHER.
+<span class="fc" id="L35">        List&lt;String&gt; norms =</span>
+<span class="fc" id="L36">                items.stream().map(s -&gt; ContactInputParser.normalize(s.text())).toList();</span>
+<span class="fc" id="L37">        java.util.Map&lt;String, AttributeType&gt; types = new java.util.HashMap&lt;&gt;();</span>
+<span class="fc" id="L38">        jdbc.sql(&quot;SELECT key_norm, type FROM attribute_key WHERE group_id = :group AND key_norm IN (:norms)&quot;)</span>
+<span class="fc" id="L39">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L40">                .param(&quot;norms&quot;, norms)</span>
+<span class="fc" id="L41">                .query((rs, n) -&gt; {</span>
+<span class="fc" id="L42">                    types.put(rs.getString(&quot;key_norm&quot;), AttributeType.valueOf(rs.getString(&quot;type&quot;)));</span>
+<span class="fc" id="L43">                    return null;</span>
+                })
+<span class="fc" id="L45">                .list();</span>
+<span class="fc" id="L46">        return items.stream()</span>
+<span class="fc" id="L47">                .map(s -&gt; new Suggestion(</span>
+<span class="fc" id="L48">                        s.text(),</span>
+<span class="fc" id="L49">                        s.count(),</span>
+<span class="fc" id="L50">                        types.getOrDefault(ContactInputParser.normalize(s.text()), AttributeType.OTHER)))</span>
+<span class="fc" id="L51">                .toList();</span>
+    }
+
+    /** Značke v kanonični obliki po številu kontaktov. */
+    List&lt;Suggestion&gt; tags(UUID group, String q) {
+<span class="fc" id="L56">        return aggregated(&quot;contact_tag&quot;, &quot;tag&quot;, &quot;tag_norm&quot;, group, q, false);</span>
+    }
+
+    private List&lt;Suggestion&gt; aggregated(
+            String table, String column, String normColumn, UUID group, String q, boolean skipReserved) {
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        String match = q.isEmpty() ? &quot;&quot; : &quot; WHERE strpos(k.text&quot; + COLLATE + &quot;, :q) &gt; 0&quot;;</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">        String reserved = skipReserved ? &quot; WHERE regexp_replace(s.norm, '\\s+', ' ', 'g') NOT IN (:reserved)&quot; : &quot;&quot;;</span>
+        // Zapis z največ kontakti je kanoničen; število je vsota čez vse zapise istega normaliziranega imena.
+<span class="fc" id="L64">        String sql =</span>
+                &quot;SELECT k.text, k.uses FROM (SELECT DISTINCT ON (s.norm) s.norm, s.spelling AS text, s.total AS uses&quot;
+                        + &quot; FROM (SELECT t.&quot; + normColumn + &quot; AS norm, t.&quot; + column + &quot; AS spelling,&quot;
+                        + &quot; count(*) AS own, sum(count(*)) OVER (PARTITION BY t.&quot; + normColumn + &quot;) AS total,&quot;
+                        + &quot; min(c.created_at) AS first_at FROM &quot; + table + &quot; t JOIN contact c ON c.id = t.contact_id&quot;
+                        + &quot; WHERE c.group_id = :group GROUP BY t.&quot; + normColumn + &quot;, t.&quot; + column + &quot;) s&quot; + reserved
+                        + &quot; ORDER BY s.norm, s.own DESC, s.first_at, s.spelling COLLATE \&quot;C\&quot;) k&quot; + match
+<span class="fc" id="L71">                        + order(&quot;k.text&quot;, &quot;k.uses&quot;, q);</span>
+<span class="fc" id="L72">        StatementSpec spec = jdbc.sql(sql).param(&quot;group&quot;, group).param(&quot;limit&quot;, LIMIT);</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">        if (!q.isEmpty()) {</span>
+<span class="fc" id="L74">            spec = spec.param(&quot;q&quot;, q);</span>
+        }
+<span class="fc bfc" id="L76" title="All 2 branches covered.">        if (skipReserved) {</span>
+<span class="fc" id="L77">            spec = spec.param(&quot;reserved&quot;, List.copyOf(AttributeKeys.ALL_RESERVED));</span>
+        }
+<span class="fc" id="L79">        return spec.query((rs, n) -&gt; new Suggestion(rs.getString(&quot;text&quot;), rs.getLong(&quot;uses&quot;)))</span>
+<span class="fc" id="L80">                .list();</span>
+    }
+
+    /** Vrednosti atributa z normaliziranim ključem {@code keyNorm}, po številu kontaktov. */
+    List&lt;Suggestion&gt; values(UUID group, String keyNorm, String q) {
+<span class="fc bfc" id="L85" title="All 2 branches covered.">        String match = q.isEmpty() ? &quot;&quot; : &quot; AND strpos(a.value&quot; + COLLATE + &quot;, :q) &gt; 0&quot;;</span>
+<span class="fc" id="L86">        String sql = &quot;SELECT a.value AS text, count(*) AS uses FROM contact_attribute a JOIN contact c&quot;</span>
+                + &quot; ON c.id = a.contact_id WHERE c.group_id = :group AND a.key_norm = :key&quot; + match
+<span class="fc" id="L88">                + &quot; GROUP BY a.value&quot; + order(&quot;a.value&quot;, &quot;count(*)&quot;, q);</span>
+<span class="fc" id="L89">        StatementSpec spec =</span>
+<span class="fc" id="L90">                jdbc.sql(sql).param(&quot;group&quot;, group).param(&quot;key&quot;, keyNorm).param(&quot;limit&quot;, LIMIT);</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        if (!q.isEmpty()) {</span>
+<span class="fc" id="L92">            spec = spec.param(&quot;q&quot;, q);</span>
+        }
+<span class="fc" id="L94">        return spec.query((rs, n) -&gt; new Suggestion(rs.getString(&quot;text&quot;), rs.getLong(&quot;uses&quot;)))</span>
+<span class="fc" id="L95">                .list();</span>
+    }
+
+    /** Podjetja kontaktov skupine po številu kontaktov. */
+    List&lt;Suggestion&gt; companies(UUID group, String q) {
+<span class="fc bfc" id="L100" title="All 2 branches covered.">        String match = q.isEmpty() ? &quot;&quot; : &quot; AND strpos(c.company&quot; + COLLATE + &quot;, :q) &gt; 0&quot;;</span>
+<span class="fc" id="L101">        String sql = &quot;SELECT c.company AS text, count(*) AS uses FROM contact c WHERE c.group_id = :group&quot;</span>
+<span class="fc" id="L102">                + &quot; AND c.company IS NOT NULL&quot; + match + &quot; GROUP BY c.company&quot; + order(&quot;c.company&quot;, &quot;count(*)&quot;, q);</span>
+<span class="fc" id="L103">        StatementSpec spec = jdbc.sql(sql).param(&quot;group&quot;, group).param(&quot;limit&quot;, LIMIT);</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">        if (!q.isEmpty()) {</span>
+<span class="fc" id="L105">            spec = spec.param(&quot;q&quot;, q);</span>
+        }
+<span class="fc" id="L107">        return spec.query((rs, n) -&gt; new Suggestion(rs.getString(&quot;text&quot;), rs.getLong(&quot;uses&quot;)))</span>
+<span class="fc" id="L108">                .list();</span>
+    }
+
+    /** Kode držav po številu kontaktov skupine. */
+    List&lt;Suggestion&gt; countries(UUID group) {
+<span class="fc" id="L113">        return jdbc.sql(&quot;SELECT c.country AS text, count(*) AS uses FROM contact c WHERE c.group_id = :group&quot;</span>
+                        + &quot; AND c.country IS NOT NULL GROUP BY c.country ORDER BY uses DESC, c.country LIMIT :limit&quot;)
+<span class="fc" id="L115">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L116">                .param(&quot;limit&quot;, LIMIT)</span>
+<span class="fc" id="L117">                .query((rs, n) -&gt; new Suggestion(rs.getString(&quot;text&quot;), rs.getLong(&quot;uses&quot;)))</span>
+<span class="fc" id="L118">                .list();</span>
+    }
+
+    /** Vrstni red: predpona (ujemanje na začetku) pred ujemanjem v sredini, nato število, nato besedilo. */
+    private static String order(String text, String uses, String q) {
+<span class="fc bfc" id="L123" title="All 2 branches covered.">        String prefix = q.isEmpty() ? &quot;&quot; : &quot;(strpos(&quot; + text + COLLATE + &quot;, :q) = 1) DESC, &quot;;</span>
+<span class="fc" id="L124">        return &quot; ORDER BY &quot; + prefix + uses + &quot; DESC, &quot; + text + &quot; COLLATE \&quot;C\&quot; LIMIT :limit&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

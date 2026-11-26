@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MemberInputParser.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.member</a> &gt; <span class="el_source">MemberInputParser.java</span></div><h1>MemberInputParser.java</h1><pre class="source lang-java linenums">package si.contactmanager.member;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * Razčlenitev teles {@code PUT …/members/{memberId}} in {@code POST …/ownership-transfer} (research R-05, R-06).
+ * Nikoli ne vrže: napake podatkov se sporočijo šele po preverjanju dostopa in verzije (feature-map §2.2).
+ */
+final class MemberInputParser {
+
+<span class="fc" id="L19">    private static final Set&lt;String&gt; ROLE_FIELDS = Set.of(&quot;role&quot;, &quot;version&quot;);</span>
+<span class="fc" id="L20">    private static final Set&lt;String&gt; TRANSFER_FIELDS = Set.of(&quot;memberId&quot;);</span>
+<span class="fc" id="L21">    private static final Set&lt;String&gt; ROLES = Set.of(&quot;VIEWER&quot;, &quot;EDITOR&quot;, &quot;ADMIN&quot;, &quot;OWNER&quot;);</span>
+
+    /** Rezultat razčlenjevanja vloge: {@code role} je znana vloga ali {@code null}. */
+<span class="fc" id="L24">    record ParsedRole(String role, Long version, List&lt;FieldError&gt; errors) {}</span>
+
+    /** Rezultat razčlenjevanja prenosa: {@code memberId} ali {@code null}. */
+<span class="fc" id="L27">    record ParsedTransfer(UUID memberId, List&lt;FieldError&gt; errors) {}</span>
+
+    private final JsonMapper json;
+
+    MemberInputParser() {
+<span class="fc" id="L32">        this(JsonMapper.builder().build());</span>
+<span class="fc" id="L33">    }</span>
+
+<span class="fc" id="L35">    MemberInputParser(JsonMapper json) {</span>
+<span class="fc" id="L36">        this.json = json;</span>
+<span class="fc" id="L37">    }</span>
+
+    ParsedRole parseRole(String body) {
+<span class="fc" id="L40">        JsonNode root = object(body);</span>
+<span class="fc bfc" id="L41" title="All 2 branches covered.">        if (root == null) {</span>
+<span class="fc" id="L42">            return new ParsedRole(null, null, malformed());</span>
+        }
+<span class="fc" id="L44">        List&lt;FieldError&gt; errors = unknownFields(root, ROLE_FIELDS);</span>
+<span class="fc" id="L45">        String role = role(root.get(&quot;role&quot;), errors);</span>
+<span class="fc" id="L46">        Long version = version(root.get(&quot;version&quot;), errors);</span>
+<span class="fc" id="L47">        return new ParsedRole(role, version, List.copyOf(errors));</span>
+    }
+
+    ParsedTransfer parseTransfer(String body) {
+<span class="fc" id="L51">        JsonNode root = object(body);</span>
+<span class="fc bfc" id="L52" title="All 2 branches covered.">        if (root == null) {</span>
+<span class="fc" id="L53">            return new ParsedTransfer(null, malformed());</span>
+        }
+<span class="fc" id="L55">        List&lt;FieldError&gt; errors = unknownFields(root, TRANSFER_FIELDS);</span>
+<span class="fc" id="L56">        UUID memberId = null;</span>
+<span class="fc" id="L57">        JsonNode node = root.get(&quot;memberId&quot;);</span>
+<span class="fc bfc" id="L58" title="All 4 branches covered.">        if (node == null || node.isNull()) {</span>
+<span class="fc" id="L59">            errors.add(new FieldError(&quot;memberId&quot;, &quot;REQUIRED&quot;));</span>
+<span class="fc bfc" id="L60" title="All 2 branches covered.">        } else if (!node.isString()) {</span>
+<span class="fc" id="L61">            errors.add(new FieldError(&quot;memberId&quot;, &quot;INVALID_VALUE&quot;));</span>
+        } else {
+            try {
+<span class="fc" id="L64">                memberId = UUID.fromString(node.asString());</span>
+<span class="fc" id="L65">            } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L66">                errors.add(new FieldError(&quot;memberId&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L67">            }</span>
+        }
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        return new ParsedTransfer(errors.isEmpty() ? memberId : null, List.copyOf(errors));</span>
+    }
+
+    private JsonNode object(String body) {
+        try {
+<span class="pc bpc" id="L74" title="1 of 2 branches missed.">            JsonNode root = json.readTree(body == null ? &quot;&quot; : body);</span>
+<span class="pc bpc" id="L75" title="1 of 4 branches missed.">            return root != null &amp;&amp; root.isObject() ? root : null;</span>
+<span class="fc" id="L76">        } catch (JacksonException e) {</span>
+<span class="fc" id="L77">            return null;</span>
+        }
+    }
+
+    private static List&lt;FieldError&gt; malformed() {
+<span class="fc" id="L82">        return List.of(new FieldError(&quot;body&quot;, &quot;MALFORMED&quot;));</span>
+    }
+
+    private static List&lt;FieldError&gt; unknownFields(JsonNode root, Set&lt;String&gt; known) {
+<span class="fc" id="L86">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">        for (Map.Entry&lt;String, JsonNode&gt; property : root.properties()) {</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">            if (!known.contains(property.getKey())) {</span>
+<span class="fc" id="L89">                errors.add(new FieldError(property.getKey(), &quot;UNKNOWN_FIELD&quot;));</span>
+            }
+<span class="fc" id="L91">        }</span>
+<span class="fc" id="L92">        return errors;</span>
+    }
+
+    private static String role(JsonNode node, List&lt;FieldError&gt; errors) {
+<span class="fc bfc" id="L96" title="All 4 branches covered.">        if (node == null || node.isNull()) {</span>
+<span class="fc" id="L97">            errors.add(new FieldError(&quot;role&quot;, &quot;REQUIRED&quot;));</span>
+<span class="fc" id="L98">            return null;</span>
+        }
+<span class="fc bfc" id="L100" title="All 4 branches covered.">        if (!node.isString() || !ROLES.contains(node.asString())) {</span>
+<span class="fc" id="L101">            errors.add(new FieldError(&quot;role&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L102">            return null;</span>
+        }
+<span class="fc" id="L104">        return node.asString();</span>
+    }
+
+    private static Long version(JsonNode node, List&lt;FieldError&gt; errors) {
+<span class="pc bpc" id="L108" title="1 of 4 branches missed.">        if (node == null || node.isNull()) {</span>
+<span class="fc" id="L109">            errors.add(new FieldError(&quot;version&quot;, &quot;REQUIRED&quot;));</span>
+<span class="fc" id="L110">            return null;</span>
+        }
+<span class="pc bpc" id="L112" title="1 of 6 branches missed.">        if (!node.isIntegralNumber() || !node.canConvertToLong() || node.asLong() &lt; 0) {</span>
+<span class="fc" id="L113">            errors.add(new FieldError(&quot;version&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L114">            return null;</span>
+        }
+<span class="fc" id="L116">        return node.asLong();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

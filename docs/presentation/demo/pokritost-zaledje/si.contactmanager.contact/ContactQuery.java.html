@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContactQuery.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">ContactQuery.java</span></div><h1>ContactQuery.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.util.List;
+
+/**
+ * Nepremenljiva poizvedba seznama kontaktov (docs/specs/008-iskanje/data-model.md): iskane besede, pogoji atributov, značke,
+ * razvrščanje, stran in velikost. Brez odvisnosti od spletnega sloja, zato jo lahko ponovno uporabita 009 in 010.
+ */
+public record ContactQuery(
+        List&lt;String&gt; words,
+        List&lt;Condition&gt; conditions,
+        List&lt;String&gt; tags,
+        Field sort,
+        Direction direction,
+        int page,
+        int size) {
+
+<span class="fc" id="L18">    public ContactQuery {</span>
+<span class="fc" id="L19">        words = List.copyOf(words);</span>
+<span class="fc" id="L20">        conditions = List.copyOf(conditions);</span>
+<span class="fc" id="L21">        tags = List.copyOf(tags);</span>
+<span class="fc" id="L22">    }</span>
+
+    /** Vrsta polja: predefinirani atributi ali dodatni atribut ({@code keyNorm}). */
+<span class="fc" id="L25">    public enum Kind {</span>
+<span class="fc" id="L26">        FIRST_NAME,</span>
+<span class="fc" id="L27">        LAST_NAME,</span>
+<span class="fc" id="L28">        ADDRESS,</span>
+<span class="fc" id="L29">        EMAIL,</span>
+<span class="fc" id="L30">        PHONE,</span>
+<span class="fc" id="L31">        COMPANY,</span>
+<span class="fc" id="L32">        COUNTRY,</span>
+<span class="fc" id="L33">        ATTRIBUTE</span>
+    }
+
+    /** Polje pogoja ali razvrščanja; {@code keyNorm} je normaliziran ključ samo pri {@link Kind#ATTRIBUTE}. */
+<span class="fc" id="L37">    public record Field(Kind kind, String keyNorm) {}</span>
+
+    /** Pogoj »polje vsebuje vrednost«. */
+<span class="fc" id="L40">    public record Condition(Field field, String value) {}</span>
+
+<span class="fc" id="L42">    public enum Direction {</span>
+<span class="fc" id="L43">        ASC,</span>
+<span class="fc" id="L44">        DESC</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

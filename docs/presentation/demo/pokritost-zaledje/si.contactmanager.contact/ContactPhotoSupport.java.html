@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContactPhotoSupport.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">ContactPhotoSupport.java</span></div><h1>ContactPhotoSupport.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.util.UUID;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import si.contactmanager.audit.AuditLog;
+import si.contactmanager.audit.ContactChange;
+import si.contactmanager.audit.PhotoChange;
+import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.group.Role;
+import si.contactmanager.shared.error.ForbiddenException;
+import si.contactmanager.shared.error.GroupArchivedException;
+import si.contactmanager.shared.error.NotFoundException;
+import si.contactmanager.shared.error.VersionConflictException;
+
+/**
+ * Podpora spremembi slike kontakta (018, FR-018-09, FR-018-10): preverjanja v vrstnem redu feature-map §2.2 in D-41,
+ * zaklep kontakta, povečanje verzije in vnos {@code UPDATE} v sledi z dejstvom spremembe slike. Slika sama je v
+ * paketu {@code image}; vse se izvede v eni transakciji klicatelja.
+ */
+@Component
+public class ContactPhotoSupport {
+
+    private final ContactRepository contacts;
+    private final ContactSnapshots snapshots;
+    private final AuditLog audit;
+
+<span class="fc" id="L29">    ContactPhotoSupport(ContactRepository contacts, ContactSnapshots snapshots, AuditLog audit) {</span>
+<span class="fc" id="L30">        this.contacts = contacts;</span>
+<span class="fc" id="L31">        this.snapshots = snapshots;</span>
+<span class="fc" id="L32">        this.audit = audit;</span>
+<span class="fc" id="L33">    }</span>
+
+    /** Korak 2: kontakt mora biti v tej skupini ({@code 404} tudi za izbrisan kontakt). */
+    public void requireExists(Membership membership, UUID contact) {
+<span class="fc bfc" id="L37" title="All 2 branches covered.">        if (!contacts.exists(membership.groupId(), contact)) {</span>
+<span class="fc" id="L38">            throw new NotFoundException();</span>
+        }
+<span class="fc" id="L40">    }</span>
+
+    /** Koraki 2–4 za pisanje: 404 kontakta → 403 → 409 {@code GROUP_ARCHIVED}. */
+    public void requireWritable(Membership membership, UUID contact) {
+<span class="fc" id="L44">        requireExists(membership, contact);</span>
+<span class="fc bfc" id="L45" title="All 2 branches covered.">        if (!membership.role().atLeast(Role.EDITOR)) {</span>
+<span class="fc" id="L46">            throw new ForbiddenException();</span>
+        }
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        if (membership.archived()) {</span>
+<span class="fc" id="L49">            throw new GroupArchivedException();</span>
+        }
+<span class="fc" id="L51">    }</span>
+
+    /** Hitro preverjanje verzije brez zaklepa (pred dragim dekodiranjem slike). */
+    public void checkVersion(Membership membership, UUID contact, long version) {
+<span class="fc" id="L55">        ContactDetail current = contacts.find(membership.groupId(), contact).orElseThrow(NotFoundException::new);</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">        if (current.version() != version) {</span>
+<span class="fc" id="L57">            throw new VersionConflictException(current);</span>
+        }
+<span class="fc" id="L59">    }</span>
+
+    /**
+     * Zaklene skupino in kontakt ter ponovno preveri arhiviranost in verzijo; vrne stanje kontakta pred spremembo.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public ContactState begin(Membership membership, UUID contact, long version) {
+<span class="fc" id="L66">        boolean archived = contacts.lockGroupArchived(membership.groupId()).orElseThrow(NotFoundException::new);</span>
+<span class="pc bpc" id="L67" title="1 of 2 branches missed.">        if (archived) {</span>
+<span class="nc" id="L68">            throw new GroupArchivedException();</span>
+        }
+<span class="fc" id="L70">        long current = contacts.lockVersion(membership.groupId(), contact).orElseThrow(NotFoundException::new);</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        if (current != version) {</span>
+<span class="fc" id="L72">            throw new VersionConflictException(</span>
+<span class="fc" id="L73">                    contacts.find(membership.groupId(), contact).orElseThrow(NotFoundException::new));</span>
+        }
+<span class="fc" id="L75">        return snapshots.snapshot(membership.groupId(), contact);</span>
+    }
+
+    /** Poveča verzijo, zabeleži vnos {@code UPDATE} z {@code photoChange}; vrne novo verzijo kontakta. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public long finish(Membership membership, UUID contact, ContactState before, PhotoChange change) {
+<span class="fc" id="L81">        contacts.touch(membership.groupId(), contact, membership.userId());</span>
+<span class="fc" id="L82">        ContactState after = snapshots.snapshot(membership.groupId(), contact);</span>
+<span class="fc" id="L83">        String name = ContactRepository.displayName(after.firstName(), after.lastName());</span>
+<span class="fc" id="L84">        audit.recordPhoto(</span>
+<span class="fc" id="L85">                membership.groupId(), membership.userId(), new ContactChange(contact, name, before, after), change);</span>
+<span class="fc" id="L86">        return after.version();</span>
+    }
+
+    /** Verzija kontakta (za odgovor, ko se ni spremenila). */
+    public long version(Membership membership, UUID contact) {
+<span class="nc" id="L91">        return contacts.find(membership.groupId(), contact)</span>
+<span class="nc" id="L92">                .orElseThrow(NotFoundException::new)</span>
+<span class="nc" id="L93">                .version();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

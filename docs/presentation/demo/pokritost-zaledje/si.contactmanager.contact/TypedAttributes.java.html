@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TypedAttributes.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">TypedAttributes.java</span></div><h1>TypedAttributes.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.stereotype.Component;
+import si.contactmanager.contact.ContactInputParser.AttributeExtra;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+
+/**
+ * Tip ključa in vrednost dodatnih atributov kontakta (016, FR-016-01, -02, -04): tip je lastnost ključa v skupini
+ * ({@code attribute_key}); vnos ga lahko določi samo za nov ali prost ključ, sicer mora biti enak tipu ključa v
+ * uporabi ({@code INVALID_VALUE} na {@code attributes[i].type}). Vrednost se preveri in normalizira po tipu; vrednost,
+ * ki jo kontakt že hrani nespremenjeno, se ne preverja (FR-016-09). Opombe so dobesedne.
+ */
+@Component
+class TypedAttributes {
+
+    /** Atributi z učinkovitimi tipi in normaliziranimi vrednostmi ter napake po {@code attributes[i]}. */
+<span class="fc" id="L24">    record Resolution(List&lt;Attribute&gt; attributes, List&lt;FieldError&gt; errors) {}</span>
+
+    private final AttributeKeyRepository keys;
+
+<span class="fc" id="L28">    TypedAttributes(AttributeKeyRepository keys) {</span>
+<span class="fc" id="L29">        this.keys = keys;</span>
+<span class="fc" id="L30">    }</span>
+
+    /**
+     * Razreši tipe in normalizira vrednosti. {@code write == false}: samo branje (primerjava z obstoječim stanjem,
+     * vrstni red preverjanj §2.2); {@code write == true}: vrstice ključev se zagotovijo z zaklepom {@code FOR SHARE}
+     * (obdajajoča transakcija). {@code stored}: atributi, ki jih kontakt že ima; {@code country}: koda države kontakta.
+     */
+    Resolution resolve(
+            UUID group,
+            List&lt;Attribute&gt; input,
+            List&lt;AttributeExtra&gt; extras,
+            List&lt;Attribute&gt; stored,
+            String country,
+            boolean write) {
+<span class="fc" id="L44">        return resolve(group, input, extras, stored, country, write, new HashMap&lt;&gt;());</span>
+    }
+
+    /**
+     * Uvoz (FR-016-24): isti postopek za nove kontakte iz datoteke; tip ključa se razreši enkrat za vso datoteko (ključi
+     * v urejenem vrstnem redu {@code key_norm}, da sočasna uvoza ne zaideta v smrtni objem), prvi zahtevani tip
+     * novega ključa velja za vse vrstice, drugačen zahtevani tip je {@code INVALID_VALUE} na {@code attributes[i].type}.
+     * Rezultati so poravnani z {@code inputs}.
+     */
+    List&lt;Resolution&gt; resolveAll(
+            UUID group, List&lt;ContactInput&gt; inputs, List&lt;List&lt;AttributeExtra&gt;&gt; extras, boolean write) {
+<span class="fc" id="L55">        Map&lt;String, AttributeType&gt; wanted = new java.util.TreeMap&lt;&gt;();</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">        for (int c = 0; c &lt; inputs.size(); c++) {</span>
+<span class="fc" id="L57">            List&lt;Attribute&gt; attributes = inputs.get(c).attributes();</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">            for (int i = 0; i &lt; attributes.size(); i++) {</span>
+<span class="pc bpc" id="L59" title="1 of 2 branches missed.">                AttributeExtra extra = i &lt; extras.get(c).size() ? extras.get(c).get(i) : null;</span>
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">                AttributeType requested = extra != null ? extra.type() : null;</span>
+<span class="fc bfc" id="L61" title="All 4 branches covered.">                if (requested == null &amp;&amp; attributes.get(i).parts() != null) {</span>
+<span class="fc" id="L62">                    requested = AttributeType.ADDRESS;</span>
+                }
+<span class="fc" id="L64">                String norm = ContactInputParser.normalize(attributes.get(i).key());</span>
+<span class="fc" id="L65">                wanted.putIfAbsent(norm, null);</span>
+<span class="fc bfc" id="L66" title="All 4 branches covered.">                if (requested != null &amp;&amp; wanted.get(norm) == null) {</span>
+<span class="fc" id="L67">                    wanted.put(norm, requested);</span>
+                }
+            }
+        }
+<span class="fc" id="L71">        Map&lt;String, AttributeType&gt; cache = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L72">        wanted.forEach((norm, type) -&gt; cache.put(norm, effective(group, norm, type, write)));</span>
+<span class="fc" id="L73">        List&lt;Resolution&gt; result = new ArrayList&lt;&gt;(inputs.size());</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">        for (int c = 0; c &lt; inputs.size(); c++) {</span>
+<span class="fc" id="L75">            ContactInput input = inputs.get(c);</span>
+<span class="fc" id="L76">            result.add(resolve(group, input.attributes(), extras.get(c), List.of(), input.country(), write, cache));</span>
+        }
+<span class="fc" id="L78">        return List.copyOf(result);</span>
+    }
+
+    private Resolution resolve(
+            UUID group,
+            List&lt;Attribute&gt; input,
+            List&lt;AttributeExtra&gt; extras,
+            List&lt;Attribute&gt; stored,
+            String country,
+            boolean write,
+            Map&lt;String, AttributeType&gt; cache) {
+<span class="fc" id="L89">        List&lt;Attribute&gt; result = new ArrayList&lt;&gt;(input.size());</span>
+<span class="fc" id="L90">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        for (int i = 0; i &lt; input.size(); i++) {</span>
+<span class="fc" id="L92">            Attribute attribute = input.get(i);</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">            AttributeExtra extra = i &lt; extras.size() ? extras.get(i) : null;</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">            AttributeType requested = extra != null ? extra.type() : null;</span>
+<span class="fc" id="L95">            String norm = ContactInputParser.normalize(attribute.key());</span>
+            // Deli brez navedenega tipa pomenijo naslov (nov ali prost ključ dobi tip ADDRESS).
+<span class="fc bfc" id="L97" title="All 4 branches covered.">            AttributeType wanted = requested == null &amp;&amp; attribute.parts() != null ? AttributeType.ADDRESS : requested;</span>
+<span class="fc" id="L98">            AttributeType effective = cache.computeIfAbsent(norm, n -&gt; effective(group, n, wanted, write));</span>
+<span class="fc" id="L99">            String prefix = &quot;attributes[&quot; + i + &quot;]&quot;;</span>
+<span class="fc bfc" id="L100" title="All 4 branches covered.">            if (requested != null &amp;&amp; requested != effective) {</span>
+<span class="fc" id="L101">                errors.add(new FieldError(prefix + &quot;.type&quot;, &quot;INVALID_VALUE&quot;));</span>
+            }
+<span class="fc bfc" id="L103" title="All 2 branches covered.">            if (attribute.parts() != null) {</span>
+                // Razčlenjen naslov (016, FR-016-12): samo za ključ tipa ADDRESS; shranjeni deli ostanejo dobesedni.
+<span class="fc" id="L105">                result.add(parts(attribute, effective, stored, norm, prefix, errors));</span>
+<span class="fc" id="L106">                continue;</span>
+            }
+<span class="pc bpc" id="L108" title="1 of 4 branches missed.">            String candidate = effective == AttributeType.NOTES &amp;&amp; extra != null ? extra.raw() : attribute.value();</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">            if (isStored(stored, norm, effective, candidate)) {</span>
+<span class="fc" id="L110">                result.add(new Attribute(attribute.key(), effective, candidate, null));</span>
+<span class="fc" id="L111">                continue;</span>
+            }
+<span class="fc" id="L113">            TypedValues.Result normalized = TypedValues.normalize(effective, candidate, country);</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">            if (normalized.valid()) {</span>
+<span class="fc" id="L115">                result.add(new Attribute(attribute.key(), effective, normalized.value(), null));</span>
+            } else {
+<span class="fc" id="L117">                errors.add(new FieldError(prefix + &quot;.value&quot;, normalized.error()));</span>
+<span class="fc" id="L118">                result.add(new Attribute(attribute.key(), effective, attribute.value(), null));</span>
+            }
+        }
+<span class="fc" id="L121">        return new Resolution(List.copyOf(result), List.copyOf(errors));</span>
+    }
+
+    /** Učinkoviti tip ključa: vrstica ključa, nov ali prost ključ prevzame zahtevani tip (ali {@code OTHER}). */
+    AttributeType effective(UUID group, String norm, AttributeType requested, boolean write) {
+<span class="fc" id="L126">        Optional&lt;AttributeKeyRepository.Row&gt; row = keys.find(group, norm);</span>
+<span class="fc bfc" id="L127" title="All 4 branches covered.">        if (row.isEmpty() &amp;&amp; !keys.isFree(group, norm)) {</span>
+            // Ključ v uporabi brez vrstice (poti brez razreševanja tipov): vrednosti so besedilo, tip OTHER.
+<span class="fc bfc" id="L129" title="All 2 branches covered.">            if (write) {</span>
+<span class="fc" id="L130">                keys.register(group, norm);</span>
+<span class="fc" id="L131">                row = keys.find(group, norm);</span>
+            } else {
+<span class="fc" id="L133">                return AttributeType.OTHER;</span>
+            }
+        }
+<span class="fc bfc" id="L136" title="All 2 branches covered.">        if (write) {</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">            AttributeType wanted = requested != null</span>
+<span class="fc" id="L138">                    ? requested</span>
+<span class="fc" id="L139">                    : row.map(AttributeKeyRepository.Row::type).orElse(AttributeType.OTHER);</span>
+<span class="fc" id="L140">            return keys.ensure(group, norm, wanted);</span>
+        }
+<span class="fc bfc" id="L142" title="All 2 branches covered.">        if (row.isEmpty()) {</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">            return requested != null ? requested : AttributeType.OTHER;</span>
+        }
+<span class="fc bfc" id="L145" title="All 4 branches covered.">        if (requested != null &amp;&amp; keys.isFree(group, norm)) {</span>
+<span class="fc" id="L146">            return requested;</span>
+        }
+<span class="fc" id="L148">        return row.get().type();</span>
+    }
+
+    private static Attribute parts(
+            Attribute attribute,
+            AttributeType effective,
+            List&lt;Attribute&gt; stored,
+            String norm,
+            String prefix,
+            List&lt;FieldError&gt; errors) {
+<span class="fc bfc" id="L158" title="All 2 branches covered.">        if (effective != AttributeType.ADDRESS) {</span>
+<span class="fc" id="L159">            errors.add(new FieldError(prefix + &quot;.parts&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L160">            return new Attribute(attribute.key(), effective, null, attribute.parts());</span>
+        }
+<span class="fc bfc" id="L162" title="All 2 branches covered.">        for (Attribute old : stored) {</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">            if (ContactInputParser.normalize(old.key()).equals(norm)</span>
+<span class="pc bpc" id="L164" title="1 of 2 branches missed.">                    &amp;&amp; attribute.parts().equals(old.parts())) {</span>
+<span class="nc" id="L165">                return new Attribute(attribute.key(), effective, null, old.parts());</span>
+            }
+<span class="fc" id="L167">        }</span>
+<span class="fc" id="L168">        TypedValues.AddressResult normalized = TypedValues.normalizeAddress(attribute.parts());</span>
+<span class="fc bfc" id="L169" title="All 2 branches covered.">        if (!normalized.valid()) {</span>
+<span class="fc" id="L170">            normalized.errors().forEach(e -&gt; errors.add(new FieldError(prefix + &quot;.parts.&quot; + e.field(), e.code())));</span>
+<span class="fc" id="L171">            return new Attribute(attribute.key(), effective, null, attribute.parts());</span>
+        }
+<span class="fc" id="L173">        return new Attribute(attribute.key(), effective, null, normalized.address());</span>
+    }
+
+    private static boolean isStored(List&lt;Attribute&gt; stored, String norm, AttributeType type, String value) {
+<span class="fc bfc" id="L177" title="All 2 branches covered.">        for (Attribute attribute : stored) {</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">            if (ContactInputParser.normalize(attribute.key()).equals(norm)</span>
+<span class="pc bpc" id="L179" title="1 of 2 branches missed.">                    &amp;&amp; attribute.type() == type</span>
+<span class="fc bfc" id="L180" title="All 2 branches covered.">                    &amp;&amp; Objects.equals(attribute.value(), value)) {</span>
+<span class="fc" id="L181">                return true;</span>
+            }
+<span class="fc" id="L183">        }</span>
+<span class="fc" id="L184">        return false;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

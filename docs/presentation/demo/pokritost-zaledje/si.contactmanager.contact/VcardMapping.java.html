@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VcardMapping.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">VcardMapping.java</span></div><h1>VcardMapping.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+
+/**
+ * Skupna pravila preslikave kontakt ↔ vCard (014 research R-03), ki jih uporabljata {@link VcardWriter} in
+ * {@link VcardReader}; enaka pravila ima frontend ({@code features/contacts/qr/vcardRead.ts}, {@code vcardWrite.ts}),
+ * skladnost varujejo skupne vizitke v {@code backend/src/test/resources/vcard/}.
+ */
+final class VcardMapping {
+
+    /** Lastnosti dodatnega atributa: par v isti skupini vCard. */
+    static final String KEY = &quot;X-CM-KEY&quot;;
+
+    static final String VALUE = &quot;X-CM-VALUE&quot;;
+
+    /** Oznaka ključa dodatnega atributa s tipom (016): {@code attrN.X-CM-KEY} ob lastnosti {@code TEL}, {@code EMAIL}, … */
+    static final String LABEL = &quot;X-ABLabel&quot;;
+
+    /** Parameter {@code ADR}: naslov je po delih (tudi kadar je izpolnjena samo ulica), 016. */
+    static final String PARTS = &quot;X-CM-PARTS&quot;;
+
+    /** Parameter {@code ADR}: koda države ISO v delih naslova (016); {@code X-CM-CC} je država kontakta. */
+    static final String PARTS_COUNTRY = &quot;X-CM-PC&quot;;
+
+    /** Parameter {@code ADR} s kodo države ISO za točen krožni prenos. */
+    static final String COUNTRY_CODE = &quot;X-CM-CC&quot;;
+
+    /** Oznake atributov iz vizitke v jeziku vmesnika (FR-014-13). */
+<span class="fc" id="L34">    record Labels(String email, String phone, String address, String birthday, String website, String note) {}</span>
+
+<span class="fc" id="L36">    private static final Labels SL =</span>
+            new Labels(&quot;E-naslov&quot;, &quot;Telefon&quot;, &quot;Naslov&quot;, &quot;Rojstni dan&quot;, &quot;Spletna stran&quot;, &quot;Opomba&quot;);
+
+<span class="fc" id="L39">    private static final Labels EN = new Labels(&quot;Email&quot;, &quot;Phone&quot;, &quot;Address&quot;, &quot;Birthday&quot;, &quot;Website&quot;, &quot;Note&quot;);</span>
+
+    private VcardMapping() {}
+
+    static Labels labels(String language) {
+<span class="fc bfc" id="L44" title="All 2 branches covered.">        return &quot;en&quot;.equals(language) ? EN : SL;</span>
+    }
+
+    /** Ubežni znaki besedilne vrednosti vCard 3.0 ({@code \ , ; } in prelom vrstice). */
+    static String escape(String value) {
+<span class="fc" id="L49">        StringBuilder out = new StringBuilder(value.length() + 8);</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        for (int i = 0; i &lt; value.length(); i++) {</span>
+<span class="fc" id="L51">            char c = value.charAt(i);</span>
+<span class="pc bpc" id="L52" title="2 of 6 branches missed.">            switch (c) {</span>
+<span class="fc" id="L53">                case '\\' -&gt; out.append(&quot;\\\\&quot;);</span>
+<span class="fc" id="L54">                case ',' -&gt; out.append(&quot;\\,&quot;);</span>
+<span class="fc" id="L55">                case ';' -&gt; out.append(&quot;\\;&quot;);</span>
+<span class="nc" id="L56">                case '\n' -&gt; out.append(&quot;\\n&quot;);</span>
+                case '\r' -&gt; {
+                    // prelom je že zapisan kot \n
+<span class="nc" id="L59">                }</span>
+<span class="fc" id="L60">                default -&gt; out.append(c);</span>
+            }
+        }
+<span class="fc" id="L63">        return out.toString();</span>
+    }
+
+    /** Obratno od {@link #escape}: {@code \n}/{@code \N} → prelom, {@code \x} → {@code x}. */
+    static String unescape(String value) {
+<span class="fc" id="L68">        StringBuilder out = new StringBuilder(value.length());</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        for (int i = 0; i &lt; value.length(); i++) {</span>
+<span class="fc" id="L70">            char c = value.charAt(i);</span>
+<span class="pc bpc" id="L71" title="1 of 4 branches missed.">            if (c == '\\' &amp;&amp; i + 1 &lt; value.length()) {</span>
+<span class="fc" id="L72">                char next = value.charAt(++i);</span>
+<span class="pc bpc" id="L73" title="2 of 4 branches missed.">                out.append(next == 'n' || next == 'N' ? '\n' : next);</span>
+<span class="fc" id="L74">            } else {</span>
+<span class="fc" id="L75">                out.append(c);</span>
+            }
+        }
+<span class="fc" id="L78">        return out.toString();</span>
+    }
+
+    /** Polno ime iz {@code FN}: zadnja beseda je priimek, ostalo ime (FR-014-13). */
+    static String[] splitFullName(String full) {
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">        String text = full == null ? &quot;&quot; : full.strip().replaceAll(&quot;\\s+&quot;, &quot; &quot;);</span>
+<span class="fc" id="L84">        int space = text.lastIndexOf(' ');</span>
+<span class="pc bpc" id="L85" title="1 of 2 branches missed.">        if (text.isEmpty()) {</span>
+<span class="nc" id="L86">            return new String[] {null, null};</span>
+        }
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">        if (space &lt; 0) {</span>
+<span class="nc" id="L89">            return new String[] {null, text};</span>
+        }
+<span class="fc" id="L91">        return new String[] {text.substring(0, space), text.substring(space + 1)};</span>
+    }
+
+    /** Značka iz kategorije: presledki → {@code -}; prazna kategorija se izpusti. */
+    static String tag(String category) {
+<span class="pc bpc" id="L96" title="1 of 2 branches missed.">        String text = category == null ? &quot;&quot; : category.strip();</span>
+<span class="pc bpc" id="L97" title="1 of 2 branches missed.">        return text.isEmpty() ? null : text.replaceAll(&quot;\\s+&quot;, &quot;-&quot;);</span>
+    }
+
+    /** Seznam atributov z dodajanjem pod prostim ključem ({@code Osnova}, {@code Osnova 2}, …). */
+<span class="fc" id="L101">    static final class AttributeList {</span>
+
+<span class="fc" id="L103">        private final List&lt;Attribute&gt; attributes = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L104">        private final Set&lt;String&gt; keys = new HashSet&lt;&gt;();</span>
+
+        void add(String key, String value) {
+<span class="fc" id="L107">            add(key, AttributeType.OTHER, value, null);</span>
+<span class="fc" id="L108">        }</span>
+
+        /** Atribut s tipom: besedilna vrednost ali (samo naslov) deli. */
+        void add(String key, AttributeType type, String value, Address parts) {
+<span class="pc bpc" id="L112" title="2 of 6 branches missed.">            boolean empty = parts == null &amp;&amp; (value == null || value.isBlank());</span>
+<span class="pc bpc" id="L113" title="3 of 6 branches missed.">            if (key == null || empty || !keys.add(norm(key))) {</span>
+<span class="nc" id="L114">                return;</span>
+            }
+<span class="fc bfc" id="L116" title="All 2 branches covered.">            attributes.add(new Attribute(key, type, parts == null ? value : null, parts));</span>
+<span class="fc" id="L117">        }</span>
+
+        /** Prvi prost ključ od {@code base n} naprej ({@code n = 1} pomeni golo osnovo). */
+        void addNumbered(String base, int from, AttributeType type, String value) {
+<span class="pc bpc" id="L121" title="2 of 4 branches missed.">            if (value == null || value.isBlank()) {</span>
+<span class="nc" id="L122">                return;</span>
+            }
+<span class="fc" id="L124">            int n = from;</span>
+<span class="fc bfc" id="L125" title="All 2 branches covered.">            while (keys.contains(norm(numbered(base, n)))) {</span>
+<span class="fc" id="L126">                n++;</span>
+            }
+<span class="fc" id="L128">            add(numbered(base, n), type, value, null);</span>
+<span class="fc" id="L129">        }</span>
+
+        List&lt;Attribute&gt; list() {
+<span class="fc" id="L132">            return List.copyOf(attributes);</span>
+        }
+
+        private static String numbered(String base, int n) {
+<span class="fc bfc" id="L136" title="All 2 branches covered.">            return n &lt;= 1 ? base : base + &quot; &quot; + n;</span>
+        }
+
+        private static String norm(String key) {
+<span class="fc" id="L140">            return key.toLowerCase(Locale.ROOT);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

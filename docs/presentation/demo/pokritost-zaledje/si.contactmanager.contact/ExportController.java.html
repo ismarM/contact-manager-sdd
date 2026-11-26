@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExportController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">ExportController.java</span></div><h1>ExportController.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+import si.contactmanager.contact.BulkInputParser.Parsed;
+import si.contactmanager.group.GroupAccess;
+import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.group.Role;
+import si.contactmanager.shared.error.ValidationException;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * Izvoz izbranih kontaktov v Excel (010, plan.md – REST endpoints). Vrstni red preverjanj (research R-04): 401 → 404
+ * (nečlan, skupina ali identiteta, ki nikoli ni bila kontakt skupine) → 400 {@code VALIDATION_FAILED} → 409
+ * {@code EXPORT_EMPTY}. Ni 403 in {@code GROUP_ARCHIVED}: izvoz je branje, dovoljeno vsem članom (FR-010-16).
+ */
+@RestController
+@RequestMapping(&quot;/api/groups/{groupId}&quot;)
+class ExportController {
+
+<span class="fc" id="L33">    private static final MediaType XLSX =</span>
+<span class="fc" id="L34">            MediaType.parseMediaType(&quot;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet&quot;);</span>
+
+    private final GroupAccess access;
+    private final BulkService bulk;
+    private final ExportService service;
+    private final ExportRequestParser parser;
+
+<span class="fc" id="L41">    ExportController(GroupAccess access, BulkService bulk, ExportService service, JsonMapper json) {</span>
+<span class="fc" id="L42">        this.access = access;</span>
+<span class="fc" id="L43">        this.bulk = bulk;</span>
+<span class="fc" id="L44">        this.service = service;</span>
+<span class="fc" id="L45">        this.parser = new ExportRequestParser(json);</span>
+<span class="fc" id="L46">    }</span>
+
+    @PostMapping(&quot;/contacts/export&quot;)
+    ResponseEntity&lt;StreamingResponseBody&gt; export(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String groupId,
+            @RequestBody(required = false) String body) {
+<span class="fc" id="L53">        Membership membership = access.require(jwt, groupId, Role.VIEWER, false);</span>
+<span class="fc" id="L54">        Set&lt;UUID&gt; identities = parser.identities(body);</span>
+<span class="fc bfc" id="L55" title="All 4 branches covered.">        if (identities != null &amp;&amp; !identities.isEmpty()) {</span>
+<span class="fc" id="L56">            bulk.requireKnown(membership, identities);</span>
+        }
+<span class="fc" id="L58">        Parsed&lt;ExportRequest&gt; parsed = parser.parse(body);</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">        if (!parsed.valid()) {</span>
+<span class="fc" id="L60">            throw new ValidationException(parsed.errors());</span>
+        }
+        // Branje, štetje in EXPORT_EMPTY / TOO_MANY_COLUMNS pred začetkom toka, da je napaka še lahko JSON.
+<span class="fc" id="L63">        ExportService.Prepared prepared = service.prepare(membership, parsed.value());</span>
+<span class="fc" id="L64">        List&lt;ExportRow&gt; rows = prepared.rows();</span>
+<span class="fc" id="L65">        StreamingResponseBody stream = out -&gt; ExportWriter.write(out, prepared.language(), prepared.columns(), rows);</span>
+<span class="fc" id="L66">        return ResponseEntity.ok()</span>
+<span class="fc" id="L67">                .contentType(XLSX)</span>
+<span class="fc" id="L68">                .header(&quot;X-Export-Count&quot;, String.valueOf(rows.size()))</span>
+<span class="fc" id="L69">                .header(&quot;X-Export-Skipped&quot;, String.valueOf(prepared.skipped()))</span>
+<span class="fc" id="L70">                .header(&quot;Content-Disposition&quot;, &quot;attachment; filename=\&quot;contacts.xlsx\&quot;&quot;)</span>
+<span class="fc" id="L71">                .header(&quot;X-Content-Type-Options&quot;, &quot;nosniff&quot;)</span>
+<span class="fc" id="L72">                .cacheControl(CacheControl.noStore())</span>
+<span class="fc" id="L73">                .body(stream);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

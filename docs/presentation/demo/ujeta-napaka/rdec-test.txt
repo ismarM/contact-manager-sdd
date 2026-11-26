@@ -1,0 +1,25 @@
+[ERROR] Tests run: 107, Failures: 4, Errors: 0, Skipped: 0, Time elapsed: 20.65 s <<< FAILURE! -- in si.contactmanager.contact.ContactIsolationMatrixSecurityIT
+
+[ERROR] si.contactmanager.contact.ContactIsolationMatrixSecurityIT.isolationMatrix(Endpoint, Actor, boolean)[37] -- Time elapsed: 0.152 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: 
+
+expected: 403
+ but was: 201
+--
+[ERROR] si.contactmanager.contact.ContactIsolationMatrixSecurityIT.isolationMatrix(Endpoint, Actor, boolean)[45] -- Time elapsed: 0.049 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: 
+
+expected: 403
+ but was: 409
+--
+[ERROR] si.contactmanager.contact.ContactIsolationMatrixSecurityIT.isolationMatrix(Endpoint, Actor, boolean)[85] -- Time elapsed: 0.035 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: 
+
+expected: 403
+ but was: 200
+--
+[ERROR] si.contactmanager.contact.ContactIsolationMatrixSecurityIT.isolationMatrix(Endpoint, Actor, boolean)[93] -- Time elapsed: 0.030 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: 
+
+expected: 403
+ but was: 200

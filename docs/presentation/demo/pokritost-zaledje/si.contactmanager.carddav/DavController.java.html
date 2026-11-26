@@ -1,0 +1,638 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DavController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.carddav</a> &gt; <span class="el_source">DavController.java</span></div><h1>DavController.java</h1><pre class="source lang-java linenums">package si.contactmanager.carddav;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import si.contactmanager.account.AppPasswordAuthenticator.DavAccount;
+import si.contactmanager.carddav.DavRepository.Book;
+import si.contactmanager.carddav.DavRepository.Card;
+import si.contactmanager.carddav.DavXml.Name;
+import si.contactmanager.contact.ContactSnapshots;
+import si.contactmanager.contact.ContactState;
+import si.contactmanager.contact.VcardContact;
+import si.contactmanager.contact.VcardWriter;
+
+/**
+ * Strežnik CardDAV samo za branje (FR-014-22 … -24, -27; contracts/carddav.md): en imenik za vsako skupino uporabnika
+ * (tudi arhivirano), vizitke vCard 3.0 po FR-014-11, postopna sinhronizacija s {@code sync-collection}. Vrstni red
+ * preverjanj: 401 (veriga {@code DavSecurityConfig}) → 404 (vir ni viden) → 403 (pisanje). Branje se ne beleži v sled.
+ */
+@Controller
+class DavController {
+
+    static final String ROOT = &quot;/dav/&quot;;
+    static final String PRINCIPAL = &quot;/dav/principals/me/&quot;;
+    static final String HOME = &quot;/dav/addressbooks/&quot;;
+
+    private static final String SYNC_PREFIX = &quot;urn:contactmanager:sync:&quot;;
+
+<span class="fc" id="L51">    private static final Set&lt;String&gt; WRITE =</span>
+<span class="fc" id="L52">            Set.of(&quot;PUT&quot;, &quot;DELETE&quot;, &quot;PROPPATCH&quot;, &quot;MKCOL&quot;, &quot;COPY&quot;, &quot;MOVE&quot;, &quot;LOCK&quot;, &quot;UNLOCK&quot;, &quot;POST&quot;, &quot;PATCH&quot;);</span>
+
+<span class="fc" id="L54">    private static final Pattern BOOK = Pattern.compile(&quot;^/dav/addressbooks/([^/]+)/?$&quot;);</span>
+<span class="fc" id="L55">    private static final Pattern CARD = Pattern.compile(&quot;^/dav/addressbooks/([^/]+)/([^/]+)\\.vcf$&quot;);</span>
+
+<span class="fc" id="L57">    private static final DateTimeFormatter HTTP_DATE = DateTimeFormatter.RFC_1123_DATE_TIME.withZone(ZoneOffset.UTC);</span>
+
+    private sealed interface Resource permits Root, Principal, Home, BookResource, CardResource {}
+
+    private record Root() implements Resource {}
+
+    private record Principal() implements Resource {}
+
+    private record Home() implements Resource {}
+
+<span class="fc" id="L67">    private record BookResource(Book book) implements Resource {}</span>
+
+<span class="fc" id="L69">    private record CardResource(Book book, Card card) implements Resource {}</span>
+
+    /** Pot ni vidna (tuja ali neobstoječa skupina ali kontakt) ali je ni. */
+    private static final class Hidden extends Exception {
+
+        private static final long serialVersionUID = 1L;
+
+        /** Metoda, ki bi vir ustvarila (PUT vizitke v vidnem imeniku, MKCOL imenika); {@code null}: vir je tuj ali ga ni. */
+        private final String creatingMethod;
+
+        Hidden(String creatingMethod) {
+<span class="fc" id="L80">            super(&quot;hidden&quot;);</span>
+<span class="fc" id="L81">            this.creatingMethod = creatingMethod;</span>
+<span class="fc" id="L82">        }</span>
+    }
+
+    private final DavRepository repository;
+    private final ContactSnapshots snapshots;
+
+<span class="fc" id="L88">    DavController(DavRepository repository, ContactSnapshots snapshots) {</span>
+<span class="fc" id="L89">        this.repository = repository;</span>
+<span class="fc" id="L90">        this.snapshots = snapshots;</span>
+<span class="fc" id="L91">    }</span>
+
+    /** Odkrivanje strežnika (RFC 6764): brez prijave, samo preusmeritev. */
+    @RequestMapping(&quot;/.well-known/carddav&quot;)
+    void wellKnown(HttpServletResponse response) {
+<span class="fc" id="L96">        response.setStatus(301);</span>
+<span class="fc" id="L97">        response.setHeader(&quot;Location&quot;, ROOT);</span>
+<span class="fc" id="L98">    }</span>
+
+    /** OPTIONS potrebuje izrecno preslikavo (Spring sicer odgovori sam, brez glave {@code DAV}). */
+    @RequestMapping(
+            path = {&quot;/dav&quot;, &quot;/dav/**&quot;},
+            method = org.springframework.web.bind.annotation.RequestMethod.OPTIONS)
+    void options(@AuthenticationPrincipal DavAccount account, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+<span class="fc" id="L106">        handle(account, request, response);</span>
+<span class="fc" id="L107">    }</span>
+
+    @RequestMapping({&quot;/dav&quot;, &quot;/dav/**&quot;})
+    void handle(@AuthenticationPrincipal DavAccount account, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+<span class="fc" id="L112">        String method = request.getMethod().toUpperCase(Locale.ROOT);</span>
+<span class="fc" id="L113">        String path = path(request);</span>
+        Resource resource;
+        try {
+<span class="fc" id="L116">            resource = resolve(account, path);</span>
+<span class="fc" id="L117">        } catch (Hidden hidden) {</span>
+            // Ustvarjanje (PUT nove vizitke v vidnem imeniku, MKCOL imenika) je nedovoljeno (403); drugače vir ni viden
+            // (404).
+<span class="fc bfc" id="L120" title="All 2 branches covered.">            if (method.equals(hidden.creatingMethod)) {</span>
+<span class="fc" id="L121">                forbidden(response);</span>
+            } else {
+<span class="fc" id="L123">                response.setStatus(404);</span>
+            }
+<span class="fc" id="L125">            return;</span>
+<span class="fc" id="L126">        }</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">        if (WRITE.contains(method)) {</span>
+<span class="fc" id="L128">            forbidden(response);</span>
+<span class="fc" id="L129">            return;</span>
+        }
+<span class="pc bpc" id="L131" title="1 of 5 branches missed.">        switch (method) {</span>
+<span class="fc" id="L132">            case &quot;OPTIONS&quot; -&gt; options(response);</span>
+<span class="fc" id="L133">            case &quot;GET&quot;, &quot;HEAD&quot; -&gt; get(account, resource, request, response, method.equals(&quot;HEAD&quot;));</span>
+<span class="fc" id="L134">            case &quot;PROPFIND&quot; -&gt; propfind(account, resource, request, response);</span>
+<span class="fc" id="L135">            case &quot;REPORT&quot; -&gt; report(account, resource, request, response);</span>
+            default -&gt; {
+<span class="nc" id="L137">                response.setStatus(405);</span>
+<span class="nc" id="L138">                response.setHeader(&quot;Allow&quot;, &quot;OPTIONS, GET, HEAD, PROPFIND, REPORT&quot;);</span>
+            }
+        }
+<span class="fc" id="L141">    }</span>
+
+    private Resource resolve(DavAccount account, String path) throws Hidden {
+<span class="pc bpc" id="L144" title="1 of 4 branches missed.">        if (path.equals(&quot;/dav&quot;) || path.equals(ROOT)) {</span>
+<span class="fc" id="L145">            return new Root();</span>
+        }
+<span class="pc bpc" id="L147" title="1 of 4 branches missed.">        if (path.equals(PRINCIPAL) || path.equals(&quot;/dav/principals/me&quot;)) {</span>
+<span class="fc" id="L148">            return new Principal();</span>
+        }
+<span class="pc bpc" id="L150" title="1 of 4 branches missed.">        if (path.equals(HOME) || path.equals(&quot;/dav/addressbooks&quot;)) {</span>
+<span class="fc" id="L151">            return new Home();</span>
+        }
+<span class="fc" id="L153">        Matcher card = CARD.matcher(path);</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">        if (card.matches()) {</span>
+<span class="fc" id="L155">            Book book = visibleBook(account, card.group(1)).orElseThrow(() -&gt; new Hidden(null));</span>
+<span class="fc" id="L156">            Optional&lt;UUID&gt; id = uuid(card.group(2));</span>
+<span class="pc bpc" id="L157" title="1 of 2 branches missed.">            if (id.isEmpty()) {</span>
+<span class="nc" id="L158">                throw new Hidden(&quot;PUT&quot;);</span>
+            }
+<span class="fc" id="L160">            List&lt;Card&gt; cards = repository.cards(book.id(), Set.of(id.get()));</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">            if (cards.isEmpty()) {</span>
+<span class="fc" id="L162">                throw new Hidden(&quot;PUT&quot;);</span>
+            }
+<span class="fc" id="L164">            return new CardResource(book, cards.get(0));</span>
+        }
+<span class="fc" id="L166">        Matcher book = BOOK.matcher(path);</span>
+<span class="pc bpc" id="L167" title="1 of 2 branches missed.">        if (book.matches()) {</span>
+<span class="fc" id="L168">            return new BookResource(visibleBook(account, book.group(1)).orElseThrow(() -&gt; new Hidden(&quot;MKCOL&quot;)));</span>
+        }
+<span class="nc bnc" id="L170" title="All 2 branches missed.">        throw new Hidden(path.startsWith(HOME) ? &quot;MKCOL&quot; : null);</span>
+    }
+
+    private Optional&lt;Book&gt; visibleBook(DavAccount account, String segment) {
+<span class="fc" id="L174">        return uuid(segment).flatMap(id -&gt; repository.book(account.userId(), id));</span>
+    }
+
+    private static void options(HttpServletResponse response) {
+<span class="fc" id="L178">        response.setStatus(200);</span>
+<span class="fc" id="L179">        response.setHeader(&quot;DAV&quot;, &quot;1, 3, addressbook&quot;);</span>
+<span class="fc" id="L180">        response.setHeader(&quot;Allow&quot;, &quot;OPTIONS, GET, HEAD, PROPFIND, REPORT&quot;);</span>
+<span class="fc" id="L181">    }</span>
+
+    private void get(
+            DavAccount account,
+            Resource resource,
+            HttpServletRequest request,
+            HttpServletResponse response,
+            boolean head)
+            throws IOException {
+<span class="pc bpc" id="L190" title="1 of 2 branches missed.">        if (!(resource instanceof CardResource card)) {</span>
+<span class="nc" id="L191">            write(response, 200, &quot;text/plain; charset=utf-8&quot;, &quot;Contact Manager CardDAV\n&quot;, head);</span>
+<span class="nc" id="L192">            return;</span>
+        }
+<span class="fc" id="L194">        String etag = etag(card.card(), account);</span>
+<span class="fc" id="L195">        response.setHeader(&quot;ETag&quot;, etag);</span>
+<span class="fc" id="L196">        response.setHeader(&quot;Last-Modified&quot;, HTTP_DATE.format(card.card().updatedAt()));</span>
+<span class="fc" id="L197">        String match = request.getHeader(&quot;If-None-Match&quot;);</span>
+<span class="fc bfc" id="L198" title="All 2 branches covered.">        if (match != null</span>
+<span class="pc bpc" id="L199" title="1 of 2 branches missed.">                &amp;&amp; (match.strip().equals(&quot;*&quot;)</span>
+<span class="pc bpc" id="L200" title="1 of 2 branches missed.">                        || List.of(match.split(&quot;,&quot;)).stream().map(String::strip).anyMatch(etag::equals))) {</span>
+<span class="fc" id="L201">            response.setStatus(304);</span>
+<span class="fc" id="L202">            return;</span>
+        }
+<span class="fc" id="L204">        String vcard = vcards(account, card.book(), List.of(card.card()))</span>
+<span class="fc" id="L205">                .get(card.card().id());</span>
+<span class="fc" id="L206">        write(response, 200, &quot;text/vcard; charset=utf-8&quot;, vcard, head);</span>
+<span class="fc" id="L207">    }</span>
+
+    private void propfind(
+            DavAccount account, Resource resource, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+<span class="fc" id="L212">        String depth =</span>
+<span class="fc" id="L213">                Optional.ofNullable(request.getHeader(&quot;Depth&quot;)).orElse(&quot;0&quot;).strip();</span>
+<span class="fc bfc" id="L214" title="All 2 branches covered.">        if (depth.equalsIgnoreCase(&quot;infinity&quot;)) {</span>
+<span class="fc" id="L215">            error(response, 403, &quot;&lt;d:propfind-finite-depth/&gt;&quot;);</span>
+<span class="fc" id="L216">            return;</span>
+        }
+        Document document;
+        try {
+<span class="fc" id="L220">            document = DavXml.parse(body(request));</span>
+<span class="fc" id="L221">        } catch (DavXml.Malformed e) {</span>
+<span class="fc" id="L222">            response.setStatus(400);</span>
+<span class="fc" id="L223">            return;</span>
+<span class="fc" id="L224">        }</span>
+<span class="fc" id="L225">        List&lt;Name&gt; requested = DavXml.requested(document);</span>
+<span class="fc" id="L226">        List&lt;Resource&gt; resources = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L227">        resources.add(resource);</span>
+<span class="fc bfc" id="L228" title="All 2 branches covered.">        if (depth.equals(&quot;1&quot;)) {</span>
+<span class="pc bpc" id="L229" title="2 of 4 branches missed.">            switch (resource) {</span>
+<span class="nc" id="L230">                case Root r -&gt; {</span>
+<span class="nc" id="L231">                    resources.add(new Principal());</span>
+<span class="nc" id="L232">                    resources.add(new Home());</span>
+<span class="nc" id="L233">                }</span>
+<span class="fc" id="L234">                case Home h -&gt; repository.books(account.userId()).forEach(b -&gt; resources.add(new BookResource(b)));</span>
+<span class="fc" id="L235">                case BookResource b -&gt;</span>
+<span class="fc" id="L236">                    repository.cards(b.book().id()).forEach(c -&gt; resources.add(new CardResource(b.book(), c)));</span>
+                default -&gt; {
+                    // brez otrok
+                }
+            }
+        }
+<span class="fc" id="L242">        multistatus(response, responses(account, resources, requested));</span>
+<span class="fc" id="L243">    }</span>
+
+    private void report(DavAccount account, Resource resource, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+<span class="pc bpc" id="L247" title="1 of 2 branches missed.">        if (!(resource instanceof BookResource bookResource)) {</span>
+<span class="nc" id="L248">            error(response, 403, &quot;&lt;d:supported-report/&gt;&quot;);</span>
+<span class="nc" id="L249">            return;</span>
+        }
+<span class="fc" id="L251">        Book book = bookResource.book();</span>
+        Document document;
+        try {
+<span class="fc" id="L254">            document = DavXml.parse(body(request));</span>
+<span class="fc" id="L255">        } catch (DavXml.Malformed e) {</span>
+<span class="fc" id="L256">            response.setStatus(400);</span>
+<span class="fc" id="L257">            return;</span>
+<span class="fc" id="L258">        }</span>
+<span class="pc bpc" id="L259" title="1 of 2 branches missed.">        if (document == null) {</span>
+<span class="nc" id="L260">            response.setStatus(400);</span>
+<span class="nc" id="L261">            return;</span>
+        }
+<span class="fc" id="L263">        Element root = document.getDocumentElement();</span>
+<span class="fc" id="L264">        List&lt;Name&gt; requested = DavXml.requested(document);</span>
+<span class="fc" id="L265">        String kind = root.getNamespaceURI() + root.getLocalName();</span>
+<span class="fc bfc" id="L266" title="All 2 branches covered.">        if (kind.equals(DavXml.CARD + &quot;addressbook-multiget&quot;)) {</span>
+<span class="fc" id="L267">            multiget(account, book, DavXml.texts(root, DavXml.DAV, &quot;href&quot;), requested, response);</span>
+<span class="pc bpc" id="L268" title="1 of 2 branches missed.">        } else if (kind.equals(DavXml.CARD + &quot;addressbook-query&quot;)) {</span>
+<span class="nc" id="L269">            List&lt;Resource&gt; cards = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L270">            repository.cards(book.id()).forEach(c -&gt; cards.add(new CardResource(book, c)));</span>
+<span class="nc" id="L271">            multistatus(response, responses(account, cards, requested));</span>
+<span class="pc bpc" id="L272" title="1 of 2 branches missed.">        } else if (kind.equals(DavXml.DAV + &quot;sync-collection&quot;)) {</span>
+<span class="fc" id="L273">            Element token = DavXml.first(root, DavXml.DAV, &quot;sync-token&quot;);</span>
+<span class="pc bpc" id="L274" title="1 of 2 branches missed.">            sync(account, book, token == null ? &quot;&quot; : token.getTextContent().strip(), requested, response);</span>
+<span class="fc" id="L275">        } else {</span>
+<span class="nc" id="L276">            error(response, 403, &quot;&lt;d:supported-report/&gt;&quot;);</span>
+        }
+<span class="fc" id="L278">    }</span>
+
+    private void multiget(
+            DavAccount account, Book book, List&lt;String&gt; hrefs, List&lt;Name&gt; requested, HttpServletResponse response)
+            throws IOException {
+<span class="fc" id="L283">        Map&lt;String, UUID&gt; wanted = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L284">        StringBuilder missing = new StringBuilder();</span>
+<span class="fc bfc" id="L285" title="All 2 branches covered.">        for (String href : hrefs) {</span>
+<span class="fc" id="L286">            Matcher card = CARD.matcher(hrefPath(href));</span>
+            Optional&lt;UUID&gt; id =
+<span class="pc bpc" id="L288" title="2 of 4 branches missed.">                    card.matches() &amp;&amp; card.group(1).equalsIgnoreCase(book.id().toString())</span>
+<span class="fc" id="L289">                            ? uuid(card.group(2))</span>
+<span class="pc" id="L290">                            : Optional.empty();</span>
+<span class="pc bpc" id="L291" title="1 of 2 branches missed.">            if (id.isPresent()) {</span>
+<span class="fc" id="L292">                wanted.put(href, id.get());</span>
+            } else {
+<span class="nc" id="L294">                missing.append(notFound(href));</span>
+            }
+<span class="fc" id="L296">        }</span>
+<span class="fc" id="L297">        List&lt;Card&gt; cards = repository.cards(book.id(), new LinkedHashSet&lt;&gt;(wanted.values()));</span>
+<span class="fc" id="L298">        Set&lt;UUID&gt; found = new LinkedHashSet&lt;&gt;();</span>
+<span class="fc" id="L299">        List&lt;Resource&gt; resources = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L300" title="All 2 branches covered.">        for (Card card : cards) {</span>
+<span class="fc" id="L301">            found.add(card.id());</span>
+<span class="fc" id="L302">            resources.add(new CardResource(book, card));</span>
+<span class="fc" id="L303">        }</span>
+<span class="fc bfc" id="L304" title="All 2 branches covered.">        for (Map.Entry&lt;String, UUID&gt; entry : wanted.entrySet()) {</span>
+<span class="fc bfc" id="L305" title="All 2 branches covered.">            if (!found.contains(entry.getValue())) {</span>
+<span class="fc" id="L306">                missing.append(notFound(entry.getKey()));</span>
+            }
+<span class="fc" id="L308">        }</span>
+<span class="fc" id="L309">        multistatus(response, responses(account, resources, requested) + missing);</span>
+<span class="fc" id="L310">    }</span>
+
+    private void sync(DavAccount account, Book book, String token, List&lt;Name&gt; requested, HttpServletResponse response)
+            throws IOException {
+        List&lt;Card&gt; cards;
+<span class="fc" id="L315">        StringBuilder removed = new StringBuilder();</span>
+<span class="fc bfc" id="L316" title="All 2 branches covered.">        if (token.isEmpty()) {</span>
+<span class="fc" id="L317">            cards = repository.cards(book.id());</span>
+        } else {
+<span class="fc" id="L319">            Optional&lt;Long&gt; seq = parseToken(token, account.language());</span>
+<span class="fc bfc" id="L320" title="All 4 branches covered.">            if (seq.isEmpty() || seq.get() &gt; book.lastSeq()) {</span>
+<span class="fc" id="L321">                error(response, 403, &quot;&lt;d:valid-sync-token/&gt;&quot;);</span>
+<span class="fc" id="L322">                return;</span>
+            }
+<span class="fc" id="L324">            Set&lt;UUID&gt; changed = repository.changedSince(book.id(), seq.get());</span>
+<span class="fc" id="L325">            cards = repository.cards(book.id(), changed);</span>
+<span class="fc" id="L326">            Set&lt;UUID&gt; present = new LinkedHashSet&lt;&gt;();</span>
+<span class="fc" id="L327">            cards.forEach(c -&gt; present.add(c.id()));</span>
+<span class="fc bfc" id="L328" title="All 2 branches covered.">            for (UUID id : changed) {</span>
+<span class="fc bfc" id="L329" title="All 2 branches covered.">                if (!present.contains(id)) {</span>
+<span class="fc" id="L330">                    removed.append(notFound(cardHref(book.id(), id)));</span>
+                }
+<span class="fc" id="L332">            }</span>
+        }
+<span class="fc" id="L334">        List&lt;Resource&gt; resources = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L335">        cards.forEach(c -&gt; resources.add(new CardResource(book, c)));</span>
+<span class="fc" id="L336">        String body =</span>
+<span class="pc bpc" id="L337" title="1 of 2 branches missed.">                responses(account, resources, requested == null ? List.of(new Name(DavXml.DAV, &quot;getetag&quot;)) : requested)</span>
+                        + removed
+<span class="fc" id="L339">                        + &quot;&lt;d:sync-token&gt;&quot; + DavXml.escape(syncToken(book, account)) + &quot;&lt;/d:sync-token&gt;&quot;;</span>
+<span class="fc" id="L340">        multistatus(response, body);</span>
+<span class="fc" id="L341">    }</span>
+
+    private String responses(DavAccount account, List&lt;Resource&gt; resources, List&lt;Name&gt; requested) {
+<span class="fc" id="L344">        List&lt;Card&gt; needData = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L345">        Book dataBook = null;</span>
+<span class="fc bfc" id="L346" title="All 2 branches covered.">        boolean wantsData = requested != null</span>
+<span class="fc" id="L347">                &amp;&amp; requested.stream()</span>
+<span class="fc bfc" id="L348" title="All 2 branches covered.">                        .anyMatch(n -&gt;</span>
+<span class="pc bpc" id="L349" title="1 of 4 branches missed.">                                n.namespace().equals(DavXml.CARD) &amp;&amp; n.local().equals(&quot;address-data&quot;));</span>
+<span class="fc bfc" id="L350" title="All 2 branches covered.">        if (wantsData) {</span>
+<span class="fc bfc" id="L351" title="All 2 branches covered.">            for (Resource resource : resources) {</span>
+<span class="pc bpc" id="L352" title="1 of 2 branches missed.">                if (resource instanceof CardResource card) {</span>
+<span class="fc" id="L353">                    needData.add(card.card());</span>
+<span class="fc" id="L354">                    dataBook = card.book();</span>
+                }
+<span class="fc" id="L356">            }</span>
+        }
+<span class="fc bfc" id="L358" title="All 2 branches covered.">        Map&lt;UUID, String&gt; data = dataBook == null ? Map.of() : vcards(account, dataBook, needData);</span>
+<span class="fc" id="L359">        StringBuilder out = new StringBuilder();</span>
+<span class="fc bfc" id="L360" title="All 2 branches covered.">        for (Resource resource : resources) {</span>
+<span class="fc bfc" id="L361" title="All 2 branches covered.">            List&lt;Name&gt; names = requested == null ? defaults(resource) : requested;</span>
+<span class="fc" id="L362">            StringBuilder ok = new StringBuilder();</span>
+<span class="fc" id="L363">            StringBuilder missing = new StringBuilder();</span>
+<span class="fc bfc" id="L364" title="All 2 branches covered.">            for (Name name : names) {</span>
+<span class="fc" id="L365">                String value = property(account, resource, name, data);</span>
+<span class="pc bpc" id="L366" title="1 of 2 branches missed.">                if (value == null) {</span>
+<span class="nc" id="L367">                    missing.append(empty(name));</span>
+                } else {
+<span class="fc" id="L369">                    ok.append(value);</span>
+                }
+<span class="fc" id="L371">            }</span>
+<span class="fc" id="L372">            out.append(&quot;&lt;d:response&gt;&lt;d:href&gt;&quot;)</span>
+<span class="fc" id="L373">                    .append(DavXml.escape(href(resource)))</span>
+<span class="fc" id="L374">                    .append(&quot;&lt;/d:href&gt;&quot;);</span>
+<span class="pc bpc" id="L375" title="1 of 2 branches missed.">            if (!ok.isEmpty()) {</span>
+<span class="fc" id="L376">                out.append(&quot;&lt;d:propstat&gt;&lt;d:prop&gt;&quot;).append(ok).append(&quot;&lt;/d:prop&gt;&quot;);</span>
+<span class="fc" id="L377">                out.append(&quot;&lt;d:status&gt;HTTP/1.1 200 OK&lt;/d:status&gt;&lt;/d:propstat&gt;&quot;);</span>
+            }
+<span class="pc bpc" id="L379" title="1 of 2 branches missed.">            if (!missing.isEmpty()) {</span>
+<span class="nc" id="L380">                out.append(&quot;&lt;d:propstat&gt;&lt;d:prop&gt;&quot;).append(missing).append(&quot;&lt;/d:prop&gt;&quot;);</span>
+<span class="nc" id="L381">                out.append(&quot;&lt;d:status&gt;HTTP/1.1 404 Not Found&lt;/d:status&gt;&lt;/d:propstat&gt;&quot;);</span>
+            }
+<span class="fc" id="L383">            out.append(&quot;&lt;/d:response&gt;&quot;);</span>
+<span class="fc" id="L384">        }</span>
+<span class="fc" id="L385">        return out.toString();</span>
+    }
+
+    private static List&lt;Name&gt; defaults(Resource resource) {
+<span class="fc" id="L389">        List&lt;Name&gt; names = new ArrayList&lt;&gt;(List.of(</span>
+                new Name(DavXml.DAV, &quot;resourcetype&quot;),
+                new Name(DavXml.DAV, &quot;displayname&quot;),
+                new Name(DavXml.DAV, &quot;current-user-principal&quot;)));
+<span class="fc bfc" id="L393" title="All 4 branches covered.">        switch (resource) {</span>
+<span class="fc" id="L394">            case Principal p -&gt; {</span>
+<span class="fc" id="L395">                names.add(new Name(DavXml.DAV, &quot;principal-URL&quot;));</span>
+<span class="fc" id="L396">                names.add(new Name(DavXml.CARD, &quot;addressbook-home-set&quot;));</span>
+<span class="fc" id="L397">            }</span>
+<span class="fc" id="L398">            case BookResource b -&gt; {</span>
+<span class="fc" id="L399">                names.add(new Name(DavXml.CS, &quot;getctag&quot;));</span>
+<span class="fc" id="L400">                names.add(new Name(DavXml.DAV, &quot;sync-token&quot;));</span>
+<span class="fc" id="L401">                names.add(new Name(DavXml.DAV, &quot;current-user-privilege-set&quot;));</span>
+<span class="fc" id="L402">                names.add(new Name(DavXml.DAV, &quot;supported-report-set&quot;));</span>
+<span class="fc" id="L403">                names.add(new Name(DavXml.CARD, &quot;supported-address-data&quot;));</span>
+<span class="fc" id="L404">            }</span>
+<span class="fc" id="L405">            case CardResource c -&gt; {</span>
+<span class="fc" id="L406">                names.clear();</span>
+<span class="fc" id="L407">                names.add(new Name(DavXml.DAV, &quot;resourcetype&quot;));</span>
+<span class="fc" id="L408">                names.add(new Name(DavXml.DAV, &quot;getetag&quot;));</span>
+<span class="fc" id="L409">                names.add(new Name(DavXml.DAV, &quot;getcontenttype&quot;));</span>
+<span class="fc" id="L410">                names.add(new Name(DavXml.DAV, &quot;getlastmodified&quot;));</span>
+<span class="fc" id="L411">            }</span>
+            default -&gt; {
+                // koren in dom
+            }
+        }
+<span class="fc" id="L416">        return names;</span>
+    }
+
+    /** Vrednost lastnosti kot XML ali {@code null}, če je vir nima. */
+    private String property(DavAccount account, Resource resource, Name name, Map&lt;UUID, String&gt; data) {
+<span class="fc" id="L421">        String key = name.namespace() + name.local();</span>
+<span class="pc bpc" id="L422" title="1 of 15 branches missed.">        switch (key) {</span>
+            case DavXml.DAV + &quot;current-user-principal&quot;:
+<span class="fc" id="L424">                return &quot;&lt;d:current-user-principal&gt;&lt;d:href&gt;&quot; + PRINCIPAL + &quot;&lt;/d:href&gt;&lt;/d:current-user-principal&gt;&quot;;</span>
+            case DavXml.DAV + &quot;principal-URL&quot;:
+<span class="pc bpc" id="L426" title="1 of 2 branches missed.">                return resource instanceof Principal</span>
+<span class="fc" id="L427">                        ? &quot;&lt;d:principal-URL&gt;&lt;d:href&gt;&quot; + PRINCIPAL + &quot;&lt;/d:href&gt;&lt;/d:principal-URL&gt;&quot;</span>
+<span class="nc" id="L428">                        : null;</span>
+            case DavXml.CARD + &quot;addressbook-home-set&quot;:
+<span class="pc bpc" id="L430" title="3 of 4 branches missed.">                return resource instanceof Principal || resource instanceof Root</span>
+<span class="fc" id="L431">                        ? &quot;&lt;card:addressbook-home-set&gt;&lt;d:href&gt;&quot; + HOME + &quot;&lt;/d:href&gt;&lt;/card:addressbook-home-set&gt;&quot;</span>
+<span class="nc" id="L432">                        : null;</span>
+            case DavXml.DAV + &quot;resourcetype&quot;:
+<span class="fc bfc" id="L434" title="All 4 branches covered.">                return switch (resource) {</span>
+<span class="fc" id="L435">                    case BookResource b -&gt; &quot;&lt;d:resourcetype&gt;&lt;d:collection/&gt;&lt;card:addressbook/&gt;&lt;/d:resourcetype&gt;&quot;;</span>
+<span class="fc" id="L436">                    case Principal p -&gt; &quot;&lt;d:resourcetype&gt;&lt;d:principal/&gt;&lt;/d:resourcetype&gt;&quot;;</span>
+<span class="fc" id="L437">                    case CardResource c -&gt; &quot;&lt;d:resourcetype/&gt;&quot;;</span>
+<span class="fc" id="L438">                    default -&gt; &quot;&lt;d:resourcetype&gt;&lt;d:collection/&gt;&lt;/d:resourcetype&gt;&quot;;</span>
+                };
+            case DavXml.DAV + &quot;displayname&quot;:
+<span class="pc bpc" id="L441" title="1 of 4 branches missed.">                return switch (resource) {</span>
+<span class="fc" id="L442">                    case BookResource b -&gt;</span>
+<span class="fc" id="L443">                        &quot;&lt;d:displayname&gt;&quot; + DavXml.escape(b.book().title()) + &quot;&lt;/d:displayname&gt;&quot;;</span>
+<span class="fc" id="L444">                    case Principal p -&gt; &quot;&lt;d:displayname&gt;&quot; + DavXml.escape(account.email()) + &quot;&lt;/d:displayname&gt;&quot;;</span>
+<span class="nc" id="L445">                    case CardResource c -&gt; null;</span>
+<span class="fc" id="L446">                    default -&gt; &quot;&lt;d:displayname&gt;Contact Manager&lt;/d:displayname&gt;&quot;;</span>
+                };
+            case DavXml.CS + &quot;getctag&quot;:
+<span class="pc bpc" id="L449" title="1 of 2 branches missed.">                return resource instanceof BookResource b</span>
+<span class="fc" id="L450">                        ? &quot;&lt;cs:getctag&gt;&quot; + ctag(b.book(), account) + &quot;&lt;/cs:getctag&gt;&quot;</span>
+<span class="nc" id="L451">                        : null;</span>
+            case DavXml.DAV + &quot;sync-token&quot;:
+<span class="pc bpc" id="L453" title="1 of 2 branches missed.">                return resource instanceof BookResource b</span>
+<span class="fc" id="L454">                        ? &quot;&lt;d:sync-token&gt;&quot; + DavXml.escape(syncToken(b.book(), account)) + &quot;&lt;/d:sync-token&gt;&quot;</span>
+<span class="nc" id="L455">                        : null;</span>
+            case DavXml.DAV + &quot;current-user-privilege-set&quot;:
+<span class="fc" id="L457">                return &quot;&lt;d:current-user-privilege-set&gt;&lt;d:privilege&gt;&lt;d:read/&gt;&lt;/d:privilege&gt;&quot;</span>
+                        + &quot;&lt;d:privilege&gt;&lt;d:read-current-user-privilege-set/&gt;&lt;/d:privilege&gt;&quot;
+                        + &quot;&lt;/d:current-user-privilege-set&gt;&quot;;
+            case DavXml.DAV + &quot;supported-report-set&quot;:
+<span class="pc bpc" id="L461" title="1 of 2 branches missed.">                return resource instanceof BookResource</span>
+<span class="fc" id="L462">                        ? &quot;&lt;d:supported-report-set&gt;&quot;</span>
+                                + &quot;&lt;d:supported-report&gt;&lt;d:report&gt;&lt;d:sync-collection/&gt;&lt;/d:report&gt;&lt;/d:supported-report&gt;&quot;
+                                + &quot;&lt;d:supported-report&gt;&lt;d:report&gt;&lt;card:addressbook-multiget/&gt;&lt;/d:report&gt;&lt;/d:supported-report&gt;&quot;
+                                + &quot;&lt;d:supported-report&gt;&lt;d:report&gt;&lt;card:addressbook-query/&gt;&lt;/d:report&gt;&lt;/d:supported-report&gt;&quot;
+                                + &quot;&lt;/d:supported-report-set&gt;&quot;
+<span class="nc" id="L467">                        : null;</span>
+            case DavXml.CARD + &quot;supported-address-data&quot;:
+<span class="pc bpc" id="L469" title="1 of 2 branches missed.">                return resource instanceof BookResource</span>
+<span class="fc" id="L470">                        ? &quot;&lt;card:supported-address-data&gt;&lt;card:address-data-type content-type=\&quot;text/vcard\&quot;&quot;</span>
+                                + &quot; version=\&quot;3.0\&quot;/&gt;&lt;/card:supported-address-data&gt;&quot;
+<span class="nc" id="L472">                        : null;</span>
+            case DavXml.DAV + &quot;getetag&quot;:
+<span class="pc bpc" id="L474" title="1 of 2 branches missed.">                return resource instanceof CardResource c</span>
+<span class="fc" id="L475">                        ? &quot;&lt;d:getetag&gt;&quot; + DavXml.escape(etag(c.card(), account)) + &quot;&lt;/d:getetag&gt;&quot;</span>
+<span class="nc" id="L476">                        : null;</span>
+            case DavXml.DAV + &quot;getcontenttype&quot;:
+<span class="pc bpc" id="L478" title="1 of 2 branches missed.">                return resource instanceof CardResource</span>
+<span class="fc" id="L479">                        ? &quot;&lt;d:getcontenttype&gt;text/vcard; charset=utf-8&lt;/d:getcontenttype&gt;&quot;</span>
+<span class="nc" id="L480">                        : null;</span>
+            case DavXml.DAV + &quot;getlastmodified&quot;:
+<span class="pc bpc" id="L482" title="1 of 2 branches missed.">                return resource instanceof CardResource c</span>
+<span class="fc" id="L483">                        ? &quot;&lt;d:getlastmodified&gt;&quot; + HTTP_DATE.format(c.card().updatedAt()) + &quot;&lt;/d:getlastmodified&gt;&quot;</span>
+<span class="nc" id="L484">                        : null;</span>
+            case DavXml.CARD + &quot;address-data&quot;:
+<span class="fc" id="L486">                return resource instanceof CardResource c</span>
+<span class="pc bpc" id="L487" title="2 of 4 branches missed.">                                &amp;&amp; data.containsKey(c.card().id())</span>
+                        ? &quot;&lt;card:address-data&gt;&quot;
+<span class="fc" id="L489">                                + DavXml.escape(data.get(c.card().id())) + &quot;&lt;/card:address-data&gt;&quot;</span>
+<span class="nc" id="L490">                        : null;</span>
+            default:
+<span class="nc" id="L492">                return null;</span>
+        }
+    }
+
+    /** Vizitke po FR-014-11 v jeziku uporabnika (ime države v {@code ADR}). */
+    private Map&lt;UUID, String&gt; vcards(DavAccount account, Book book, List&lt;Card&gt; cards) {
+<span class="fc" id="L498">        List&lt;UUID&gt; ids = cards.stream().map(Card::id).toList();</span>
+<span class="fc" id="L499">        Map&lt;UUID, ContactState&gt; states = snapshots.load(book.id(), ids);</span>
+<span class="fc" id="L500">        Map&lt;UUID, String&gt; result = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L501" title="All 2 branches covered.">        for (UUID id : ids) {</span>
+<span class="fc" id="L502">            ContactState s = states.get(id);</span>
+<span class="pc bpc" id="L503" title="1 of 2 branches missed.">            if (s != null) {</span>
+<span class="fc" id="L504">                VcardContact contact = new VcardContact(</span>
+                        id,
+<span class="fc" id="L506">                        s.updatedAt(),</span>
+<span class="fc" id="L507">                        s.firstName(),</span>
+<span class="fc" id="L508">                        s.lastName(),</span>
+<span class="fc" id="L509">                        s.address(),</span>
+<span class="fc" id="L510">                        s.addressParts(),</span>
+<span class="fc" id="L511">                        s.email(),</span>
+<span class="fc" id="L512">                        s.phone(),</span>
+<span class="fc" id="L513">                        s.company(),</span>
+<span class="fc" id="L514">                        s.country(),</span>
+<span class="fc" id="L515">                        s.attributes(),</span>
+<span class="fc" id="L516">                        s.tags());</span>
+<span class="fc" id="L517">                result.put(id, VcardWriter.write(List.of(contact), account.language()));</span>
+            }
+<span class="fc" id="L519">        }</span>
+<span class="fc" id="L520">        return result;</span>
+    }
+
+    /** ETag vključuje jezik, ker je ime države v vizitki odvisno od njega (research R-08). */
+    static String etag(Card card, DavAccount account) {
+<span class="fc" id="L525">        return &quot;\&quot;&quot; + card.version() + &quot;-&quot; + card.updatedAt().toEpochMilli() + &quot;-&quot; + account.language() + &quot;\&quot;&quot;;</span>
+    }
+
+    /** {@code getctag}: jezik, zadnja številka sledi in verzija skupine (sprememba naslova). */
+    static String ctag(Book book, DavAccount account) {
+<span class="fc" id="L530">        return account.language() + &quot;-&quot; + book.lastSeq() + &quot;-&quot; + book.version();</span>
+    }
+
+    static String syncToken(Book book, DavAccount account) {
+<span class="fc" id="L534">        return SYNC_PREFIX + account.language() + &quot;:&quot; + book.lastSeq();</span>
+    }
+
+    static Optional&lt;Long&gt; parseToken(String token, String language) {
+<span class="fc" id="L538">        String prefix = SYNC_PREFIX + language + &quot;:&quot;;</span>
+<span class="fc bfc" id="L539" title="All 2 branches covered.">        if (!token.startsWith(prefix)) {</span>
+<span class="fc" id="L540">            return Optional.empty();</span>
+        }
+        try {
+<span class="fc" id="L543">            long seq = Long.parseLong(token.substring(prefix.length()));</span>
+<span class="pc bpc" id="L544" title="1 of 2 branches missed.">            return seq &lt; 0 ? Optional.empty() : Optional.of(seq);</span>
+<span class="nc" id="L545">        } catch (NumberFormatException e) {</span>
+<span class="nc" id="L546">            return Optional.empty();</span>
+        }
+    }
+
+    private static String href(Resource resource) {
+<span class="fc bfc" id="L551" title="All 5 branches covered.">        return switch (resource) {</span>
+<span class="fc" id="L552">            case Root r -&gt; ROOT;</span>
+<span class="fc" id="L553">            case Principal p -&gt; PRINCIPAL;</span>
+<span class="fc" id="L554">            case Home h -&gt; HOME;</span>
+<span class="fc" id="L555">            case BookResource b -&gt; HOME + b.book().id() + &quot;/&quot;;</span>
+<span class="fc" id="L556">            case CardResource c -&gt; cardHref(c.book().id(), c.card().id());</span>
+        };
+    }
+
+    private static String cardHref(UUID book, UUID card) {
+<span class="fc" id="L561">        return HOME + book + &quot;/&quot; + card + &quot;.vcf&quot;;</span>
+    }
+
+    private static String notFound(String href) {
+<span class="fc" id="L565">        return &quot;&lt;d:response&gt;&lt;d:href&gt;&quot; + DavXml.escape(href) + &quot;&lt;/d:href&gt;&lt;d:status&gt;HTTP/1.1 404 Not Found&lt;/d:status&gt;&quot;</span>
+                + &quot;&lt;/d:response&gt;&quot;;
+    }
+
+    private static String empty(Name name) {
+<span class="nc bnc" id="L570" title="All 4 branches missed.">        return switch (name.namespace()) {</span>
+<span class="nc" id="L571">            case DavXml.DAV -&gt; &quot;&lt;d:&quot; + name.local() + &quot;/&gt;&quot;;</span>
+<span class="nc" id="L572">            case DavXml.CARD -&gt; &quot;&lt;card:&quot; + name.local() + &quot;/&gt;&quot;;</span>
+<span class="nc" id="L573">            case DavXml.CS -&gt; &quot;&lt;cs:&quot; + name.local() + &quot;/&gt;&quot;;</span>
+<span class="nc" id="L574">            default -&gt; &quot;&lt;x:&quot; + name.local() + &quot; xmlns:x=\&quot;&quot; + DavXml.escape(name.namespace()) + &quot;\&quot;/&gt;&quot;;</span>
+        };
+    }
+
+    private static void multistatus(HttpServletResponse response, String responses) throws IOException {
+<span class="fc" id="L579">        String xml = &quot;&lt;?xml version=\&quot;1.0\&quot; encoding=\&quot;utf-8\&quot;?&gt;&quot;</span>
+                + &quot;&lt;d:multistatus xmlns:d=\&quot;DAV:\&quot; xmlns:card=\&quot;&quot; + DavXml.CARD + &quot;\&quot; xmlns:cs=\&quot;&quot; + DavXml.CS + &quot;\&quot;&gt;&quot;
+                + responses + &quot;&lt;/d:multistatus&gt;&quot;;
+<span class="fc" id="L582">        write(response, 207, &quot;application/xml; charset=utf-8&quot;, xml, false);</span>
+<span class="fc" id="L583">    }</span>
+
+    private static void forbidden(HttpServletResponse response) throws IOException {
+<span class="fc" id="L586">        error(response, 403, &quot;&lt;d:need-privileges/&gt;&quot;);</span>
+<span class="fc" id="L587">    }</span>
+
+    private static void error(HttpServletResponse response, int status, String condition) throws IOException {
+<span class="fc" id="L590">        String xml = &quot;&lt;?xml version=\&quot;1.0\&quot; encoding=\&quot;utf-8\&quot;?&gt;&lt;d:error xmlns:d=\&quot;DAV:\&quot;&gt;&quot; + condition + &quot;&lt;/d:error&gt;&quot;;</span>
+<span class="fc" id="L591">        write(response, status, &quot;application/xml; charset=utf-8&quot;, xml, false);</span>
+<span class="fc" id="L592">    }</span>
+
+    private static void write(HttpServletResponse response, int status, String type, String body, boolean head)
+            throws IOException {
+<span class="fc" id="L596">        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);</span>
+<span class="fc" id="L597">        response.setStatus(status);</span>
+<span class="fc" id="L598">        response.setContentType(type);</span>
+<span class="fc" id="L599">        response.setContentLength(bytes.length);</span>
+<span class="fc" id="L600">        response.setHeader(&quot;Cache-Control&quot;, &quot;no-store&quot;);</span>
+<span class="fc bfc" id="L601" title="All 2 branches covered.">        if (!head) {</span>
+<span class="fc" id="L602">            response.getOutputStream().write(bytes);</span>
+        }
+<span class="fc" id="L604">    }</span>
+
+    private static byte[] body(HttpServletRequest request) throws IOException {
+<span class="fc" id="L607">        try (InputStream in = request.getInputStream()) {</span>
+<span class="fc" id="L608">            byte[] bytes = in.readNBytes(DavXml.MAX_BODY + 1);</span>
+<span class="pc bpc" id="L609" title="1 of 2 branches missed.">            if (bytes.length &gt; DavXml.MAX_BODY) {</span>
+<span class="nc" id="L610">                throw new IOException(&quot;telo je preveliko&quot;);</span>
+            }
+<span class="fc" id="L612">            return bytes;</span>
+        }
+    }
+
+    private static String path(HttpServletRequest request) {
+<span class="fc" id="L617">        String uri = request.getRequestURI().substring(request.getContextPath().length());</span>
+<span class="fc" id="L618">        return URLDecoder.decode(uri.replace(&quot;+&quot;, &quot;%2B&quot;), StandardCharsets.UTF_8);</span>
+    }
+
+    private static String hrefPath(String href) {
+        try {
+<span class="fc" id="L623">            String path = URI.create(href.strip()).getPath();</span>
+<span class="pc bpc" id="L624" title="1 of 2 branches missed.">            return path == null ? &quot;&quot; : path;</span>
+<span class="nc" id="L625">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L626">            return &quot;&quot;;</span>
+        }
+    }
+
+    private static Optional&lt;UUID&gt; uuid(String text) {
+        try {
+<span class="fc" id="L632">            return Optional.of(UUID.fromString(text));</span>
+<span class="fc" id="L633">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L634">            return Optional.empty();</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

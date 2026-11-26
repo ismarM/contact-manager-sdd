@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DeletedContactController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.audit</a> &gt; <span class="el_source">DeletedContactController.java</span></div><h1>DeletedContactController.java</h1><pre class="source lang-java linenums">package si.contactmanager.audit;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import si.contactmanager.audit.DeletedContactRepository.Filter;
+import si.contactmanager.audit.DeletedContactRepository.State;
+import si.contactmanager.audit.HistoryViews.DeletedPage;
+import si.contactmanager.group.GroupAccess;
+import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.group.Role;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+import si.contactmanager.shared.error.ValidationException;
+
+/** Seznam izbrisanih kontaktov (015, FR-015-22 … -24): VIEWER, tudi v arhivirani skupini; izpeljan iz sledi. */
+@RestController
+@RequestMapping(&quot;/api/groups/{groupId}/deleted-contacts&quot;)
+class DeletedContactController {
+
+    private static final int MAX_QUERY = 100;
+
+    private final DeletedContactRepository repository;
+    private final GroupAccess access;
+
+<span class="fc" id="L32">    DeletedContactController(DeletedContactRepository repository, GroupAccess access) {</span>
+<span class="fc" id="L33">        this.repository = repository;</span>
+<span class="fc" id="L34">        this.access = access;</span>
+<span class="fc" id="L35">    }</span>
+
+    @GetMapping
+    DeletedPage list(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String groupId,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String state,
+            @RequestParam(required = false) String page,
+            @RequestParam(required = false) String size) {
+<span class="fc" id="L45">        Membership membership = access.require(jwt, groupId, Role.VIEWER, false);</span>
+<span class="fc" id="L46">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L47">        Integer pageNumber = AuditParams.page(page, errors);</span>
+<span class="fc" id="L48">        Integer pageSize = AuditParams.size(size, errors);</span>
+<span class="fc" id="L49">        State parsed = State.ALL;</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        if (state != null) {</span>
+            try {
+<span class="fc" id="L52">                parsed = State.valueOf(state.toUpperCase(java.util.Locale.ROOT));</span>
+<span class="fc" id="L53">            } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L54">                errors.add(new FieldError(&quot;state&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L55">            }</span>
+        }
+<span class="fc bfc" id="L57" title="All 2 branches covered.">        String query = q == null ? &quot;&quot; : q.strip();</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">        if (query.length() &gt; MAX_QUERY) {</span>
+<span class="fc" id="L59">            errors.add(new FieldError(&quot;q&quot;, &quot;TOO_LONG&quot;));</span>
+        }
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        if (!errors.isEmpty()) {</span>
+<span class="fc" id="L62">            throw new ValidationException(errors);</span>
+        }
+<span class="fc" id="L64">        UUID group = membership.groupId();</span>
+<span class="fc" id="L65">        Filter filter = new Filter(query, parsed);</span>
+<span class="fc" id="L66">        return new DeletedPage(</span>
+<span class="fc" id="L67">                repository.count(group, filter),</span>
+<span class="fc" id="L68">                pageNumber,</span>
+<span class="fc" id="L69">                pageSize,</span>
+<span class="fc" id="L70">                repository.page(group, filter, pageSize, pageNumber));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

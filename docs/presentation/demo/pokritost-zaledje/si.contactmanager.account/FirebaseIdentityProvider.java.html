@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FirebaseIdentityProvider.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.account</a> &gt; <span class="el_source">FirebaseIdentityProvider.java</span></div><h1>FirebaseIdentityProvider.java</h1><pre class="source lang-java linenums">package si.contactmanager.account;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import si.contactmanager.shared.security.FirebaseProperties;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * Brisanje identitete prek Identity Toolkit REST {@code accounts:delete} (D-73, research R-06). Emulator
+ * ({@code firebase.auth-emulator-host}): {@code http://{host}/identitytoolkit.googleapis.com/…}; produkcija:
+ * {@code https://identitytoolkit.googleapis.com/…}. Vedno z OAuth 2.0 žetonom iz {@link AccessTokenSource}, nikoli z ID
+ * žetonom uporabnika. Dnevnik ne vsebuje UID-a, žetonov, telesa odgovora ali sporočil izjem (samo kode).
+ */
+final class FirebaseIdentityProvider implements IdentityProvider {
+
+<span class="fc" id="L22">    private static final Logger LOG = LoggerFactory.getLogger(FirebaseIdentityProvider.class);</span>
+<span class="fc" id="L23">    private static final JsonMapper JSON = JsonMapper.builder().build();</span>
+
+    private final HttpClient http;
+    private final AccessTokenSource tokens;
+    private final IdentityDeletionProperties properties;
+    private final URI endpoint;
+
+    FirebaseIdentityProvider(
+            HttpClient http,
+            AccessTokenSource tokens,
+            IdentityDeletionProperties properties,
+<span class="fc" id="L34">            FirebaseProperties firebase) {</span>
+<span class="fc" id="L35">        this.http = http;</span>
+<span class="fc" id="L36">        this.tokens = tokens;</span>
+<span class="fc" id="L37">        this.properties = properties;</span>
+<span class="fc bfc" id="L38" title="All 2 branches covered.">        String base = firebase.emulator()</span>
+<span class="fc" id="L39">                ? &quot;http://&quot; + firebase.authEmulatorHost() + &quot;/identitytoolkit.googleapis.com&quot;</span>
+<span class="fc" id="L40">                : &quot;https://identitytoolkit.googleapis.com&quot;;</span>
+<span class="fc" id="L41">        this.endpoint = URI.create(base + &quot;/v1/projects/&quot; + firebase.projectId() + &quot;/accounts:delete&quot;);</span>
+<span class="fc" id="L42">    }</span>
+
+    @Override
+    public Result deleteWithDetail(String uid) {
+        String token;
+        try {
+<span class="fc" id="L48">            token = tokens.token();</span>
+<span class="fc" id="L49">        } catch (IOException | RuntimeException e) {</span>
+<span class="fc" id="L50">            LOG.error(</span>
+                    &quot;Pridobitev OAuth žetona za brisanje identitete ni uspela ({})&quot;,
+<span class="fc" id="L52">                    e.getClass().getSimpleName());</span>
+<span class="fc" id="L53">            return new Result(Outcome.MISCONFIGURED, &quot;NO_CREDENTIALS&quot;);</span>
+<span class="fc" id="L54">        }</span>
+<span class="fc" id="L55">        HttpRequest request = HttpRequest.newBuilder(endpoint)</span>
+<span class="fc" id="L56">                .timeout(properties.requestTimeout())</span>
+<span class="fc" id="L57">                .header(&quot;Content-Type&quot;, &quot;application/json&quot;)</span>
+<span class="fc" id="L58">                .header(&quot;Authorization&quot;, &quot;Bearer &quot; + token)</span>
+<span class="fc" id="L59">                .POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(java.util.Map.of(&quot;localId&quot;, uid))))</span>
+<span class="fc" id="L60">                .build();</span>
+        HttpResponse&lt;String&gt; response;
+        try {
+<span class="fc" id="L63">            response = http.send(request, HttpResponse.BodyHandlers.ofString());</span>
+<span class="fc" id="L64">        } catch (HttpTimeoutException e) {</span>
+<span class="fc" id="L65">            return retry(&quot;TIMEOUT&quot;);</span>
+<span class="fc" id="L66">        } catch (IOException e) {</span>
+<span class="fc" id="L67">            return retry(&quot;NETWORK&quot;);</span>
+<span class="nc" id="L68">        } catch (InterruptedException e) {</span>
+<span class="nc" id="L69">            Thread.currentThread().interrupt();</span>
+<span class="nc" id="L70">            return retry(&quot;INTERRUPTED&quot;);</span>
+<span class="fc" id="L71">        }</span>
+<span class="fc" id="L72">        int status = response.statusCode();</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">        if (status == 200) {</span>
+<span class="fc" id="L74">            return Result.of(Outcome.DELETED);</span>
+        }
+<span class="pc bpc" id="L76" title="1 of 6 branches missed.">        if (status == 400 &amp;&amp; response.body() != null &amp;&amp; response.body().contains(&quot;USER_NOT_FOUND&quot;)) {</span>
+<span class="fc" id="L77">            return Result.of(Outcome.NOT_FOUND);</span>
+        }
+<span class="fc bfc" id="L79" title="All 4 branches covered.">        if (status == 401 || status == 403) {</span>
+<span class="fc" id="L80">            LOG.error(&quot;Firebase je zavrnil poverilnice za brisanje identitete (HTTP {})&quot;, status);</span>
+<span class="fc" id="L81">            return new Result(Outcome.MISCONFIGURED, &quot;HTTP_&quot; + status);</span>
+        }
+<span class="fc bfc" id="L83" title="All 2 branches covered.">        if (status == 429) {</span>
+<span class="fc" id="L84">            return retry(&quot;HTTP_429&quot;);</span>
+        }
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        return retry(status &gt;= 500 ? &quot;HTTP_5XX&quot; : &quot;HTTP_&quot; + status);</span>
+    }
+
+    private static Result retry(String error) {
+<span class="fc" id="L90">        LOG.warn(&quot;Brisanje identitete pri ponudniku ni uspelo ({}), ponovni poskus pozneje&quot;, error);</span>
+<span class="fc" id="L91">        return new Result(Outcome.RETRY, error);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

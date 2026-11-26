@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContactQueryParser.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">ContactQueryParser.java</span></div><h1>ContactQueryParser.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+import si.contactmanager.contact.ContactQuery.Condition;
+import si.contactmanager.contact.ContactQuery.Direction;
+import si.contactmanager.contact.ContactQuery.Field;
+import si.contactmanager.contact.ContactQuery.Kind;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+
+/**
+ * Razčleni parametre iskanja (docs/specs/008-iskanje/research.md R-06, R-07) v {@link ContactQuery} ali seznam napak po
+ * poljih; zbere vse napake naenkrat. Sprejme navaden {@code Map}, zato ni vezan na spletni sloj in ga lahko ponovno
+ * uporabita 009 in 010. Obstoj dodatnega ključa v skupini preverja servis, ne razčlenjevalnik.
+ */
+<span class="fc" id="L20">public final class ContactQueryParser {</span>
+
+    static final int MAX_QUERY = 200;
+    static final int MAX_CONDITIONS = 10;
+    static final int MAX_CONDITION_VALUE = 500;
+    static final int MAX_TAGS = 30;
+    static final int MAX_TAG = 50;
+    static final int DEFAULT_SIZE = 25;
+<span class="fc" id="L28">    private static final List&lt;Integer&gt; SIZES = List.of(25, 50, 100);</span>
+<span class="fc" id="L29">    private static final Pattern WHITESPACE = Pattern.compile(&quot;(?U)\\s+&quot;);</span>
+<span class="fc" id="L30">    private static final Pattern DIGITS = Pattern.compile(&quot;[0-9]{1,10}&quot;);</span>
+
+    /** Rezultat: poizvedba, kadar ni napak, sicer vse napake naenkrat. */
+<span class="fc" id="L33">    public record Parsed(ContactQuery query, List&lt;FieldError&gt; errors) {</span>
+
+        public boolean valid() {
+<span class="fc" id="L36">            return errors.isEmpty();</span>
+        }
+    }
+
+    public Parsed parse(Map&lt;String, List&lt;String&gt;&gt; parameters) {
+<span class="fc" id="L41">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L42">        List&lt;String&gt; words = parseWords(first(parameters, &quot;q&quot;), errors);</span>
+<span class="fc" id="L43">        List&lt;Condition&gt; conditions = parseConditions(parameters.getOrDefault(&quot;f&quot;, List.of()), errors);</span>
+<span class="fc" id="L44">        List&lt;String&gt; tags = parseTags(parameters.getOrDefault(&quot;tag&quot;, List.of()), errors);</span>
+<span class="fc" id="L45">        Field sort = parseSort(first(parameters, &quot;sort&quot;), errors);</span>
+<span class="fc" id="L46">        Direction direction = parseDirection(first(parameters, &quot;dir&quot;), errors);</span>
+<span class="fc" id="L47">        Integer size = parseSize(first(parameters, &quot;size&quot;), errors);</span>
+<span class="fc" id="L48">        Integer page = parsePage(first(parameters, &quot;page&quot;), size, errors);</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">        if (!errors.isEmpty()) {</span>
+<span class="fc" id="L50">            return new Parsed(null, List.copyOf(errors));</span>
+        }
+<span class="fc" id="L52">        return new Parsed(new ContactQuery(words, conditions, tags, sort, direction, page, size), List.of());</span>
+    }
+
+    private static String first(Map&lt;String, List&lt;String&gt;&gt; parameters, String name) {
+<span class="fc" id="L56">        List&lt;String&gt; values = parameters.get(name);</span>
+<span class="pc bpc" id="L57" title="1 of 4 branches missed.">        return values == null || values.isEmpty() ? null : values.getFirst();</span>
+    }
+
+    private static boolean hasNul(String value) {
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        return value.indexOf('\u0000') &gt;= 0;</span>
+    }
+
+    private static int length(String value) {
+<span class="fc" id="L65">        return value.codePointCount(0, value.length());</span>
+    }
+
+    private static boolean invisible(String word) {
+<span class="fc" id="L69">        return word.codePoints().allMatch(cp -&gt; {</span>
+<span class="fc" id="L70">            int type = Character.getType(cp);</span>
+<span class="pc bpc" id="L71" title="1 of 4 branches missed.">            return type == Character.CONTROL || type == Character.FORMAT;</span>
+        });
+    }
+
+    private static List&lt;String&gt; parseWords(String raw, List&lt;FieldError&gt; errors) {
+<span class="fc bfc" id="L76" title="All 2 branches covered.">        if (raw == null) {</span>
+<span class="fc" id="L77">            return List.of();</span>
+        }
+<span class="fc bfc" id="L79" title="All 2 branches covered.">        if (hasNul(raw)) {</span>
+<span class="fc" id="L80">            errors.add(new FieldError(&quot;q&quot;, &quot;MALFORMED&quot;));</span>
+<span class="fc" id="L81">            return List.of();</span>
+        }
+<span class="fc" id="L83">        String text = raw.strip();</span>
+<span class="fc bfc" id="L84" title="All 2 branches covered.">        if (length(text) &gt; MAX_QUERY) {</span>
+<span class="fc" id="L85">            errors.add(new FieldError(&quot;q&quot;, &quot;TOO_LONG&quot;));</span>
+<span class="fc" id="L86">            return List.of();</span>
+        }
+<span class="fc" id="L88">        List&lt;String&gt; words = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">        if (!text.isEmpty()) {</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">            for (String word : WHITESPACE.split(text)) {</span>
+<span class="pc bpc" id="L91" title="1 of 4 branches missed.">                if (!word.isEmpty() &amp;&amp; !invisible(word)) {</span>
+<span class="fc" id="L92">                    words.add(word);</span>
+                }
+            }
+        }
+<span class="fc" id="L96">        return words;</span>
+    }
+
+    /** Polje iz zapisa v naslovu; {@code null} ob napaki (koda v {@code error}). */
+    private static Field parseField(String token, String[] error) {
+<span class="fc bfc" id="L101" title="All 8 branches covered.">        switch (token) {</span>
+            case &quot;firstName&quot;:
+<span class="fc" id="L103">                return new Field(Kind.FIRST_NAME, null);</span>
+            case &quot;lastName&quot;:
+<span class="fc" id="L105">                return new Field(Kind.LAST_NAME, null);</span>
+            case &quot;address&quot;:
+<span class="fc" id="L107">                return new Field(Kind.ADDRESS, null);</span>
+            case &quot;email&quot;:
+<span class="fc" id="L109">                return new Field(Kind.EMAIL, null);</span>
+            case &quot;phone&quot;:
+<span class="fc" id="L111">                return new Field(Kind.PHONE, null);</span>
+            case &quot;company&quot;:
+<span class="fc" id="L113">                return new Field(Kind.COMPANY, null);</span>
+            case &quot;country&quot;:
+<span class="fc" id="L115">                return new Field(Kind.COUNTRY, null);</span>
+            default:
+                break;
+        }
+<span class="pc bpc" id="L119" title="1 of 4 branches missed.">        if (!token.startsWith(&quot;x.&quot;) || token.length() == 2) {</span>
+<span class="fc" id="L120">            error[0] = &quot;UNKNOWN_FIELD&quot;;</span>
+<span class="fc" id="L121">            return null;</span>
+        }
+<span class="fc" id="L123">        String key = decodeKey(token.substring(2));</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">        if (key == null) {</span>
+<span class="fc" id="L125">            error[0] = &quot;MALFORMED&quot;;</span>
+<span class="fc" id="L126">            return null;</span>
+        }
+<span class="fc" id="L128">        return new Field(Kind.ATTRIBUTE, ContactInputParser.normalize(key));</span>
+    }
+
+    /** V ključu sta samo {@code %25} in {@code %3A} veljavni zaporedji; vsak drug {@code %} je neveljaven. */
+    private static String decodeKey(String encoded) {
+<span class="fc" id="L133">        StringBuilder out = new StringBuilder();</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">        for (int i = 0; i &lt; encoded.length(); i++) {</span>
+<span class="fc" id="L135">            char c = encoded.charAt(i);</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">            if (c != '%') {</span>
+<span class="fc" id="L137">                out.append(c);</span>
+<span class="fc" id="L138">                continue;</span>
+            }
+<span class="fc bfc" id="L140" title="All 2 branches covered.">            if (encoded.startsWith(&quot;25&quot;, i + 1)) {</span>
+<span class="fc" id="L141">                out.append('%');</span>
+<span class="pc bpc" id="L142" title="1 of 4 branches missed.">            } else if (encoded.startsWith(&quot;3A&quot;, i + 1) || encoded.startsWith(&quot;3a&quot;, i + 1)) {</span>
+<span class="fc" id="L143">                out.append(':');</span>
+            } else {
+<span class="fc" id="L145">                return null;</span>
+            }
+<span class="fc" id="L147">            i += 2;</span>
+        }
+<span class="fc" id="L149">        return out.toString();</span>
+    }
+
+    private static List&lt;Condition&gt; parseConditions(List&lt;String&gt; raw, List&lt;FieldError&gt; errors) {
+<span class="fc" id="L153">        List&lt;Condition&gt; conditions = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">        for (int i = 0; i &lt; raw.size(); i++) {</span>
+<span class="fc" id="L155">            String name = &quot;f[&quot; + i + &quot;]&quot;;</span>
+<span class="fc" id="L156">            String entry = raw.get(i);</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">            if (hasNul(entry)) {</span>
+<span class="fc" id="L158">                errors.add(new FieldError(name, &quot;MALFORMED&quot;));</span>
+<span class="fc" id="L159">                continue;</span>
+            }
+<span class="fc" id="L161">            int colon = entry.indexOf(':');</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">            if (colon &lt; 0) {</span>
+<span class="fc" id="L163">                errors.add(new FieldError(name, &quot;MALFORMED&quot;));</span>
+<span class="fc" id="L164">                continue;</span>
+            }
+<span class="fc" id="L166">            String[] error = new String[1];</span>
+<span class="fc" id="L167">            Field field = parseField(entry.substring(0, colon), error);</span>
+<span class="fc bfc" id="L168" title="All 2 branches covered.">            if (field == null) {</span>
+<span class="fc" id="L169">                errors.add(new FieldError(name, error[0]));</span>
+<span class="fc" id="L170">                continue;</span>
+            }
+<span class="fc" id="L172">            String value = entry.substring(colon + 1).strip();</span>
+<span class="fc bfc" id="L173" title="All 2 branches covered.">            if (value.isEmpty()) {</span>
+<span class="fc" id="L174">                errors.add(new FieldError(name, &quot;REQUIRED&quot;));</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">            } else if (length(value) &gt; MAX_CONDITION_VALUE) {</span>
+<span class="fc" id="L176">                errors.add(new FieldError(name, &quot;TOO_LONG&quot;));</span>
+            } else {
+<span class="fc" id="L178">                conditions.add(new Condition(field, value));</span>
+            }
+        }
+<span class="fc bfc" id="L181" title="All 2 branches covered.">        if (raw.size() &gt; MAX_CONDITIONS) {</span>
+<span class="fc" id="L182">            errors.add(new FieldError(&quot;f&quot;, &quot;TOO_MANY&quot;));</span>
+        }
+<span class="fc" id="L184">        return conditions;</span>
+    }
+
+    private static List&lt;String&gt; parseTags(List&lt;String&gt; raw, List&lt;FieldError&gt; errors) {
+<span class="fc" id="L188">        Set&lt;String&gt; tags = new LinkedHashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L189" title="All 2 branches covered.">        for (int i = 0; i &lt; raw.size(); i++) {</span>
+<span class="fc" id="L190">            String name = &quot;tag[&quot; + i + &quot;]&quot;;</span>
+<span class="fc" id="L191">            String entry = raw.get(i);</span>
+<span class="fc bfc" id="L192" title="All 2 branches covered.">            if (hasNul(entry)) {</span>
+<span class="fc" id="L193">                errors.add(new FieldError(name, &quot;MALFORMED&quot;));</span>
+<span class="fc" id="L194">                continue;</span>
+            }
+<span class="fc" id="L196">            String tag = entry.strip();</span>
+<span class="fc bfc" id="L197" title="All 2 branches covered.">            if (tag.isEmpty()) {</span>
+<span class="fc" id="L198">                errors.add(new FieldError(name, &quot;REQUIRED&quot;));</span>
+<span class="fc bfc" id="L199" title="All 2 branches covered.">            } else if (length(tag) &gt; MAX_TAG) {</span>
+<span class="fc" id="L200">                errors.add(new FieldError(name, &quot;TOO_LONG&quot;));</span>
+            } else {
+<span class="fc" id="L202">                tags.add(ContactInputParser.normalize(tag));</span>
+            }
+        }
+<span class="fc bfc" id="L205" title="All 2 branches covered.">        if (tags.size() &gt; MAX_TAGS) {</span>
+<span class="fc" id="L206">            errors.add(new FieldError(&quot;tag&quot;, &quot;TOO_MANY&quot;));</span>
+        }
+<span class="fc" id="L208">        return List.copyOf(tags);</span>
+    }
+
+    private static Field parseSort(String raw, List&lt;FieldError&gt; errors) {
+<span class="fc bfc" id="L212" title="All 2 branches covered.">        if (raw == null) {</span>
+<span class="fc" id="L213">            return new Field(Kind.LAST_NAME, null);</span>
+        }
+<span class="pc bpc" id="L215" title="1 of 2 branches missed.">        if (hasNul(raw)) {</span>
+<span class="nc" id="L216">            errors.add(new FieldError(&quot;sort&quot;, &quot;MALFORMED&quot;));</span>
+<span class="nc" id="L217">            return null;</span>
+        }
+<span class="fc" id="L219">        String[] error = new String[1];</span>
+<span class="fc" id="L220">        Field field = parseField(raw, error);</span>
+<span class="fc bfc" id="L221" title="All 2 branches covered.">        if (field == null) {</span>
+<span class="fc" id="L222">            errors.add(new FieldError(&quot;sort&quot;, error[0]));</span>
+<span class="fc bfc" id="L223" title="All 4 branches covered.">        } else if (field.kind() == Kind.COMPANY || field.kind() == Kind.COUNTRY) {</span>
+            // Razvrščanje po podjetju in državi ni del 013 (Assumptions).
+<span class="fc" id="L225">            errors.add(new FieldError(&quot;sort&quot;, &quot;UNKNOWN_FIELD&quot;));</span>
+<span class="fc" id="L226">            return null;</span>
+        }
+<span class="fc" id="L228">        return field;</span>
+    }
+
+    private static Direction parseDirection(String raw, List&lt;FieldError&gt; errors) {
+<span class="fc bfc" id="L232" title="All 4 branches covered.">        if (raw == null || raw.equals(&quot;asc&quot;)) {</span>
+<span class="fc" id="L233">            return Direction.ASC;</span>
+        }
+<span class="fc bfc" id="L235" title="All 2 branches covered.">        if (raw.equals(&quot;desc&quot;)) {</span>
+<span class="fc" id="L236">            return Direction.DESC;</span>
+        }
+<span class="fc" id="L238">        errors.add(new FieldError(&quot;dir&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L239">        return null;</span>
+    }
+
+    private static Integer parseSize(String raw, List&lt;FieldError&gt; errors) {
+<span class="fc bfc" id="L243" title="All 2 branches covered.">        if (raw == null) {</span>
+<span class="fc" id="L244">            return DEFAULT_SIZE;</span>
+        }
+<span class="fc bfc" id="L246" title="All 2 branches covered.">        if (DIGITS.matcher(raw).matches()) {</span>
+<span class="fc" id="L247">            long value = Long.parseLong(raw);</span>
+<span class="fc bfc" id="L248" title="All 2 branches covered.">            if (SIZES.contains((int) Math.min(value, Integer.MAX_VALUE))) {</span>
+<span class="fc" id="L249">                return (int) value;</span>
+            }
+        }
+<span class="fc" id="L252">        errors.add(new FieldError(&quot;size&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L253">        return null;</span>
+    }
+
+    private static Integer parsePage(String raw, Integer size, List&lt;FieldError&gt; errors) {
+<span class="fc bfc" id="L257" title="All 2 branches covered.">        if (raw == null) {</span>
+<span class="fc" id="L258">            return 0;</span>
+        }
+<span class="fc bfc" id="L260" title="All 2 branches covered.">        if (DIGITS.matcher(raw).matches()) {</span>
+<span class="fc" id="L261">            long value = Long.parseLong(raw);</span>
+<span class="pc bpc" id="L262" title="1 of 2 branches missed.">            long perPage = size == null ? DEFAULT_SIZE : size;</span>
+<span class="fc bfc" id="L263" title="All 2 branches covered.">            if (value * perPage &lt;= Integer.MAX_VALUE) {</span>
+<span class="fc" id="L264">                return (int) value;</span>
+            }
+        }
+<span class="fc" id="L267">        errors.add(new FieldError(&quot;page&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L268">        return null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

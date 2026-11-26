@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MemberService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.member</a> &gt; <span class="el_source">MemberService.java</span></div><h1>MemberService.java</h1><pre class="source lang-java linenums">package si.contactmanager.member;
+
+import java.util.List;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.group.GroupDetail;
+import si.contactmanager.group.GroupReader;
+import si.contactmanager.group.Role;
+import si.contactmanager.member.MemberInputParser.ParsedRole;
+import si.contactmanager.member.MemberInputParser.ParsedTransfer;
+import si.contactmanager.member.MemberRepository.Row;
+import si.contactmanager.shared.error.ForbiddenException;
+import si.contactmanager.shared.error.GroupArchivedException;
+import si.contactmanager.shared.error.LastMemberCannotLeaveException;
+import si.contactmanager.shared.error.NotFoundException;
+import si.contactmanager.shared.error.OwnerCannotLeaveException;
+import si.contactmanager.shared.error.TargetNotMemberException;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+import si.contactmanager.shared.error.ValidationException;
+import si.contactmanager.shared.error.VersionConflictException;
+
+/**
+ * Člani skupine (007). Vse pisalne operacije: najprej zaklep vrstice skupine, nato ponovno branje članstev pod
+ * zaklepom (research R-01…R-03), šele nato pravila, arhiviranost, verzija in podatki (feature-map §2.2). Nobena pot
+ * ne piše v revizijsko sled (FR-007-12).
+ */
+@Service
+class MemberService {
+
+    private final MemberRepository members;
+    private final GroupReader groups;
+
+<span class="fc" id="L35">    MemberService(MemberRepository members, GroupReader groups) {</span>
+<span class="fc" id="L36">        this.members = members;</span>
+<span class="fc" id="L37">        this.groups = groups;</span>
+<span class="fc" id="L38">    }</span>
+
+    @Transactional(readOnly = true)
+    Members list(Membership caller, int page, int size, String collation) {
+<span class="fc" id="L42">        List&lt;Member&gt; items = members.page(caller.groupId(), caller.userId(), collation, size, page).stream()</span>
+<span class="fc" id="L43">                .map(view -&gt; view.toMember(caller.role(), caller.archived()))</span>
+<span class="fc" id="L44">                .toList();</span>
+<span class="fc" id="L45">        return new Members(members.count(caller.groupId()), page, size, caller.permanentlyArchived(), items);</span>
+    }
+
+    @Transactional
+    Member changeRole(Membership access, UUID memberId, ParsedRole parsed) {
+<span class="fc" id="L50">        boolean archived = lock(access);</span>
+<span class="fc" id="L51">        Row caller = caller(access, Role.ADMIN);</span>
+<span class="fc" id="L52">        Row target = members.findById(access.groupId(), memberId).orElseThrow(NotFoundException::new);</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        Role newRole = parsed.role() == null ? null : Role.valueOf(parsed.role());</span>
+<span class="fc bfc" id="L54" title="All 2 branches covered.">        if (target.userId() == caller.userId()</span>
+<span class="fc bfc" id="L55" title="All 4 branches covered.">                || target.role().compareTo(caller.role()) &gt;= 0</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">                || (newRole != null &amp;&amp; !MemberRules.mayChange(caller.role(), target.role(), newRole))) {</span>
+<span class="fc" id="L57">            throw new ForbiddenException();</span>
+        }
+<span class="fc bfc" id="L59" title="All 2 branches covered.">        if (archived) {</span>
+<span class="fc" id="L60">            throw new GroupArchivedException();</span>
+        }
+<span class="fc bfc" id="L62" title="All 4 branches covered.">        if (parsed.version() != null &amp;&amp; parsed.version() != target.version()) {</span>
+<span class="fc" id="L63">            throw new VersionConflictException(view(access, memberId, caller.role()));</span>
+        }
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        if (!parsed.errors().isEmpty()) {</span>
+<span class="fc" id="L66">            throw new ValidationException(parsed.errors());</span>
+        }
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        if (newRole == target.role()) {</span>
+<span class="fc" id="L69">            throw new ValidationException(List.of(new FieldError(&quot;role&quot;, &quot;UNCHANGED&quot;)));</span>
+        }
+<span class="pc bpc" id="L71" title="1 of 2 branches missed.">        if (members.updateRole(access.groupId(), memberId, newRole, parsed.version(), caller.userId()) == 0) {</span>
+<span class="nc" id="L72">            throw new VersionConflictException(view(access, memberId, caller.role()));</span>
+        }
+<span class="fc" id="L74">        return view(access, memberId, caller.role());</span>
+    }
+
+    @Transactional
+    void remove(Membership access, UUID memberId) {
+<span class="fc" id="L79">        boolean archived = lock(access);</span>
+<span class="fc" id="L80">        Row caller = caller(access, Role.ADMIN);</span>
+<span class="fc" id="L81">        Row target = members.findById(access.groupId(), memberId).orElseThrow(NotFoundException::new);</span>
+<span class="fc bfc" id="L82" title="All 4 branches covered.">        if (target.userId() == caller.userId() || target.role().compareTo(caller.role()) &gt;= 0) {</span>
+<span class="fc" id="L83">            throw new ForbiddenException();</span>
+        }
+<span class="fc bfc" id="L85" title="All 2 branches covered.">        if (archived) {</span>
+<span class="fc" id="L86">            throw new GroupArchivedException();</span>
+        }
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">        if (members.delete(access.groupId(), memberId) == 0) {</span>
+<span class="nc" id="L89">            throw new NotFoundException();</span>
+        }
+<span class="fc" id="L91">    }</span>
+
+    /** Zapustitev: dovoljena tudi v arhivirani skupini (FR-007-06); zadnji član trajno arhivirane ne more (R-02). */
+    @Transactional
+    void leave(Membership access) {
+<span class="fc" id="L96">        boolean archived = lock(access);</span>
+<span class="fc" id="L97">        Row caller = caller(access, Role.VIEWER);</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">        if (caller.role() == Role.OWNER) {</span>
+<span class="fc" id="L99">            throw new OwnerCannotLeaveException();</span>
+        }
+<span class="fc bfc" id="L101" title="All 6 branches covered.">        if (archived &amp;&amp; !members.hasOwner(access.groupId()) &amp;&amp; members.count(access.groupId()) &lt;= 1) {</span>
+<span class="fc" id="L102">            throw new LastMemberCannotLeaveException();</span>
+        }
+<span class="fc" id="L104">        members.deleteByUser(access.groupId(), access.userId());</span>
+<span class="fc" id="L105">    }</span>
+
+    /** Atomaren prenos (R-03): najprej prejšnji lastnik → ADMIN, nato cilj → OWNER; ves čas pod zaklepom skupine. */
+    @Transactional
+    GroupDetail transferOwnership(Membership access, ParsedTransfer parsed) {
+<span class="fc" id="L110">        boolean archived = lock(access);</span>
+<span class="fc" id="L111">        Row caller = caller(access, Role.OWNER);</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">        if (archived) {</span>
+<span class="fc" id="L113">            throw new GroupArchivedException();</span>
+        }
+<span class="fc bfc" id="L115" title="All 2 branches covered.">        if (!parsed.errors().isEmpty()) {</span>
+<span class="fc" id="L116">            throw new ValidationException(parsed.errors());</span>
+        }
+<span class="fc bfc" id="L118" title="All 2 branches covered.">        if (parsed.memberId().equals(caller.id())) {</span>
+<span class="fc" id="L119">            throw new ValidationException(List.of(new FieldError(&quot;memberId&quot;, &quot;INVALID_VALUE&quot;)));</span>
+        }
+<span class="fc" id="L121">        Row target = members.findById(access.groupId(), parsed.memberId()).orElseThrow(TargetNotMemberException::new);</span>
+<span class="fc" id="L122">        members.demoteOwner(access.groupId(), caller.id(), caller.userId());</span>
+<span class="fc" id="L123">        members.promote(access.groupId(), target.id(), caller.userId());</span>
+<span class="fc" id="L124">        return groups.read(access);</span>
+    }
+
+    private boolean lock(Membership access) {
+<span class="fc" id="L128">        return members.lockGroup(access.groupId()).orElseThrow(NotFoundException::new);</span>
+    }
+
+    /** Klicateljevo članstvo pod zaklepom: ni več člana → 404, vloga pod najnižjo → 403. */
+    private Row caller(Membership access, Role lowest) {
+<span class="fc" id="L133">        Row caller = members.findByUser(access.groupId(), access.userId()).orElseThrow(NotFoundException::new);</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">        if (!caller.role().atLeast(lowest)) {</span>
+<span class="fc" id="L135">            throw new ForbiddenException();</span>
+        }
+<span class="fc" id="L137">        return caller;</span>
+    }
+
+    private Member view(Membership access, UUID memberId, Role callerRole) {
+<span class="fc" id="L141">        return members.view(access.groupId(), memberId, access.userId())</span>
+<span class="fc" id="L142">                .orElseThrow(NotFoundException::new)</span>
+<span class="fc" id="L143">                .toMember(callerRole, false);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

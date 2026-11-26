@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>HistoryViews.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.audit</a> &gt; <span class="el_source">HistoryViews.java</span></div><h1>HistoryViews.java</h1><pre class="source lang-java linenums">package si.contactmanager.audit;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+import si.contactmanager.contact.Address;
+import si.contactmanager.contact.Attribute;
+import si.contactmanager.contact.ContactState;
+import si.contactmanager.group.UserRef;
+
+/** Odgovori zgodovine, različic, primerjave, predogleda obnove in seznama izbrisanih kontaktov (015, contracts/openapi.yaml). */
+final class HistoryViews {
+
+    private HistoryViews() {}
+
+    /** Stanje kontakta: živ, izbrisan (odstranjevanje, rollback skupine) ali odstranjen z združevanjem. */
+<span class="fc" id="L18">    enum Status {</span>
+<span class="fc" id="L19">        ACTIVE,</span>
+<span class="fc" id="L20">        DELETED,</span>
+<span class="fc" id="L21">        MERGED</span>
+    }
+
+<span class="fc" id="L24">    record MergedInto(UUID contactId, String displayName) {}</span>
+
+    /** Dogodek zgodovine = ena sprememba kontakta v vnosu; {@code action} je besedilo (neznana vrsta je veljavna). */
+<span class="fc" id="L27">    record HistoryEvent(</span>
+            UUID entryId,
+            Instant createdAt,
+            UserRef actor,
+            String action,
+            ContactChangeView.Kind kind,
+            int entryContactCount,
+            String displayName,
+            List&lt;ChangeField&gt; fields,
+            boolean hasVersion,
+            AuditEntry.Target target,
+            boolean targetInitial,
+            MergedInto mergedInto,
+            String apiKeyName,
+            PhotoChange photoChange) {}
+
+<span class="fc" id="L43">    record ContactInfo(</span>
+            UUID id, String displayName, Status status, Long version, UUID lastEntryId, boolean hasInitial) {}
+
+<span class="fc" id="L46">    record History(ContactInfo contact, long total, int page, int size, List&lt;HistoryEvent&gt; items) {}</span>
+
+    /** Vsebina različice (brez metapodatkov razen verzije). */
+<span class="fc" id="L49">    record StateView(</span>
+            String firstName,
+            String lastName,
+            String address,
+            @JsonInclude(JsonInclude.Include.NON_NULL) Address addressParts,
+            String email,
+            String phone,
+            String company,
+            String country,
+            List&lt;Attribute&gt; attributes,
+            List&lt;String&gt; tags,
+            long version) {
+
+        static StateView of(ContactState s) {
+<span class="fc" id="L63">            return new StateView(</span>
+<span class="fc" id="L64">                    s.firstName(),</span>
+<span class="fc" id="L65">                    s.lastName(),</span>
+<span class="fc" id="L66">                    s.address(),</span>
+<span class="fc" id="L67">                    s.addressParts(),</span>
+<span class="fc" id="L68">                    s.email(),</span>
+<span class="fc" id="L69">                    s.phone(),</span>
+<span class="fc" id="L70">                    s.company(),</span>
+<span class="fc" id="L71">                    s.country(),</span>
+<span class="fc" id="L72">                    s.attributes(),</span>
+<span class="fc" id="L73">                    s.tags(),</span>
+<span class="fc" id="L74">                    s.version());</span>
+        }
+    }
+
+    /** {@code ref}: id vnosa, {@code initial} ali {@code current}; {@code createdAt == null} za {@code initial}. */
+<span class="fc" id="L79">    record Version(String ref, Instant createdAt, UserRef actor, String action, StateView state) {}</span>
+
+<span class="fc" id="L81">    record Compare(Version from, Version to, List&lt;ChangeField&gt; changes) {}</span>
+
+<span class="fc" id="L83">    record Duplicate(UUID contactId, String displayName, String reason) {}</span>
+
+    /** Kršitev trenutnih pravil v ciljnem stanju obnove (polje in koda kot pri {@code 400}). */
+<span class="fc" id="L86">    record Violation(String field, String code) {}</span>
+
+<span class="fc" id="L88">    record RestorePreview(</span>
+            Version target,
+            List&lt;ChangeField&gt; changes,
+            Status status,
+            boolean restorable,
+            String reason,
+            Long currentVersion,
+            UUID lastEntryId,
+            List&lt;Duplicate&gt; duplicates,
+            List&lt;Violation&gt; violations) {}
+
+<span class="fc" id="L99">    record DeletedItem(</span>
+            UUID contactId,
+            String displayName,
+            String email,
+            String company,
+            Instant removedAt,
+            UserRef removedBy,
+            UUID entryId,
+            String reason,
+            boolean restorable,
+            DeletedMergedInto mergedInto) {}
+
+<span class="fc" id="L111">    record DeletedMergedInto(UUID contactId, String displayName, boolean exists) {}</span>
+
+<span class="fc" id="L113">    record DeletedPage(long total, int page, int size, List&lt;DeletedItem&gt; items) {}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

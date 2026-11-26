@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContactHistoryRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.audit</a> &gt; <span class="el_source">ContactHistoryRepository.java</span></div><h1>ContactHistoryRepository.java</h1><pre class="source lang-java linenums">package si.contactmanager.audit;
+
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import si.contactmanager.audit.HistoryViews.HistoryEvent;
+import si.contactmanager.audit.HistoryViews.MergedInto;
+import si.contactmanager.audit.HistoryViews.Status;
+import si.contactmanager.audit.HistoryViews.Version;
+import si.contactmanager.contact.ContactState;
+import si.contactmanager.group.UserRef;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * Poizvedbe zgodovine in različic kontakta (015, research R-01, R-02): vse izpeljano iz {@code audit_change} /
+ * {@code audit_entry}; vsaka poizvedba je omejena z {@code group_id} (izolacija).
+ */
+@Repository
+class ContactHistoryRepository {
+
+    /** Najnovejša sprememba kontakta v sledi. */
+<span class="fc" id="L26">    record Latest(UUID entryId, long seq, String action, boolean removed, String displayName) {}</span>
+
+    /** Živ kontakt: ime in verzija. */
+<span class="fc" id="L29">    record Live(String displayName, long version) {}</span>
+
+    private final JdbcClient jdbc;
+    private final JsonMapper json;
+
+<span class="fc" id="L34">    ContactHistoryRepository(JdbcClient jdbc, JsonMapper json) {</span>
+<span class="fc" id="L35">        this.jdbc = jdbc;</span>
+<span class="fc" id="L36">        this.json = json;</span>
+<span class="fc" id="L37">    }</span>
+
+    Optional&lt;Live&gt; live(UUID group, UUID contact) {
+<span class="fc" id="L40">        return jdbc.sql(&quot;SELECT first_name, last_name, version FROM contact WHERE group_id = :group AND id = :id&quot;)</span>
+<span class="fc" id="L41">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L42">                .param(&quot;id&quot;, contact)</span>
+<span class="fc" id="L43">                .query((rs, row) -&gt;</span>
+<span class="fc" id="L44">                        new Live(name(rs.getString(&quot;first_name&quot;), rs.getString(&quot;last_name&quot;)), rs.getLong(&quot;version&quot;)))</span>
+<span class="fc" id="L45">                .optional();</span>
+    }
+
+    Optional&lt;Latest&gt; latest(UUID group, UUID contact) {
+<span class="fc" id="L49">        return jdbc.sql(&quot;SELECT e.id, e.seq, e.action, c.after IS NULL AS removed, c.display_name FROM audit_change c&quot;</span>
+                        + &quot; JOIN audit_entry e ON e.id = c.entry_id WHERE e.group_id = :group AND c.contact_id = :id&quot;
+                        + &quot; ORDER BY e.seq DESC LIMIT 1&quot;)
+<span class="fc" id="L52">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L53">                .param(&quot;id&quot;, contact)</span>
+<span class="fc" id="L54">                .query((rs, row) -&gt; new Latest(</span>
+<span class="fc" id="L55">                        rs.getObject(&quot;id&quot;, UUID.class),</span>
+<span class="fc" id="L56">                        rs.getLong(&quot;seq&quot;),</span>
+<span class="fc" id="L57">                        rs.getString(&quot;action&quot;),</span>
+<span class="fc" id="L58">                        rs.getBoolean(&quot;removed&quot;),</span>
+<span class="fc" id="L59">                        rs.getString(&quot;display_name&quot;)))</span>
+<span class="fc" id="L60">                .optional();</span>
+    }
+
+    static Status status(Optional&lt;Live&gt; live, Optional&lt;Latest&gt; latest) {
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        if (live.isPresent()) {</span>
+<span class="fc" id="L65">            return Status.ACTIVE;</span>
+        }
+<span class="fc bfc" id="L67" title="All 2 branches covered.">        return latest.filter(l -&gt; &quot;MERGE&quot;.equals(l.action())).isPresent() ? Status.MERGED : Status.DELETED;</span>
+    }
+
+    /** Ali je kontakt obstajal pred prvo zabeleženo spremembo (njen {@code before} ni prazen). */
+    boolean hasInitial(UUID group, UUID contact) {
+<span class="fc" id="L72">        return jdbc.sql(&quot;SELECT EXISTS (SELECT 1 FROM (SELECT c.before FROM audit_change c JOIN audit_entry e&quot;</span>
+                        + &quot; ON e.id = c.entry_id WHERE e.group_id = :group AND c.contact_id = :id&quot;
+                        + &quot; ORDER BY e.seq LIMIT 1) first WHERE first.before IS NOT NULL)&quot;)
+<span class="fc" id="L75">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L76">                .param(&quot;id&quot;, contact)</span>
+<span class="fc" id="L77">                .query(Boolean.class)</span>
+<span class="fc" id="L78">                .single();</span>
+    }
+
+    long count(UUID group, UUID contact) {
+<span class="fc" id="L82">        return jdbc.sql(&quot;SELECT count(*) FROM audit_change c JOIN audit_entry e ON e.id = c.entry_id&quot;</span>
+                        + &quot; WHERE e.group_id = :group AND c.contact_id = :id&quot;)
+<span class="fc" id="L84">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L85">                .param(&quot;id&quot;, contact)</span>
+<span class="fc" id="L86">                .query(Long.class)</span>
+<span class="fc" id="L87">                .single();</span>
+    }
+
+    /** Stran dogodkov, najnovejši prvi. */
+    List&lt;HistoryEvent&gt; page(UUID group, UUID contact, int size, int page) {
+<span class="fc" id="L92">        List&lt;HistoryEvent&gt; events = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L93">        jdbc.sql(&quot;SELECT e.id, e.created_at, u.name AS actor_name, u.email AS actor_email, e.action, e.contact_count,&quot;</span>
+                        + &quot; c.display_name, c.before::text AS before, c.after::text AS after, t.id AS target_id,&quot;
+                        + &quot; t.created_at AS target_at, e.target_initial, e.api_key_name, e.photo_change&quot;
+                        + &quot; FROM audit_change c&quot;
+                        + &quot; JOIN audit_entry e ON e.id = c.entry_id LEFT JOIN app_user u ON u.id = e.actor_id&quot;
+                        + &quot; LEFT JOIN audit_entry t ON t.id = e.target_entry_id&quot;
+                        + &quot; WHERE e.group_id = :group AND c.contact_id = :id ORDER BY e.seq DESC&quot;
+                        + &quot; LIMIT :size OFFSET :offset&quot;)
+<span class="fc" id="L101">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L102">                .param(&quot;id&quot;, contact)</span>
+<span class="fc" id="L103">                .param(&quot;size&quot;, size)</span>
+<span class="fc" id="L104">                .param(&quot;offset&quot;, (long) page * size)</span>
+<span class="fc" id="L105">                .query((ResultSet rs) -&gt; {</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">                    while (rs.next()) {</span>
+<span class="fc" id="L107">                        ContactState before = read(rs.getString(&quot;before&quot;));</span>
+<span class="fc" id="L108">                        ContactState after = read(rs.getString(&quot;after&quot;));</span>
+<span class="fc" id="L109">                        UUID entry = rs.getObject(&quot;id&quot;, UUID.class);</span>
+<span class="fc" id="L110">                        String action = rs.getString(&quot;action&quot;);</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">                        ContactChangeView.Kind kind = before == null</span>
+<span class="fc" id="L112">                                ? ContactChangeView.Kind.ADDED</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">                                : after == null ? ContactChangeView.Kind.REMOVED : ContactChangeView.Kind.CHANGED;</span>
+<span class="fc" id="L114">                        UUID target = rs.getObject(&quot;target_id&quot;, UUID.class);</span>
+<span class="fc" id="L115">                        events.add(new HistoryEvent(</span>
+                                entry,
+<span class="fc" id="L117">                                rs.getTimestamp(&quot;created_at&quot;).toInstant(),</span>
+<span class="fc" id="L118">                                user(rs.getString(&quot;actor_name&quot;), rs.getString(&quot;actor_email&quot;)),</span>
+                                action,
+                                kind,
+<span class="fc" id="L121">                                rs.getInt(&quot;contact_count&quot;),</span>
+<span class="fc" id="L122">                                rs.getString(&quot;display_name&quot;),</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">                                ChangeDiff.fields(before, after),</span>
+                                after != null,
+<span class="fc bfc" id="L125" title="All 2 branches covered.">                                target == null</span>
+<span class="fc" id="L126">                                        ? null</span>
+<span class="fc" id="L127">                                        : new AuditEntry.Target(</span>
+                                                target,
+<span class="fc" id="L129">                                                rs.getTimestamp(&quot;target_at&quot;).toInstant()),</span>
+<span class="fc" id="L130">                                rs.getBoolean(&quot;target_initial&quot;),</span>
+<span class="fc bfc" id="L131" title="All 4 branches covered.">                                kind == ContactChangeView.Kind.REMOVED &amp;&amp; &quot;MERGE&quot;.equals(action)</span>
+<span class="fc" id="L132">                                        ? mergedInto(entry).orElse(null)</span>
+<span class="fc" id="L133">                                        : null,</span>
+<span class="fc" id="L134">                                rs.getString(&quot;api_key_name&quot;),</span>
+<span class="fc bfc" id="L135" title="All 2 branches covered.">                                rs.getString(&quot;photo_change&quot;) == null</span>
+<span class="fc" id="L136">                                        ? null</span>
+<span class="fc" id="L137">                                        : PhotoChange.valueOf(rs.getString(&quot;photo_change&quot;))));</span>
+<span class="fc" id="L138">                    }</span>
+<span class="fc" id="L139">                    return events;</span>
+                });
+<span class="fc" id="L141">        return events;</span>
+    }
+
+    /** Ohranjeni kontakt združitve: druga sprememba istega vnosa z neprazno stanjem potem. */
+    Optional&lt;MergedInto&gt; mergedInto(UUID entry) {
+<span class="fc" id="L146">        return jdbc.sql(&quot;SELECT contact_id, display_name FROM audit_change WHERE entry_id = :entry&quot;</span>
+                        + &quot; AND after IS NOT NULL ORDER BY position LIMIT 1&quot;)
+<span class="fc" id="L148">                .param(&quot;entry&quot;, entry)</span>
+<span class="fc" id="L149">                .query((rs, row) -&gt;</span>
+<span class="fc" id="L150">                        new MergedInto(rs.getObject(&quot;contact_id&quot;, UUID.class), rs.getString(&quot;display_name&quot;)))</span>
+<span class="fc" id="L151">                .optional();</span>
+    }
+
+    /** Različica po vnosu: {@code after} spremembe kontakta v tem vnosu te skupine. */
+    Optional&lt;Version&gt; byEntry(UUID group, UUID contact, UUID entry) {
+<span class="fc" id="L156">        return jdbc.sql(&quot;SELECT e.created_at, u.name AS actor_name, u.email AS actor_email, e.action,&quot;</span>
+                        + &quot; c.after::text AS after FROM audit_change c JOIN audit_entry e ON e.id = c.entry_id&quot;
+                        + &quot; LEFT JOIN app_user u ON u.id = e.actor_id WHERE e.group_id = :group&quot;
+                        + &quot; AND c.contact_id = :id AND e.id = :entry AND c.after IS NOT NULL&quot;)
+<span class="fc" id="L160">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L161">                .param(&quot;id&quot;, contact)</span>
+<span class="fc" id="L162">                .param(&quot;entry&quot;, entry)</span>
+<span class="fc" id="L163">                .query((rs, row) -&gt; new Version(</span>
+<span class="fc" id="L164">                        entry.toString(),</span>
+<span class="fc" id="L165">                        rs.getTimestamp(&quot;created_at&quot;).toInstant(),</span>
+<span class="fc" id="L166">                        user(rs.getString(&quot;actor_name&quot;), rs.getString(&quot;actor_email&quot;)),</span>
+<span class="fc" id="L167">                        rs.getString(&quot;action&quot;),</span>
+<span class="fc" id="L168">                        HistoryViews.StateView.of(read(rs.getString(&quot;after&quot;)))))</span>
+<span class="fc" id="L169">                .optional();</span>
+    }
+
+    /** Izhodiščna različica: {@code before} prve zabeležene spremembe, če ni prazen. */
+    Optional&lt;Version&gt; initial(UUID group, UUID contact) {
+<span class="fc" id="L174">        return jdbc.sql(&quot;SELECT c.before::text AS before FROM audit_change c JOIN audit_entry e ON e.id = c.entry_id&quot;</span>
+                        + &quot; WHERE e.group_id = :group AND c.contact_id = :id ORDER BY e.seq LIMIT 1&quot;)
+<span class="fc" id="L176">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L177">                .param(&quot;id&quot;, contact)</span>
+<span class="fc" id="L178">                .query((rs, row) -&gt; rs.getString(&quot;before&quot;))</span>
+<span class="fc" id="L179">                .optional()</span>
+<span class="pc bpc" id="L180" title="1 of 2 branches missed.">                .filter(text -&gt; text != null)</span>
+<span class="fc" id="L181">                .map(text -&gt; new Version(&quot;initial&quot;, null, null, null, HistoryViews.StateView.of(read(text))));</span>
+    }
+
+    /** Polno stanje (z metapodatki) različice po vnosu ali izhodiščne različice; prazno, če različice ni. */
+    Optional&lt;ContactState&gt; fullState(UUID group, UUID contact, String ref) {
+<span class="fc bfc" id="L186" title="All 2 branches covered.">        if (&quot;initial&quot;.equals(ref)) {</span>
+<span class="fc" id="L187">            return jdbc.sql(&quot;SELECT c.before::text AS state FROM audit_change c JOIN audit_entry e&quot;</span>
+                            + &quot; ON e.id = c.entry_id WHERE e.group_id = :group AND c.contact_id = :id&quot;
+                            + &quot; ORDER BY e.seq LIMIT 1&quot;)
+<span class="fc" id="L190">                    .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L191">                    .param(&quot;id&quot;, contact)</span>
+<span class="fc" id="L192">                    .query((rs, row) -&gt; rs.getString(&quot;state&quot;))</span>
+<span class="fc" id="L193">                    .optional()</span>
+<span class="pc bpc" id="L194" title="1 of 2 branches missed.">                    .filter(text -&gt; text != null)</span>
+<span class="fc" id="L195">                    .map(this::read);</span>
+        }
+        UUID entry;
+        try {
+<span class="fc" id="L199">            entry = UUID.fromString(ref);</span>
+<span class="nc" id="L200">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L201">            return Optional.empty();</span>
+<span class="fc" id="L202">        }</span>
+<span class="fc" id="L203">        return jdbc.sql(&quot;SELECT c.after::text AS state FROM audit_change c JOIN audit_entry e ON e.id = c.entry_id&quot;</span>
+                        + &quot; WHERE e.group_id = :group AND c.contact_id = :id AND e.id = :entry AND c.after IS NOT NULL&quot;)
+<span class="fc" id="L205">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L206">                .param(&quot;id&quot;, contact)</span>
+<span class="fc" id="L207">                .param(&quot;entry&quot;, entry)</span>
+<span class="fc" id="L208">                .query((rs, row) -&gt; rs.getString(&quot;state&quot;))</span>
+<span class="fc" id="L209">                .optional()</span>
+<span class="fc" id="L210">                .map(this::read);</span>
+    }
+
+    /** Uporabnik zadnje spremembe živega kontakta ({@code null}: izbrisan uporabnik). */
+    UserRef userRef(Long userId) {
+<span class="pc bpc" id="L215" title="1 of 2 branches missed.">        if (userId == null) {</span>
+<span class="nc" id="L216">            return null;</span>
+        }
+<span class="fc" id="L218">        return jdbc.sql(&quot;SELECT name, email FROM app_user WHERE id = :id&quot;)</span>
+<span class="fc" id="L219">                .param(&quot;id&quot;, userId)</span>
+<span class="fc" id="L220">                .query((rs, row) -&gt; new UserRef(rs.getString(&quot;name&quot;), rs.getString(&quot;email&quot;)))</span>
+<span class="fc" id="L221">                .optional()</span>
+<span class="fc" id="L222">                .orElse(null);</span>
+    }
+
+    ContactState read(String text) {
+<span class="fc bfc" id="L226" title="All 2 branches covered.">        return text == null ? null : json.readValue(text, ContactState.class);</span>
+    }
+
+    private static UserRef user(String name, String email) {
+<span class="pc bpc" id="L230" title="1 of 2 branches missed.">        return email == null ? null : new UserRef(name, email);</span>
+    }
+
+    static String name(String first, String last) {
+<span class="pc bpc" id="L234" title="1 of 2 branches missed.">        if (first == null) {</span>
+<span class="nc" id="L235">            return last;</span>
+        }
+<span class="pc bpc" id="L237" title="1 of 2 branches missed.">        return last == null ? first : first + &quot; &quot; + last;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

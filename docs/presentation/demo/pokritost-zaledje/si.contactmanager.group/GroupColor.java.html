@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GroupColor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.group</a> &gt; <span class="el_source">GroupColor.java</span></div><h1>GroupColor.java</h1><pre class="source lang-java linenums">package si.contactmanager.group;
+
+import java.util.Optional;
+
+/** Osem poimenovanih barv skupine (design.md 4.2, feature-map §2.6); privzeta je {@code tinta}. */
+<span class="fc" id="L6">public enum GroupColor {</span>
+<span class="fc" id="L7">    TINTA(&quot;tinta&quot;),</span>
+<span class="fc" id="L8">    MAH(&quot;mah&quot;),</span>
+<span class="fc" id="L9">    OPEKA(&quot;opeka&quot;),</span>
+<span class="fc" id="L10">    OKER(&quot;oker&quot;),</span>
+<span class="fc" id="L11">    SLIVA(&quot;sliva&quot;),</span>
+<span class="fc" id="L12">    MORJE(&quot;morje&quot;),</span>
+<span class="fc" id="L13">    GRAFIT(&quot;grafit&quot;),</span>
+<span class="fc" id="L14">    RJA(&quot;rja&quot;);</span>
+
+<span class="fc" id="L16">    public static final GroupColor DEFAULT = TINTA;</span>
+
+    private final String code;
+
+<span class="fc" id="L20">    GroupColor(String code) {</span>
+<span class="fc" id="L21">        this.code = code;</span>
+<span class="fc" id="L22">    }</span>
+
+    /** Ime v API-ju in bazi (male črke). */
+    public String code() {
+<span class="fc" id="L26">        return code;</span>
+    }
+
+    /** Barva za ime v API-ju (samo male črke); neznano ime → prazno. */
+    public static Optional&lt;GroupColor&gt; fromCode(String code) {
+<span class="fc bfc" id="L31" title="All 2 branches covered.">        for (GroupColor color : values()) {</span>
+<span class="fc bfc" id="L32" title="All 2 branches covered.">            if (color.code.equals(code)) {</span>
+<span class="fc" id="L33">                return Optional.of(color);</span>
+            }
+        }
+<span class="fc" id="L36">        return Optional.empty();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

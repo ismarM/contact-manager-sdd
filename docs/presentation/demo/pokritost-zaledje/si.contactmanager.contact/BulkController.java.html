@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BulkController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">BulkController.java</span></div><h1>BulkController.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import si.contactmanager.group.GroupAccess;
+import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.group.Role;
+import si.contactmanager.shared.error.BulkValidationException;
+import si.contactmanager.shared.error.ForbiddenException;
+import si.contactmanager.shared.error.GroupArchivedException;
+import si.contactmanager.shared.error.ValidationException;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * Endpointi izbora in množičnega urejanja (plan.md – REST endpoints). Vrstni red preverjanj (research R-02): 401 → 404
+ * (nečlan, skupina ali identiteta, ki nikoli ni bila kontakt skupine) → 403 → 409 {@code GROUP_ARCHIVED} → 400 →
+ * 409 {@code SELECTION_CHANGED} (v servisu).
+ */
+@RestController
+@RequestMapping(&quot;/api/groups/{groupId}&quot;)
+class BulkController {
+
+    /** Največ različnih identitet v telesu {@code selection-check} (izbor in vsoti poizvedb, R-10). */
+    private static final int CHECK_IDENTITIES = 3 * BulkInputParser.MAX_IDS;
+
+    private final GroupAccess access;
+    private final BulkService service;
+    private final BulkInputParser parser;
+<span class="fc" id="L41">    private final ContactQueryParser queryParser = new ContactQueryParser();</span>
+
+<span class="fc" id="L43">    BulkController(GroupAccess access, BulkService service, JsonMapper json) {</span>
+<span class="fc" id="L44">        this.access = access;</span>
+<span class="fc" id="L45">        this.service = service;</span>
+<span class="fc" id="L46">        this.parser = new BulkInputParser(json);</span>
+<span class="fc" id="L47">    }</span>
+
+    /** »Izberi vse zadetke« (FR-009-03, FR-009-04): vsi člani, tudi v arhivirani skupini. */
+    @GetMapping(&quot;/contact-ids&quot;)
+    ContactIds contactIds(@AuthenticationPrincipal Jwt jwt, @PathVariable String groupId, HttpServletRequest request) {
+<span class="fc" id="L52">        Membership membership = access.require(jwt, groupId, Role.VIEWER, false);</span>
+<span class="fc" id="L53">        Map&lt;String, List&lt;String&gt;&gt; parameters = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L54">        request.getParameterMap().forEach((name, values) -&gt; parameters.put(name, List.of(values)));</span>
+<span class="fc" id="L55">        ContactQueryParser.Parsed parsed = queryParser.parse(parameters);</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">        if (!parsed.valid()) {</span>
+<span class="fc" id="L57">            throw new ValidationException(parsed.errors());</span>
+        }
+<span class="fc" id="L59">        return service.contactIds(membership, parsed.query());</span>
+    }
+
+    /** Preverjanje sprememb izbora (FR-009-18): samo branje, vsi člani, tudi v arhivirani skupini. */
+    @PostMapping(&quot;/contacts/selection-check&quot;)
+    SelectionCheck.Result selectionCheck(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String groupId,
+            @RequestBody(required = false) String body) {
+<span class="fc" id="L68">        Membership membership = access.require(jwt, groupId, Role.VIEWER, false);</span>
+<span class="fc" id="L69">        requireKnown(membership, parser.identities(body, true, CHECK_IDENTITIES));</span>
+<span class="fc" id="L70">        BulkInputParser.Parsed&lt;SelectionCheck.Request&gt; parsed = parser.parseCheck(body);</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        if (!parsed.valid()) {</span>
+<span class="fc" id="L72">            throw new BulkValidationException(parsed.errors(), List.of());</span>
+        }
+<span class="fc" id="L74">        return service.check(membership, parsed.value());</span>
+    }
+
+    /** Množično urejanje (FR-009-06 … FR-009-12): urednik ali višje v nearhivirani skupini. */
+    @PostMapping(&quot;/contacts/bulk-update&quot;)
+    Changed bulkUpdate(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String groupId,
+            @RequestBody(required = false) String body) {
+<span class="fc" id="L83">        Membership membership = access.require(jwt, groupId, Role.VIEWER, false);</span>
+<span class="fc" id="L84">        requireKnown(membership, parser.identities(body, false, BulkInputParser.MAX_IDS));</span>
+<span class="fc" id="L85">        requireWritable(membership);</span>
+<span class="fc" id="L86">        BulkInputParser.Parsed&lt;BulkEditInput&gt; parsed = parser.parseUpdate(body);</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">        if (!parsed.valid()) {</span>
+<span class="fc" id="L88">            throw new BulkValidationException(parsed.errors(), List.of());</span>
+        }
+<span class="fc" id="L90">        return new Changed(service.update(membership, parsed.value()));</span>
+    }
+
+    /** Množični izbris (FR-009-13): urednik ali višje v nearhivirani skupini. */
+    @PostMapping(&quot;/contacts/bulk-delete&quot;)
+    Deleted bulkDelete(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String groupId,
+            @RequestBody(required = false) String body) {
+<span class="fc" id="L99">        Membership membership = access.require(jwt, groupId, Role.VIEWER, false);</span>
+<span class="fc" id="L100">        requireKnown(membership, parser.identities(body, false, BulkInputParser.MAX_IDS));</span>
+<span class="fc" id="L101">        requireWritable(membership);</span>
+<span class="fc" id="L102">        BulkInputParser.Parsed&lt;BulkTarget&gt; parsed = parser.parseDelete(body);</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">        if (!parsed.valid()) {</span>
+<span class="fc" id="L104">            throw new BulkValidationException(parsed.errors(), List.of());</span>
+        }
+<span class="fc" id="L106">        return new Deleted(service.delete(membership, parsed.value()));</span>
+    }
+
+    /** Korak 2 (404) nad veljavnimi identitetami iz telesa; pri preveliki količini se baza ne obišče (R-15). */
+    private void requireKnown(Membership membership, Set&lt;UUID&gt; identities) {
+<span class="fc bfc" id="L111" title="All 4 branches covered.">        if (identities != null &amp;&amp; !identities.isEmpty()) {</span>
+<span class="fc" id="L112">            service.requireKnown(membership, identities);</span>
+        }
+<span class="fc" id="L114">    }</span>
+
+    /** Koraka 3 in 4: vloga pod EDITOR → 403 (tudi v arhivirani skupini), arhivirana skupina → 409. */
+    private static void requireWritable(Membership membership) {
+<span class="fc bfc" id="L118" title="All 2 branches covered.">        if (!membership.role().atLeast(Role.EDITOR)) {</span>
+<span class="fc" id="L119">            throw new ForbiddenException();</span>
+        }
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        if (membership.archived()) {</span>
+<span class="fc" id="L122">            throw new GroupArchivedException();</span>
+        }
+<span class="fc" id="L124">    }</span>
+
+    /** Odgovor množičnega urejanja. */
+<span class="fc" id="L127">    record Changed(int changed) {}</span>
+
+    /** Odgovor množičnega izbrisa. */
+<span class="fc" id="L130">    record Deleted(int deleted) {}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

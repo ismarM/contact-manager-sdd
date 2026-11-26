@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExportAssembler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.account</a> &gt; <span class="el_source">ExportAssembler.java</span></div><h1>ExportAssembler.java</h1><pre class="source lang-java linenums">package si.contactmanager.account;
+
+import java.time.Instant;
+import java.util.Comparator;
+import java.util.List;
+
+/** Čista funkcija: vrstice iz baze → {@link MyData} (012, FR-012-02, FR-012-03). Ogrodje – vedenje pride z implementacijo. */
+final class ExportAssembler {
+
+<span class="fc" id="L10">    record ProfileRow(</span>
+            String name,
+            String email,
+            Instant createdAt,
+            String language,
+            String theme,
+            String phoneFormat,
+            String dateFormat,
+            String addressFormat,
+            MyData.Photo photo) {
+
+        ProfileRow(
+                String name,
+                String email,
+                Instant createdAt,
+                String language,
+                String theme,
+                String phoneFormat,
+                String dateFormat,
+                String addressFormat) {
+<span class="fc" id="L30">            this(name, email, createdAt, language, theme, phoneFormat, dateFormat, addressFormat, null);</span>
+<span class="fc" id="L31">        }</span>
+
+        ProfileRow withPhoto(MyData.Photo photo) {
+<span class="fc" id="L34">            return new ProfileRow(</span>
+                    name, email, createdAt, language, theme, phoneFormat, dateFormat, addressFormat, photo);
+        }
+    }
+
+<span class="fc" id="L39">    record MembershipRow(String groupTitle, String role, Instant joinedAt, boolean archived, boolean hasOwner) {}</span>
+
+<span class="fc" id="L41">    record ReceivedRow(String groupTitle, String role, String senderName, boolean senderDeleted, Instant createdAt) {}</span>
+
+<span class="fc" id="L43">    record SentRow(String groupTitle, String role, String inviteeEmail, Instant createdAt) {}</span>
+
+<span class="fc" id="L45">    record OwnedRow(String title, String description, String color, boolean archived, Instant createdAt) {}</span>
+
+<span class="fc" id="L47">    record AppPasswordRow(String name, Instant createdAt, Instant lastUsedAt) {}</span>
+
+    /** API ključ (019) s skupinami in dnevnimi povzetki; {@code allGroupsPermission} {@code null} = izbrane skupine. */
+<span class="fc" id="L50">    record ApiKeyRow(</span>
+            String name,
+            String allGroupsPermission,
+            List&lt;MyData.ApiKeyGroup&gt; groups,
+            Instant createdAt,
+            Instant expiresAt,
+            Instant lastUsedAt,
+            Instant revokedAt,
+            List&lt;MyData.ApiKeyUsageDay&gt; usage) {}
+
+    private ExportAssembler() {}
+
+    static final String DELETED_USER = &quot;izbrisan uporabnik&quot;;
+
+    static MyData assemble(
+            Instant exportedAt,
+            ProfileRow profile,
+            List&lt;MembershipRow&gt; memberships,
+            List&lt;ReceivedRow&gt; received,
+            List&lt;SentRow&gt; sent,
+            List&lt;OwnedRow&gt; owned) {
+<span class="fc" id="L71">        return assemble(exportedAt, profile, memberships, received, sent, owned, List.of());</span>
+    }
+
+    /** 014: z gesli za aplikacijo (FR-014-25), po času nastanka. */
+    static MyData assemble(
+            Instant exportedAt,
+            ProfileRow profile,
+            List&lt;MembershipRow&gt; memberships,
+            List&lt;ReceivedRow&gt; received,
+            List&lt;SentRow&gt; sent,
+            List&lt;OwnedRow&gt; owned,
+            List&lt;AppPasswordRow&gt; appPasswords) {
+<span class="fc" id="L83">        return assemble(exportedAt, profile, memberships, received, sent, owned, appPasswords, List.of());</span>
+    }
+
+    /** 019: z API ključi (FR-019-05, -21) po času nastanka; skupine po naslovu, statistika po dnevih. */
+    static MyData assemble(
+            Instant exportedAt,
+            ProfileRow profile,
+            List&lt;MembershipRow&gt; memberships,
+            List&lt;ReceivedRow&gt; received,
+            List&lt;SentRow&gt; sent,
+            List&lt;OwnedRow&gt; owned,
+            List&lt;AppPasswordRow&gt; appPasswords,
+            List&lt;ApiKeyRow&gt; apiKeys) {
+<span class="fc" id="L96">        return new MyData(</span>
+                1,
+                exportedAt,
+                new MyData.Profile(
+<span class="fc" id="L100">                        profile.name(),</span>
+<span class="fc" id="L101">                        profile.email(),</span>
+<span class="fc" id="L102">                        profile.createdAt(),</span>
+<span class="fc" id="L103">                        profile.language(),</span>
+<span class="fc" id="L104">                        profile.theme(),</span>
+<span class="fc" id="L105">                        profile.phoneFormat(),</span>
+<span class="fc" id="L106">                        profile.dateFormat(),</span>
+<span class="fc" id="L107">                        profile.addressFormat(),</span>
+<span class="fc" id="L108">                        profile.photo()),</span>
+<span class="fc" id="L109">                memberships.stream()</span>
+<span class="fc" id="L110">                        .sorted(Comparator.comparing(MembershipRow::joinedAt).thenComparing(MembershipRow::groupTitle))</span>
+<span class="fc" id="L111">                        .map(row -&gt; new MyData.Membership(row.groupTitle(), row.role(), row.joinedAt(), state(row)))</span>
+<span class="fc" id="L112">                        .toList(),</span>
+<span class="fc" id="L113">                received.stream()</span>
+<span class="fc" id="L114">                        .sorted(Comparator.comparing(ReceivedRow::createdAt).thenComparing(ReceivedRow::groupTitle))</span>
+<span class="fc" id="L115">                        .map(row -&gt; new MyData.ReceivedInvitation(</span>
+<span class="fc" id="L116">                                row.groupTitle(), row.role(), sender(row), row.createdAt()))</span>
+<span class="fc" id="L117">                        .toList(),</span>
+<span class="fc" id="L118">                sent.stream()</span>
+<span class="fc" id="L119">                        .sorted(Comparator.comparing(SentRow::createdAt).thenComparing(SentRow::groupTitle))</span>
+<span class="fc" id="L120">                        .map(row -&gt; new MyData.SentInvitation(</span>
+<span class="fc" id="L121">                                row.groupTitle(), row.role(), row.inviteeEmail(), row.createdAt()))</span>
+<span class="fc" id="L122">                        .toList(),</span>
+<span class="fc" id="L123">                owned.stream()</span>
+<span class="fc" id="L124">                        .sorted(Comparator.comparing(OwnedRow::createdAt).thenComparing(OwnedRow::title))</span>
+<span class="fc" id="L125">                        .map(row -&gt; new MyData.OwnedGroup(</span>
+<span class="fc" id="L126">                                row.title(),</span>
+<span class="fc" id="L127">                                row.description(),</span>
+<span class="fc" id="L128">                                row.color(),</span>
+<span class="fc bfc" id="L129" title="All 2 branches covered.">                                row.archived() ? &quot;ARCHIVED&quot; : &quot;ACTIVE&quot;,</span>
+<span class="fc" id="L130">                                row.createdAt()))</span>
+<span class="fc" id="L131">                        .toList(),</span>
+<span class="fc" id="L132">                appPasswords.stream()</span>
+<span class="fc" id="L133">                        .sorted(Comparator.comparing(AppPasswordRow::createdAt).thenComparing(AppPasswordRow::name))</span>
+<span class="fc" id="L134">                        .map(row -&gt; new MyData.AppPassword(row.name(), row.createdAt(), row.lastUsedAt()))</span>
+<span class="fc" id="L135">                        .toList(),</span>
+<span class="fc" id="L136">                apiKeys.stream()</span>
+<span class="fc" id="L137">                        .sorted(Comparator.comparing(ApiKeyRow::createdAt).thenComparing(ApiKeyRow::name))</span>
+<span class="fc" id="L138">                        .map(ExportAssembler::apiKey)</span>
+<span class="fc" id="L139">                        .toList());</span>
+    }
+
+    private static MyData.ApiKey apiKey(ApiKeyRow row) {
+<span class="fc" id="L143">        return new MyData.ApiKey(</span>
+<span class="fc" id="L144">                row.name(),</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">                row.allGroupsPermission() != null,</span>
+<span class="fc" id="L146">                row.allGroupsPermission(),</span>
+<span class="fc" id="L147">                row.groups().stream()</span>
+<span class="fc" id="L148">                        .sorted(Comparator.comparing(MyData.ApiKeyGroup::title))</span>
+<span class="fc" id="L149">                        .toList(),</span>
+<span class="fc" id="L150">                row.createdAt(),</span>
+<span class="fc" id="L151">                row.expiresAt(),</span>
+<span class="fc" id="L152">                row.lastUsedAt(),</span>
+<span class="fc" id="L153">                row.revokedAt(),</span>
+<span class="fc" id="L154">                row.usage().stream()</span>
+<span class="fc" id="L155">                        .sorted(Comparator.comparing(MyData.ApiKeyUsageDay::day))</span>
+<span class="fc" id="L156">                        .toList());</span>
+    }
+
+    /** Arhivirana skupina brez lastnika je trajno arhivirana (feature-map §2.1; 003). */
+    private static String state(MembershipRow row) {
+<span class="fc bfc" id="L161" title="All 2 branches covered.">        if (!row.archived()) {</span>
+<span class="fc" id="L162">            return &quot;ACTIVE&quot;;</span>
+        }
+<span class="fc bfc" id="L164" title="All 2 branches covered.">        return row.hasOwner() ? &quot;ARCHIVED&quot; : &quot;PERMANENTLY_ARCHIVED&quot;;</span>
+    }
+
+    /** Izbrisan pošiljatelj: konstantno »izbrisan uporabnik« z zastavico; e-naslova pošiljatelja izvoz ne vsebuje (FR-012-03). */
+    private static MyData.Sender sender(ReceivedRow row) {
+<span class="fc bfc" id="L169" title="All 2 branches covered.">        return row.senderDeleted() ? new MyData.Sender(DELETED_USER, true) : new MyData.Sender(row.senderName(), false);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

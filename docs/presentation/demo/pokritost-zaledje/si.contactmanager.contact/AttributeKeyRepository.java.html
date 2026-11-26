@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AttributeKeyRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">AttributeKeyRepository.java</span></div><h1>AttributeKeyRepository.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+
+/**
+ * Tabela {@code attribute_key}: tip ključa atributa v skupini (016, research R-01). Vsaka poizvedba ima
+ * {@code group_id} (izolacija skupin). Zaklepanje: urejanje kontakta drži {@code FOR SHARE} na vrstici ključa,
+ * sprememba tipa {@code FOR UPDATE}; zato sta urejanje in sprememba tipa serializirana. Vsi klici razen
+ * {@link #find} zahtevajo obdajajočo transakcijo (zaklep velja do njenega konca).
+ */
+@Repository
+class AttributeKeyRepository {
+
+    /** Vrstica ključa: tip in verzija (verzija se spremeni samo ob spremembi tipa). */
+<span class="fc" id="L19">    record Row(String keyNorm, AttributeType type, long version) {}</span>
+
+    private final JdbcClient jdbc;
+
+<span class="fc" id="L23">    AttributeKeyRepository(JdbcClient jdbc) {</span>
+<span class="fc" id="L24">        this.jdbc = jdbc;</span>
+<span class="fc" id="L25">    }</span>
+
+    /** Vrstica ključa brez zaklepa (branje, seznami). */
+    Optional&lt;Row&gt; find(UUID group, String keyNorm) {
+<span class="fc" id="L29">        return jdbc.sql(&quot;SELECT key_norm, type, version FROM attribute_key WHERE group_id = :group AND key_norm = :key&quot;)</span>
+<span class="fc" id="L30">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L31">                .param(&quot;key&quot;, keyNorm)</span>
+<span class="fc" id="L32">                .query(AttributeKeyRepository::row)</span>
+<span class="fc" id="L33">                .optional();</span>
+    }
+
+    /** Vrstica ključa z zaklepom {@code FOR SHARE} do konca transakcije (urejanje kontakta). */
+    Optional&lt;Row&gt; lockForShare(UUID group, String keyNorm) {
+<span class="fc" id="L38">        return jdbc.sql(&quot;SELECT key_norm, type, version FROM attribute_key&quot;</span>
+                        + &quot; WHERE group_id = :group AND key_norm = :key FOR SHARE&quot;)
+<span class="fc" id="L40">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L41">                .param(&quot;key&quot;, keyNorm)</span>
+<span class="fc" id="L42">                .query(AttributeKeyRepository::row)</span>
+<span class="fc" id="L43">                .optional();</span>
+    }
+
+    /** Vrstica ključa z zaklepom {@code FOR UPDATE} do konca transakcije (sprememba tipa). */
+    Optional&lt;Row&gt; lockForUpdate(UUID group, String keyNorm) {
+<span class="fc" id="L48">        return jdbc.sql(&quot;SELECT key_norm, type, version FROM attribute_key&quot;</span>
+                        + &quot; WHERE group_id = :group AND key_norm = :key FOR UPDATE&quot;)
+<span class="fc" id="L50">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L51">                .param(&quot;key&quot;, keyNorm)</span>
+<span class="fc" id="L52">                .query(AttributeKeyRepository::row)</span>
+<span class="fc" id="L53">                .optional();</span>
+    }
+
+    /**
+     * Zagotovi vrstico ključa z zahtevanim tipom in vrne &lt;b&gt;veljavni&lt;/b&gt; tip ključa (zaklenjen {@code FOR SHARE}).
+     * Nov ključ dobi zahtevani tip; ključ brez kontaktov je prost in prevzame zahtevani tip (verzija se poveča); ključ
+     * v uporabi obdrži svoj tip – kličoči primerja vrnjeni tip z zahtevanim (drugačen → {@code INVALID_VALUE}).
+     * Dva sočasna nova ključa z različnima tipoma: prvi vstavek zmaga, drugi počaka na potrditev in vidi njegov tip.
+     */
+    AttributeType ensure(UUID group, String keyNorm, AttributeType requested) {
+<span class="fc" id="L63">        jdbc.sql(&quot;INSERT INTO attribute_key (group_id, key_norm, type) VALUES (:group, :key, :type)&quot;</span>
+                        + &quot; ON CONFLICT (group_id, key_norm) DO NOTHING&quot;)
+<span class="fc" id="L65">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L66">                .param(&quot;key&quot;, keyNorm)</span>
+<span class="fc" id="L67">                .param(&quot;type&quot;, requested.name())</span>
+<span class="fc" id="L68">                .update();</span>
+        // Prost ključ (nobenega kontakta) lahko dobi nov tip; en sam stavek, da zaklep ni nadgrajen iz FOR SHARE.
+<span class="fc" id="L70">        jdbc.sql(&quot;UPDATE attribute_key SET type = :type, version = version + 1&quot;</span>
+                        + &quot; WHERE group_id = :group AND key_norm = :key AND type &lt;&gt; :type&quot;
+                        + &quot; AND NOT EXISTS (SELECT 1 FROM contact_attribute a JOIN contact c ON c.id = a.contact_id&quot;
+                        + &quot; WHERE c.group_id = :group AND a.key_norm = :key)&quot;)
+<span class="fc" id="L74">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L75">                .param(&quot;key&quot;, keyNorm)</span>
+<span class="fc" id="L76">                .param(&quot;type&quot;, requested.name())</span>
+<span class="fc" id="L77">                .update();</span>
+<span class="fc" id="L78">        return lockForShare(group, keyNorm).orElseThrow().type();</span>
+    }
+
+    /** Število kontaktov skupine, ki imajo ključ. */
+    long contactCount(UUID group, String keyNorm) {
+<span class="fc" id="L83">        return jdbc.sql(&quot;SELECT count(*) FROM contact_attribute a JOIN contact c ON c.id = a.contact_id&quot;</span>
+                        + &quot; WHERE c.group_id = :group AND a.key_norm = :key&quot;)
+<span class="fc" id="L85">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L86">                .param(&quot;key&quot;, keyNorm)</span>
+<span class="fc" id="L87">                .query(Long.class)</span>
+<span class="fc" id="L88">                .single();</span>
+    }
+
+    /** Ključ je prost, kadar ga ne uporablja noben kontakt skupine (tip se ob ponovni uporabi izbere znova). */
+    boolean isFree(UUID group, String keyNorm) {
+<span class="fc bfc" id="L93" title="All 2 branches covered.">        return contactCount(group, keyNorm) == 0;</span>
+    }
+
+    /** Nastavi tip in poveča verzijo ključa (klic pod {@link #lockForUpdate}); vrne novo verzijo. */
+    long setType(UUID group, String keyNorm, AttributeType type) {
+<span class="fc" id="L98">        return jdbc.sql(&quot;UPDATE attribute_key SET type = :type, version = version + 1&quot;</span>
+                        + &quot; WHERE group_id = :group AND key_norm = :key RETURNING version&quot;)
+<span class="fc" id="L100">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L101">                .param(&quot;key&quot;, keyNorm)</span>
+<span class="fc" id="L102">                .param(&quot;type&quot;, type.name())</span>
+<span class="fc" id="L103">                .query(Long.class)</span>
+<span class="fc" id="L104">                .single();</span>
+    }
+
+    /** Vrstica ključa za kontakt: identiteta, država, ime za razvrščanje in prikaz, vrednost ali deli razčlenjenega naslova (016, sprememba tipa). */
+<span class="fc" id="L108">    record Value(UUID contactId, String firstName, String lastName, String country, String value, Address parts) {}</span>
+
+    /**
+     * Zagotovi vrstico ključa tipa {@code OTHER}, če je ključ v uporabi, pa vrstice še nima (ključi, ki so nastali pred
+     * V13 ali po poteh brez razreševanja tipov); brez zaklepa.
+     */
+    void register(UUID group, String keyNorm) {
+<span class="fc" id="L115">        jdbc.sql(&quot;INSERT INTO attribute_key (group_id, key_norm) VALUES (:group, :key)&quot;</span>
+                        + &quot; ON CONFLICT (group_id, key_norm) DO NOTHING&quot;)
+<span class="fc" id="L117">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L118">                .param(&quot;key&quot;, keyNorm)</span>
+<span class="fc" id="L119">                .update();</span>
+<span class="fc" id="L120">    }</span>
+
+    /** Vrednosti ključa vseh kontaktov skupine, po imenu kontakta (slovenska abeceda), nato identiteti. */
+    List&lt;Value&gt; values(UUID group, String keyNorm) {
+<span class="fc" id="L124">        return jdbc.sql(&quot;SELECT c.id, c.first_name, c.last_name, c.country, a.value, a.parts::text AS parts&quot;</span>
+                        + &quot; FROM contact_attribute a JOIN contact c ON c.id = a.contact_id&quot;
+                        + &quot; WHERE c.group_id = :group AND a.key_norm = :key&quot;
+                        + &quot; ORDER BY c.sort_last COLLATE sort_sl NULLS LAST, c.sort_first COLLATE sort_sl NULLS LAST,&quot;
+                        + &quot; c.id&quot;)
+<span class="fc" id="L129">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L130">                .param(&quot;key&quot;, keyNorm)</span>
+<span class="fc" id="L131">                .query((rs, n) -&gt; new Value(</span>
+<span class="fc" id="L132">                        rs.getObject(&quot;id&quot;, UUID.class),</span>
+<span class="fc" id="L133">                        rs.getString(&quot;first_name&quot;),</span>
+<span class="fc" id="L134">                        rs.getString(&quot;last_name&quot;),</span>
+<span class="fc" id="L135">                        rs.getString(&quot;country&quot;),</span>
+<span class="fc" id="L136">                        rs.getString(&quot;value&quot;),</span>
+<span class="fc" id="L137">                        AddressJson.read(rs.getString(&quot;parts&quot;))))</span>
+<span class="fc" id="L138">                .list();</span>
+    }
+
+    /** Nova besedilna vrednost ključa kontakta (klic pod zaklepom ključa); deli naslova odpadejo. */
+    void updateValue(UUID contactId, String keyNorm, String value) {
+<span class="fc" id="L143">        jdbc.sql(&quot;UPDATE contact_attribute SET value = :value, parts = NULL WHERE contact_id = :id AND key_norm = :key&quot;)</span>
+<span class="fc" id="L144">                .param(&quot;value&quot;, value)</span>
+<span class="fc" id="L145">                .param(&quot;id&quot;, contactId)</span>
+<span class="fc" id="L146">                .param(&quot;key&quot;, keyNorm)</span>
+<span class="fc" id="L147">                .update();</span>
+<span class="fc" id="L148">    }</span>
+
+    /** Nova verzija kontaktov (sprememba tipa ključa spremeni njihovo stanje), izvajalec in čas; brez oznake rollbacka. */
+    void touch(UUID group, java.util.Collection&lt;UUID&gt; contactIds, long user) {
+<span class="fc" id="L152">        List&lt;UUID&gt; all = List.copyOf(contactIds);</span>
+<span class="fc bfc" id="L153" title="All 2 branches covered.">        for (int from = 0; from &lt; all.size(); from += 5000) {</span>
+<span class="fc" id="L154">            jdbc.sql(&quot;UPDATE contact SET version = version + 1, updated_by = :user, updated_at = now(),&quot;</span>
+                            + &quot; reverted_entry_id = NULL WHERE group_id = :group AND id IN (:ids)&quot;)
+<span class="fc" id="L156">                    .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L157">                    .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L158">                    .param(&quot;ids&quot;, all.subList(from, Math.min(all.size(), from + 5000)))</span>
+<span class="fc" id="L159">                    .update();</span>
+        }
+<span class="fc" id="L161">    }</span>
+
+    /** Ključi skupine v uporabi: kanonični zapis (najpogostejši), število kontaktov, tip in verzija. */
+<span class="fc" id="L164">    record Listed(String key, String keyNorm, long contactCount, AttributeType type, long version) {}</span>
+
+    private static final String LISTED =
+            &quot;FROM (SELECT DISTINCT ON (x.norm) x.norm AS key_norm, x.spelling, x.total AS uses&quot;
+                    + &quot; FROM (SELECT a.key_norm AS norm, a.key AS spelling, count(*) AS own,&quot;
+                    + &quot; sum(count(*)) OVER (PARTITION BY a.key_norm) AS total, min(c.created_at) AS first_at&quot;
+                    + &quot; FROM contact_attribute a JOIN contact c ON c.id = a.contact_id WHERE c.group_id = :group&quot;
+                    + &quot; GROUP BY a.key_norm, a.key) x&quot;
+                    + &quot; ORDER BY x.norm, x.own DESC, x.first_at, x.spelling COLLATE \&quot;C\&quot;) s&quot;
+                    + &quot; LEFT JOIN attribute_key k ON k.group_id = :group AND k.key_norm = s.key_norm&quot;;
+
+    private static String filter(String q) {
+<span class="fc bfc" id="L176" title="All 2 branches covered.">        return q.isEmpty() ? &quot;&quot; : &quot; WHERE strpos(s.spelling COLLATE search_fold, :q) &gt; 0&quot;;</span>
+    }
+
+    /** Stran ključev v uporabi: natančno ujemanje s {@code q} prvo, nato po ključu (slovenska abeceda). */
+    List&lt;Listed&gt; list(UUID group, String q, int page, int size) {
+<span class="fc" id="L181">        JdbcClient.StatementSpec spec = jdbc.sql(&quot;SELECT s.spelling, s.key_norm, s.uses, k.type, k.version &quot; + LISTED</span>
+<span class="fc bfc" id="L182" title="All 2 branches covered.">                        + filter(q) + &quot; ORDER BY &quot; + (q.isEmpty() ? &quot;&quot; : &quot;(s.spelling COLLATE search_fold = :q) DESC, &quot;)</span>
+                        + &quot;s.key_norm COLLATE sort_sl, s.key_norm LIMIT :size OFFSET :offset&quot;)
+<span class="fc" id="L184">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L185">                .param(&quot;size&quot;, size)</span>
+<span class="fc" id="L186">                .param(&quot;offset&quot;, (long) page * size);</span>
+<span class="fc bfc" id="L187" title="All 2 branches covered.">        if (!q.isEmpty()) {</span>
+<span class="fc" id="L188">            spec = spec.param(&quot;q&quot;, q);</span>
+        }
+<span class="fc" id="L190">        return spec.query((rs, n) -&gt; new Listed(</span>
+<span class="fc" id="L191">                        rs.getString(&quot;spelling&quot;),</span>
+<span class="fc" id="L192">                        rs.getString(&quot;key_norm&quot;),</span>
+<span class="fc" id="L193">                        rs.getLong(&quot;uses&quot;),</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">                        rs.getString(&quot;type&quot;) == null</span>
+<span class="fc" id="L195">                                ? AttributeType.OTHER</span>
+<span class="fc" id="L196">                                : AttributeType.valueOf(rs.getString(&quot;type&quot;)),</span>
+<span class="fc" id="L197">                        rs.getLong(&quot;version&quot;)))</span>
+<span class="fc" id="L198">                .list();</span>
+    }
+
+    long listCount(UUID group, String q) {
+<span class="fc" id="L202">        JdbcClient.StatementSpec spec =</span>
+<span class="fc" id="L203">                jdbc.sql(&quot;SELECT count(*) &quot; + LISTED + filter(q)).param(&quot;group&quot;, group);</span>
+<span class="fc bfc" id="L204" title="All 2 branches covered.">        if (!q.isEmpty()) {</span>
+<span class="fc" id="L205">            spec = spec.param(&quot;q&quot;, q);</span>
+        }
+<span class="fc" id="L207">        return spec.query(Long.class).single();</span>
+    }
+
+    private static Row row(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+<span class="fc" id="L211">        return new Row(rs.getString(&quot;key_norm&quot;), AttributeType.valueOf(rs.getString(&quot;type&quot;)), rs.getLong(&quot;version&quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

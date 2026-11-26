@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VcardContact.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">VcardContact.java</span></div><h1>VcardContact.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Kontakt za zapis vizitke (014 research R-03). {@code id} in {@code updatedAt} sta {@code null}, kadar vizitka ne
+ * potrebuje {@code UID} in {@code REV} (npr. testni vzorci); {@code country} je koda ISO ali {@code null}.
+ */
+public record VcardContact(
+        UUID id,
+        Instant updatedAt,
+        String firstName,
+        String lastName,
+        String address,
+        Address addressParts,
+        String email,
+        String phone,
+        String company,
+        String country,
+        List&lt;Attribute&gt; attributes,
+        List&lt;String&gt; tags) {
+
+<span class="fc" id="L25">    public VcardContact {</span>
+<span class="fc" id="L26">        attributes = List.copyOf(attributes);</span>
+<span class="fc" id="L27">        tags = List.copyOf(tags);</span>
+<span class="fc" id="L28">    }</span>
+
+    static VcardContact of(ContactDetail detail) {
+<span class="nc" id="L31">        return new VcardContact(</span>
+<span class="nc" id="L32">                detail.id(),</span>
+<span class="nc" id="L33">                detail.updatedAt(),</span>
+<span class="nc" id="L34">                detail.firstName(),</span>
+<span class="nc" id="L35">                detail.lastName(),</span>
+<span class="nc" id="L36">                detail.address(),</span>
+<span class="nc" id="L37">                detail.addressParts(),</span>
+<span class="nc" id="L38">                detail.email(),</span>
+<span class="nc" id="L39">                detail.phone(),</span>
+<span class="nc" id="L40">                detail.company(),</span>
+<span class="nc" id="L41">                detail.country(),</span>
+<span class="nc" id="L42">                detail.attributes(),</span>
+<span class="nc" id="L43">                detail.tags());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

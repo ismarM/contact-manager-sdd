@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SecurityConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.shared.security</a> &gt; <span class="el_source">SecurityConfig.java</span></div><h1>SecurityConfig.java</h1><pre class="source lang-java linenums">package si.contactmanager.shared.security;
+
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.jwk.source.JWKSourceBuilder;
+import com.nimbusds.jose.proc.SecurityContext;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.time.Clock;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.SecurityFilterChain;
+import si.contactmanager.shared.error.ErrorResponse;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * Javno je samo {@code GET /api/health} (FR-000-10); vse ostalo zahteva veljaven ID žeton Firebase (FR-001-07). Vsaka
+ * neuspešna prijava – brez žetona, neveljaven, ponarejen, potekel – vrne 401 UNAUTHENTICATED. Privzeta veriga za vse
+ * poti, ki jih ne prevzame ločena veriga: CardDAV ({@link DavSecurityConfig}, {@code @Order(1)}) in programski vmesnik
+ * {@code /v1/**} z API ključi ({@code si.contactmanager.apikey.ApiSecurityConfig}, {@code @Order(2)}, 019). API ključ
+ * tukaj ni veljaven žeton (401). Veljaven žeton brez potrjenega e-naslova vrne 403
+ * EMAIL_NOT_VERIFIED ({@link EmailVerifiedFilter}, FR-017-02).
+ */
+@Configuration
+@EnableConfigurationProperties(FirebaseProperties.class)
+<span class="fc" id="L37">public class SecurityConfig {</span>
+
+<span class="fc" id="L39">    private static final ErrorResponse UNAUTHENTICATED = new ErrorResponse(&quot;UNAUTHENTICATED&quot;);</span>
+
+    @Bean
+    SecurityFilterChain securityFilterChain(HttpSecurity http, JsonMapper json, JwtDecoder decoder) throws Exception {
+<span class="fc" id="L43">        AuthenticationEntryPoint unauthenticated = (request, response, exception) -&gt; unauthenticated(response, json);</span>
+<span class="fc" id="L44">        return http.sessionManagement(session -&gt; session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))</span>
+<span class="fc" id="L45">                .csrf(AbstractHttpConfigurer::disable)</span>
+<span class="fc" id="L46">                .httpBasic(AbstractHttpConfigurer::disable)</span>
+<span class="fc" id="L47">                .formLogin(AbstractHttpConfigurer::disable)</span>
+<span class="fc" id="L48">                .logout(AbstractHttpConfigurer::disable)</span>
+<span class="fc" id="L49">                .requestCache(AbstractHttpConfigurer::disable)</span>
+<span class="fc" id="L50">                .authorizeHttpRequests(auth -&gt; auth.requestMatchers(HttpMethod.GET, &quot;/api/health&quot;)</span>
+<span class="fc" id="L51">                        .permitAll()</span>
+<span class="fc" id="L52">                        .requestMatchers(&quot;/error&quot;)</span>
+<span class="fc" id="L53">                        .permitAll()</span>
+<span class="fc" id="L54">                        .anyRequest()</span>
+<span class="fc" id="L55">                        .authenticated())</span>
+<span class="fc" id="L56">                .oauth2ResourceServer(resourceServer -&gt;</span>
+<span class="fc" id="L57">                        resourceServer.jwt(jwt -&gt; jwt.decoder(decoder)).authenticationEntryPoint(unauthenticated))</span>
+<span class="fc" id="L58">                .exceptionHandling(errors -&gt; errors.authenticationEntryPoint(unauthenticated)</span>
+<span class="pc" id="L59">                        .accessDeniedHandler((request, response, exception) -&gt; unauthenticated(response, json)))</span>
+<span class="fc" id="L60">                .addFilterBefore(new IdentityProviderUnavailableFilter(json), BearerTokenAuthenticationFilter.class)</span>
+<span class="fc" id="L61">                .addFilterAfter(new EmailVerifiedFilter(json), BearerTokenAuthenticationFilter.class)</span>
+<span class="fc" id="L62">                .build();</span>
+    }
+
+    @Bean
+    JwtDecoder firebaseJwtDecoder(FirebaseProperties firebase, RevokedIdentities revoked)
+            throws URISyntaxException, IOException {
+<span class="fc" id="L68">        return new DeletedIdentityJwtDecoder(verifyingDecoder(firebase), revoked);</span>
+    }
+
+    private static JwtDecoder verifyingDecoder(FirebaseProperties firebase) throws URISyntaxException, IOException {
+<span class="pc bpc" id="L72" title="2 of 4 branches missed.">        if (firebase.projectId() == null || firebase.projectId().isBlank()) {</span>
+<span class="nc" id="L73">            throw new IllegalStateException(&quot;firebase.project-id (FIREBASE_PROJECT_ID) is required&quot;);</span>
+        }
+<span class="fc" id="L75">        Clock clock = Clock.systemUTC();</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">        if (firebase.emulator()) {</span>
+<span class="fc" id="L77">            return FirebaseJwtDecoder.emulator(firebase.projectId(), clock);</span>
+        }
+<span class="fc" id="L79">        URL jwkSetUrl = new URI(FirebaseJwtDecoder.GOOGLE_JWK_SET_URI).toURL();</span>
+<span class="fc" id="L80">        JWKSource&lt;SecurityContext&gt; keys =</span>
+<span class="fc" id="L81">                JWKSourceBuilder.create(jwkSetUrl).retrying(true).build();</span>
+<span class="fc" id="L82">        return FirebaseJwtDecoder.production(firebase.projectId(), keys, clock);</span>
+    }
+
+    private static void unauthenticated(HttpServletResponse response, JsonMapper json) throws IOException {
+<span class="fc" id="L86">        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);</span>
+<span class="fc" id="L87">        response.setContentType(MediaType.APPLICATION_JSON_VALUE);</span>
+<span class="fc" id="L88">        json.writeValue(response.getWriter(), UNAUTHENTICATED);</span>
+<span class="fc" id="L89">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

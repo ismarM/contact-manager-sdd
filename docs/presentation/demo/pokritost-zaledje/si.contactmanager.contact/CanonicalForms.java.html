@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CanonicalForms.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">CanonicalForms.java</span></div><h1>CanonicalForms.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import org.springframework.stereotype.Component;
+import si.contactmanager.contact.BulkEditInput.AttributeSet;
+
+/**
+ * Kanonični zapis ključev in značk skupine (FR-013-10, research R-05): ključ ali značka, ki ustreza obstoječemu zapisu
+ * skupine brez razlike velikosti črk, se zamenja s pogostejšo različico (pri enakem številu z različico najstarejšega
+ * kontakta). Zapis, ki ga kontakt že ima, se ne spremeni. Podatki, ki so že shranjeni, se nikoli ne spreminjajo.
+ */
+@Component
+class CanonicalForms {
+
+    private final ContactRepository contacts;
+
+<span class="fc" id="L22">    CanonicalForms(ContactRepository contacts) {</span>
+<span class="fc" id="L23">        this.contacts = contacts;</span>
+<span class="fc" id="L24">    }</span>
+
+    /**
+     * Atributi s kanoničnimi ključi; {@code stored}: dobesedni ključi, ki jih kontakt (pri združevanju: kateri koli
+     * vključeni kontakt) že hrani in se ne spreminjajo.
+     */
+    List&lt;Attribute&gt; attributes(UUID group, List&lt;Attribute&gt; input, Collection&lt;String&gt; stored) {
+<span class="fc" id="L31">        Set&lt;String&gt; exact = Set.copyOf(stored);</span>
+<span class="fc" id="L32">        List&lt;String&gt; norms = input.stream()</span>
+<span class="fc bfc" id="L33" title="All 2 branches covered.">                .filter(a -&gt; !exact.contains(a.key()))</span>
+<span class="fc" id="L34">                .map(a -&gt; ContactInputParser.normalize(a.key()))</span>
+<span class="fc" id="L35">                .distinct()</span>
+<span class="fc" id="L36">                .toList();</span>
+<span class="fc bfc" id="L37" title="All 2 branches covered.">        if (norms.isEmpty()) {</span>
+<span class="fc" id="L38">            return input;</span>
+        }
+<span class="fc" id="L40">        Map&lt;String, String&gt; canonical = contacts.canonicalKeys(group, norms);</span>
+<span class="fc" id="L41">        List&lt;Attribute&gt; result = new ArrayList&lt;&gt;(input.size());</span>
+<span class="fc bfc" id="L42" title="All 2 branches covered.">        for (Attribute attribute : input) {</span>
+<span class="fc bfc" id="L43" title="All 2 branches covered.">            String key = exact.contains(attribute.key())</span>
+<span class="fc" id="L44">                    ? attribute.key()</span>
+<span class="fc" id="L45">                    : canonical.getOrDefault(ContactInputParser.normalize(attribute.key()), attribute.key());</span>
+<span class="fc" id="L46">            result.add(new Attribute(key, attribute.type(), attribute.value(), attribute.parts()));</span>
+<span class="fc" id="L47">        }</span>
+<span class="fc" id="L48">        return List.copyOf(result);</span>
+    }
+
+    /** Značke s kanoničnim zapisom; {@code stored}: dobesedne značke, ki jih kontakt že hrani. */
+    List&lt;String&gt; tags(UUID group, List&lt;String&gt; input, Collection&lt;String&gt; stored) {
+<span class="fc" id="L53">        Set&lt;String&gt; exact = Set.copyOf(stored);</span>
+<span class="fc" id="L54">        List&lt;String&gt; norms = input.stream()</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">                .filter(t -&gt; !exact.contains(t))</span>
+<span class="fc" id="L56">                .map(ContactInputParser::normalize)</span>
+<span class="fc" id="L57">                .distinct()</span>
+<span class="fc" id="L58">                .toList();</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">        if (norms.isEmpty()) {</span>
+<span class="fc" id="L60">            return input;</span>
+        }
+<span class="fc" id="L62">        Map&lt;String, String&gt; canonical = contacts.canonicalTags(group, norms);</span>
+<span class="fc" id="L63">        List&lt;String&gt; result = new ArrayList&lt;&gt;(input.size());</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        for (String tag : input) {</span>
+<span class="pc bpc" id="L65" title="1 of 2 branches missed.">            result.add(exact.contains(tag) ? tag : canonical.getOrDefault(ContactInputParser.normalize(tag), tag));</span>
+<span class="fc" id="L66">        }</span>
+<span class="fc" id="L67">        return List.copyOf(result);</span>
+    }
+
+    /**
+     * Uvoz (FR-014-07): kanonični zapis za vse nove kontakte z dvema poizvedbama na kos (namesto dveh na kontakt);
+     * pravilo je enako kot pri {@link #input} za nov kontakt.
+     */
+    List&lt;ContactInput&gt; inputs(UUID group, List&lt;ContactInput&gt; inputs) {
+<span class="fc" id="L75">        Map&lt;String, String&gt; keys = new java.util.HashMap&lt;&gt;();</span>
+<span class="fc" id="L76">        Map&lt;String, String&gt; tags = new java.util.HashMap&lt;&gt;();</span>
+<span class="fc" id="L77">        List&lt;String&gt; keyNorms = inputs.stream()</span>
+<span class="fc" id="L78">                .flatMap(i -&gt; i.attributes().stream())</span>
+<span class="fc" id="L79">                .map(a -&gt; ContactInputParser.normalize(a.key()))</span>
+<span class="fc" id="L80">                .distinct()</span>
+<span class="fc" id="L81">                .toList();</span>
+<span class="fc" id="L82">        List&lt;String&gt; tagNorms = inputs.stream()</span>
+<span class="fc" id="L83">                .flatMap(i -&gt; i.tags().stream())</span>
+<span class="fc" id="L84">                .map(ContactInputParser::normalize)</span>
+<span class="fc" id="L85">                .distinct()</span>
+<span class="fc" id="L86">                .toList();</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">        for (int from = 0; from &lt; keyNorms.size(); from += NORM_CHUNK) {</span>
+<span class="fc" id="L88">            keys.putAll(contacts.canonicalKeys(</span>
+<span class="fc" id="L89">                    group, keyNorms.subList(from, Math.min(keyNorms.size(), from + NORM_CHUNK))));</span>
+        }
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        for (int from = 0; from &lt; tagNorms.size(); from += NORM_CHUNK) {</span>
+<span class="fc" id="L92">            tags.putAll(contacts.canonicalTags(</span>
+<span class="fc" id="L93">                    group, tagNorms.subList(from, Math.min(tagNorms.size(), from + NORM_CHUNK))));</span>
+        }
+<span class="fc" id="L95">        List&lt;ContactInput&gt; result = new ArrayList&lt;&gt;(inputs.size());</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">        for (ContactInput input : inputs) {</span>
+<span class="fc" id="L97">            result.add(new ContactInput(</span>
+<span class="fc" id="L98">                    input.firstName(),</span>
+<span class="fc" id="L99">                    input.lastName(),</span>
+<span class="fc" id="L100">                    input.address(),</span>
+<span class="fc" id="L101">                    input.addressParts(),</span>
+<span class="fc" id="L102">                    input.email(),</span>
+<span class="fc" id="L103">                    input.phone(),</span>
+<span class="fc" id="L104">                    input.company(),</span>
+<span class="fc" id="L105">                    input.country(),</span>
+<span class="fc" id="L106">                    input.attributes().stream()</span>
+<span class="fc" id="L107">                            .map(a -&gt; new Attribute(</span>
+<span class="fc" id="L108">                                    keys.getOrDefault(ContactInputParser.normalize(a.key()), a.key()),</span>
+<span class="fc" id="L109">                                    a.type(),</span>
+<span class="fc" id="L110">                                    a.value(),</span>
+<span class="fc" id="L111">                                    a.parts()))</span>
+<span class="fc" id="L112">                            .toList(),</span>
+<span class="fc" id="L113">                    input.tags().stream()</span>
+<span class="fc" id="L114">                            .map(t -&gt; tags.getOrDefault(ContactInputParser.normalize(t), t))</span>
+<span class="fc" id="L115">                            .toList()));</span>
+<span class="fc" id="L116">        }</span>
+<span class="fc" id="L117">        return result;</span>
+    }
+
+    /** Največ normaliziranih zapisov v eni poizvedbi (meja parametrov PostgreSQL). */
+    private static final int NORM_CHUNK = 5000;
+
+    /** Vnos z vsebino kontakta: atributi in značke s kanoničnim zapisom (ustvarjanje, urejanje, združevanje). */
+    ContactInput input(UUID group, ContactInput input, Collection&lt;String&gt; storedKeys, Collection&lt;String&gt; storedTags) {
+<span class="fc" id="L125">        return new ContactInput(</span>
+<span class="fc" id="L126">                input.firstName(),</span>
+<span class="fc" id="L127">                input.lastName(),</span>
+<span class="fc" id="L128">                input.address(),</span>
+<span class="fc" id="L129">                input.addressParts(),</span>
+<span class="fc" id="L130">                input.email(),</span>
+<span class="fc" id="L131">                input.phone(),</span>
+<span class="fc" id="L132">                input.company(),</span>
+<span class="fc" id="L133">                input.country(),</span>
+<span class="fc" id="L134">                attributes(group, input.attributes(), storedKeys),</span>
+<span class="fc" id="L135">                tags(group, input.tags(), storedTags));</span>
+    }
+
+    /** Množično urejanje: ključi nastavitev in dodane značke s kanoničnim zapisom (odstranitev znack je po normalizirani obliki). */
+    BulkEditInput bulk(UUID group, BulkEditInput edit) {
+<span class="fc" id="L140">        List&lt;AttributeSet&gt; sets = new ArrayList&lt;&gt;(edit.attributes().size());</span>
+<span class="fc" id="L141">        List&lt;Attribute&gt; custom = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L142" title="All 2 branches covered.">        for (AttributeSet set : edit.attributes()) {</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">            if (set.field() == BulkEditInput.Field.CUSTOM) {</span>
+<span class="fc" id="L144">                custom.add(new Attribute(set.key(), set.value()));</span>
+            }
+<span class="fc" id="L146">        }</span>
+<span class="fc" id="L147">        List&lt;Attribute&gt; canonical = attributes(group, custom, List.of());</span>
+<span class="fc" id="L148">        int index = 0;</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">        for (AttributeSet set : edit.attributes()) {</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">            if (set.field() == BulkEditInput.Field.CUSTOM) {</span>
+<span class="fc" id="L151">                sets.add(new AttributeSet(</span>
+<span class="fc" id="L152">                        set.field(), canonical.get(index++).key(), set.value(), set.type(), set.parts()));</span>
+            } else {
+<span class="fc" id="L154">                sets.add(set);</span>
+            }
+<span class="fc" id="L156">        }</span>
+<span class="fc" id="L157">        return new BulkEditInput(</span>
+<span class="fc" id="L158">                edit.contactIds(), tags(group, edit.addTags(), List.of()), edit.removeTags(), List.copyOf(sets));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

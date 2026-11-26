@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BulkService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">BulkService.java</span></div><h1>BulkService.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.text.Collator;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import si.contactmanager.audit.AuditAction;
+import si.contactmanager.audit.AuditLog;
+import si.contactmanager.audit.ContactChange;
+import si.contactmanager.contact.ContactSnapshots.Change;
+import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.shared.error.BulkValidationError.ContactErrors;
+import si.contactmanager.shared.error.BulkValidationException;
+import si.contactmanager.shared.error.GroupArchivedException;
+import si.contactmanager.shared.error.NotFoundException;
+import si.contactmanager.shared.error.SelectionChangedException;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+import si.contactmanager.shared.error.ValidationException;
+
+/**
+ * Izbor vseh zadetkov, preverjanje sprememb izbora, množično urejanje in izbris (research R-02 … R-09, R-13). Dostop do
+ * skupine, vloga in arhiviranost se preverijo v {@link BulkController} pred klicem; transakcije zaklenejo skupino in
+ * kontakte (R-03) in v isti transakciji zapišejo en vnos sledi.
+ */
+@Service
+class BulkService {
+
+    private final ContactRepository contacts;
+    private final ContactSnapshots snapshots;
+    private final AuditLog audit;
+    private final ContactService contactService;
+    private final CanonicalForms canonical;
+    private final TypedAttributes typedAttributes;
+<span class="fc" id="L44">    private final ContactQueryParser queryParser = new ContactQueryParser();</span>
+
+    BulkService(
+            ContactRepository contacts,
+            ContactSnapshots snapshots,
+            AuditLog audit,
+            ContactService contactService,
+            CanonicalForms canonical,
+<span class="fc" id="L52">            TypedAttributes typedAttributes) {</span>
+<span class="fc" id="L53">        this.canonical = canonical;</span>
+<span class="fc" id="L54">        this.typedAttributes = typedAttributes;</span>
+<span class="fc" id="L55">        this.contacts = contacts;</span>
+<span class="fc" id="L56">        this.snapshots = snapshots;</span>
+<span class="fc" id="L57">        this.audit = audit;</span>
+<span class="fc" id="L58">        this.contactService = contactService;</span>
+<span class="fc" id="L59">    }</span>
+
+    /** »Izberi vse zadetke« (FR-009-03, FR-009-04): pri več kot 10 000 zadetkih samo število. */
+    ContactIds contactIds(Membership membership, ContactQuery query) {
+<span class="fc" id="L63">        contactService.requireKnownKeys(membership, query);</span>
+<span class="fc" id="L64">        long total = contacts.count(membership.groupId(), query);</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        if (total &gt; BulkInputParser.MAX_IDS) {</span>
+<span class="fc" id="L66">            return new ContactIds(total, true, List.of());</span>
+        }
+<span class="fc" id="L68">        return new ContactIds(total, false, contacts.ids(membership.groupId(), query));</span>
+    }
+
+    /**
+     * Korak 2 (R-02): vsaka identiteta je kontakt te skupine ali je v njeni sledi (bil je); sicer {@code 404}, nič se ne
+     * spremeni.
+     */
+    void requireKnown(Membership membership, Collection&lt;UUID&gt; ids) {
+<span class="fc" id="L76">        Set&lt;UUID&gt; unknown = new LinkedHashSet&lt;&gt;(ids);</span>
+<span class="fc" id="L77">        unknown.removeAll(contacts.existing(membership.groupId(), ids));</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        if (unknown.isEmpty()) {</span>
+<span class="fc" id="L79">            return;</span>
+        }
+<span class="fc" id="L81">        unknown.removeAll(contacts.knownToGroup(membership.groupId(), unknown));</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        if (!unknown.isEmpty()) {</span>
+<span class="fc" id="L83">            throw new NotFoundException();</span>
+        }
+<span class="fc" id="L85">    }</span>
+
+    /** Preverjanje sprememb izbora (FR-009-18): samo branje. */
+    SelectionCheck.Result check(Membership membership, SelectionCheck.Request request) {
+<span class="fc" id="L89">        UUID group = membership.groupId();</span>
+<span class="fc" id="L90">        Set&lt;UUID&gt; all = new LinkedHashSet&lt;&gt;(request.contactIds());</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        for (SelectionCheck.Query query : request.queries()) {</span>
+<span class="fc" id="L92">            all.addAll(query.contactIds());</span>
+<span class="fc" id="L93">            all.addAll(query.excludedIds());</span>
+<span class="fc" id="L94">        }</span>
+<span class="fc" id="L95">        Set&lt;UUID&gt; existing = contacts.existing(group, all);</span>
+<span class="fc" id="L96">        List&lt;UUID&gt; missing = request.contactIds().stream()</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">                .filter(id -&gt; !existing.contains(id))</span>
+<span class="fc" id="L98">                .toList();</span>
+<span class="fc" id="L99">        Set&lt;UUID&gt; selected = new HashSet&lt;&gt;(request.contactIds());</span>
+
+<span class="fc" id="L101">        List&lt;ContactQuery&gt; parsed = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L102">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">        for (int i = 0; i &lt; request.queries().size(); i++) {</span>
+<span class="fc" id="L104">            ContactQuery query = parse(request.queries().get(i));</span>
+<span class="pc bpc" id="L105" title="1 of 2 branches missed.">            for (FieldError error : contactService.unknownKeys(membership, query)) {</span>
+<span class="nc" id="L106">                errors.add(new FieldError(&quot;queries[&quot; + i + &quot;].&quot; + error.field(), error.code()));</span>
+<span class="nc" id="L107">            }</span>
+<span class="fc" id="L108">            parsed.add(query);</span>
+        }
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">        if (!errors.isEmpty()) {</span>
+<span class="nc" id="L111">            throw new ValidationException(errors);</span>
+        }
+
+<span class="fc bfc" id="L114" title="All 2 branches covered.">        boolean changed = !missing.isEmpty();</span>
+<span class="fc" id="L115">        List&lt;SelectionCheck.QueryResult&gt; results = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">        for (int i = 0; i &lt; parsed.size(); i++) {</span>
+<span class="fc" id="L117">            SelectionCheck.Query query = request.queries().get(i);</span>
+<span class="fc" id="L118">            Set&lt;UUID&gt; matches = new LinkedHashSet&lt;&gt;(contacts.ids(group, parsed.get(i)));</span>
+<span class="fc" id="L119">            Set&lt;UUID&gt; excluded = new HashSet&lt;&gt;(query.excludedIds());</span>
+<span class="fc" id="L120">            List&lt;UUID&gt; newMatches = matches.stream()</span>
+<span class="fc bfc" id="L121" title="All 4 branches covered.">                    .filter(id -&gt; !selected.contains(id) &amp;&amp; !excluded.contains(id))</span>
+<span class="fc" id="L122">                    .toList();</span>
+<span class="fc" id="L123">            List&lt;UUID&gt; noLonger = query.contactIds().stream()</span>
+<span class="fc bfc" id="L124" title="All 4 branches covered.">                    .filter(id -&gt; existing.contains(id) &amp;&amp; !matches.contains(id))</span>
+<span class="fc" id="L125">                    .toList();</span>
+<span class="pc bpc" id="L126" title="1 of 4 branches missed.">            changed |= !newMatches.isEmpty() || !noLonger.isEmpty();</span>
+<span class="fc" id="L127">            results.add(new SelectionCheck.QueryResult(newMatches, noLonger));</span>
+        }
+<span class="fc" id="L129">        return new SelectionCheck.Result(changed, missing, results);</span>
+    }
+
+    private ContactQuery parse(SelectionCheck.Query query) {
+<span class="fc" id="L133">        Map&lt;String, List&lt;String&gt;&gt; parameters = new LinkedHashMap&lt;&gt;();</span>
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">        if (query.q() != null) {</span>
+<span class="fc" id="L135">            parameters.put(&quot;q&quot;, List.of(query.q()));</span>
+        }
+<span class="fc" id="L137">        parameters.put(&quot;f&quot;, query.f());</span>
+<span class="fc" id="L138">        parameters.put(&quot;tag&quot;, query.tag());</span>
+<span class="fc" id="L139">        ContactQueryParser.Parsed parsed = queryParser.parse(parameters);</span>
+<span class="pc bpc" id="L140" title="1 of 2 branches missed.">        if (!parsed.valid()) {</span>
+<span class="nc" id="L141">            throw new ValidationException(parsed.errors());</span>
+        }
+<span class="fc" id="L143">        return parsed.query();</span>
+    }
+
+    /** Množično urejanje (FR-009-06 … FR-009-12, FR-009-14, FR-009-16); vrne število spremenjenih kontaktov. */
+    @Transactional
+    int update(Membership membership, BulkEditInput requested) {
+<span class="fc" id="L149">        UUID group = membership.groupId();</span>
+<span class="fc" id="L150">        lockWritable(group);</span>
+<span class="fc" id="L151">        BulkEditInput edit = canonical.bulk(group, requested);</span>
+<span class="fc" id="L152">        Map&lt;String, AttributeType&gt; types = resolveTypes(group, edit);</span>
+<span class="fc" id="L153">        Set&lt;UUID&gt; locked = contacts.lockExisting(group, edit.contactIds());</span>
+<span class="fc" id="L154">        Map&lt;UUID, ContactState&gt; states = snapshots.load(group, locked);</span>
+<span class="fc" id="L155">        Collator collator = collator();</span>
+
+<span class="fc" id="L157">        List&lt;Change&gt; changes = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L158">        List&lt;ContactErrors&gt; invalid = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">        for (UUID id : edit.contactIds()) {</span>
+<span class="fc" id="L160">            ContactState before = states.get(id);</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">            if (before == null) {</span>
+<span class="fc" id="L162">                continue;</span>
+            }
+<span class="fc" id="L164">            ContactState after = BulkEdit.apply(before, edit, types);</span>
+<span class="fc" id="L165">            List&lt;FieldError&gt; violations = new ArrayList&lt;&gt;(BulkEdit.typedErrors(before, edit, types));</span>
+<span class="fc" id="L166">            violations.addAll(BulkEdit.violations(after));</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">            if (!violations.isEmpty()) {</span>
+<span class="fc" id="L168">                invalid.add(new ContactErrors(id, name(after), violations));</span>
+<span class="fc bfc" id="L169" title="All 2 branches covered.">            } else if (BulkEdit.changed(before, after)) {</span>
+<span class="fc" id="L170">                changes.add(new Change(id, before, after));</span>
+            }
+<span class="fc" id="L172">        }</span>
+<span class="fc bfc" id="L173" title="All 2 branches covered.">        if (!invalid.isEmpty()) {</span>
+<span class="fc" id="L174">            invalid.sort(</span>
+<span class="fc" id="L175">                    Comparator.comparing(ContactErrors::displayName, collator).thenComparing(ContactErrors::contactId));</span>
+<span class="fc" id="L176">            throw new BulkValidationException(List.of(), invalid);</span>
+        }
+<span class="fc" id="L178">        requireNoneMissing(edit.contactIds(), states.keySet());</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">        if (changes.isEmpty()) {</span>
+<span class="fc" id="L180">            return 0;</span>
+        }
+<span class="fc" id="L182">        changes.sort(</span>
+<span class="fc" id="L183">                Comparator.comparing((Change c) -&gt; name(c.after()), collator).thenComparing(Change::contactId));</span>
+<span class="fc" id="L184">        snapshots.replaceContent(group, membership.userId(), changes);</span>
+<span class="fc" id="L185">        Map&lt;UUID, ContactState&gt; written =</span>
+<span class="fc" id="L186">                snapshots.load(group, changes.stream().map(Change::contactId).toList());</span>
+<span class="fc" id="L187">        audit.record(</span>
+                group,
+<span class="fc" id="L189">                membership.userId(),</span>
+                AuditAction.UPDATE,
+<span class="fc" id="L191">                changes.stream()</span>
+<span class="fc" id="L192">                        .map(c -&gt; new ContactChange(</span>
+<span class="fc" id="L193">                                c.contactId(), name(c.after()), c.before(), written.get(c.contactId())))</span>
+<span class="fc" id="L194">                        .toList());</span>
+<span class="fc" id="L195">        return changes.size();</span>
+    }
+
+    /**
+     * Učinkoviti tipi ključev nastavitev z vrednostjo (016, FR-016-06): obstoječ ključ ima svoj tip, nov ključ zahtevani
+     * tip ali {@code OTHER}; drugačen zahtevani tip za ključ v uporabi je napaka zahtevka (nič se ne spremeni).
+     */
+    private Map&lt;String, AttributeType&gt; resolveTypes(UUID group, BulkEditInput edit) {
+<span class="fc" id="L203">        Map&lt;String, AttributeType&gt; types = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L204">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L205" title="All 2 branches covered.">        for (int i = 0; i &lt; edit.attributes().size(); i++) {</span>
+<span class="fc" id="L206">            BulkEditInput.AttributeSet set = edit.attributes().get(i);</span>
+<span class="fc bfc" id="L207" title="All 4 branches covered.">            if (set.field() != BulkEditInput.Field.CUSTOM || set.removal()) {</span>
+<span class="fc" id="L208">                continue;</span>
+            }
+<span class="fc" id="L210">            String norm = ContactInputParser.normalize(set.key());</span>
+<span class="fc bfc" id="L211" title="All 2 branches covered.">            AttributeType requested = set.parts() != null ? AttributeType.ADDRESS : set.type();</span>
+<span class="fc" id="L212">            AttributeType effective =</span>
+<span class="fc" id="L213">                    types.computeIfAbsent(norm, n -&gt; typedAttributes.effective(group, n, requested, true));</span>
+<span class="fc bfc" id="L214" title="All 4 branches covered.">            if (requested != null &amp;&amp; requested != effective) {</span>
+<span class="fc" id="L215">                errors.add(new FieldError(&quot;attributes[&quot; + i + &quot;].type&quot;, &quot;INVALID_VALUE&quot;));</span>
+            }
+        }
+<span class="fc bfc" id="L218" title="All 2 branches covered.">        if (!errors.isEmpty()) {</span>
+<span class="fc" id="L219">            throw new BulkValidationException(errors, List.of());</span>
+        }
+<span class="fc" id="L221">        return types;</span>
+    }
+
+    /** Množični izbris (FR-009-13, FR-009-14); vrne število izbrisanih kontaktov. */
+    @Transactional
+    int delete(Membership membership, BulkTarget target) {
+<span class="fc" id="L227">        UUID group = membership.groupId();</span>
+<span class="fc" id="L228">        lockWritable(group);</span>
+<span class="fc" id="L229">        Set&lt;UUID&gt; locked = contacts.lockExisting(group, target.contactIds());</span>
+<span class="fc" id="L230">        requireNoneMissing(target.contactIds(), locked);</span>
+<span class="fc" id="L231">        Map&lt;UUID, ContactState&gt; states = snapshots.load(group, locked);</span>
+<span class="fc" id="L232">        Collator collator = collator();</span>
+<span class="fc" id="L233">        List&lt;UUID&gt; ordered = new ArrayList&lt;&gt;(states.keySet());</span>
+<span class="fc" id="L234">        ordered.sort(Comparator.comparing((UUID id) -&gt; name(states.get(id)), collator)</span>
+<span class="fc" id="L235">                .thenComparing(Comparator.naturalOrder()));</span>
+<span class="fc" id="L236">        int deleted = contacts.deleteAll(group, ordered);</span>
+<span class="fc" id="L237">        audit.record(</span>
+                group,
+<span class="fc" id="L239">                membership.userId(),</span>
+                AuditAction.DELETE,
+<span class="fc" id="L241">                ordered.stream()</span>
+<span class="fc" id="L242">                        .map(id -&gt; new ContactChange(id, name(states.get(id)), states.get(id), null))</span>
+<span class="fc" id="L243">                        .toList());</span>
+<span class="fc" id="L244">        return deleted;</span>
+    }
+
+    /** Zaklep skupine (R-03): počaka na sočasno arhiviranje; arhivirana → {@code 409 GROUP_ARCHIVED}. */
+    private void lockWritable(UUID group) {
+<span class="fc" id="L249">        boolean archived = contacts.lockGroupArchived(group).orElseThrow(NotFoundException::new);</span>
+<span class="fc bfc" id="L250" title="All 2 branches covered.">        if (archived) {</span>
+<span class="fc" id="L251">            throw new GroupArchivedException();</span>
+        }
+<span class="fc" id="L253">    }</span>
+
+    private static void requireNoneMissing(List&lt;UUID&gt; requested, Set&lt;UUID&gt; present) {
+<span class="fc" id="L256">        List&lt;UUID&gt; missing =</span>
+<span class="fc bfc" id="L257" title="All 2 branches covered.">                requested.stream().filter(id -&gt; !present.contains(id)).toList();</span>
+<span class="fc bfc" id="L258" title="All 2 branches covered.">        if (!missing.isEmpty()) {</span>
+<span class="fc" id="L259">            throw new SelectionChangedException(missing);</span>
+        }
+<span class="fc" id="L261">    }</span>
+
+    private static String name(ContactState state) {
+<span class="fc" id="L264">        return ContactRepository.displayName(state.firstName(), state.lastName());</span>
+    }
+
+    private static Collator collator() {
+<span class="fc" id="L268">        return Collator.getInstance(Locale.forLanguageTag(&quot;sl&quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

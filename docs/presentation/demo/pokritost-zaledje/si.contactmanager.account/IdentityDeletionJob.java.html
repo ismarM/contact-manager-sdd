@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>IdentityDeletionJob.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.account</a> &gt; <span class="el_source">IdentityDeletionJob.java</span></div><h1>IdentityDeletionJob.java</h1><pre class="source lang-java linenums">package si.contactmanager.account;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+import si.contactmanager.account.DeletedIdentities.Leased;
+import si.contactmanager.account.IdentityProvider.Result;
+
+/**
+ * Ponavljanje brisanja identitete in čiščenje nadgrobnikov (R-07, FR-012-18). En obhod: {@code purge}, nato prevzem
+ * zapadlih vrstic (en kratek {@code UPDATE} z zakupom) in za vsako klic ponudnika ZUNAJ transakcije; izid v lastni kratki
+ * transakciji. Stanje je samo v bazi, zato ponavljanje in čiščenje preživita ponovni zagon.
+ */
+@Component
+public class IdentityDeletionJob {
+
+<span class="fc" id="L17">    private static final Logger LOG = LoggerFactory.getLogger(IdentityDeletionJob.class);</span>
+    private static final int BATCH = 5;
+    private static final int WARN_AFTER_ATTEMPTS = 10;
+
+    private final DeletedIdentities deleted;
+    private final IdentityProvider identities;
+    private final IdentityDeletionProperties properties;
+
+<span class="fc" id="L25">    IdentityDeletionJob(DeletedIdentities deleted, IdentityProvider identities, IdentityDeletionProperties properties) {</span>
+<span class="fc" id="L26">        this.deleted = deleted;</span>
+<span class="fc" id="L27">        this.identities = identities;</span>
+<span class="fc" id="L28">        this.properties = properties;</span>
+<span class="fc" id="L29">    }</span>
+
+    /** Eden obhod: čiščenje, prevzem zapadlih vrstic, brisanje pri ponudniku. */
+    public void runOnce() {
+<span class="fc" id="L33">        deleted.purge(properties.tombstoneRetention());</span>
+<span class="fc bfc" id="L34" title="All 2 branches covered.">        for (Leased row : deleted.lease(BATCH, properties.lease())) {</span>
+            Result result;
+            try {
+<span class="fc" id="L37">                result = identities.deleteWithDetail(row.uid());</span>
+<span class="nc" id="L38">            } catch (RuntimeException e) {</span>
+                // Ena vrstica z nepričakovano napako ne sme ustaviti obhoda; ostane odprta in se ponovi (zakup poteče).
+<span class="nc" id="L40">                LOG.error(</span>
+                        &quot;Nepričakovana napaka pri brisanju identitete ({})&quot;,
+<span class="nc" id="L42">                        e.getClass().getSimpleName());</span>
+<span class="nc" id="L43">                result = new Result(IdentityProvider.Outcome.RETRY, &quot;INTERNAL&quot;);</span>
+<span class="fc" id="L44">            }</span>
+<span class="fc bfc" id="L45" title="All 2 branches covered.">            if (result.outcome().success()) {</span>
+<span class="fc" id="L46">                deleted.markDeleted(row.uid());</span>
+            } else {
+<span class="fc" id="L48">                deleted.markFailed(row.uid(), result.error(), IdentityRetryBackoff.delay(row.attempts()));</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">                if (row.attempts() + 1 &gt;= WARN_AFTER_ATTEMPTS) {</span>
+<span class="fc" id="L50">                    LOG.warn(&quot;Brisanje identitete pri ponudniku še ne uspe po {} poskusih&quot;, row.attempts() + 1);</span>
+                }
+            }
+<span class="fc" id="L53">        }</span>
+<span class="fc" id="L54">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

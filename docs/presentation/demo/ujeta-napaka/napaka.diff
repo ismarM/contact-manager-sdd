@@ -1,0 +1,13 @@
+diff --git a/backend/src/main/java/si/contactmanager/group/GroupAccess.java b/backend/src/main/java/si/contactmanager/group/GroupAccess.java
+index 19e638b..8dd32a9 100644
+--- a/backend/src/main/java/si/contactmanager/group/GroupAccess.java
++++ b/backend/src/main/java/si/contactmanager/group/GroupAccess.java
+@@ -35,7 +35,7 @@ public class GroupAccess {
+         UUID id = parse(groupId);
+         long user = users.find(jwt).orElseThrow(NotFoundException::new);
+         GroupRepository.MemberState state = groups.memberState(id, user).orElseThrow(NotFoundException::new);
+-        if (!state.role().atLeast(lowest)) {
++        if (!state.role().atLeast(Role.VIEWER)) {
+             throw new ForbiddenException();
+         }
+         if (write && state.archived()) {

@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ImportService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">ImportService.java</span></div><h1>ImportService.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import si.contactmanager.audit.AuditAction;
+import si.contactmanager.audit.AuditLog;
+import si.contactmanager.audit.ContactChange;
+import si.contactmanager.contact.ContactInputParser.AttributeExtra;
+import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.shared.error.GroupArchivedException;
+import si.contactmanager.shared.error.NotFoundException;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+import si.contactmanager.shared.error.ValidationException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
+
+/**
+ * Predogled in potrditev uvoza (FR-014-03 … -09; research R-04). Predogled ne spreminja ničesar; potrditev znova preveri
+ * vse (pravila 004/013, država samo kot koda, rezervirana imena, meje – to opravi {@link ImportInputParser}) in pod
+ * zaklepom skupine atomarno ustvari kontakte z enim vnosom sledi {@code IMPORT}.
+ */
+@Service
+class ImportService {
+
+    /** Rezultat preverjanja ene vrstice predogleda (contracts/openapi.yaml – PreviewRow). */
+<span class="fc" id="L32">    record PreviewRow(</span>
+            int index, List&lt;FieldError&gt; errors, Country country, Duplicate duplicate, Normalized normalized) {}
+
+<span class="fc" id="L35">    record Country(String status, String code, List&lt;String&gt; candidates) {}</span>
+
+<span class="fc" id="L37">    record Duplicate(String reason, String contactName, Integer inFileIndex) {}</span>
+
+    /** Normalizirane vrednosti za predogled (016, FR-016-24): ključi, značke, atributi s tipom, e-naslov, telefon, deli. */
+<span class="fc" id="L40">    record Normalized(</span>
+            List&lt;String&gt; attributeKeys,
+            List&lt;String&gt; tags,
+            List&lt;Attribute&gt; attributes,
+            String email,
+            String phone,
+            Address addressParts) {}
+
+<span class="fc" id="L48">    record Preview(List&lt;PreviewRow&gt; rows) {}</span>
+
+<span class="fc" id="L50">    record Created(int created, UUID auditEntryId) {}</span>
+
+    private final ContactRepository contacts;
+    private final ContactSnapshots snapshots;
+    private final CanonicalForms canonical;
+    private final TypedAttributes typed;
+    private final AuditLog audit;
+<span class="fc" id="L57">    private final ContactInputParser parser = new ContactInputParser();</span>
+
+    ImportService(
+            ContactRepository contacts,
+            ContactSnapshots snapshots,
+            CanonicalForms canonical,
+            TypedAttributes typed,
+<span class="fc" id="L64">            AuditLog audit) {</span>
+<span class="fc" id="L65">        this.contacts = contacts;</span>
+<span class="fc" id="L66">        this.snapshots = snapshots;</span>
+<span class="fc" id="L67">        this.canonical = canonical;</span>
+<span class="fc" id="L68">        this.typed = typed;</span>
+<span class="fc" id="L69">        this.audit = audit;</span>
+<span class="fc" id="L70">    }</span>
+
+    @Transactional(readOnly = true)
+    Preview preview(Membership membership, List&lt;JsonNode&gt; candidates) {
+<span class="fc" id="L74">        Map&lt;String, Country&gt; countries = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L75">        Map&lt;String, Map&lt;String, String&gt;&gt; existing = existingKeys(membership.groupId());</span>
+<span class="fc" id="L76">        Map&lt;String, Map&lt;String, Integer&gt;&gt; inFile = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L77">        List&lt;Country&gt; rowCountries = new ArrayList&lt;&gt;(candidates.size());</span>
+<span class="fc" id="L78">        List&lt;List&lt;FieldError&gt;&gt; rowErrors = new ArrayList&lt;&gt;(candidates.size());</span>
+<span class="fc" id="L79">        List&lt;ContactInput&gt; valid = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L80">        List&lt;List&lt;AttributeExtra&gt;&gt; validExtras = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L81">        List&lt;Integer&gt; validIndex = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        for (int i = 0; i &lt; candidates.size(); i++) {</span>
+<span class="fc" id="L83">            JsonNode node = candidates.get(i);</span>
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">            String countryText = node.isObject()</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">                            &amp;&amp; node.get(&quot;countryText&quot;) != null</span>
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">                            &amp;&amp; node.get(&quot;countryText&quot;).isString()</span>
+<span class="fc" id="L87">                    ? node.get(&quot;countryText&quot;).asString()</span>
+<span class="fc" id="L88">                    : null;</span>
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">            ObjectNode contact = node.isObject() ? ((ObjectNode) node).deepCopy() : null;</span>
+<span class="pc bpc" id="L90" title="1 of 2 branches missed.">            if (contact != null) {</span>
+<span class="fc" id="L91">                contact.remove(&quot;countryText&quot;);</span>
+            }
+<span class="fc" id="L93">            ContactInputParser.Parsed parsed = parser.parseNode(contact, false);</span>
+<span class="fc" id="L94">            List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;(parsed.errors());</span>
+<span class="fc" id="L95">            ContactInput input = null;</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">            if (parsed.valid()) {</span>
+<span class="fc" id="L97">                errors.addAll(AttributeKeys.reservedErrors(parsed.input().attributes(), java.util.Set.of()));</span>
+                // E-naslov, telefon in deli naslova po tipu (016, FR-016-08).
+<span class="fc" id="L99">                ContactService.Predefined predefined =</span>
+<span class="fc" id="L100">                        ContactService.normalizePredefined(parsed.input(), List.of(), List.of());</span>
+<span class="fc" id="L101">                errors.addAll(predefined.errors());</span>
+<span class="fc" id="L102">                input = predefined.input();</span>
+            }
+<span class="fc" id="L104">            rowCountries.add(</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">                    countries.computeIfAbsent(countryText == null ? &quot;&quot; : countryText.strip(), ImportService::country));</span>
+<span class="fc" id="L106">            rowErrors.add(errors);</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">            if (errors.isEmpty()) {</span>
+<span class="fc" id="L108">                valid.add(input);</span>
+<span class="fc" id="L109">                validExtras.add(parsed.extras());</span>
+<span class="fc" id="L110">                validIndex.add(i);</span>
+            }
+        }
+        // Tipi ključev in vrednosti atributov po tipu (016, FR-016-24): samo branje, nič se ne zapiše.
+<span class="fc" id="L114">        List&lt;TypedAttributes.Resolution&gt; resolutions =</span>
+<span class="fc" id="L115">                typed.resolveAll(membership.groupId(), valid, validExtras, false);</span>
+<span class="fc" id="L116">        List&lt;ContactInput&gt; typedInputs = new ArrayList&lt;&gt;(valid.size());</span>
+<span class="fc" id="L117">        List&lt;Integer&gt; typedIndex = new ArrayList&lt;&gt;(valid.size());</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">        for (int v = 0; v &lt; valid.size(); v++) {</span>
+<span class="fc" id="L119">            TypedAttributes.Resolution resolution = resolutions.get(v);</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">            if (resolution.errors().isEmpty()) {</span>
+<span class="fc" id="L121">                typedInputs.add(valid.get(v).withAttributes(resolution.attributes()));</span>
+<span class="fc" id="L122">                typedIndex.add(validIndex.get(v));</span>
+            } else {
+<span class="fc" id="L124">                rowErrors.get(validIndex.get(v)).addAll(resolution.errors());</span>
+            }
+        }
+<span class="fc" id="L127">        Duplicate[] duplicates = new Duplicate[candidates.size()];</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">        for (int t = 0; t &lt; typedInputs.size(); t++) {</span>
+<span class="fc" id="L129">            duplicates[typedIndex.get(t)] = duplicate(typedInputs.get(t), existing, inFile, typedIndex.get(t));</span>
+        }
+<span class="fc" id="L131">        List&lt;PreviewRow&gt; rows = new ArrayList&lt;&gt;(candidates.size());</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">        for (int i = 0; i &lt; candidates.size(); i++) {</span>
+<span class="fc" id="L133">            rows.add(new PreviewRow(i, List.copyOf(rowErrors.get(i)), rowCountries.get(i), duplicates[i], null));</span>
+        }
+<span class="fc" id="L135">        List&lt;ContactInput&gt; normalized = canonical.inputs(membership.groupId(), typedInputs);</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">        for (int t = 0; t &lt; normalized.size(); t++) {</span>
+<span class="fc" id="L137">            int i = typedIndex.get(t);</span>
+<span class="fc" id="L138">            PreviewRow row = rows.get(i);</span>
+<span class="fc" id="L139">            ContactInput input = normalized.get(t);</span>
+<span class="fc" id="L140">            rows.set(</span>
+                    i,
+                    new PreviewRow(
+<span class="fc" id="L143">                            row.index(),</span>
+<span class="fc" id="L144">                            row.errors(),</span>
+<span class="fc" id="L145">                            row.country(),</span>
+<span class="fc" id="L146">                            row.duplicate(),</span>
+                            new Normalized(
+<span class="fc" id="L148">                                    input.attributes().stream()</span>
+<span class="fc" id="L149">                                            .map(Attribute::key)</span>
+<span class="fc" id="L150">                                            .toList(),</span>
+<span class="fc" id="L151">                                    input.tags(),</span>
+<span class="fc" id="L152">                                    input.attributes(),</span>
+<span class="fc" id="L153">                                    input.email(),</span>
+<span class="fc" id="L154">                                    input.phone(),</span>
+<span class="fc" id="L155">                                    input.addressParts())));</span>
+        }
+<span class="fc" id="L157">        return new Preview(List.copyOf(rows));</span>
+    }
+
+    /**
+     * Potrditev: vhod je že v celoti preverjen ({@link ImportInputParser}); tu še arhiv pod zaklepom, tipi ključev in
+     * vrednosti po tipu (016: napake vrstic {@code contacts[i].…}) in kanonizacija.
+     */
+    @Transactional
+    Created commit(Membership membership, List&lt;ContactInput&gt; inputs, List&lt;List&lt;AttributeExtra&gt;&gt; extras) {
+<span class="fc" id="L166">        boolean archived = contacts.lockGroupArchived(membership.groupId()).orElseThrow(NotFoundException::new);</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">        if (archived) {</span>
+<span class="fc" id="L168">            throw new GroupArchivedException();</span>
+        }
+<span class="fc" id="L170">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L171">        List&lt;ContactInput&gt; predefined = new ArrayList&lt;&gt;(inputs.size());</span>
+<span class="fc bfc" id="L172" title="All 2 branches covered.">        for (int i = 0; i &lt; inputs.size(); i++) {</span>
+<span class="fc" id="L173">            ContactService.Predefined result = ContactService.normalizePredefined(inputs.get(i), List.of(), List.of());</span>
+<span class="pc bpc" id="L174" title="1 of 2 branches missed.">            for (FieldError error : result.errors()) {</span>
+<span class="nc" id="L175">                errors.add(new FieldError(&quot;contacts[&quot; + i + &quot;].&quot; + error.field(), error.code()));</span>
+<span class="nc" id="L176">            }</span>
+<span class="fc" id="L177">            predefined.add(result.input());</span>
+        }
+<span class="pc bpc" id="L179" title="1 of 2 branches missed.">        if (!errors.isEmpty()) {</span>
+<span class="nc" id="L180">            throw new ValidationException(errors);</span>
+        }
+<span class="fc" id="L182">        List&lt;TypedAttributes.Resolution&gt; resolutions = typed.resolveAll(membership.groupId(), predefined, extras, true);</span>
+<span class="fc" id="L183">        List&lt;ContactInput&gt; typedInputs = new ArrayList&lt;&gt;(inputs.size());</span>
+<span class="fc bfc" id="L184" title="All 2 branches covered.">        for (int i = 0; i &lt; resolutions.size(); i++) {</span>
+<span class="fc bfc" id="L185" title="All 2 branches covered.">            for (FieldError error : resolutions.get(i).errors()) {</span>
+<span class="fc" id="L186">                errors.add(new FieldError(&quot;contacts[&quot; + i + &quot;].&quot; + error.field(), error.code()));</span>
+<span class="fc" id="L187">            }</span>
+<span class="fc" id="L188">            typedInputs.add(predefined.get(i).withAttributes(resolutions.get(i).attributes()));</span>
+        }
+<span class="fc bfc" id="L190" title="All 2 branches covered.">        if (!errors.isEmpty()) {</span>
+<span class="fc" id="L191">            throw new ValidationException(errors);</span>
+        }
+<span class="fc" id="L193">        List&lt;ContactInput&gt; normalized = canonical.inputs(membership.groupId(), typedInputs);</span>
+<span class="fc" id="L194">        List&lt;UUID&gt; ids = snapshots.insertNew(membership.groupId(), membership.userId(), normalized);</span>
+<span class="fc" id="L195">        Map&lt;UUID, ContactState&gt; states = snapshots.load(membership.groupId(), ids);</span>
+<span class="fc" id="L196">        List&lt;ContactChange&gt; changes = new ArrayList&lt;&gt;(ids.size());</span>
+<span class="fc bfc" id="L197" title="All 2 branches covered.">        for (UUID id : ids) {</span>
+<span class="fc" id="L198">            ContactState state = states.get(id);</span>
+<span class="fc" id="L199">            changes.add(new ContactChange(</span>
+<span class="fc" id="L200">                    id, ContactRepository.displayName(state.firstName(), state.lastName()), null, state));</span>
+<span class="fc" id="L201">        }</span>
+<span class="fc" id="L202">        UUID entry = audit.record(membership.groupId(), membership.userId(), AuditAction.IMPORT, changes);</span>
+<span class="fc" id="L203">        return new Created(ids.size(), entry);</span>
+    }
+
+    private static Country country(String text) {
+<span class="fc bfc" id="L207" title="All 2 branches covered.">        if (text.isEmpty()) {</span>
+<span class="fc" id="L208">            return new Country(&quot;EMPTY&quot;, null, List.of());</span>
+        }
+<span class="fc bfc" id="L210" title="All 3 branches covered.">        return switch (CountryNames.resolve(text)) {</span>
+<span class="fc" id="L211">            case CountryNames.Resolution.Found found -&gt; new Country(&quot;FOUND&quot;, found.code(), List.of());</span>
+<span class="fc" id="L212">            case CountryNames.Resolution.Ambiguous ambiguous -&gt; new Country(&quot;AMBIGUOUS&quot;, null, ambiguous.candidates());</span>
+<span class="fc" id="L213">            case CountryNames.Resolution.Unknown unknown -&gt; new Country(&quot;UNKNOWN&quot;, null, List.of());</span>
+        };
+    }
+
+<span class="fc" id="L217">    private static final List&lt;String&gt; CATEGORIES = List.of(&quot;email&quot;, &quot;phone&quot;, &quot;name&quot;);</span>
+
+    /** Ključi dvojnikov 011 obstoječih kontaktov skupine: kategorija → ključ → prikazno ime prvega kontakta. */
+    private Map&lt;String, Map&lt;String, String&gt;&gt; existingKeys(UUID group) {
+<span class="fc" id="L221">        Map&lt;String, Map&lt;String, String&gt;&gt; keys = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L222" title="All 2 branches covered.">        for (DuplicateCandidate c : contacts.duplicateCandidates(group)) {</span>
+<span class="fc bfc" id="L223" title="All 2 branches covered.">            for (String category : CATEGORIES) {</span>
+<span class="fc" id="L224">                Optional&lt;String&gt; key =</span>
+<span class="fc" id="L225">                        DuplicateKeys.key(category, c.firstName(), c.lastName(), c.email(), c.phone(), c.country());</span>
+<span class="fc" id="L226">                key.ifPresent(k -&gt; keys.computeIfAbsent(category, x -&gt; new HashMap&lt;&gt;())</span>
+<span class="fc" id="L227">                        .putIfAbsent(k, ContactRepository.displayName(c.firstName(), c.lastName())));</span>
+<span class="fc" id="L228">            }</span>
+<span class="fc" id="L229">        }</span>
+<span class="fc" id="L230">        return keys;</span>
+    }
+
+    private static Duplicate duplicate(
+            ContactInput input,
+            Map&lt;String, Map&lt;String, String&gt;&gt; existing,
+            Map&lt;String, Map&lt;String, Integer&gt;&gt; inFile,
+            int index) {
+<span class="fc" id="L238">        Duplicate found = null;</span>
+<span class="fc bfc" id="L239" title="All 2 branches covered.">        for (String category : CATEGORIES) {</span>
+<span class="fc" id="L240">            Optional&lt;String&gt; key = DuplicateKeys.key(</span>
+<span class="fc" id="L241">                    category, input.firstName(), input.lastName(), input.email(), input.phone(), input.country());</span>
+<span class="fc bfc" id="L242" title="All 2 branches covered.">            if (key.isEmpty()) {</span>
+<span class="fc" id="L243">                continue;</span>
+            }
+<span class="fc" id="L245">            String reason = category.toUpperCase(java.util.Locale.ROOT);</span>
+<span class="fc" id="L246">            String name = existing.getOrDefault(category, Map.of()).get(key.get());</span>
+<span class="fc" id="L247">            Integer earlier =</span>
+<span class="fc" id="L248">                    inFile.computeIfAbsent(category, x -&gt; new HashMap&lt;&gt;()).putIfAbsent(key.get(), index);</span>
+<span class="fc bfc" id="L249" title="All 4 branches covered.">            if (found == null &amp;&amp; name != null) {</span>
+<span class="fc" id="L250">                found = new Duplicate(reason, name, null);</span>
+<span class="fc bfc" id="L251" title="All 4 branches covered.">            } else if (found == null &amp;&amp; earlier != null) {</span>
+<span class="fc" id="L252">                found = new Duplicate(reason, null, earlier);</span>
+            }
+<span class="fc" id="L254">        }</span>
+<span class="fc" id="L255">        return found;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

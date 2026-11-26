@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DeletedContactRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.audit</a> &gt; <span class="el_source">DeletedContactRepository.java</span></div><h1>DeletedContactRepository.java</h1><pre class="source lang-java linenums">package si.contactmanager.audit;
+
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.core.simple.JdbcClient.StatementSpec;
+import org.springframework.stereotype.Repository;
+import si.contactmanager.audit.HistoryViews.DeletedItem;
+import si.contactmanager.audit.HistoryViews.DeletedMergedInto;
+import si.contactmanager.group.UserRef;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * Izbrisani kontakti skupine, izpeljani iz sledi (015, research R-06): zadnja sprememba kontakta je odstranitev
+ * ({@code after IS NULL}), kontakta ni v {@code contact} in novejše spremembe ni. Brez ločene hrambe.
+ */
+@Repository
+class DeletedContactRepository {
+
+    /** Filter stanja: vsi, obnovljivi ali združeni. */
+<span class="fc" id="L24">    enum State {</span>
+<span class="fc" id="L25">        ALL,</span>
+<span class="fc" id="L26">        RESTORABLE,</span>
+<span class="fc" id="L27">        MERGED</span>
+    }
+
+<span class="fc" id="L30">    record Filter(String query, State state) {}</span>
+
+    private static final String FROM =
+            &quot; FROM audit_entry e JOIN audit_change c ON c.entry_id = e.id AND c.after IS NULL&quot;
+                    + &quot; LEFT JOIN app_user u ON u.id = e.actor_id&quot;
+                    + &quot; LEFT JOIN LATERAL (SELECT k.contact_id, k.display_name FROM audit_change k&quot;
+                    + &quot;   WHERE k.entry_id = e.id AND k.after IS NOT NULL AND e.action = 'MERGE'&quot;
+                    + &quot;   ORDER BY k.position LIMIT 1) kept ON true&quot;
+                    + &quot; WHERE e.group_id = :group&quot;
+                    + &quot; AND NOT EXISTS (SELECT 1 FROM contact x WHERE x.group_id = :group AND x.id = c.contact_id)&quot;
+                    + &quot; AND NOT EXISTS (SELECT 1 FROM audit_change c2 JOIN audit_entry e2 ON e2.id = c2.entry_id&quot;
+                    + &quot;   WHERE c2.contact_id = c.contact_id AND e2.group_id = :group AND e2.seq &gt; e.seq)&quot;;
+
+    private final JdbcClient jdbc;
+    private final JsonMapper json;
+
+<span class="fc" id="L46">    DeletedContactRepository(JdbcClient jdbc, JsonMapper json) {</span>
+<span class="fc" id="L47">        this.jdbc = jdbc;</span>
+<span class="fc" id="L48">        this.json = json;</span>
+<span class="fc" id="L49">    }</span>
+
+    private static String where(Filter filter) {
+<span class="fc" id="L52">        StringBuilder where = new StringBuilder();</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        if (filter.state() == State.RESTORABLE) {</span>
+<span class="fc" id="L54">            where.append(&quot; AND e.action &lt;&gt; 'MERGE'&quot;);</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        } else if (filter.state() == State.MERGED) {</span>
+<span class="fc" id="L56">            where.append(&quot; AND e.action = 'MERGE'&quot;);</span>
+        }
+<span class="fc bfc" id="L58" title="All 2 branches covered.">        if (!filter.query().isEmpty()) {</span>
+<span class="fc" id="L59">            where.append(</span>
+                    &quot; AND strpos((coalesce(c.before-&gt;&gt;'firstName', '') || ' ' || coalesce(c.before-&gt;&gt;'lastName', '')&quot;
+                            + &quot; || ' ' || coalesce(c.before-&gt;&gt;'email', '') || ' ' || coalesce(c.before-&gt;&gt;'company', ''))&quot;
+                            + &quot; COLLATE search_fold, :query) &gt; 0&quot;);
+        }
+<span class="fc" id="L64">        return where.toString();</span>
+    }
+
+    private static StatementSpec bind(StatementSpec spec, UUID group, Filter filter) {
+<span class="fc" id="L68">        StatementSpec bound = spec.param(&quot;group&quot;, group);</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        return filter.query().isEmpty() ? bound : bound.param(&quot;query&quot;, filter.query());</span>
+    }
+
+    long count(UUID group, Filter filter) {
+<span class="fc" id="L73">        return bind(jdbc.sql(&quot;SELECT count(*)&quot; + FROM + where(filter)), group, filter)</span>
+<span class="fc" id="L74">                .query(Long.class)</span>
+<span class="fc" id="L75">                .single();</span>
+    }
+
+    /** Stran, najnovejša odstranitev prva. */
+    List&lt;DeletedItem&gt; page(UUID group, Filter filter, int size, int page) {
+<span class="fc" id="L80">        List&lt;DeletedItem&gt; items = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L81">        StatementSpec spec = jdbc.sql(&quot;SELECT c.contact_id, c.display_name, c.before::text AS before, e.id AS entry_id,&quot;</span>
+                        + &quot; e.created_at, e.action, u.name AS actor_name, u.email AS actor_email,&quot;
+                        + &quot; kept.contact_id AS kept_id, kept.display_name AS kept_name,&quot;
+                        + &quot; EXISTS (SELECT 1 FROM contact y WHERE y.group_id = :group AND y.id = kept.contact_id)&quot;
+<span class="fc" id="L85">                        + &quot; AS kept_exists&quot; + FROM + where(filter)</span>
+                        + &quot; ORDER BY e.seq DESC LIMIT :size OFFSET :offset&quot;)
+<span class="fc" id="L87">                .param(&quot;size&quot;, size)</span>
+<span class="fc" id="L88">                .param(&quot;offset&quot;, (long) page * size);</span>
+<span class="fc" id="L89">        bind(spec, group, filter).query((ResultSet rs) -&gt; {</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">            while (rs.next()) {</span>
+<span class="fc" id="L91">                JsonNode before = json.readTree(rs.getString(&quot;before&quot;));</span>
+<span class="fc" id="L92">                String action = rs.getString(&quot;action&quot;);</span>
+<span class="fc" id="L93">                boolean merged = &quot;MERGE&quot;.equals(action);</span>
+<span class="fc" id="L94">                UUID keptId = rs.getObject(&quot;kept_id&quot;, UUID.class);</span>
+<span class="fc" id="L95">                String email = text(before, &quot;email&quot;);</span>
+<span class="fc" id="L96">                String actorEmail = rs.getString(&quot;actor_email&quot;);</span>
+<span class="fc" id="L97">                items.add(new DeletedItem(</span>
+<span class="fc" id="L98">                        rs.getObject(&quot;contact_id&quot;, UUID.class),</span>
+<span class="fc" id="L99">                        rs.getString(&quot;display_name&quot;),</span>
+                        email,
+<span class="fc" id="L101">                        text(before, &quot;company&quot;),</span>
+<span class="fc" id="L102">                        rs.getTimestamp(&quot;created_at&quot;).toInstant(),</span>
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">                        actorEmail == null ? null : new UserRef(rs.getString(&quot;actor_name&quot;), actorEmail),</span>
+<span class="fc" id="L104">                        rs.getObject(&quot;entry_id&quot;, UUID.class),</span>
+<span class="fc bfc" id="L105" title="All 6 branches covered.">                        merged ? &quot;MERGED&quot; : &quot;ROLLBACK&quot;.equals(action) ? &quot;ROLLBACK&quot; : &quot;DELETED&quot;,</span>
+                        !merged,
+<span class="pc bpc" id="L107" title="1 of 4 branches missed.">                        merged &amp;&amp; keptId != null</span>
+<span class="fc" id="L108">                                ? new DeletedMergedInto(keptId, rs.getString(&quot;kept_name&quot;), rs.getBoolean(&quot;kept_exists&quot;))</span>
+<span class="fc" id="L109">                                : null));</span>
+<span class="fc" id="L110">            }</span>
+<span class="fc" id="L111">            return items;</span>
+        });
+<span class="fc" id="L113">        return items;</span>
+    }
+
+    private static String text(JsonNode node, String field) {
+<span class="fc" id="L117">        JsonNode value = node.get(field);</span>
+<span class="fc bfc" id="L118" title="All 4 branches covered.">        return value == null || value.isNull() ? null : value.asString();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

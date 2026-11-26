@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BulkEdit.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">BulkEdit.java</span></div><h1>BulkEdit.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import si.contactmanager.contact.BulkEditInput.AttributeSet;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+
+/** Čista funkcija množičnega urejanja (research R-04): brez stanja in brez baze. */
+public final class BulkEdit {
+
+    private BulkEdit() {}
+
+    /** Končno stanje kontakta: odstrani značke → dodaj značke → nastavi atribute. */
+    public static ContactState apply(ContactState before, BulkEditInput edit) {
+<span class="fc" id="L18">        return apply(before, edit, java.util.Map.of());</span>
+    }
+
+    /**
+     * Kot {@link #apply(ContactState, BulkEditInput)}, s tipi ključev (016): {@code types} so učinkoviti tipi
+     * normaliziranih ključev; vrednost se normalizira po tipu in državi kontakta po vseh nastavitvah (neveljavna
+     * ostane dobesedna – napake vrne {@link #typedErrors}).
+     */
+    public static ContactState apply(
+            ContactState before, BulkEditInput edit, java.util.Map&lt;String, AttributeType&gt; types) {
+<span class="fc" id="L28">        Set&lt;String&gt; removed =</span>
+<span class="fc" id="L29">                edit.removeTags().stream().map(ContactInputParser::normalize).collect(Collectors.toSet());</span>
+<span class="fc" id="L30">        List&lt;String&gt; tags = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L31">        Set&lt;String&gt; present = new java.util.HashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L32" title="All 2 branches covered.">        for (String tag : before.tags()) {</span>
+<span class="fc" id="L33">            String normalized = ContactInputParser.normalize(tag);</span>
+<span class="fc bfc" id="L34" title="All 2 branches covered.">            if (!removed.contains(normalized)) {</span>
+<span class="fc" id="L35">                tags.add(tag);</span>
+<span class="fc" id="L36">                present.add(normalized);</span>
+            }
+<span class="fc" id="L38">        }</span>
+<span class="fc bfc" id="L39" title="All 2 branches covered.">        for (String tag : edit.addTags()) {</span>
+<span class="fc bfc" id="L40" title="All 2 branches covered.">            if (present.add(ContactInputParser.normalize(tag))) {</span>
+<span class="fc" id="L41">                tags.add(tag);</span>
+            }
+<span class="fc" id="L43">        }</span>
+
+<span class="fc" id="L45">        String address = before.address();</span>
+<span class="fc" id="L46">        Address addressParts = before.addressParts();</span>
+<span class="fc" id="L47">        String email = before.email();</span>
+<span class="fc" id="L48">        String phone = before.phone();</span>
+<span class="fc" id="L49">        String company = before.company();</span>
+<span class="fc" id="L50">        String country = before.country();</span>
+<span class="fc" id="L51">        String finalCountry = finalCountry(before, edit);</span>
+<span class="fc" id="L52">        List&lt;Attribute&gt; attributes = new ArrayList&lt;&gt;(before.attributes());</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        for (AttributeSet set : edit.attributes()) {</span>
+<span class="pc bpc" id="L54" title="1 of 7 branches missed.">            switch (set.field()) {</span>
+                case ADDRESS -&gt; {
+                    // Natanko ena oblika naslova (016): besedilo ali deli.
+<span class="fc" id="L57">                    address = emptyToNull(set.value());</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">                    addressParts = set.parts() != null ? normalizedParts(set.parts()) : null;</span>
+<span class="fc" id="L59">                }</span>
+<span class="fc" id="L60">                case EMAIL -&gt; email = emptyToNull(set.value());</span>
+<span class="fc" id="L61">                case PHONE -&gt; phone = emptyToNull(set.value());</span>
+<span class="fc" id="L62">                case COMPANY -&gt; company = emptyToNull(set.value());</span>
+<span class="fc" id="L63">                case COUNTRY -&gt; country = emptyToNull(set.value());</span>
+<span class="fc" id="L64">                case CUSTOM -&gt; setCustom(attributes, set, types, finalCountry);</span>
+            }
+<span class="fc" id="L66">        }</span>
+<span class="fc" id="L67">        return new ContactState(</span>
+<span class="fc" id="L68">                before.firstName(),</span>
+<span class="fc" id="L69">                before.lastName(),</span>
+                address,
+                addressParts,
+                email,
+                phone,
+                company,
+                country,
+<span class="fc" id="L76">                List.copyOf(attributes),</span>
+<span class="fc" id="L77">                List.copyOf(tags),</span>
+<span class="fc" id="L78">                before.version(),</span>
+<span class="fc" id="L79">                before.createdAt(),</span>
+<span class="fc" id="L80">                before.updatedAt(),</span>
+<span class="fc" id="L81">                before.updatedById());</span>
+    }
+
+    /** Ali se vsebina (polja, atributi, značke v vrstnem redu) razlikuje; metapodatki se ne primerjajo. */
+    public static boolean changed(ContactState before, ContactState after) {
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">        return !(Objects.equals(before.firstName(), after.firstName())</span>
+<span class="pc bpc" id="L87" title="1 of 2 branches missed.">                &amp;&amp; Objects.equals(before.lastName(), after.lastName())</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">                &amp;&amp; Objects.equals(before.address(), after.address())</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">                &amp;&amp; Objects.equals(before.addressParts(), after.addressParts())</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">                &amp;&amp; Objects.equals(before.email(), after.email())</span>
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">                &amp;&amp; Objects.equals(before.phone(), after.phone())</span>
+<span class="fc bfc" id="L92" title="All 2 branches covered.">                &amp;&amp; Objects.equals(before.company(), after.company())</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">                &amp;&amp; Objects.equals(before.country(), after.country())</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">                &amp;&amp; before.attributes().equals(after.attributes())</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">                &amp;&amp; before.tags().equals(after.tags()));</span>
+    }
+
+    /** Napake končnega stanja: {@code tags} in {@code attributes} {@code TOO_MANY}. */
+    public static List&lt;FieldError&gt; violations(ContactState after) {
+<span class="fc" id="L100">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">        if (after.tags().size() &gt; ContactInputParser.TAGS_MAX) {</span>
+<span class="fc" id="L102">            errors.add(new FieldError(&quot;tags&quot;, &quot;TOO_MANY&quot;));</span>
+        }
+<span class="fc bfc" id="L104" title="All 2 branches covered.">        if (after.attributes().size() &gt; ContactInputParser.ATTRIBUTES_MAX) {</span>
+<span class="fc" id="L105">            errors.add(new FieldError(&quot;attributes&quot;, &quot;TOO_MANY&quot;));</span>
+        }
+<span class="fc" id="L107">        return errors;</span>
+    }
+
+    /** Država kontakta po vseh nastavitvah (zadnja nastavitev države zmaga). */
+    private static String finalCountry(ContactState before, BulkEditInput edit) {
+<span class="fc" id="L112">        String country = before.country();</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        for (AttributeSet set : edit.attributes()) {</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">            if (set.field() == BulkEditInput.Field.COUNTRY) {</span>
+<span class="fc" id="L115">                country = emptyToNull(set.value());</span>
+            }
+<span class="fc" id="L117">        }</span>
+<span class="fc" id="L118">        return country;</span>
+    }
+
+    /**
+     * Napake vrednosti po tipu ključa za en kontakt (016, FR-016-06): {@code attributes[i].value} z kodo
+     * {@code INVALID_VALUE} ali {@code TOO_LONG}; indeks je položaj nastavitve v zahtevku.
+     */
+    public static List&lt;FieldError&gt; typedErrors(
+            ContactState before, BulkEditInput edit, java.util.Map&lt;String, AttributeType&gt; types) {
+<span class="fc" id="L127">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L128">        String country = finalCountry(before, edit);</span>
+<span class="fc bfc" id="L129" title="All 2 branches covered.">        for (int i = 0; i &lt; edit.attributes().size(); i++) {</span>
+<span class="fc" id="L130">            AttributeSet set = edit.attributes().get(i);</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">            if (set.parts() != null) {</span>
+                for (FieldError error :
+<span class="fc bfc" id="L133" title="All 2 branches covered.">                        TypedValues.normalizeAddress(set.parts()).errors()) {</span>
+<span class="fc" id="L134">                    errors.add(new FieldError(&quot;attributes[&quot; + i + &quot;].parts.&quot; + error.field(), error.code()));</span>
+<span class="fc" id="L135">                }</span>
+<span class="fc" id="L136">                continue;</span>
+            }
+<span class="fc bfc" id="L138" title="All 4 branches covered.">            if (set.field() != BulkEditInput.Field.CUSTOM || set.value().isEmpty()) {</span>
+<span class="fc" id="L139">                continue;</span>
+            }
+<span class="fc" id="L141">            AttributeType type = types.getOrDefault(ContactInputParser.normalize(set.key()), AttributeType.OTHER);</span>
+<span class="fc" id="L142">            TypedValues.Result result = TypedValues.normalize(type, set.value(), country);</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">            if (!result.valid()) {</span>
+<span class="fc" id="L144">                errors.add(new FieldError(&quot;attributes[&quot; + i + &quot;].value&quot;, result.error()));</span>
+            }
+        }
+<span class="fc" id="L147">        return errors;</span>
+    }
+
+    /** Normalizirani deli naslova; neveljavni ostanejo dobesedni (napako vrne {@link #typedErrors}). */
+    private static Address normalizedParts(Address parts) {
+<span class="fc" id="L152">        TypedValues.AddressResult result = TypedValues.normalizeAddress(parts);</span>
+<span class="fc bfc" id="L153" title="All 2 branches covered.">        return result.valid() ? result.address() : parts;</span>
+    }
+
+    private static String emptyToNull(String value) {
+<span class="pc bpc" id="L157" title="1 of 4 branches missed.">        return value == null || value.isEmpty() ? null : value;</span>
+    }
+
+    /** Obstoječ ključ (normaliziran): nova vrednost in zapis ključa na istem položaju; prazna vrednost odstrani. */
+    private static void setCustom(
+            List&lt;Attribute&gt; attributes, AttributeSet set, java.util.Map&lt;String, AttributeType&gt; types, String country) {
+<span class="fc" id="L163">        String normalized = ContactInputParser.normalize(set.key());</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">        if (set.parts() != null) {</span>
+<span class="fc" id="L165">            Attribute written = new Attribute(set.key(), AttributeType.ADDRESS, null, normalizedParts(set.parts()));</span>
+<span class="pc bpc" id="L166" title="1 of 2 branches missed.">            for (int i = 0; i &lt; attributes.size(); i++) {</span>
+<span class="nc bnc" id="L167" title="All 2 branches missed.">                if (ContactInputParser.normalize(attributes.get(i).key()).equals(normalized)) {</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">                    if (!written.parts().equals(attributes.get(i).parts())) {</span>
+<span class="nc" id="L169">                        attributes.set(i, written);</span>
+                    }
+<span class="nc" id="L171">                    return;</span>
+                }
+            }
+<span class="fc" id="L174">            attributes.add(written);</span>
+<span class="fc" id="L175">            return;</span>
+        }
+<span class="fc bfc" id="L177" title="All 2 branches covered.">        for (int i = 0; i &lt; attributes.size(); i++) {</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">            if (ContactInputParser.normalize(attributes.get(i).key()).equals(normalized)) {</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">                if (set.value().isEmpty()) {</span>
+<span class="fc" id="L180">                    attributes.remove(i);</span>
+                } else {
+<span class="fc" id="L182">                    AttributeType type =</span>
+<span class="fc" id="L183">                            types.getOrDefault(normalized, attributes.get(i).type());</span>
+<span class="fc" id="L184">                    String value = typedValue(type, set.value(), country);</span>
+<span class="fc bfc" id="L185" title="All 2 branches covered.">                    if (!value.equals(attributes.get(i).value())) {</span>
+                        // Enaka vrednost ni sprememba (FR-009-12): zapis ključa ostane, kot je.
+<span class="fc" id="L187">                        attributes.set(i, new Attribute(set.key(), type, value, null));</span>
+                    }
+                }
+<span class="fc" id="L190">                return;</span>
+            }
+        }
+<span class="fc bfc" id="L193" title="All 2 branches covered.">        if (!set.value().isEmpty()) {</span>
+<span class="fc" id="L194">            AttributeType type = types.getOrDefault(normalized, AttributeType.OTHER);</span>
+<span class="fc" id="L195">            attributes.add(new Attribute(set.key(), type, typedValue(type, set.value(), country), null));</span>
+        }
+<span class="fc" id="L197">    }</span>
+
+    /** Normalizirana vrednost po tipu; neveljavna ostane dobesedna (napako vrne {@link #typedErrors}). */
+    private static String typedValue(AttributeType type, String value, String country) {
+<span class="fc" id="L201">        TypedValues.Result result = TypedValues.normalize(type, value, country);</span>
+<span class="fc bfc" id="L202" title="All 2 branches covered.">        return result.valid() ? result.value() : value;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
