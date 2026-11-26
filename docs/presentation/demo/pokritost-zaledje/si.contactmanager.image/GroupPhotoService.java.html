@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GroupPhotoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.image</a> &gt; <span class="el_source">GroupPhotoService.java</span></div><h1>GroupPhotoService.java</h1><pre class="source lang-java linenums">package si.contactmanager.image;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.group.GroupPhotoVersion;
+
+/**
+ * Sprememba slike skupine (FR-018-05, FR-018-06): zamenjava slike in povečanje verzije skupine v eni transakciji pod
+ * zaklepom skupine.
+ */
+@Service
+class GroupPhotoService {
+
+    private final ImageService images;
+    private final ImageStore store;
+    private final GroupPhotoVersion versions;
+
+<span class="fc" id="L19">    GroupPhotoService(ImageService images, ImageStore store, GroupPhotoVersion versions) {</span>
+<span class="fc" id="L20">        this.images = images;</span>
+<span class="fc" id="L21">        this.store = store;</span>
+<span class="fc" id="L22">        this.versions = versions;</span>
+<span class="fc" id="L23">    }</span>
+
+    @Transactional
+    PhotoResult put(Membership membership, long version, ProcessedImage image) {
+<span class="fc" id="L27">        versions.lockAndCheck(membership, version);</span>
+<span class="fc" id="L28">        long revision = images.store(Owner.group(membership.groupId()), image);</span>
+<span class="fc" id="L29">        return new PhotoResult(revision, versions.bump(membership, version));</span>
+    }
+
+    /** Idempotentno: skupina brez slike obdrži verzijo (le preverjena je). */
+    @Transactional
+    PhotoResult remove(Membership membership, long version) {
+<span class="fc" id="L35">        versions.lockAndCheck(membership, version);</span>
+<span class="fc" id="L36">        boolean existed = store.delete(Owner.group(membership.groupId()));</span>
+<span class="fc bfc" id="L37" title="All 2 branches covered.">        return new PhotoResult(null, existed ? versions.bump(membership, version) : version);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

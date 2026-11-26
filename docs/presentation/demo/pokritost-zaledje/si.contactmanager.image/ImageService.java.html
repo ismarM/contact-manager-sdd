@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ImageService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.image</a> &gt; <span class="el_source">ImageService.java</span></div><h1>ImageService.java</h1><pre class="source lang-java linenums">package si.contactmanager.image;
+
+import java.util.List;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import si.contactmanager.shared.error.NotFoundException;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+import si.contactmanager.shared.error.ValidationException;
+
+/** Skupna logika slik za vse tri vrste lastnikov (obdelava, omejitev nalaganj, shramba, streženje). */
+@Service
+public class ImageService {
+
+    private final ImageStore store;
+    private final ImageProcessor processor;
+    private final UploadRateLimiter limiter;
+    private final ImageProperties properties;
+
+<span class="fc" id="L19">    ImageService(ImageStore store, ImageProcessor processor, UploadRateLimiter limiter, ImageProperties properties) {</span>
+<span class="fc" id="L20">        this.store = store;</span>
+<span class="fc" id="L21">        this.processor = processor;</span>
+<span class="fc" id="L22">        this.limiter = limiter;</span>
+<span class="fc" id="L23">        this.properties = properties;</span>
+<span class="fc" id="L24">    }</span>
+
+    long maxBytes() {
+<span class="fc" id="L27">        return properties.maxBytes();</span>
+    }
+
+    /** Šteje poskus nalaganja uporabnika; {@code 429 RATE_LIMITED}, če je okno polno. */
+    void throttle(long userId) {
+<span class="fc" id="L32">        limiter.check(&quot;user:&quot; + userId);</span>
+<span class="fc" id="L33">    }</span>
+
+    /** Obdela in shrani sliko lastnika; vrne novo revizijo. Neveljavna datoteka = {@code 400} (polje {@code file}). */
+    long put(Owner owner, byte[] bytes) {
+<span class="fc" id="L37">        return store.put(owner, prepare(bytes));</span>
+    }
+
+    /** Samo obdelava (brez shranjevanja): neveljavna datoteka = {@code 400} (polje {@code file}). */
+    ProcessedImage prepare(byte[] bytes) {
+        try {
+<span class="fc" id="L43">            return processor.process(bytes);</span>
+<span class="fc" id="L44">        } catch (ImageRejectedException e) {</span>
+<span class="fc" id="L45">            throw new ValidationException(List.of(new FieldError(&quot;file&quot;, e.code())));</span>
+        }
+    }
+
+    /** Obdelava tuje slike (Google): vsaka zavrnitev je {@code GOOGLE_PHOTO_UNAVAILABLE}, ne {@code 400}. */
+    ProcessedImage prepareForeign(byte[] bytes) {
+        try {
+<span class="fc" id="L52">            return processor.process(bytes);</span>
+<span class="fc" id="L53">        } catch (ImageRejectedException e) {</span>
+<span class="fc" id="L54">            throw new si.contactmanager.shared.error.GooglePhotoUnavailableException(&quot;slika ni veljavna&quot;);</span>
+        }
+    }
+
+    long store(Owner owner, ProcessedImage image) {
+<span class="fc" id="L59">        return store.put(owner, image);</span>
+    }
+
+    /** Odgovor s sliko lastnika ({@code 304} ob ujemanju {@code If-None-Match}); {@code 404}, če slike ni. */
+    ResponseEntity&lt;byte[]&gt; serve(Owner owner, int size, String ifNoneMatch) {
+<span class="fc" id="L64">        long revision = store.revision(owner).orElseThrow(NotFoundException::new);</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        if (ImageResponses.matches(ifNoneMatch, ImageResponses.etag(revision, size))) {</span>
+<span class="fc" id="L66">            return ImageResponses.notModified(ImageResponses.etag(revision, size));</span>
+        }
+<span class="fc" id="L68">        StoredImage image = store.get(owner, size).orElseThrow(NotFoundException::new);</span>
+<span class="fc" id="L69">        return ImageResponses.image(image);</span>
+    }
+
+    boolean remove(Owner owner) {
+<span class="fc" id="L73">        return store.delete(owner);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

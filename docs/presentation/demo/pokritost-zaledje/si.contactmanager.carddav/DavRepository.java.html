@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DavRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.carddav</a> &gt; <span class="el_source">DavRepository.java</span></div><h1>DavRepository.java</h1><pre class="source lang-java linenums">package si.contactmanager.carddav;
+
+import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+
+/**
+ * Branje za CardDAV (014 research R-08): skupine, katerih član je uporabnik (tudi arhivirane), kontakti skupine in
+ * spremembe od zaporedne številke sledi. Vsaka poizvedba ima pogoj članstva ali {@code group_id}; članstvo se preveri ob
+ * vsakem zahtevku.
+ */
+@Repository
+class DavRepository {
+
+    /** Imenik: skupina z naslovom, verzijo in zadnjo številko sledi ({@code 0} brez sledi). */
+<span class="fc" id="L21">    record Book(UUID id, String title, long version, long lastSeq) {}</span>
+
+    /** Vizitka v imeniku: id, verzija in čas zadnje spremembe (za ETag). */
+<span class="fc" id="L24">    record Card(UUID id, long version, Instant updatedAt) {}</span>
+
+    private static final String BOOK_SELECT = &quot;SELECT g.id, g.title, g.version, coalesce(h.last_seq, 0) AS last_seq&quot;
+            + &quot; FROM group_member m JOIN contact_group g ON g.id = m.group_id&quot;
+            + &quot; LEFT JOIN audit_head h ON h.group_id = g.id WHERE m.user_id = :user&quot;;
+
+    private final JdbcClient jdbc;
+
+<span class="fc" id="L32">    DavRepository(JdbcClient jdbc) {</span>
+<span class="fc" id="L33">        this.jdbc = jdbc;</span>
+<span class="fc" id="L34">    }</span>
+
+    List&lt;Book&gt; books(long user) {
+<span class="fc" id="L37">        return jdbc.sql(BOOK_SELECT + &quot; ORDER BY g.title, g.id&quot;)</span>
+<span class="fc" id="L38">                .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L39">                .query((rs, row) -&gt; new Book(</span>
+<span class="fc" id="L40">                        rs.getObject(&quot;id&quot;, UUID.class),</span>
+<span class="fc" id="L41">                        rs.getString(&quot;title&quot;),</span>
+<span class="fc" id="L42">                        rs.getLong(&quot;version&quot;),</span>
+<span class="fc" id="L43">                        rs.getLong(&quot;last_seq&quot;)))</span>
+<span class="fc" id="L44">                .list();</span>
+    }
+
+    Optional&lt;Book&gt; book(long user, UUID group) {
+<span class="fc" id="L48">        return jdbc.sql(BOOK_SELECT + &quot; AND g.id = :group&quot;)</span>
+<span class="fc" id="L49">                .param(&quot;user&quot;, user)</span>
+<span class="fc" id="L50">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L51">                .query((rs, row) -&gt; new Book(</span>
+<span class="fc" id="L52">                        rs.getObject(&quot;id&quot;, UUID.class),</span>
+<span class="fc" id="L53">                        rs.getString(&quot;title&quot;),</span>
+<span class="fc" id="L54">                        rs.getLong(&quot;version&quot;),</span>
+<span class="fc" id="L55">                        rs.getLong(&quot;last_seq&quot;)))</span>
+<span class="fc" id="L56">                .optional();</span>
+    }
+
+    List&lt;Card&gt; cards(UUID group) {
+<span class="fc" id="L60">        return jdbc.sql(&quot;SELECT id, version, updated_at FROM contact WHERE group_id = :group ORDER BY id&quot;)</span>
+<span class="fc" id="L61">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L62">                .query((rs, row) -&gt; new Card(</span>
+<span class="fc" id="L63">                        rs.getObject(&quot;id&quot;, UUID.class),</span>
+<span class="fc" id="L64">                        rs.getLong(&quot;version&quot;),</span>
+<span class="fc" id="L65">                        rs.getTimestamp(&quot;updated_at&quot;).toInstant()))</span>
+<span class="fc" id="L66">                .list();</span>
+    }
+
+    List&lt;Card&gt; cards(UUID group, Set&lt;UUID&gt; ids) {
+<span class="pc bpc" id="L70" title="1 of 2 branches missed.">        if (ids.isEmpty()) {</span>
+<span class="nc" id="L71">            return List.of();</span>
+        }
+<span class="fc" id="L73">        return jdbc.sql(&quot;SELECT id, version, updated_at FROM contact WHERE group_id = :group AND id IN (:ids)&quot;</span>
+                        + &quot; ORDER BY id&quot;)
+<span class="fc" id="L75">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L76">                .param(&quot;ids&quot;, List.copyOf(ids))</span>
+<span class="fc" id="L77">                .query((rs, row) -&gt; new Card(</span>
+<span class="fc" id="L78">                        rs.getObject(&quot;id&quot;, UUID.class),</span>
+<span class="fc" id="L79">                        rs.getLong(&quot;version&quot;),</span>
+<span class="fc" id="L80">                        rs.getTimestamp(&quot;updated_at&quot;).toInstant()))</span>
+<span class="fc" id="L81">                .list();</span>
+    }
+
+    /**
+     * Kontakti, ki so se spremenili od številke {@code seq} (indeks {@code audit_entry_group_seq} in predpona primarnega
+     * ključa {@code audit_change}).
+     */
+    Set&lt;UUID&gt; changedSince(UUID group, long seq) {
+<span class="fc" id="L89">        return new LinkedHashSet&lt;&gt;(jdbc.sql(&quot;SELECT DISTINCT ch.contact_id FROM audit_entry e&quot;</span>
+                        + &quot; JOIN audit_change ch ON ch.entry_id = e.id WHERE e.group_id = :group AND e.seq &gt; :seq&quot;)
+<span class="fc" id="L91">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L92">                .param(&quot;seq&quot;, seq)</span>
+<span class="fc" id="L93">                .query(UUID.class)</span>
+<span class="fc" id="L94">                .list());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

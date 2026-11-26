@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RequestIdFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.shared.web</a> &gt; <span class="el_source">RequestIdFilter.java</span></div><h1>RequestIdFilter.java</h1><pre class="source lang-java linenums">package si.contactmanager.shared.web;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.UUID;
+import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+/**
+ * ID zahtevka (FR-000-20): veljaven {@code X-Request-Id} iz nginx ali nov UUID; v MDC in glavi odgovora. Po
+ * zahtevku ena vrstica dnevnika brez poizvedbe, glav in teles.
+ */
+@Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
+<span class="fc" id="L24">public class RequestIdFilter extends OncePerRequestFilter {</span>
+
+    public static final String HEADER = &quot;X-Request-Id&quot;;
+    public static final String MDC_KEY = &quot;requestId&quot;;
+
+<span class="fc" id="L29">    private static final Pattern VALID = Pattern.compile(&quot;^[A-Za-z0-9-]{1,64}$&quot;);</span>
+<span class="fc" id="L30">    private static final Logger LOG = LoggerFactory.getLogger(RequestIdFilter.class);</span>
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+            throws ServletException, IOException {
+<span class="fc" id="L35">        String incoming = request.getHeader(HEADER);</span>
+<span class="fc bfc" id="L36" title="All 4 branches covered.">        String requestId = incoming != null &amp;&amp; VALID.matcher(incoming).matches()</span>
+<span class="fc" id="L37">                ? incoming</span>
+<span class="fc" id="L38">                : UUID.randomUUID().toString();</span>
+<span class="fc" id="L39">        long start = System.nanoTime();</span>
+<span class="fc" id="L40">        MDC.put(MDC_KEY, requestId);</span>
+<span class="fc" id="L41">        response.setHeader(HEADER, requestId);</span>
+        try {
+<span class="fc" id="L43">            chain.doFilter(request, response);</span>
+        } finally {
+<span class="fc" id="L45">            long millis = (System.nanoTime() - start) / 1_000_000;</span>
+<span class="fc" id="L46">            LOG.info(&quot;{} {} {} {}ms&quot;, request.getMethod(), request.getRequestURI(), response.getStatus(), millis);</span>
+<span class="fc" id="L47">            MDC.remove(MDC_KEY);</span>
+        }
+<span class="fc" id="L49">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PhotonClient.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.maps</a> &gt; <span class="el_source">PhotonClient.java</span></div><h1>PhotonClient.java</h1><pre class="source lang-java linenums">package si.contactmanager.maps;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import si.contactmanager.contact.Address;
+import si.contactmanager.contact.CountryNames;
+import si.contactmanager.contact.TypedValues;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * Samodokončanje naslova prek storitve Photon (016, FR-016-13, FR-016-23; research R-08). Storitev prejme samo
+ * besedilo naslova in jezik (brez podatkov uporabnika ali kontakta, brez piškotkov in {@code Referer}); predlogi so
+ * prednostno v državi {@code country}. Predpomnilnik v pomnilniku (1 h), omejitev globalno in na uporabnika. Napaka,
+ * časovna omejitev, omejitev pogostosti ali izklop vrnejo prazen seznam. Besedilo naslova se nikoli ne beleži.
+ */
+@Component
+public class PhotonClient {
+
+<span class="fc" id="L38">    private static final Logger LOG = LoggerFactory.getLogger(PhotonClient.class);</span>
+
+    /** Največ predlogov v odgovoru. */
+    static final int MAX = 5;
+
+    /** Toliko zadetkov zahtevamo, da lahko predloge v državi kontakta postavimo naprej. */
+    private static final int FETCH = 10;
+
+    /** Države, kjer je hišna številka pred ulico. */
+<span class="fc" id="L47">    private static final Set&lt;String&gt; NUMBER_FIRST = Set.of(&quot;US&quot;, &quot;CA&quot;, &quot;GB&quot;, &quot;AU&quot;, &quot;NZ&quot;, &quot;IE&quot;, &quot;FR&quot;);</span>
+
+<span class="fc" id="L49">    private static final Pattern SPACES = Pattern.compile(&quot;\\s+&quot;);</span>
+<span class="fc" id="L50">    private static final JsonMapper JSON = JsonMapper.builder().build();</span>
+
+    private final MapsProperties properties;
+    private final HttpClient http;
+    private final BoundedCache&lt;String, List&lt;AddressSuggestion&gt;&gt; cache;
+    private final RateLimiter global;
+    private final RateLimiter.Keyed&lt;Long&gt; perUser;
+
+    @Autowired
+    public PhotonClient(MapsProperties properties) {
+<span class="fc" id="L60">        this(</span>
+                properties,
+<span class="fc" id="L62">                HttpClient.newBuilder()</span>
+<span class="fc" id="L63">                        .connectTimeout(properties.connectTimeout())</span>
+<span class="fc" id="L64">                        .followRedirects(HttpClient.Redirect.NEVER)</span>
+<span class="fc" id="L65">                        .build());</span>
+<span class="fc" id="L66">    }</span>
+
+<span class="fc" id="L68">    PhotonClient(MapsProperties properties, HttpClient http) {</span>
+<span class="fc" id="L69">        this.properties = properties;</span>
+<span class="fc" id="L70">        this.http = http;</span>
+<span class="fc" id="L71">        this.cache = new BoundedCache&lt;&gt;(</span>
+<span class="fc" id="L72">                properties.suggestions().entries(), properties.suggestions().ttl());</span>
+<span class="fc" id="L73">        this.global = new RateLimiter(properties.limits().photonPerSecond(), Duration.ofSeconds(1));</span>
+<span class="fc" id="L74">        this.perUser = new RateLimiter.Keyed&lt;&gt;(properties.limits().photonPerUserPerSecond(), Duration.ofSeconds(1));</span>
+<span class="fc" id="L75">    }</span>
+
+    /**
+     * Do 5 predlogov za {@code query} (že preverjen: 3–300 znakov). {@code country}: prednostna država (koda ISO ali
+     * {@code null}); {@code language}: {@code sl} ali {@code en}.
+     */
+    public List&lt;AddressSuggestion&gt; suggest(long userId, String query, String country, String language) {
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        if (!properties.enabled()) {</span>
+<span class="fc" id="L83">            return List.of();</span>
+        }
+<span class="fc" id="L85">        String text = SPACES.matcher(query.strip()).replaceAll(&quot; &quot;);</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        String key = text.toLowerCase(Locale.ROOT) + &quot;\u0000&quot; + (country == null ? &quot;&quot; : country) + &quot;\u0000&quot; + language;</span>
+<span class="fc" id="L87">        Optional&lt;List&lt;AddressSuggestion&gt;&gt; cached = cache.get(key);</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        if (cached.isPresent()) {</span>
+<span class="fc" id="L89">            return cached.get();</span>
+        }
+<span class="pc bpc" id="L91" title="1 of 4 branches missed.">        if (!perUser.tryAcquire(userId) || !global.tryAcquire()) {</span>
+<span class="fc" id="L92">            return List.of();</span>
+        }
+<span class="fc" id="L94">        Optional&lt;String&gt; body = fetch(text, language);</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        if (body.isEmpty()) {</span>
+<span class="fc" id="L96">            return List.of();</span>
+        }
+        List&lt;AddressSuggestion&gt; suggestions;
+        try {
+<span class="fc" id="L100">            suggestions = parse(JSON.readTree(body.get()), country, language);</span>
+<span class="fc" id="L101">        } catch (JacksonException | IllegalArgumentException e) {</span>
+<span class="fc" id="L102">            LOG.warn(&quot;Photon: neveljaven odgovor storitve&quot;);</span>
+<span class="fc" id="L103">            return List.of();</span>
+<span class="fc" id="L104">        }</span>
+<span class="fc" id="L105">        cache.put(key, suggestions);</span>
+<span class="fc" id="L106">        return suggestions;</span>
+    }
+
+    private Optional&lt;String&gt; fetch(String text, String language) {
+<span class="fc" id="L110">        URI uri = URI.create(trimSlash(properties.photonUrl()) + &quot;/api?q=&quot; + encode(text) + &quot;&amp;limit=&quot; + FETCH + &quot;&amp;lang=&quot;</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">                + (&quot;en&quot;.equals(language) ? &quot;en&quot; : &quot;default&quot;));</span>
+<span class="fc" id="L112">        HttpRequest request = HttpRequest.newBuilder(uri)</span>
+<span class="fc" id="L113">                .timeout(properties.readTimeout())</span>
+<span class="fc" id="L114">                .header(&quot;User-Agent&quot;, properties.userAgent())</span>
+<span class="fc" id="L115">                .header(&quot;Accept&quot;, &quot;application/json&quot;)</span>
+<span class="fc" id="L116">                .header(&quot;Accept-Language&quot;, language)</span>
+<span class="fc" id="L117">                .GET()</span>
+<span class="fc" id="L118">                .build();</span>
+        try {
+<span class="fc" id="L120">            HttpResponse&lt;String&gt; response = http.send(request, HttpResponse.BodyHandlers.ofString());</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">            if (response.statusCode() != 200) {</span>
+                // Brez naslova zahteve: poizvedba vsebuje besedilo naslova (FR-016-23).
+<span class="fc" id="L123">                LOG.warn(&quot;Photon: storitev je vrnila stanje {}&quot;, response.statusCode());</span>
+<span class="fc" id="L124">                return Optional.empty();</span>
+            }
+<span class="fc" id="L126">            return Optional.of(response.body());</span>
+<span class="fc" id="L127">        } catch (IOException e) {</span>
+<span class="fc" id="L128">            LOG.warn(&quot;Photon: storitev ni dosegljiva ({})&quot;, e.getClass().getSimpleName());</span>
+<span class="fc" id="L129">            return Optional.empty();</span>
+<span class="nc" id="L130">        } catch (InterruptedException e) {</span>
+<span class="nc" id="L131">            Thread.currentThread().interrupt();</span>
+<span class="nc" id="L132">            return Optional.empty();</span>
+        }
+    }
+
+    /** Predlogi iz odgovora GeoJSON: veljavni naslovi (ulica ali kraj), brez ponovitev, najprej v državi. */
+    static List&lt;AddressSuggestion&gt; parse(JsonNode root, String country, String language) {
+<span class="fc" id="L138">        JsonNode features = root.get(&quot;features&quot;);</span>
+<span class="pc bpc" id="L139" title="1 of 4 branches missed.">        if (features == null || !features.isArray()) {</span>
+<span class="fc" id="L140">            throw new IllegalArgumentException(&quot;odgovor brez features&quot;);</span>
+        }
+<span class="fc" id="L142">        List&lt;AddressSuggestion&gt; preferred = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L143">        List&lt;AddressSuggestion&gt; others = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L144">        Set&lt;Address&gt; seen = new LinkedHashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">        for (JsonNode feature : features) {</span>
+<span class="fc" id="L146">            JsonNode p = feature.get(&quot;properties&quot;);</span>
+<span class="pc bpc" id="L147" title="2 of 4 branches missed.">            if (p == null || !p.isObject()) {</span>
+<span class="nc" id="L148">                continue;</span>
+            }
+<span class="fc" id="L150">            Address address = address(p);</span>
+<span class="pc bpc" id="L151" title="1 of 4 branches missed.">            if (address == null || !seen.add(address)) {</span>
+<span class="nc" id="L152">                continue;</span>
+            }
+<span class="fc" id="L154">            AddressSuggestion suggestion = AddressSuggestion.of(label(p, address, language), address);</span>
+<span class="fc bfc" id="L155" title="All 4 branches covered.">            if (country != null &amp;&amp; country.equals(address.country())) {</span>
+<span class="fc" id="L156">                preferred.add(suggestion);</span>
+            } else {
+<span class="fc" id="L158">                others.add(suggestion);</span>
+            }
+<span class="fc" id="L160">        }</span>
+<span class="fc" id="L161">        preferred.addAll(others);</span>
+<span class="fc" id="L162">        return List.copyOf(preferred.subList(0, Math.min(MAX, preferred.size())));</span>
+    }
+
+    private static Address address(JsonNode p) {
+<span class="fc" id="L166">        String type = text(p, &quot;type&quot;);</span>
+<span class="fc" id="L167">        String name = text(p, &quot;name&quot;);</span>
+<span class="fc" id="L168">        String code = text(p, &quot;countrycode&quot;);</span>
+<span class="pc bpc" id="L169" title="1 of 2 branches missed.">        String country = code == null ? null : code.toUpperCase(Locale.ROOT);</span>
+<span class="pc bpc" id="L170" title="2 of 4 branches missed.">        if (country != null &amp;&amp; !CountryNames.isValid(country)) {</span>
+<span class="nc" id="L171">            country = null;</span>
+        }
+<span class="fc" id="L173">        String number = text(p, &quot;housenumber&quot;);</span>
+<span class="fc" id="L174">        String streetName = text(p, &quot;street&quot;);</span>
+<span class="pc bpc" id="L175" title="2 of 6 branches missed.">        if (streetName == null &amp;&amp; (&quot;street&quot;.equals(type) || &quot;house&quot;.equals(type))) {</span>
+<span class="nc" id="L176">            streetName = name;</span>
+        }
+<span class="fc bfc" id="L178" title="All 2 branches covered.">        String street = streetName == null</span>
+<span class="fc" id="L179">                ? null</span>
+<span class="fc bfc" id="L180" title="All 2 branches covered.">                : number == null</span>
+<span class="fc" id="L181">                        ? streetName</span>
+<span class="fc bfc" id="L182" title="All 2 branches covered.">                        : NUMBER_FIRST.contains(country) ? number + &quot; &quot; + streetName : streetName + &quot; &quot; + number;</span>
+<span class="fc" id="L183">        String city = text(p, &quot;city&quot;);</span>
+<span class="fc bfc" id="L184" title="All 4 branches covered.">        if (city == null &amp;&amp; &quot;city&quot;.equals(type)) {</span>
+<span class="fc" id="L185">            city = name;</span>
+        }
+<span class="fc bfc" id="L187" title="All 2 branches covered.">        if (city == null) {</span>
+<span class="fc" id="L188">            city = text(p, &quot;locality&quot;);</span>
+        }
+<span class="fc" id="L190">        TypedValues.AddressResult result = TypedValues.normalizeAddress(</span>
+<span class="fc" id="L191">                new Address(street, null, text(p, &quot;postcode&quot;), city, text(p, &quot;state&quot;), country));</span>
+<span class="fc bfc" id="L192" title="All 2 branches covered.">        return result.valid() ? result.address() : null;</span>
+    }
+
+    /** Berljiva oznaka: ime kraja ali stavbe (če ni del naslova), ulica, poštna številka s krajem, država. */
+    private static String label(JsonNode p, Address address, String language) {
+<span class="fc" id="L197">        List&lt;String&gt; parts = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L198">        String name = text(p, &quot;name&quot;);</span>
+<span class="fc bfc" id="L199" title="All 2 branches covered.">        if (name != null</span>
+<span class="fc bfc" id="L200" title="All 2 branches covered.">                &amp;&amp; !name.equals(address.city())</span>
+<span class="pc bpc" id="L201" title="2 of 4 branches missed.">                &amp;&amp; (address.street() == null || !address.street().contains(name))) {</span>
+<span class="nc" id="L202">            parts.add(name);</span>
+        }
+<span class="fc bfc" id="L204" title="All 2 branches covered.">        if (address.street() != null) {</span>
+<span class="fc" id="L205">            parts.add(address.street());</span>
+        }
+<span class="fc" id="L207">        String place = String.join(</span>
+                        &quot; &quot;,
+<span class="fc bfc" id="L209" title="All 2 branches covered.">                        address.postalCode() == null ? &quot;&quot; : address.postalCode(),</span>
+<span class="pc bpc" id="L210" title="1 of 2 branches missed.">                        address.city() == null ? &quot;&quot; : address.city())</span>
+<span class="fc" id="L211">                .strip();</span>
+<span class="pc bpc" id="L212" title="1 of 2 branches missed.">        if (!place.isEmpty()) {</span>
+<span class="fc" id="L213">            parts.add(place);</span>
+        }
+<span class="pc bpc" id="L215" title="1 of 2 branches missed.">        if (address.country() != null) {</span>
+<span class="fc" id="L216">            parts.add(CountryNames.display(address.country(), language));</span>
+        }
+<span class="fc" id="L218">        return String.join(&quot;, &quot;, parts);</span>
+    }
+
+    private static String text(JsonNode node, String field) {
+<span class="fc" id="L222">        JsonNode value = node.get(field);</span>
+<span class="pc bpc" id="L223" title="1 of 4 branches missed.">        if (value == null || !value.isString()) {</span>
+<span class="fc" id="L224">            return null;</span>
+        }
+<span class="fc" id="L226">        String text = value.asString().strip();</span>
+<span class="pc bpc" id="L227" title="1 of 2 branches missed.">        return text.isEmpty() ? null : text;</span>
+    }
+
+    private static String encode(String value) {
+<span class="fc" id="L231">        return URLEncoder.encode(value, StandardCharsets.UTF_8);</span>
+    }
+
+    private static String trimSlash(String url) {
+<span class="pc bpc" id="L235" title="1 of 2 branches missed.">        return url.endsWith(&quot;/&quot;) ? url.substring(0, url.length() - 1) : url;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

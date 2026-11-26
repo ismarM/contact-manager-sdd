@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MapsController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.maps</a> &gt; <span class="el_source">MapsController.java</span></div><h1>MapsController.java</h1><pre class="source lang-java linenums">package si.contactmanager.maps;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+import java.util.regex.Pattern;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import si.contactmanager.contact.Address;
+import si.contactmanager.contact.Attribute;
+import si.contactmanager.contact.AttributeType;
+import si.contactmanager.contact.ContactSnapshots;
+import si.contactmanager.contact.ContactState;
+import si.contactmanager.contact.CountryNames;
+import si.contactmanager.group.GroupAccess;
+import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.group.Role;
+import si.contactmanager.shared.error.NotFoundException;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+import si.contactmanager.shared.error.ValidationException;
+
+/**
+ * Kartografski posrednik (016, plan.md – Public Interfaces; research R-08). Brskalnik nikoli ne kliče tuje storitve;
+ * zaledje pošlje samo besedilo naslova. Vrstni red preverjanj §2.2: 401 → 404 → 403 → 400, zato zavrnjen zahtevek
+ * nikoli ne sproži klica zunanje storitve.
+ */
+@RestController
+class MapsController {
+
+    static final int Q_MIN = 3;
+    static final int Q_MAX = 300;
+<span class="fc" id="L41">    private static final Pattern COUNTRY = Pattern.compile(&quot;^[A-Z]{2}$&quot;);</span>
+
+    /** Odgovor predlogov naslova. */
+<span class="fc" id="L44">    record AddressSuggestions(List&lt;AddressSuggestion&gt; items) {}</span>
+
+    private final GroupAccess access;
+    private final PhotonClient photon;
+    private final NominatimClient nominatim;
+    private final TileClient tiles;
+    private final ContactSnapshots contacts;
+
+    MapsController(
+            GroupAccess access,
+            PhotonClient photon,
+            NominatimClient nominatim,
+            TileClient tiles,
+<span class="fc" id="L57">            ContactSnapshots contacts) {</span>
+<span class="fc" id="L58">        this.access = access;</span>
+<span class="fc" id="L59">        this.photon = photon;</span>
+<span class="fc" id="L60">        this.nominatim = nominatim;</span>
+<span class="fc" id="L61">        this.tiles = tiles;</span>
+<span class="fc" id="L62">        this.contacts = contacts;</span>
+<span class="fc" id="L63">    }</span>
+
+    /**
+     * Lokacija naslova kontakta (FR-016-21, FR-016-22): bralec ali višje, tudi v arhivirani skupini. Brez {@code key}
+     * predefiniran naslov, sicer atribut tipa {@code ADDRESS}. Naslov se prebere iz kontakta šele po preverjanju
+     * dostopa; manjkajoč kontakt, naslov ali atribut drugega tipa → 404, nič ni posredovano. Koordinate se ne shranijo.
+     */
+    @GetMapping(&quot;/api/groups/{groupId}/contacts/{contactId}/address-location&quot;)
+    AddressLocation addressLocation(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String groupId,
+            @PathVariable String contactId,
+            @RequestParam(required = false) String key,
+            @RequestParam(required = false) String language) {
+<span class="fc" id="L77">        Membership membership = access.require(jwt, groupId, Role.VIEWER, false);</span>
+<span class="fc" id="L78">        ContactState contact = contacts.snapshot(membership.groupId(), contactUuid(contactId));</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">        if (contact == null) {</span>
+<span class="fc" id="L80">            throw new NotFoundException();</span>
+        }
+        Address parts;
+        String text;
+<span class="pc bpc" id="L84" title="1 of 4 branches missed.">        if (key == null || key.isBlank()) {</span>
+<span class="fc" id="L85">            parts = contact.addressParts();</span>
+<span class="fc" id="L86">            text = contact.address();</span>
+        } else {
+<span class="fc" id="L88">            String wanted = key.strip().toLowerCase(Locale.ROOT);</span>
+<span class="fc" id="L89">            Attribute attribute = contact.attributes().stream()</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">                    .filter(a -&gt; a.type() == AttributeType.ADDRESS</span>
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">                            &amp;&amp; a.key().strip().toLowerCase(Locale.ROOT).equals(wanted))</span>
+<span class="fc" id="L92">                    .findFirst()</span>
+<span class="fc" id="L93">                    .orElseThrow(NotFoundException::new);</span>
+<span class="fc" id="L94">            parts = attribute.parts();</span>
+<span class="fc" id="L95">            text = attribute.value();</span>
+        }
+<span class="pc bpc" id="L97" title="1 of 6 branches missed.">        if (parts == null &amp;&amp; (text == null || text.isBlank())) {</span>
+<span class="fc" id="L98">            throw new NotFoundException();</span>
+        }
+<span class="pc bpc" id="L100" title="1 of 4 branches missed.">        String lang = language == null || language.isEmpty() ? &quot;sl&quot; : language;</span>
+<span class="fc bfc" id="L101" title="All 4 branches covered.">        if (!lang.equals(&quot;sl&quot;) &amp;&amp; !lang.equals(&quot;en&quot;)) {</span>
+<span class="fc" id="L102">            throw new ValidationException(List.of(new FieldError(&quot;language&quot;, &quot;INVALID_VALUE&quot;)));</span>
+        }
+<span class="fc bfc" id="L104" title="All 2 branches covered.">        return parts != null ? nominatim.locate(parts, lang) : nominatim.locate(text, lang);</span>
+    }
+
+    /**
+     * Ploščica podlage zemljevida (FR-016-21, FR-016-23): vsak prijavljen uporabnik (ni vezano na skupino). Neveljavne
+     * koordinate → 400; omejitev ali napaka storitve → 503. {@code Cache-Control: private} z ostankom življenjske dobe.
+     */
+    @GetMapping(&quot;/api/map-tiles/{z}/{x}/{y}.png&quot;)
+    ResponseEntity&lt;byte[]&gt; mapTile(
+            @AuthenticationPrincipal Jwt jwt, @PathVariable String z, @PathVariable String x, @PathVariable String y) {
+<span class="fc" id="L114">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L115">        int zoom = coordinate(&quot;z&quot;, z, errors);</span>
+<span class="fc" id="L116">        int column = coordinate(&quot;x&quot;, x, errors);</span>
+<span class="fc" id="L117">        int row = coordinate(&quot;y&quot;, y, errors);</span>
+<span class="fc bfc" id="L118" title="All 4 branches covered.">        if (errors.isEmpty() &amp;&amp; !TileClient.valid(zoom, column, row)) {</span>
+<span class="pc bpc" id="L119" title="1 of 4 branches missed.">            if (zoom &lt; 0 || zoom &gt; TileClient.MAX_ZOOM) {</span>
+<span class="fc" id="L120">                errors.add(new FieldError(&quot;z&quot;, &quot;INVALID_VALUE&quot;));</span>
+            } else {
+<span class="fc bfc" id="L122" title="All 2 branches covered.">                if (column &gt;= 1 &lt;&lt; zoom) {</span>
+<span class="fc" id="L123">                    errors.add(new FieldError(&quot;x&quot;, &quot;INVALID_VALUE&quot;));</span>
+                }
+<span class="fc bfc" id="L125" title="All 2 branches covered.">                if (row &gt;= 1 &lt;&lt; zoom) {</span>
+<span class="fc" id="L126">                    errors.add(new FieldError(&quot;y&quot;, &quot;INVALID_VALUE&quot;));</span>
+                }
+            }
+        }
+<span class="fc bfc" id="L130" title="All 2 branches covered.">        if (!errors.isEmpty()) {</span>
+<span class="fc" id="L131">            throw new ValidationException(errors);</span>
+        }
+<span class="fc" id="L133">        TileClient.Tile tile = tiles.tile(jwt.getSubject(), zoom, column, row);</span>
+<span class="fc" id="L134">        return ResponseEntity.ok()</span>
+<span class="fc" id="L135">                .contentType(MediaType.IMAGE_PNG)</span>
+<span class="fc" id="L136">                .cacheControl(CacheControl.maxAge(Duration.ofSeconds(tile.maxAgeSeconds(System.currentTimeMillis())))</span>
+<span class="fc" id="L137">                        .cachePrivate())</span>
+<span class="fc" id="L138">                .body(tile.body());</span>
+    }
+
+    private static int coordinate(String field, String value, List&lt;FieldError&gt; errors) {
+        try {
+<span class="fc" id="L143">            int parsed = Integer.parseInt(value);</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">            if (parsed &gt;= 0) {</span>
+<span class="fc" id="L145">                return parsed;</span>
+            }
+<span class="fc" id="L147">        } catch (NumberFormatException e) {</span>
+            // spodaj
+<span class="fc" id="L149">        }</span>
+<span class="fc" id="L150">        errors.add(new FieldError(field, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L151">        return -1;</span>
+    }
+
+    private static UUID contactUuid(String value) {
+        try {
+<span class="fc" id="L156">            return UUID.fromString(value);</span>
+<span class="fc" id="L157">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L158">            throw new NotFoundException();</span>
+        }
+    }
+
+    /**
+     * Do 5 predlogov naslova (FR-016-13): urednik ali višje, tudi v arhivirani skupini (kot predlogi 013). Napaka ali
+     * omejitev storitve vrne prazen seznam.
+     */
+    @GetMapping(&quot;/api/groups/{groupId}/address-suggestions&quot;)
+    AddressSuggestions addressSuggestions(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String groupId,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String country,
+            @RequestParam(required = false) String language) {
+<span class="fc" id="L173">        Membership membership = access.require(jwt, groupId, Role.EDITOR, false);</span>
+<span class="fc" id="L174">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">        String text = q == null ? &quot;&quot; : q.strip();</span>
+<span class="fc" id="L176">        int length = text.codePointCount(0, text.length());</span>
+<span class="fc bfc" id="L177" title="All 2 branches covered.">        if (text.isEmpty()) {</span>
+<span class="fc" id="L178">            errors.add(new FieldError(&quot;q&quot;, &quot;REQUIRED&quot;));</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">        } else if (length &lt; Q_MIN) {</span>
+<span class="fc" id="L180">            errors.add(new FieldError(&quot;q&quot;, &quot;TOO_SHORT&quot;));</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">        } else if (length &gt; Q_MAX) {</span>
+<span class="fc" id="L182">            errors.add(new FieldError(&quot;q&quot;, &quot;TOO_LONG&quot;));</span>
+        }
+<span class="pc bpc" id="L184" title="1 of 4 branches missed.">        String preferred = country == null || country.isEmpty() ? null : country;</span>
+<span class="fc bfc" id="L185" title="All 6 branches covered.">        if (preferred != null &amp;&amp; (!COUNTRY.matcher(preferred).matches() || !CountryNames.isValid(preferred))) {</span>
+<span class="fc" id="L186">            errors.add(new FieldError(&quot;country&quot;, &quot;INVALID_VALUE&quot;));</span>
+        }
+<span class="pc bpc" id="L188" title="1 of 4 branches missed.">        String lang = language == null || language.isEmpty() ? &quot;sl&quot; : language;</span>
+<span class="fc bfc" id="L189" title="All 4 branches covered.">        if (!lang.equals(&quot;sl&quot;) &amp;&amp; !lang.equals(&quot;en&quot;)) {</span>
+<span class="fc" id="L190">            errors.add(new FieldError(&quot;language&quot;, &quot;INVALID_VALUE&quot;));</span>
+        }
+<span class="fc bfc" id="L192" title="All 2 branches covered.">        if (!errors.isEmpty()) {</span>
+<span class="fc" id="L193">            throw new ValidationException(errors);</span>
+        }
+<span class="fc" id="L195">        return new AddressSuggestions(photon.suggest(membership.userId(), text, preferred, lang));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

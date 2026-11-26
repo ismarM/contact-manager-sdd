@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ApiKeyService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.apikey</a> &gt; <span class="el_source">ApiKeyService.java</span></div><h1>ApiKeyService.java</h1><pre class="source lang-java linenums">package si.contactmanager.apikey;
+
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import si.contactmanager.apikey.ApiKeyInputParser.GroupChoice;
+import si.contactmanager.apikey.ApiKeyInputParser.Input;
+import si.contactmanager.group.GroupAccess;
+import si.contactmanager.shared.error.ApiKeyLimitException;
+import si.contactmanager.shared.error.NotFoundException;
+import si.contactmanager.shared.security.ApiKeyPrincipal.Permission;
+import si.contactmanager.shared.security.ApiKeyPrincipal.Scope;
+
+/**
+ * Upravljanje API ključev prijavljenega uporabnika (019, FR-019-01 … -04, -21; research R-09): ustvarjanje (žeton samo
+ * v odgovoru), seznam s stanji in preklic. Žeton se ne hrani in ne beleži.
+ */
+@Service
+class ApiKeyService {
+
+    /** Največ aktivnih ključev na uporabnika (FR-019-01). */
+    static final int LIMIT = 10;
+
+    /** »Kmalu poteče« (FR-019-04). */
+<span class="fc" id="L34">    static final Duration EXPIRING_SOON = Duration.ofDays(7);</span>
+
+<span class="fc" id="L36">    enum Status {</span>
+<span class="fc" id="L37">        ACTIVE,</span>
+<span class="fc" id="L38">        EXPIRED,</span>
+<span class="fc" id="L39">        REVOKED</span>
+    }
+
+<span class="fc" id="L42">    record GroupView(UUID groupId, String title, Permission permission) {}</span>
+
+    /** Ključ na seznamu (contracts/openapi.yaml – ApiKey); nikoli žeton. */
+<span class="fc" id="L45">    record KeyView(</span>
+            UUID id,
+            String name,
+            String hint,
+            boolean allGroups,
+            Permission allGroupsPermission,
+            List&lt;GroupView&gt; groups,
+            Instant createdAt,
+            Instant expiresAt,
+            Instant lastUsedAt,
+            Instant revokedAt,
+            Status status,
+            boolean expiringSoon,
+            int requestsLast24h) {}
+
+    /** Nov ključ: {@code token} se pokaže samo enkrat. */
+<span class="fc" id="L61">    record Created(KeyView key, String token) {}</span>
+
+    /** Števila zahtev po izidu; {@code day} je {@code null} pri skupnih številih (izpuščeno v JSON). */
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+<span class="fc" id="L65">    record DayView(LocalDate day, long total, long readOk, long writeOk, long errors, long rateLimited) {}</span>
+
+<span class="fc" id="L67">    record UsageView(int days, DayView totals, List&lt;DayView&gt; perDay) {}</span>
+
+    private final ApiKeyRepository repository;
+    private final ApiKeyTokens tokens;
+    private final GroupAccess access;
+    private final ApiUsageRepository usage;
+    private final ApiKeyProperties properties;
+    private final Clock clock;
+
+    ApiKeyService(
+            ApiKeyRepository repository,
+            ApiKeyTokens tokens,
+            GroupAccess access,
+            ApiUsageRepository usage,
+            ApiKeyProperties properties,
+<span class="fc" id="L82">            Clock clock) {</span>
+<span class="fc" id="L83">        this.repository = repository;</span>
+<span class="fc" id="L84">        this.tokens = tokens;</span>
+<span class="fc" id="L85">        this.access = access;</span>
+<span class="fc" id="L86">        this.usage = usage;</span>
+<span class="fc" id="L87">        this.properties = properties;</span>
+<span class="fc" id="L88">        this.clock = clock;</span>
+<span class="fc" id="L89">    }</span>
+
+    List&lt;KeyView&gt; list(long user) {
+<span class="fc" id="L92">        Instant now = Instant.now();</span>
+<span class="fc" id="L93">        List&lt;ApiKeyRepository.Row&gt; rows = repository.list(user);</span>
+<span class="fc" id="L94">        Map&lt;UUID, List&lt;ApiKeyRepository.GroupRow&gt;&gt; groups =</span>
+<span class="fc" id="L95">                repository.groups(rows.stream().map(ApiKeyRepository.Row::id).toList());</span>
+<span class="fc" id="L96">        return rows.stream()</span>
+<span class="fc" id="L97">                .map(row -&gt; view(row, groups.getOrDefault(row.id(), List.of()), now))</span>
+<span class="fc" id="L98">                .toList();</span>
+    }
+
+    /**
+     * Ustvari ključ: skupine, katerih uporabnik ni član (ali neveljaven id) → 404; meja aktivnih pod zaklepom
+     * {@code app_user} → 409. V obeh primerih nič ne nastane.
+     */
+    @Transactional
+    Created create(long user, Input input) {
+<span class="fc" id="L107">        Map&lt;UUID, Permission&gt; groups = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">        for (GroupChoice choice : input.groups()) {</span>
+<span class="fc" id="L109">            groups.put(access.membership(user, choice.groupId()).groupId(), choice.permission());</span>
+<span class="fc" id="L110">        }</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">        if (repository.lockAndCountActive(user) &gt;= LIMIT) {</span>
+<span class="fc" id="L112">            throw new ApiKeyLimitException();</span>
+        }
+<span class="fc bfc" id="L114" title="All 2 branches covered.">        Scope scope = input.allGroupsPermission() != null</span>
+<span class="fc" id="L115">                ? Scope.allGroups(input.allGroupsPermission())</span>
+<span class="fc" id="L116">                : Scope.groups(groups);</span>
+<span class="fc" id="L117">        UUID id = repository.newId();</span>
+<span class="fc" id="L118">        Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">        Instant expiresAt = input.expiresInDays() == null ? null : now.plus(Duration.ofDays(input.expiresInDays()));</span>
+<span class="fc" id="L120">        String token = tokens.issue(user, id, scope, now, expiresAt);</span>
+<span class="fc" id="L121">        String hint = token.substring(token.length() - 6);</span>
+<span class="fc" id="L122">        repository.insert(id, user, input.name(), hint, input.allGroupsPermission(), now, expiresAt);</span>
+<span class="fc" id="L123">        groups.forEach((group, permission) -&gt; repository.insertGroup(id, group, permission));</span>
+<span class="fc" id="L124">        ApiKeyRepository.Row row = new ApiKeyRepository.Row(</span>
+<span class="fc" id="L125">                id, input.name(), hint, input.allGroupsPermission(), now, expiresAt, null, null, 0);</span>
+<span class="fc" id="L126">        List&lt;ApiKeyRepository.GroupRow&gt; groupRows =</span>
+<span class="fc" id="L127">                repository.groups(List.of(id)).getOrDefault(id, List.of());</span>
+<span class="fc" id="L128">        return new Created(view(row, groupRows, Instant.now()), token);</span>
+    }
+
+    /** Preklic lastnega ključa (idempotenten); tuj ali neobstoječ → 404. */
+    void revoke(long user, UUID id) {
+<span class="fc bfc" id="L133" title="All 2 branches covered.">        if (!repository.revoke(user, id)) {</span>
+<span class="fc" id="L134">            throw new NotFoundException();</span>
+        }
+<span class="fc" id="L136">    }</span>
+
+    /**
+     * Statistika ključa za {@code days} (7 ali 30) dni, ki se končajo danes po {@code api-keys.stats-zone}: števila po
+     * dnevih (manjkajoči dnevi 0, od najstarejšega) in skupna števila (FR-019-20). Tuj, neobstoječ ali pred več kot
+     * 90 dnevi končan ključ → 404.
+     */
+    UsageView usage(long user, UUID id, int days) {
+<span class="fc bfc" id="L144" title="All 2 branches covered.">        if (!repository.visible(user, id)) {</span>
+<span class="fc" id="L145">            throw new NotFoundException();</span>
+        }
+<span class="fc" id="L147">        ZoneId zone = properties.statsZone();</span>
+<span class="fc" id="L148">        LocalDate today = LocalDate.now(clock.withZone(zone));</span>
+<span class="fc" id="L149">        LocalDate first = today.minusDays(days - 1L);</span>
+<span class="fc" id="L150">        Map&lt;LocalDate, long[]&gt; byDay = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">        for (LocalDate day = first; !day.isAfter(today); day = day.plusDays(1)) {</span>
+<span class="fc" id="L152">            byDay.put(day, new long[4]);</span>
+        }
+        for (ApiUsageRepository.HourRow row :
+<span class="fc bfc" id="L155" title="All 2 branches covered.">                usage.hours(id, first.atStartOfDay(zone).toInstant())) {</span>
+<span class="fc" id="L156">            long[] counts = byDay.get(row.hour().atZone(zone).toLocalDate());</span>
+<span class="pc bpc" id="L157" title="1 of 2 branches missed.">            if (counts != null) {</span>
+<span class="fc" id="L158">                counts[0] += row.readOk();</span>
+<span class="fc" id="L159">                counts[1] += row.writeOk();</span>
+<span class="fc" id="L160">                counts[2] += row.errors();</span>
+<span class="fc" id="L161">                counts[3] += row.rateLimited();</span>
+            }
+<span class="fc" id="L163">        }</span>
+<span class="fc" id="L164">        long[] totals = new long[4];</span>
+<span class="fc" id="L165">        List&lt;DayView&gt; perDay = new java.util.ArrayList&lt;&gt;();</span>
+<span class="fc" id="L166">        byDay.forEach((day, c) -&gt; {</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">            for (int i = 0; i &lt; 4; i++) {</span>
+<span class="fc" id="L168">                totals[i] += c[i];</span>
+            }
+<span class="fc" id="L170">            perDay.add(new DayView(day, c[0] + c[1] + c[2] + c[3], c[0], c[1], c[2], c[3]));</span>
+<span class="fc" id="L171">        });</span>
+<span class="fc" id="L172">        return new UsageView(</span>
+                days,
+                new DayView(
+                        null,
+                        totals[0] + totals[1] + totals[2] + totals[3],
+                        totals[0],
+                        totals[1],
+                        totals[2],
+                        totals[3]),
+                perDay);
+    }
+
+    private static KeyView view(ApiKeyRepository.Row row, List&lt;ApiKeyRepository.GroupRow&gt; groups, Instant now) {
+<span class="fc bfc" id="L185" title="All 2 branches covered.">        Status status = row.revokedAt() != null</span>
+<span class="fc" id="L186">                ? Status.REVOKED</span>
+<span class="fc bfc" id="L187" title="All 4 branches covered.">                : row.expiresAt() != null &amp;&amp; !row.expiresAt().isAfter(now) ? Status.EXPIRED : Status.ACTIVE;</span>
+<span class="fc bfc" id="L188" title="All 2 branches covered.">        boolean expiringSoon = status == Status.ACTIVE</span>
+<span class="fc bfc" id="L189" title="All 2 branches covered.">                &amp;&amp; row.expiresAt() != null</span>
+<span class="fc bfc" id="L190" title="All 2 branches covered.">                &amp;&amp; !row.expiresAt().isAfter(now.plus(EXPIRING_SOON));</span>
+<span class="fc" id="L191">        return new KeyView(</span>
+<span class="fc" id="L192">                row.id(),</span>
+<span class="fc" id="L193">                row.name(),</span>
+<span class="fc" id="L194">                row.hint(),</span>
+<span class="fc bfc" id="L195" title="All 2 branches covered.">                row.allGroupsPermission() != null,</span>
+<span class="fc" id="L196">                row.allGroupsPermission(),</span>
+<span class="fc" id="L197">                groups.stream()</span>
+<span class="fc" id="L198">                        .map(g -&gt; new GroupView(g.groupId(), g.title(), g.permission()))</span>
+<span class="fc" id="L199">                        .toList(),</span>
+<span class="fc" id="L200">                row.createdAt(),</span>
+<span class="fc" id="L201">                row.expiresAt(),</span>
+<span class="fc" id="L202">                row.lastUsedAt(),</span>
+<span class="fc" id="L203">                row.revokedAt(),</span>
+                status,
+                expiringSoon,
+<span class="fc" id="L206">                row.requestsLast24h());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

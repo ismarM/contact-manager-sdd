@@ -1,0 +1,3 @@
+[INFO] Tests run: 107, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 18.36 s -- in si.contactmanager.contact.ContactIsolationMatrixSecurityIT
+[INFO] Tests run: 107, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS

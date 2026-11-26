@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DuplicateService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">DuplicateService.java</span></div><h1>DuplicateService.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import si.contactmanager.audit.AuditAction;
+import si.contactmanager.audit.AuditLog;
+import si.contactmanager.audit.ContactChange;
+import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.image.ImageStore;
+import si.contactmanager.shared.error.GroupArchivedException;
+import si.contactmanager.shared.error.NotFoundException;
+import si.contactmanager.shared.error.ValidationException;
+import si.contactmanager.shared.error.VersionConflictException;
+
+/**
+ * Iskanje, primerjava in združitev dvojnikov (plan.md – REST endpoints; research R-02, R-05, R-08, R-09). Skupine
+ * dvojnikov se izračunajo ob vsakem iskanju in niso shranjene; združitev je ena transakcija z enim vnosom {@code MERGE}.
+ */
+@Service
+class DuplicateService {
+
+    /** Ohranjeni kontakt je najstarejši po času ustvaritve, nato po id (FR-011-11). */
+<span class="fc" id="L31">    private static final Comparator&lt;ContactState&gt; OLDEST_FIRST = Comparator.comparing(ContactState::createdAt);</span>
+
+    private final ContactRepository contacts;
+    private final ImageStore images;
+    private final ContactSnapshots snapshots;
+    private final AuditLog audit;
+    private final CanonicalForms canonical;
+    private final TypedAttributes typed;
+<span class="fc" id="L39">    private final MergeInputParser parser = new MergeInputParser();</span>
+
+    DuplicateService(
+            ContactRepository contacts,
+            ImageStore images,
+            ContactSnapshots snapshots,
+            AuditLog audit,
+            CanonicalForms canonical,
+<span class="fc" id="L47">            TypedAttributes typed) {</span>
+<span class="fc" id="L48">        this.typed = typed;</span>
+<span class="fc" id="L49">        this.canonical = canonical;</span>
+<span class="fc" id="L50">        this.images = images;</span>
+<span class="fc" id="L51">        this.contacts = contacts;</span>
+<span class="fc" id="L52">        this.snapshots = snapshots;</span>
+<span class="fc" id="L53">        this.audit = audit;</span>
+<span class="fc" id="L54">    }</span>
+
+    /** Skupine dvojnikov po kategoriji med vsemi kontakti skupine (FR-011-02 … FR-011-07). */
+    DuplicatePage search(Membership membership, String category, int page, int size) {
+<span class="fc" id="L58">        DuplicatePage found =</span>
+<span class="fc" id="L59">                DuplicateGroups.build(category, contacts.duplicateCandidates(membership.groupId()), page, size);</span>
+<span class="fc" id="L60">        List&lt;UUID&gt; shown = found.groups().stream()</span>
+<span class="fc" id="L61">                .flatMap(group -&gt; group.contacts().stream())</span>
+<span class="fc" id="L62">                .map(DuplicateContact::id)</span>
+<span class="fc" id="L63">                .toList();</span>
+<span class="fc" id="L64">        Map&lt;UUID, Long&gt; revisions = images.contactRevisions(membership.groupId(), shown);</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        if (revisions.isEmpty()) {</span>
+<span class="fc" id="L66">            return found;</span>
+        }
+        // Slike (018): revizija se doda samo kontaktom strani, ki se vrne (FR-018-09).
+<span class="fc" id="L69">        return new DuplicatePage(</span>
+<span class="fc" id="L70">                found.category(),</span>
+<span class="fc" id="L71">                found.total(),</span>
+<span class="fc" id="L72">                found.page(),</span>
+<span class="fc" id="L73">                found.size(),</span>
+<span class="fc" id="L74">                found.groups().stream()</span>
+<span class="fc" id="L75">                        .map(group -&gt; new DuplicateGroup(</span>
+<span class="fc" id="L76">                                group.reason(),</span>
+<span class="fc" id="L77">                                group.size(),</span>
+<span class="fc" id="L78">                                group.contacts().stream()</span>
+<span class="fc" id="L79">                                        .map(c -&gt; new DuplicateContact(c.id(), c.displayName(), revisions.get(c.id())))</span>
+<span class="fc" id="L80">                                        .toList()))</span>
+<span class="fc" id="L81">                        .toList());</span>
+    }
+
+    /**
+     * Korak 404 (research R-05): vsaka identiteta je kontakt te skupine ali je v njeni sledi (bil je); sicer {@code 404}
+     * brez razkritja obstoja, nič se ne spremeni.
+     */
+    void requireKnown(Membership membership, Set&lt;UUID&gt; ids) {
+<span class="fc" id="L89">        Set&lt;UUID&gt; unknown = new LinkedHashSet&lt;&gt;(ids);</span>
+<span class="fc" id="L90">        unknown.removeAll(contacts.existing(membership.groupId(), ids));</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        if (unknown.isEmpty()) {</span>
+<span class="fc" id="L92">            return;</span>
+        }
+<span class="fc" id="L94">        unknown.removeAll(contacts.knownToGroup(membership.groupId(), unknown));</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        if (!unknown.isEmpty()) {</span>
+<span class="fc" id="L96">            throw new NotFoundException();</span>
+        }
+<span class="fc" id="L98">    }</span>
+
+    /** Trenutni podatki in verzije obstoječih kontaktov, razvrščeni po {@code created_at}, {@code id} (FR-011-08). */
+    Comparison compare(Membership membership, List&lt;UUID&gt; ids) {
+<span class="fc" id="L102">        Map&lt;UUID, ContactState&gt; states = snapshots.load(membership.groupId(), ids);</span>
+<span class="fc" id="L103">        Map&lt;UUID, Long&gt; revisions = images.contactRevisions(membership.groupId(), states.keySet());</span>
+<span class="fc" id="L104">        List&lt;CompareContact&gt; result = states.entrySet().stream()</span>
+<span class="fc" id="L105">                .sorted(Map.Entry.&lt;UUID, ContactState&gt;comparingByValue(OLDEST_FIRST)</span>
+<span class="fc" id="L106">                        .thenComparing(entry -&gt; entry.getKey().toString()))</span>
+<span class="fc" id="L107">                .map(entry -&gt; compareContact(entry.getKey(), entry.getValue(), revisions.get(entry.getKey())))</span>
+<span class="fc" id="L108">                .toList();</span>
+<span class="fc" id="L109">        return new Comparison(result);</span>
+    }
+
+    /**
+     * Atomarna združitev (FR-011-15 … FR-011-17, research R-08, R-09): zaklep skupine ({@code FOR SHARE}) in kontaktov
+     * po {@code id}, preverjanje verzij (409), preverjanje rezultata po slovarju podatkov (400), posodobitev
+     * najstarejšega kontakta, izbris ostalih in en vnos {@code MERGE}. Katera koli izjema razveljavi vse.
+     */
+    @Transactional
+    MergeResult merge(Membership membership, List&lt;MergeInput.Target&gt; targets, String body) {
+<span class="fc" id="L119">        UUID group = membership.groupId();</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">        if (contacts.lockGroupArchived(group).orElseThrow(NotFoundException::new)) {</span>
+<span class="fc" id="L121">            throw new GroupArchivedException();</span>
+        }
+<span class="fc" id="L123">        List&lt;UUID&gt; ids = targets.stream().map(MergeInput.Target::id).toList();</span>
+<span class="fc" id="L124">        Set&lt;UUID&gt; locked = contacts.lockExisting(group, ids);</span>
+<span class="fc" id="L125">        Map&lt;UUID, ContactState&gt; before = snapshots.load(group, locked);</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">        for (MergeInput.Target target : targets) {</span>
+<span class="fc" id="L127">            ContactState state = before.get(target.id());</span>
+            // Izbrisan (znan iz sledi) ali spremenjen kontakt: zahtevek je zastarel (FR-011-16).
+<span class="pc bpc" id="L129" title="1 of 6 branches missed.">            if (!locked.contains(target.id()) || state == null || state.version() != target.version()) {</span>
+<span class="fc" id="L130">                throw new VersionConflictException(null);</span>
+            }
+<span class="fc" id="L132">        }</span>
+<span class="fc" id="L133">        MergeInputParser.Parsed&lt;ContactInput&gt; parsed = parser.parseResult(body);</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">        if (!parsed.valid()) {</span>
+<span class="fc" id="L135">            throw new ValidationException(parsed.errors());</span>
+        }
+        // Rezervirana imena in kanonični zapis (FR-013-08, -10): dovoljeni so ključi in značke, ki jih že hrani kateri
+        // koli
+        // vključeni kontakt.
+<span class="fc" id="L140">        List&lt;String&gt; storedKeys = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L141">        List&lt;String&gt; storedTags = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L142">        List&lt;Attribute&gt; storedAttributes = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">        for (ContactState state : before.values()) {</span>
+<span class="fc" id="L144">            storedAttributes.addAll(state.attributes());</span>
+<span class="fc" id="L145">            state.attributes().forEach(a -&gt; storedKeys.add(a.key()));</span>
+<span class="fc" id="L146">            storedTags.addAll(state.tags());</span>
+<span class="fc" id="L147">        }</span>
+<span class="fc" id="L148">        List&lt;si.contactmanager.shared.error.ValidationError.FieldError&gt; reserved = AttributeKeys.reservedErrors(</span>
+<span class="fc" id="L149">                parsed.value().attributes(), AttributeKeys.normalizedKeys(storedAttributes));</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">        if (!reserved.isEmpty()) {</span>
+<span class="fc" id="L151">            throw new ValidationException(reserved.stream()</span>
+<span class="fc" id="L152">                    .map(e -&gt; new si.contactmanager.shared.error.ValidationError.FieldError(</span>
+<span class="fc" id="L153">                            &quot;result.&quot; + e.field(), e.code()))</span>
+<span class="fc" id="L154">                    .toList());</span>
+        }
+<span class="fc" id="L156">        ContactInput result = canonical.input(group, parsed.value(), storedKeys, storedTags);</span>
+        // Vrednosti po tipu (016, FR-016-26): e-naslov, telefon in atributi; vrednosti, ki jih vključeni kontakti že
+        // hranijo, ostanejo dobesedne (FR-016-09).
+<span class="fc" id="L159">        ContactService.Predefined predefined = ContactService.normalizePredefined(</span>
+                result,
+<span class="fc" id="L161">                before.values().stream().map(ContactState::email).toList(),</span>
+<span class="fc" id="L162">                before.values().stream().map(ContactState::phone).toList());</span>
+<span class="fc" id="L163">        List&lt;si.contactmanager.shared.error.ValidationError.FieldError&gt; typeErrors =</span>
+<span class="fc" id="L164">                new ArrayList&lt;&gt;(predefined.errors().stream()</span>
+<span class="pc" id="L165">                        .map(e -&gt; new si.contactmanager.shared.error.ValidationError.FieldError(</span>
+<span class="nc" id="L166">                                &quot;result.&quot; + e.field(), e.code()))</span>
+<span class="fc" id="L167">                        .toList());</span>
+<span class="fc" id="L168">        TypedAttributes.Resolution resolved = typed.resolve(</span>
+<span class="fc" id="L169">                group, predefined.input().attributes(), List.of(), storedAttributes, result.country(), true);</span>
+<span class="fc" id="L170">        resolved.errors()</span>
+<span class="fc" id="L171">                .forEach(e -&gt; typeErrors.add(new si.contactmanager.shared.error.ValidationError.FieldError(</span>
+<span class="fc" id="L172">                        &quot;result.&quot; + e.field(), e.code())));</span>
+<span class="fc bfc" id="L173" title="All 2 branches covered.">        if (!typeErrors.isEmpty()) {</span>
+<span class="fc" id="L174">            throw new ValidationException(typeErrors);</span>
+        }
+<span class="fc" id="L176">        result = predefined.input().withAttributes(resolved.attributes());</span>
+
+<span class="fc" id="L178">        List&lt;UUID&gt; ordered = new ArrayList&lt;&gt;(ids);</span>
+<span class="fc" id="L179">        ordered.sort(</span>
+<span class="fc" id="L180">                Comparator.comparing((UUID id) -&gt; before.get(id).createdAt()).thenComparing(UUID::toString));</span>
+<span class="fc" id="L181">        UUID keeper = ordered.get(0);</span>
+<span class="fc" id="L182">        List&lt;UUID&gt; removed = ordered.subList(1, ordered.size());</span>
+
+<span class="fc" id="L184">        ContactState keeperBefore = before.get(keeper);</span>
+<span class="fc" id="L185">        snapshots.replaceMerged(group, membership.userId(), keeper, merged(keeperBefore, result));</span>
+        // Slike (018, FR-018-11): v isti transakciji, pred izbrisom poraženih (sprožilec jih sicer samo odklopi).
+<span class="fc" id="L187">        images.mergeInto(group, keeper, removed);</span>
+<span class="fc" id="L188">        contacts.deleteAll(group, removed);</span>
+<span class="fc" id="L189">        ContactState keeperAfter = snapshots.snapshot(group, keeper);</span>
+
+<span class="fc" id="L191">        List&lt;ContactChange&gt; changes = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L192">        changes.add(new ContactChange(keeper, name(keeperAfter), keeperBefore, keeperAfter));</span>
+<span class="fc bfc" id="L193" title="All 2 branches covered.">        for (UUID id : removed) {</span>
+<span class="fc" id="L194">            ContactState state = before.get(id);</span>
+<span class="fc" id="L195">            changes.add(new ContactChange(id, name(state), state, null));</span>
+<span class="fc" id="L196">        }</span>
+<span class="fc" id="L197">        UUID entry = audit.record(group, membership.userId(), AuditAction.MERGE, changes);</span>
+<span class="fc" id="L198">        return new MergeResult(keeper, name(keeperAfter), ordered.size(), entry);</span>
+    }
+
+    /** Vrednosti iz {@code result}; metapodatke (id, čas ustvaritve) hrani ohranjeni kontakt, verzijo poveča zapis. */
+    private static ContactState merged(ContactState keeperBefore, ContactInput result) {
+<span class="fc" id="L203">        return new ContactState(</span>
+<span class="fc" id="L204">                result.firstName(),</span>
+<span class="fc" id="L205">                result.lastName(),</span>
+<span class="fc" id="L206">                result.address(),</span>
+<span class="fc" id="L207">                result.email(),</span>
+<span class="fc" id="L208">                result.phone(),</span>
+<span class="fc" id="L209">                result.company(),</span>
+<span class="fc" id="L210">                result.country(),</span>
+<span class="fc" id="L211">                result.attributes(),</span>
+<span class="fc" id="L212">                result.tags(),</span>
+<span class="fc" id="L213">                keeperBefore.version() + 1,</span>
+<span class="fc" id="L214">                keeperBefore.createdAt(),</span>
+<span class="fc" id="L215">                Instant.now(),</span>
+                null);
+    }
+
+    private static CompareContact compareContact(UUID id, ContactState state, Long photoRevision) {
+<span class="fc" id="L220">        return new CompareContact(</span>
+                id,
+<span class="fc" id="L222">                state.version(),</span>
+<span class="fc" id="L223">                state.createdAt(),</span>
+<span class="fc" id="L224">                state.firstName(),</span>
+<span class="fc" id="L225">                state.lastName(),</span>
+<span class="fc" id="L226">                state.address(),</span>
+<span class="fc" id="L227">                state.email(),</span>
+<span class="fc" id="L228">                state.phone(),</span>
+<span class="fc" id="L229">                state.company(),</span>
+<span class="fc" id="L230">                state.country(),</span>
+<span class="fc" id="L231">                state.attributes(),</span>
+<span class="fc" id="L232">                state.tags(),</span>
+                photoRevision);
+    }
+
+    private static String name(ContactState state) {
+<span class="fc" id="L237">        String name = ContactRepository.displayName(state.firstName(), state.lastName());</span>
+<span class="pc bpc" id="L238" title="1 of 2 branches missed.">        return name == null ? &quot;&quot; : name;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

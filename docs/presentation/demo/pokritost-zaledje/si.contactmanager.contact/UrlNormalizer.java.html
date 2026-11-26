@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UrlNormalizer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">UrlNormalizer.java</span></div><h1>UrlNormalizer.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.net.IDN;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Locale;
+import java.util.Optional;
+
+/**
+ * Preverjanje in normalizacija spletnega naslova (016, research R-03): brez sheme {@code https://}, samo
+ * {@code http}/{@code https}, gostitelj s piko, ki ga {@link IDN#toASCII} sprejme; shema in gostitelj z malimi črkami,
+ * gostitelj shranjen v Unicode; pot, poizvedba in sidro nespremenjeni.
+ */
+final class UrlNormalizer {
+
+    private UrlNormalizer() {}
+
+    /** Kanonična oblika ali prazno, če naslov ni veljaven. */
+    static Optional&lt;String&gt; normalize(String raw) {
+<span class="pc bpc" id="L20" title="1 of 2 branches missed.">        if (raw == null) {</span>
+<span class="nc" id="L21">            return Optional.empty();</span>
+        }
+<span class="fc" id="L23">        String text = raw.strip();</span>
+<span class="pc bpc" id="L24" title="1 of 8 branches missed.">        if (text.isEmpty() || text.chars().anyMatch(c -&gt; Character.isWhitespace(c) || Character.isISOControl(c))) {</span>
+<span class="fc" id="L25">            return Optional.empty();</span>
+        }
+<span class="fc" id="L27">        String scheme = &quot;https&quot;;</span>
+<span class="fc" id="L28">        String rest = text;</span>
+<span class="fc" id="L29">        int colon = text.indexOf(':');</span>
+<span class="fc" id="L30">        int slash = text.indexOf('/');</span>
+<span class="fc bfc" id="L31" title="All 2 branches covered.">        if (text.regionMatches(true, 0, &quot;//&quot;, 0, 2)) {</span>
+<span class="fc" id="L32">            rest = text.substring(2);</span>
+<span class="pc bpc" id="L33" title="1 of 8 branches missed.">        } else if (colon &gt; 0 &amp;&amp; (slash &lt; 0 || colon &lt; slash) &amp;&amp; !isPort(text, colon)) {</span>
+            // Shema je vse pred prvim &quot;:&quot; (npr. javascript:, mailto:, ftp:); veljata samo http in https.
+<span class="fc" id="L35">            scheme = text.substring(0, colon).toLowerCase(Locale.ROOT);</span>
+<span class="fc bfc" id="L36" title="All 4 branches covered.">            if (!scheme.equals(&quot;http&quot;) &amp;&amp; !scheme.equals(&quot;https&quot;)) {</span>
+<span class="fc" id="L37">                return Optional.empty();</span>
+            }
+<span class="pc bpc" id="L39" title="1 of 2 branches missed.">            if (!text.startsWith(&quot;//&quot;, colon + 1)) {</span>
+<span class="nc" id="L40">                return Optional.empty();</span>
+            }
+<span class="fc" id="L42">            rest = text.substring(colon + 3);</span>
+        }
+<span class="fc" id="L44">        int end = indexOfAny(rest, &quot;/?#&quot;);</span>
+<span class="fc bfc" id="L45" title="All 2 branches covered.">        String authority = end &lt; 0 ? rest : rest.substring(0, end);</span>
+<span class="fc bfc" id="L46" title="All 2 branches covered.">        String tail = end &lt; 0 ? &quot;&quot; : rest.substring(end);</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        if (authority.contains(&quot;@&quot;)) {</span>
+<span class="fc" id="L48">            return Optional.empty();</span>
+        }
+<span class="fc" id="L50">        String host = authority;</span>
+<span class="fc" id="L51">        String port = &quot;&quot;;</span>
+<span class="fc" id="L52">        int portColon = authority.lastIndexOf(':');</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        if (portColon &gt;= 0) {</span>
+<span class="fc" id="L54">            host = authority.substring(0, portColon);</span>
+<span class="fc" id="L55">            port = authority.substring(portColon);</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">            if (!port.substring(1).matches(&quot;\\d{1,5}&quot;)) {</span>
+<span class="fc" id="L57">                return Optional.empty();</span>
+            }
+        }
+<span class="fc bfc" id="L60" title="All 8 branches covered.">        if (host.isEmpty() || !host.contains(&quot;.&quot;) || host.startsWith(&quot;.&quot;) || host.endsWith(&quot;.&quot;)) {</span>
+<span class="fc" id="L61">            return Optional.empty();</span>
+        }
+        String ascii;
+        try {
+<span class="fc" id="L65">            ascii = IDN.toASCII(host, IDN.USE_STD3_ASCII_RULES);</span>
+<span class="fc" id="L66">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L67">            return Optional.empty();</span>
+<span class="fc" id="L68">        }</span>
+<span class="fc" id="L69">        String unicodeHost = IDN.toUnicode(ascii.toLowerCase(Locale.ROOT)).toLowerCase(Locale.ROOT);</span>
+<span class="fc" id="L70">        String result = scheme + &quot;://&quot; + unicodeHost + port + tail;</span>
+        try {
+<span class="fc" id="L72">            URI uri = new URI(</span>
+                    scheme,
+                    null,
+<span class="fc" id="L75">                    ascii.toLowerCase(Locale.ROOT),</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">                    port.isEmpty() ? -1 : Integer.parseInt(port.substring(1)),</span>
+                    null,
+                    null,
+                    null);
+<span class="pc bpc" id="L80" title="1 of 2 branches missed.">            if (uri.getHost() == null) {</span>
+<span class="nc" id="L81">                return Optional.empty();</span>
+            }
+<span class="nc" id="L83">        } catch (URISyntaxException e) {</span>
+<span class="nc" id="L84">            return Optional.empty();</span>
+<span class="fc" id="L85">        }</span>
+<span class="fc" id="L86">        return Optional.of(result);</span>
+    }
+
+    /** {@code host:8080/…} brez sheme: del za dvopičjem so samo števke do prve poševnice. */
+    private static boolean isPort(String text, int colon) {
+<span class="fc" id="L91">        int i = colon + 1;</span>
+<span class="fc" id="L92">        int digits = 0;</span>
+<span class="pc bpc" id="L93" title="1 of 4 branches missed.">        while (i &lt; text.length() &amp;&amp; Character.isDigit(text.charAt(i))) {</span>
+<span class="fc" id="L94">            i++;</span>
+<span class="fc" id="L95">            digits++;</span>
+        }
+<span class="pc bpc" id="L97" title="2 of 6 branches missed.">        return digits &gt; 0 &amp;&amp; (i == text.length() || &quot;/?#&quot;.indexOf(text.charAt(i)) &gt;= 0);</span>
+    }
+
+    private static int indexOfAny(String text, String chars) {
+<span class="fc bfc" id="L101" title="All 2 branches covered.">        for (int i = 0; i &lt; text.length(); i++) {</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">            if (chars.indexOf(text.charAt(i)) &gt;= 0) {</span>
+<span class="fc" id="L103">                return i;</span>
+            }
+        }
+<span class="fc" id="L106">        return -1;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

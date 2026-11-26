@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NominatimClient.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.maps</a> &gt; <span class="el_source">NominatimClient.java</span></div><h1>NominatimClient.java</h1><pre class="source lang-java linenums">package si.contactmanager.maps;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import si.contactmanager.contact.Address;
+import si.contactmanager.shared.error.MapServiceUnavailableException;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * Lokacija naslova prek storitve Nominatim (016, FR-016-21 … FR-016-23; research R-08). Razčlenjen naslov gre kot
+ * strukturirana poizvedba, nerazčlenjen kot {@code q}; storitev prejme samo besedilo naslova in jezik (brez podatkov
+ * uporabnika ali kontakta, brez piškotkov in {@code Referer}). Predpomnilnik v pomnilniku (24 h), globalno 1 zahteva/s
+ * s čakanjem največ {@code maxWait}. Napaka, časovna omejitev, omejitev ali izklop → {@link
+ * MapServiceUnavailableException}. Besedilo naslova in koordinate se nikoli ne beležijo in ne shranijo trajno.
+ */
+@Component
+public class NominatimClient {
+
+<span class="fc" id="L36">    private static final Logger LOG = LoggerFactory.getLogger(NominatimClient.class);</span>
+
+    /** Zadetki z nižjim rangom (kraj, četrt, ulica brez stavbe) so približni (research R-08). */
+    static final int EXACT_RANK = 26;
+
+<span class="fc" id="L41">    private static final Pattern SPACES = Pattern.compile(&quot;\\s+&quot;);</span>
+<span class="fc" id="L42">    private static final JsonMapper JSON = JsonMapper.builder().build();</span>
+
+    private final MapsProperties properties;
+    private final HttpClient http;
+    private final BoundedCache&lt;String, AddressLocation&gt; cache;
+    private final RateLimiter global;
+
+    @Autowired
+    public NominatimClient(MapsProperties properties) {
+<span class="fc" id="L51">        this(</span>
+                properties,
+<span class="fc" id="L53">                HttpClient.newBuilder()</span>
+<span class="fc" id="L54">                        .connectTimeout(properties.connectTimeout())</span>
+<span class="fc" id="L55">                        .followRedirects(HttpClient.Redirect.NEVER)</span>
+<span class="fc" id="L56">                        .build());</span>
+<span class="fc" id="L57">    }</span>
+
+<span class="fc" id="L59">    NominatimClient(MapsProperties properties, HttpClient http) {</span>
+<span class="fc" id="L60">        this.properties = properties;</span>
+<span class="fc" id="L61">        this.http = http;</span>
+<span class="fc" id="L62">        this.cache = new BoundedCache&lt;&gt;(</span>
+<span class="fc" id="L63">                properties.locations().entries(), properties.locations().ttl());</span>
+<span class="fc" id="L64">        this.global = new RateLimiter(properties.limits().nominatimPerSecond(), Duration.ofSeconds(1));</span>
+<span class="fc" id="L65">    }</span>
+
+    /** Lokacija razčlenjenega naslova (strukturirana poizvedba). */
+    public AddressLocation locate(Address address, String language) {
+<span class="fc" id="L69">        Map&lt;String, String&gt; params = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L70">        put(params, &quot;street&quot;, address.street());</span>
+<span class="fc" id="L71">        put(params, &quot;postalcode&quot;, address.postalCode());</span>
+<span class="fc" id="L72">        put(params, &quot;city&quot;, address.city());</span>
+<span class="fc" id="L73">        put(params, &quot;state&quot;, address.region());</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">        if (address.country() != null) {</span>
+<span class="fc" id="L75">            params.put(&quot;countrycodes&quot;, address.country().toLowerCase(Locale.ROOT));</span>
+        }
+<span class="fc" id="L77">        return locate(params, language);</span>
+    }
+
+    /** Lokacija nerazčlenjenega naslova (prosto besedilo {@code q}). */
+    public AddressLocation locate(String text, String language) {
+<span class="fc" id="L82">        Map&lt;String, String&gt; params = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L83">        put(params, &quot;q&quot;, text);</span>
+<span class="fc" id="L84">        return locate(params, language);</span>
+    }
+
+    private AddressLocation locate(Map&lt;String, String&gt; params, String language) {
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        if (!properties.enabled()) {</span>
+<span class="fc" id="L89">            throw new MapServiceUnavailableException();</span>
+        }
+<span class="fc" id="L91">        StringBuilder query = new StringBuilder();</span>
+<span class="fc" id="L92">        params.forEach((name, value) -&gt;</span>
+<span class="fc" id="L93">                query.append(name).append('=').append(encode(value)).append('&amp;'));</span>
+<span class="fc" id="L94">        query.append(&quot;format=jsonv2&amp;addressdetails=1&amp;limit=1&amp;accept-language=&quot;).append(language);</span>
+        // Ključ iz nekodiranih vrednosti: velikost črk ne šteje (tudi pri šumnikih).
+<span class="fc" id="L96">        String key = (params + &quot;|&quot; + language).toLowerCase(Locale.ROOT);</span>
+<span class="fc" id="L97">        Optional&lt;AddressLocation&gt; cached = cache.get(key);</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">        if (cached.isPresent()) {</span>
+<span class="fc" id="L99">            return cached.get();</span>
+        }
+<span class="fc bfc" id="L101" title="All 2 branches covered.">        if (!global.acquire(properties.limits().maxWait())) {</span>
+<span class="fc" id="L102">            throw new MapServiceUnavailableException();</span>
+        }
+<span class="fc" id="L104">        String body = fetch(query.toString(), language);</span>
+        AddressLocation location;
+        try {
+<span class="fc" id="L107">            location = parse(JSON.readTree(body));</span>
+<span class="fc" id="L108">        } catch (JacksonException | IllegalArgumentException e) {</span>
+<span class="fc" id="L109">            LOG.warn(&quot;Nominatim: neveljaven odgovor storitve&quot;);</span>
+<span class="fc" id="L110">            throw new MapServiceUnavailableException();</span>
+<span class="fc" id="L111">        }</span>
+<span class="fc" id="L112">        cache.put(key, location);</span>
+<span class="fc" id="L113">        return location;</span>
+    }
+
+    private String fetch(String query, String language) {
+<span class="fc" id="L117">        URI uri = URI.create(trimSlash(properties.nominatimUrl()) + &quot;/search?&quot; + query);</span>
+<span class="fc" id="L118">        HttpRequest request = HttpRequest.newBuilder(uri)</span>
+<span class="fc" id="L119">                .timeout(properties.readTimeout())</span>
+<span class="fc" id="L120">                .header(&quot;User-Agent&quot;, properties.userAgent())</span>
+<span class="fc" id="L121">                .header(&quot;Accept&quot;, &quot;application/json&quot;)</span>
+<span class="fc" id="L122">                .header(&quot;Accept-Language&quot;, language)</span>
+<span class="fc" id="L123">                .GET()</span>
+<span class="fc" id="L124">                .build();</span>
+        try {
+<span class="fc" id="L126">            HttpResponse&lt;String&gt; response = http.send(request, HttpResponse.BodyHandlers.ofString());</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">            if (response.statusCode() != 200) {</span>
+                // Brez poizvedbe: vsebuje besedilo naslova (FR-016-23).
+<span class="fc" id="L129">                LOG.warn(&quot;Nominatim: storitev je vrnila stanje {}&quot;, response.statusCode());</span>
+<span class="fc" id="L130">                throw new MapServiceUnavailableException();</span>
+            }
+<span class="fc" id="L132">            return response.body();</span>
+<span class="fc" id="L133">        } catch (IOException e) {</span>
+<span class="fc" id="L134">            LOG.warn(&quot;Nominatim: storitev ni dosegljiva ({})&quot;, e.getClass().getSimpleName());</span>
+<span class="fc" id="L135">            throw new MapServiceUnavailableException();</span>
+<span class="nc" id="L136">        } catch (InterruptedException e) {</span>
+<span class="nc" id="L137">            Thread.currentThread().interrupt();</span>
+<span class="nc" id="L138">            throw new MapServiceUnavailableException();</span>
+        }
+    }
+
+    /**
+     * Prvi zadetek odgovora {@code jsonv2}: brez zadetka {@code NOT_FOUND}; z rangom pod {@value #EXACT_RANK} ali brez
+     * hišne številke {@code APPROXIMATE}; sicer {@code EXACT}.
+     */
+    static AddressLocation parse(JsonNode root) {
+<span class="pc bpc" id="L147" title="1 of 4 branches missed.">        if (root == null || !root.isArray()) {</span>
+<span class="fc" id="L148">            throw new IllegalArgumentException(&quot;odgovor ni seznam&quot;);</span>
+        }
+<span class="fc bfc" id="L150" title="All 2 branches covered.">        if (root.isEmpty()) {</span>
+<span class="fc" id="L151">            return new AddressLocation(AddressLocation.Status.NOT_FOUND, null, null);</span>
+        }
+<span class="fc" id="L153">        JsonNode hit = root.get(0);</span>
+<span class="fc" id="L154">        double lat = coordinate(hit.get(&quot;lat&quot;), 90);</span>
+<span class="fc" id="L155">        double lon = coordinate(hit.get(&quot;lon&quot;), 180);</span>
+<span class="fc" id="L156">        JsonNode rank = hit.get(&quot;place_rank&quot;);</span>
+<span class="fc" id="L157">        JsonNode details = hit.get(&quot;address&quot;);</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">        boolean number = details != null</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">                &amp;&amp; details.get(&quot;house_number&quot;) != null</span>
+<span class="pc bpc" id="L160" title="1 of 2 branches missed.">                &amp;&amp; !details.get(&quot;house_number&quot;).asString(&quot;&quot;).isBlank();</span>
+<span class="pc bpc" id="L161" title="1 of 8 branches missed.">        boolean exact = rank != null &amp;&amp; rank.isNumber() &amp;&amp; rank.asInt() &gt;= EXACT_RANK &amp;&amp; number;</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">        return new AddressLocation(exact ? AddressLocation.Status.EXACT : AddressLocation.Status.APPROXIMATE, lat, lon);</span>
+    }
+
+    private static double coordinate(JsonNode node, double limit) {
+<span class="fc bfc" id="L166" title="All 2 branches covered.">        if (node == null) {</span>
+<span class="fc" id="L167">            throw new IllegalArgumentException(&quot;ni koordinate&quot;);</span>
+        }
+<span class="fc bfc" id="L169" title="All 2 branches covered.">        double value = node.isNumber() ? node.asDouble() : Double.parseDouble(node.asString());</span>
+<span class="pc bpc" id="L170" title="1 of 4 branches missed.">        if (!Double.isFinite(value) || Math.abs(value) &gt; limit) {</span>
+<span class="fc" id="L171">            throw new IllegalArgumentException(&quot;koordinata izven obsega&quot;);</span>
+        }
+<span class="fc" id="L173">        return value;</span>
+    }
+
+    private static void put(Map&lt;String, String&gt; params, String name, String value) {
+<span class="pc bpc" id="L177" title="1 of 4 branches missed.">        if (value != null &amp;&amp; !value.isBlank()) {</span>
+<span class="fc" id="L178">            params.put(name, SPACES.matcher(value.strip()).replaceAll(&quot; &quot;));</span>
+        }
+<span class="fc" id="L180">    }</span>
+
+    private static String encode(String value) {
+<span class="fc" id="L183">        return URLEncoder.encode(value, StandardCharsets.UTF_8);</span>
+    }
+
+    private static String trimSlash(String url) {
+<span class="pc bpc" id="L187" title="1 of 2 branches missed.">        return url.endsWith(&quot;/&quot;) ? url.substring(0, url.length() - 1) : url;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

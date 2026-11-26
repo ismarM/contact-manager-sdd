@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InvitationService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.invitation</a> &gt; <span class="el_source">InvitationService.java</span></div><h1>InvitationService.java</h1><pre class="source lang-java linenums">package si.contactmanager.invitation;
+
+import java.util.List;
+import java.util.UUID;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.group.Role;
+import si.contactmanager.invitation.InvitationInputParser.Parsed;
+import si.contactmanager.invitation.InvitationRepository.Claimed;
+import si.contactmanager.invitation.InvitationRepository.Inserted;
+import si.contactmanager.invitation.InvitationRepository.OutgoingRow;
+import si.contactmanager.shared.error.AlreadyMemberException;
+import si.contactmanager.shared.error.CannotInviteSelfException;
+import si.contactmanager.shared.error.ForbiddenException;
+import si.contactmanager.shared.error.GroupArchivedException;
+import si.contactmanager.shared.error.InvitationAlreadyPendingException;
+import si.contactmanager.shared.error.InviteeNotRegisteredException;
+import si.contactmanager.shared.error.NotFoundException;
+import si.contactmanager.shared.error.ValidationException;
+
+/**
+ * Primeri uporabe povabil (plan.md – REST endpoints). Pošiljanje in sprejem se serializirata z zaklepom vrstice skupine
+ * (research R-04); povabila se nikoli ne zapisujejo v revizijsko sled (R-10). Dostop do skupine preveri
+ * {@code GroupAccess} pred klicem.
+ */
+@Service
+class InvitationService {
+
+    /** Izid sprejema: {@code accepted} je {@code null}, če je uporabnik že član (povabilo je izbrisano). */
+<span class="fc" id="L32">    record AcceptOutcome(AcceptedInvitation accepted) {}</span>
+
+    private final InvitationRepository invitations;
+
+<span class="fc" id="L36">    InvitationService(InvitationRepository invitations) {</span>
+<span class="fc" id="L37">        this.invitations = invitations;</span>
+<span class="fc" id="L38">    }</span>
+
+    /** Pošiljanje: vrstni red 403 → 409 GROUP_ARCHIVED → 400 → 409 poslovna pravila (data-model.md). */
+    @Transactional
+    OutgoingInvitation send(Membership membership, Parsed parsed) {
+<span class="fc bfc" id="L43" title="All 4 branches covered.">        if (parsed.role() != null &amp;&amp; Role.valueOf(parsed.role()).compareTo(membership.role()) &gt;= 0) {</span>
+<span class="fc" id="L44">            throw new ForbiddenException();</span>
+        }
+<span class="fc" id="L46">        boolean archived = invitations.lockGroup(membership.groupId()).orElseThrow(NotFoundException::new);</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        if (archived) {</span>
+<span class="fc" id="L48">            throw new GroupArchivedException();</span>
+        }
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        if (!parsed.valid()) {</span>
+<span class="fc" id="L51">            throw new ValidationException(parsed.errors());</span>
+        }
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        if (invitations.callerEmail(membership.userId()).equalsIgnoreCase(parsed.email())) {</span>
+<span class="fc" id="L54">            throw new CannotInviteSelfException();</span>
+        }
+<span class="fc" id="L56">        long invitee = invitations.findUserByEmail(parsed.email()).orElseThrow(InviteeNotRegisteredException::new);</span>
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">        if (invitee == membership.userId()) {</span>
+<span class="nc" id="L58">            throw new CannotInviteSelfException();</span>
+        }
+<span class="fc bfc" id="L60" title="All 2 branches covered.">        if (invitations.isMember(membership.groupId(), invitee)) {</span>
+<span class="fc" id="L61">            throw new AlreadyMemberException();</span>
+        }
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        if (invitations.hasPending(membership.groupId(), invitee)) {</span>
+<span class="fc" id="L64">            throw new InvitationAlreadyPendingException();</span>
+        }
+        Inserted inserted;
+        try {
+<span class="fc" id="L68">            inserted = invitations.insert(membership.groupId(), invitee, membership.userId(), parsed.role());</span>
+<span class="nc" id="L69">        } catch (DuplicateKeyException e) {</span>
+<span class="nc" id="L70">            throw new InvitationAlreadyPendingException();</span>
+<span class="fc" id="L71">        }</span>
+<span class="fc" id="L72">        return new OutgoingInvitation(</span>
+<span class="fc" id="L73">                inserted.id(),</span>
+<span class="fc" id="L74">                invitations.userRef(invitee).email(),</span>
+<span class="fc" id="L75">                parsed.role(),</span>
+<span class="fc" id="L76">                invitations.userRef(membership.userId()),</span>
+<span class="fc" id="L77">                inserted.createdAt(),</span>
+<span class="fc" id="L78">                canWithdraw(membership.role(), parsed.role()));</span>
+    }
+
+    @Transactional(readOnly = true)
+    OutgoingInvitations listOutgoing(Membership membership, int page, int size) {
+<span class="fc" id="L83">        List&lt;OutgoingInvitation&gt; items = invitations.pageOutgoing(membership.groupId(), page, size).stream()</span>
+<span class="fc" id="L84">                .map((OutgoingRow row) -&gt; new OutgoingInvitation(</span>
+<span class="fc" id="L85">                        row.id(),</span>
+<span class="fc" id="L86">                        row.inviteeEmail(),</span>
+<span class="fc" id="L87">                        row.role(),</span>
+<span class="fc" id="L88">                        row.invitedBy(),</span>
+<span class="fc" id="L89">                        row.createdAt(),</span>
+<span class="fc" id="L90">                        canWithdraw(membership.role(), row.role())))</span>
+<span class="fc" id="L91">                .toList();</span>
+<span class="fc" id="L92">        return new OutgoingInvitations(invitations.countOutgoing(membership.groupId()), page, size, items);</span>
+    }
+
+    /** Umik: {@code 404}, če povabila v skupini ni; ADMIN ne umakne povabila z vlogo ADMIN (research R-11). */
+    @Transactional
+    void withdraw(Membership membership, UUID invitationId) {
+<span class="fc" id="L98">        String role = invitations.roleOf(invitationId, membership.groupId()).orElseThrow(NotFoundException::new);</span>
+<span class="fc bfc" id="L99" title="All 2 branches covered.">        if (!canWithdraw(membership.role(), role)) {</span>
+<span class="fc" id="L100">            throw new ForbiddenException();</span>
+        }
+<span class="fc bfc" id="L102" title="All 2 branches covered.">        if (!invitations.withdraw(invitationId, membership.groupId())) {</span>
+<span class="fc" id="L103">            throw new NotFoundException();</span>
+        }
+<span class="fc" id="L105">    }</span>
+
+    @Transactional(readOnly = true)
+    ReceivedInvitations listReceived(long userId, int page, int size) {
+<span class="fc" id="L109">        return new ReceivedInvitations(</span>
+<span class="fc" id="L110">                invitations.countReceived(userId), page, size, invitations.pageReceived(userId, page, size));</span>
+    }
+
+    @Transactional(readOnly = true)
+    InvitationCount countReceived(long userId) {
+<span class="fc" id="L115">        return new InvitationCount(invitations.countReceived(userId));</span>
+    }
+
+    /** Sprejem v eni transakciji pod zaklepom skupine (research R-04 – R-06); arhiviranost se ne preverja. */
+    @Transactional
+    AcceptOutcome accept(long userId, UUID invitationId) {
+<span class="fc" id="L121">        UUID group = invitations.findGroupOf(invitationId, userId).orElseThrow(NotFoundException::new);</span>
+<span class="fc" id="L122">        invitations.lockGroup(group).orElseThrow(NotFoundException::new);</span>
+<span class="fc" id="L123">        Claimed claimed = invitations.claim(invitationId, userId).orElseThrow(NotFoundException::new);</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">        if (invitations.addMember(group, userId, claimed.role()) == 0) {</span>
+<span class="fc" id="L125">            return new AcceptOutcome(null);</span>
+        }
+<span class="fc" id="L127">        InvitationRepository.GroupHeading heading = invitations.heading(group).orElseThrow(NotFoundException::new);</span>
+<span class="fc" id="L128">        return new AcceptOutcome(new AcceptedInvitation(group, heading.title(), claimed.role(), heading.archived()));</span>
+    }
+
+    @Transactional
+    void decline(long userId, UUID invitationId) {
+<span class="fc bfc" id="L133" title="All 2 branches covered.">        if (!invitations.decline(invitationId, userId)) {</span>
+<span class="fc" id="L134">            throw new NotFoundException();</span>
+        }
+<span class="fc" id="L136">    }</span>
+
+    /** Lastnik umakne vsako povabilo, admin samo povabila z vlogo pod ADMIN. */
+    private static boolean canWithdraw(Role caller, String offered) {
+<span class="pc bpc" id="L140" title="1 of 6 branches missed.">        return caller == Role.OWNER || (caller == Role.ADMIN &amp;&amp; !offered.equals(&quot;ADMIN&quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

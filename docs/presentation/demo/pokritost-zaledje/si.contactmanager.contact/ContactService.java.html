@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContactService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">ContactService.java</span></div><h1>ContactService.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import si.contactmanager.audit.AuditAction;
+import si.contactmanager.audit.AuditLog;
+import si.contactmanager.audit.ContactChange;
+import si.contactmanager.contact.ContactInputParser.AttributeExtra;
+import si.contactmanager.contact.ContactInputParser.Parsed;
+import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.group.Role;
+import si.contactmanager.shared.error.ForbiddenException;
+import si.contactmanager.shared.error.GroupArchivedException;
+import si.contactmanager.shared.error.NotFoundException;
+import si.contactmanager.shared.error.ValidationException;
+import si.contactmanager.shared.error.VersionConflictException;
+
+/**
+ * Primeri uporabe kontaktov (plan.md – REST endpoints). Dostop do skupine preveri {@code GroupAccess} pred klicem;
+ * vrstni red preverjanj za obstoječ kontakt je feature-map §2.2 in D-41: 404 kontakta → 403 → 409 GROUP_ARCHIVED → 409
+ * VERSION_CONFLICT → 400.
+ */
+@Service
+class ContactService {
+
+    private final ContactRepository contacts;
+    private final ContactSnapshots snapshots;
+    private final AuditLog audit;
+    private final CanonicalForms canonical;
+    private final TypedAttributes typed;
+
+    ContactService(
+            ContactRepository contacts,
+            ContactSnapshots snapshots,
+            AuditLog audit,
+            CanonicalForms canonical,
+<span class="fc" id="L40">            TypedAttributes typed) {</span>
+<span class="fc" id="L41">        this.contacts = contacts;</span>
+<span class="fc" id="L42">        this.snapshots = snapshots;</span>
+<span class="fc" id="L43">        this.audit = audit;</span>
+<span class="fc" id="L44">        this.canonical = canonical;</span>
+<span class="fc" id="L45">        this.typed = typed;</span>
+<span class="fc" id="L46">    }</span>
+
+    /**
+     * Stran zadetkov (FR-008-01 do FR-008-09): po sintaktični razčlenitvi se preveri še obstoj dodatnih ključev v tej
+     * skupini; odgovor je enak za ključ, ki ga ni nikjer, in za ključ samo v drugi skupini (FR-008-14, FR-008-16).
+     */
+    ContactPage list(Membership membership, ContactQuery query) {
+<span class="fc" id="L53">        requireKnownKeys(membership, query);</span>
+<span class="fc" id="L54">        return new ContactPage(</span>
+<span class="fc" id="L55">                contacts.count(membership.groupId(), query),</span>
+<span class="fc" id="L56">                query.page(),</span>
+<span class="fc" id="L57">                query.size(),</span>
+<span class="fc" id="L58">                contacts.page(membership.groupId(), query));</span>
+    }
+
+    /** Možnosti filtrov skupine (FR-008-06). */
+    ContactFilterOptions filterOptions(Membership membership) {
+<span class="fc" id="L63">        return contacts.filterOptions(membership.groupId());</span>
+    }
+
+    void requireKnownKeys(Membership membership, ContactQuery query) {
+<span class="fc" id="L67">        List&lt;si.contactmanager.shared.error.ValidationError.FieldError&gt; errors = unknownKeys(membership, query);</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        if (!errors.isEmpty()) {</span>
+<span class="fc" id="L69">            throw new ValidationException(errors);</span>
+        }
+<span class="fc" id="L71">    }</span>
+
+    /** Napake {@code UNKNOWN_FIELD} za dodatne ključe, ki jih skupina nima (FR-008-14); prazno, če so vsi znani. */
+    List&lt;si.contactmanager.shared.error.ValidationError.FieldError&gt; unknownKeys(
+            Membership membership, ContactQuery query) {
+<span class="fc" id="L76">        java.util.Set&lt;String&gt; wanted = new java.util.LinkedHashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        for (ContactQuery.Condition condition : query.conditions()) {</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">            if (condition.field().kind() == ContactQuery.Kind.ATTRIBUTE) {</span>
+<span class="fc" id="L79">                wanted.add(condition.field().keyNorm());</span>
+            }
+<span class="fc" id="L81">        }</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        if (query.sort().kind() == ContactQuery.Kind.ATTRIBUTE) {</span>
+<span class="fc" id="L83">            wanted.add(query.sort().keyNorm());</span>
+        }
+<span class="fc bfc" id="L85" title="All 2 branches covered.">        if (wanted.isEmpty()) {</span>
+<span class="fc" id="L86">            return List.of();</span>
+        }
+<span class="fc" id="L88">        java.util.Set&lt;String&gt; existing = contacts.existingKeys(membership.groupId(), wanted);</span>
+<span class="fc" id="L89">        List&lt;si.contactmanager.shared.error.ValidationError.FieldError&gt; errors = new java.util.ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        for (int i = 0; i &lt; query.conditions().size(); i++) {</span>
+<span class="fc" id="L91">            ContactQuery.Field field = query.conditions().get(i).field();</span>
+<span class="fc bfc" id="L92" title="All 4 branches covered.">            if (field.kind() == ContactQuery.Kind.ATTRIBUTE &amp;&amp; !existing.contains(field.keyNorm())) {</span>
+<span class="fc" id="L93">                errors.add(</span>
+                        new si.contactmanager.shared.error.ValidationError.FieldError(&quot;f[&quot; + i + &quot;]&quot;, &quot;UNKNOWN_FIELD&quot;));
+            }
+        }
+<span class="fc bfc" id="L97" title="All 2 branches covered.">        if (query.sort().kind() == ContactQuery.Kind.ATTRIBUTE</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">                &amp;&amp; !existing.contains(query.sort().keyNorm())) {</span>
+<span class="fc" id="L99">            errors.add(new si.contactmanager.shared.error.ValidationError.FieldError(&quot;sort&quot;, &quot;UNKNOWN_FIELD&quot;));</span>
+        }
+<span class="fc" id="L101">        return errors;</span>
+    }
+
+    ContactDetail read(Membership membership, UUID id) {
+<span class="fc" id="L105">        return contacts.find(membership.groupId(), id).orElseThrow(NotFoundException::new);</span>
+    }
+
+    /** Korak 2 (kontakt v tej skupini), nato koraka 3 in 4 za pisanje (D-41). */
+    void requireWritable(Membership membership, UUID id) {
+<span class="fc bfc" id="L110" title="All 2 branches covered.">        if (!contacts.exists(membership.groupId(), id)) {</span>
+<span class="fc" id="L111">            throw new NotFoundException();</span>
+        }
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        if (!membership.role().atLeast(Role.EDITOR)) {</span>
+<span class="fc" id="L114">            throw new ForbiddenException();</span>
+        }
+<span class="fc bfc" id="L116" title="All 2 branches covered.">        if (membership.archived()) {</span>
+<span class="fc" id="L117">            throw new GroupArchivedException();</span>
+        }
+<span class="fc" id="L119">    }</span>
+
+    /** Ustvarjanje (FR-004-01): pod zaklepom skupine, ki zapre dirko z arhiviranjem (research R-05). */
+    @Transactional
+    ContactDetail create(Membership membership, ContactInput requested, List&lt;AttributeExtra&gt; extras) {
+<span class="fc" id="L124">        lockWritableGroup(membership);</span>
+<span class="fc" id="L125">        List&lt;si.contactmanager.shared.error.ValidationError.FieldError&gt; reserved =</span>
+<span class="fc" id="L126">                AttributeKeys.reservedErrors(requested.attributes(), java.util.Set.of());</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">        if (!reserved.isEmpty()) {</span>
+<span class="fc" id="L128">            throw new ValidationException(reserved);</span>
+        }
+<span class="fc" id="L130">        ContactInput canonicalInput = canonical.input(membership.groupId(), requested, List.of(), List.of());</span>
+<span class="fc" id="L131">        Predefined predefined = normalizePredefined(canonicalInput, java.util.List.of(), java.util.List.of());</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">        if (!predefined.errors().isEmpty()) {</span>
+<span class="fc" id="L133">            throw new ValidationException(predefined.errors());</span>
+        }
+<span class="fc" id="L135">        canonicalInput = predefined.input();</span>
+<span class="fc" id="L136">        TypedAttributes.Resolution resolved = typed.resolve(</span>
+<span class="fc" id="L137">                membership.groupId(), canonicalInput.attributes(), extras, List.of(), canonicalInput.country(), true);</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">        if (!resolved.errors().isEmpty()) {</span>
+<span class="fc" id="L139">            throw new ValidationException(resolved.errors());</span>
+        }
+<span class="fc" id="L141">        ContactInput input = canonicalInput.withAttributes(resolved.attributes());</span>
+<span class="fc" id="L142">        UUID id = contacts.insert(membership.groupId(), input, membership.userId());</span>
+<span class="fc" id="L143">        ContactState created = snapshots.snapshot(membership.groupId(), id);</span>
+<span class="fc" id="L144">        audit.record(</span>
+<span class="fc" id="L145">                membership.groupId(),</span>
+<span class="fc" id="L146">                membership.userId(),</span>
+                AuditAction.CREATE,
+<span class="fc" id="L148">                List.of(new ContactChange(id, name(created), null, created)));</span>
+<span class="fc" id="L149">        return read(membership, id);</span>
+    }
+
+    /**
+     * Urejanje z optimističnim zaklepanjem (research R-05): zastarela verzija z vrednostmi, enakimi trenutnim, uspe brez
+     * spremembe (Clarifications 2026-11-06), sicer konflikt s trenutnim stanjem – tudi ob neveljavnih podatkih.
+     */
+    @Transactional
+    ContactDetail update(Membership membership, UUID id, Parsed parsed) {
+<span class="fc" id="L158">        lockWritableGroup(membership);</span>
+<span class="fc" id="L159">        long version = contacts.lockVersion(membership.groupId(), id).orElseThrow(NotFoundException::new);</span>
+<span class="fc" id="L160">        ContactDetail current = read(membership, id);</span>
+        // Nova rezervirana imena in kanonični zapis (FR-013-08, -10): napake so po koraku verzije (§2.2); zapis, ki ga
+        // kontakt že ima, ostane nespremenjen.
+<span class="fc bfc" id="L163" title="All 2 branches covered.">        List&lt;si.contactmanager.shared.error.ValidationError.FieldError&gt; reserved = parsed.valid()</span>
+<span class="fc" id="L164">                ? AttributeKeys.reservedErrors(</span>
+<span class="fc" id="L165">                        parsed.input().attributes(), AttributeKeys.normalizedKeys(current.attributes()))</span>
+<span class="fc" id="L166">                : List.of();</span>
+<span class="fc bfc" id="L167" title="All 4 branches covered.">        ContactInput canonicalInput = parsed.valid() &amp;&amp; reserved.isEmpty()</span>
+<span class="fc" id="L168">                ? canonical.input(</span>
+<span class="fc" id="L169">                        membership.groupId(),</span>
+<span class="fc" id="L170">                        parsed.input(),</span>
+<span class="fc" id="L171">                        current.attributes().stream().map(Attribute::key).toList(),</span>
+<span class="fc" id="L172">                        current.tags())</span>
+<span class="fc" id="L173">                : null;</span>
+        // E-naslov in telefon po tipu (016, FR-016-08/-09): vrednost, ki jo kontakt že hrani, ostane nespremenjena.
+<span class="fc bfc" id="L175" title="All 2 branches covered.">        Predefined predefined = canonicalInput == null</span>
+<span class="fc" id="L176">                ? null</span>
+<span class="fc" id="L177">                : normalizePredefined(</span>
+                        canonicalInput,
+<span class="fc" id="L179">                        java.util.Arrays.asList(current.email()),</span>
+<span class="fc" id="L180">                        java.util.Arrays.asList(current.phone()),</span>
+<span class="fc" id="L181">                        java.util.Arrays.asList(current.addressParts()));</span>
+<span class="fc bfc" id="L182" title="All 2 branches covered.">        if (predefined != null) {</span>
+<span class="fc" id="L183">            canonicalInput = predefined.input();</span>
+        }
+        // Tipi in vrednosti po tipu (016): najprej samo branje, da vrstni red preverjanj ostane §2.2.
+<span class="fc bfc" id="L186" title="All 2 branches covered.">        TypedAttributes.Resolution preview = canonicalInput == null</span>
+<span class="fc" id="L187">                ? null</span>
+<span class="fc" id="L188">                : typed.resolve(</span>
+<span class="fc" id="L189">                        membership.groupId(),</span>
+<span class="fc" id="L190">                        canonicalInput.attributes(),</span>
+<span class="fc" id="L191">                        parsed.extras(),</span>
+<span class="fc" id="L192">                        current.attributes(),</span>
+<span class="fc" id="L193">                        canonicalInput.country(),</span>
+                        false);
+<span class="fc bfc" id="L195" title="All 2 branches covered.">        ContactInput input = canonicalInput == null ? null : canonicalInput.withAttributes(preview.attributes());</span>
+<span class="fc bfc" id="L196" title="All 2 branches covered.">        boolean same = preview != null</span>
+<span class="fc bfc" id="L197" title="All 2 branches covered.">                &amp;&amp; preview.errors().isEmpty()</span>
+<span class="fc bfc" id="L198" title="All 2 branches covered.">                &amp;&amp; predefined.errors().isEmpty()</span>
+<span class="fc bfc" id="L199" title="All 2 branches covered.">                &amp;&amp; sameValues(current, input);</span>
+<span class="fc bfc" id="L200" title="All 4 branches covered.">        if (parsed.version() != null &amp;&amp; parsed.version() != version) {</span>
+<span class="fc bfc" id="L201" title="All 2 branches covered.">            if (same) {</span>
+<span class="fc" id="L202">                return current;</span>
+            }
+<span class="fc" id="L204">            throw new VersionConflictException(current);</span>
+        }
+<span class="fc bfc" id="L206" title="All 2 branches covered.">        if (!parsed.valid()) {</span>
+<span class="fc" id="L207">            throw new ValidationException(parsed.errors());</span>
+        }
+<span class="fc bfc" id="L209" title="All 2 branches covered.">        if (!reserved.isEmpty()) {</span>
+<span class="fc" id="L210">            throw new ValidationException(reserved);</span>
+        }
+<span class="fc bfc" id="L212" title="All 4 branches covered.">        if (!predefined.errors().isEmpty() || !preview.errors().isEmpty()) {</span>
+<span class="fc" id="L213">            List&lt;si.contactmanager.shared.error.ValidationError.FieldError&gt; all =</span>
+<span class="fc" id="L214">                    new java.util.ArrayList&lt;&gt;(predefined.errors());</span>
+<span class="fc" id="L215">            all.addAll(preview.errors());</span>
+<span class="fc" id="L216">            throw new ValidationException(all);</span>
+        }
+<span class="fc bfc" id="L218" title="All 2 branches covered.">        if (same) {</span>
+<span class="fc" id="L219">            return current;</span>
+        }
+<span class="fc" id="L221">        TypedAttributes.Resolution resolved = typed.resolve(</span>
+<span class="fc" id="L222">                membership.groupId(),</span>
+<span class="fc" id="L223">                canonicalInput.attributes(),</span>
+<span class="fc" id="L224">                parsed.extras(),</span>
+<span class="fc" id="L225">                current.attributes(),</span>
+<span class="fc" id="L226">                canonicalInput.country(),</span>
+                true);
+<span class="pc bpc" id="L228" title="1 of 2 branches missed.">        if (!resolved.errors().isEmpty()) {</span>
+<span class="nc" id="L229">            throw new ValidationException(resolved.errors());</span>
+        }
+<span class="fc" id="L231">        input = canonicalInput.withAttributes(resolved.attributes());</span>
+<span class="fc" id="L232">        ContactState before = snapshots.snapshot(membership.groupId(), id);</span>
+<span class="fc" id="L233">        contacts.update(membership.groupId(), id, input, membership.userId());</span>
+<span class="fc" id="L234">        ContactState after = snapshots.snapshot(membership.groupId(), id);</span>
+<span class="fc" id="L235">        audit.record(</span>
+<span class="fc" id="L236">                membership.groupId(),</span>
+<span class="fc" id="L237">                membership.userId(),</span>
+                AuditAction.UPDATE,
+<span class="fc" id="L239">                List.of(new ContactChange(id, name(after), before, after)));</span>
+<span class="fc" id="L240">        return read(membership, id);</span>
+    }
+
+    /** Izbris (FR-004-12): zastarela verzija je vedno konflikt (Assumptions). */
+    @Transactional
+    void delete(Membership membership, UUID id, long sentVersion) {
+<span class="fc" id="L246">        lockWritableGroup(membership);</span>
+<span class="fc" id="L247">        long version = contacts.lockVersion(membership.groupId(), id).orElseThrow(NotFoundException::new);</span>
+<span class="fc bfc" id="L248" title="All 2 branches covered.">        if (sentVersion != version) {</span>
+<span class="fc" id="L249">            throw new VersionConflictException(read(membership, id));</span>
+        }
+<span class="fc" id="L251">        ContactState before = snapshots.snapshot(membership.groupId(), id);</span>
+<span class="fc" id="L252">        contacts.delete(membership.groupId(), id);</span>
+<span class="fc" id="L253">        audit.record(</span>
+<span class="fc" id="L254">                membership.groupId(),</span>
+<span class="fc" id="L255">                membership.userId(),</span>
+                AuditAction.DELETE,
+<span class="fc" id="L257">                List.of(new ContactChange(id, name(before), before, null)));</span>
+<span class="fc" id="L258">    }</span>
+
+    private static String name(ContactState state) {
+<span class="fc" id="L261">        return ContactRepository.displayName(state.firstName(), state.lastName());</span>
+    }
+
+    private void lockWritableGroup(Membership membership) {
+<span class="fc" id="L265">        boolean archived = contacts.lockGroupArchived(membership.groupId()).orElseThrow(NotFoundException::new);</span>
+<span class="fc bfc" id="L266" title="All 2 branches covered.">        if (archived) {</span>
+            // Skupina je bila medtem arhivirana (research R-05): korak 4 §2.2.
+<span class="fc" id="L268">            throw new GroupArchivedException();</span>
+        }
+<span class="fc" id="L270">    }</span>
+
+    /** Vnos s normaliziranim e-naslovom in telefonom ter napake po poljih. */
+<span class="fc" id="L273">    record Predefined(ContactInput input, List&lt;si.contactmanager.shared.error.ValidationError.FieldError&gt; errors) {}</span>
+
+    /** Kot {@link #normalizePredefined(ContactInput, java.util.Collection, java.util.Collection, java.util.Collection)}. */
+    static Predefined normalizePredefined(
+            ContactInput input, java.util.Collection&lt;String&gt; storedEmails, java.util.Collection&lt;String&gt; storedPhones) {
+<span class="fc" id="L278">        return normalizePredefined(input, storedEmails, storedPhones, List.of());</span>
+    }
+
+    /**
+     * Normalizacija predefiniranih polj {@code email}, {@code phone} in {@code addressParts} (016): telefon glede na
+     * državo kontakta, deli naslova po R-04 (napake ob {@code addressParts.&lt;del&gt;}); vrednost, enaka shranjeni, se ne
+     * preverja in ne spreminja (FR-016-09). Nerazčlenjen naslov ({@code address}) ostane besedilo (FR-016-04, -12).
+     */
+    static Predefined normalizePredefined(
+            ContactInput input,
+            java.util.Collection&lt;String&gt; storedEmails,
+            java.util.Collection&lt;String&gt; storedPhones,
+            java.util.Collection&lt;Address&gt; storedParts) {
+<span class="fc" id="L291">        List&lt;si.contactmanager.shared.error.ValidationError.FieldError&gt; errors = new java.util.ArrayList&lt;&gt;();</span>
+<span class="fc" id="L292">        Address parts = input.addressParts();</span>
+<span class="fc bfc" id="L293" title="All 4 branches covered.">        if (parts != null &amp;&amp; !storedParts.contains(parts)) {</span>
+<span class="fc" id="L294">            TypedValues.AddressResult r = TypedValues.normalizeAddress(parts);</span>
+<span class="fc bfc" id="L295" title="All 2 branches covered.">            if (r.valid()) {</span>
+<span class="fc" id="L296">                parts = r.address();</span>
+            } else {
+<span class="fc" id="L298">                r.errors()</span>
+<span class="fc" id="L299">                        .forEach(e -&gt; errors.add(new si.contactmanager.shared.error.ValidationError.FieldError(</span>
+<span class="fc" id="L300">                                &quot;addressParts.&quot; + e.field(), e.code())));</span>
+            }
+        }
+<span class="fc" id="L303">        String email = input.email();</span>
+<span class="fc bfc" id="L304" title="All 4 branches covered.">        if (email != null &amp;&amp; !storedEmails.contains(email)) {</span>
+<span class="fc" id="L305">            TypedValues.Result r = TypedValues.normalize(AttributeType.EMAIL, email, input.country());</span>
+<span class="pc bpc" id="L306" title="1 of 2 branches missed.">            if (r.valid()) {</span>
+<span class="fc" id="L307">                email = r.value();</span>
+            } else {
+<span class="nc" id="L309">                errors.add(new si.contactmanager.shared.error.ValidationError.FieldError(&quot;email&quot;, r.error()));</span>
+            }
+        }
+<span class="fc" id="L312">        String phone = input.phone();</span>
+<span class="fc bfc" id="L313" title="All 4 branches covered.">        if (phone != null &amp;&amp; !storedPhones.contains(phone)) {</span>
+<span class="fc" id="L314">            TypedValues.Result r = TypedValues.normalize(AttributeType.PHONE, phone, input.country());</span>
+<span class="fc bfc" id="L315" title="All 2 branches covered.">            if (r.valid()) {</span>
+<span class="fc" id="L316">                phone = r.value();</span>
+            } else {
+<span class="fc" id="L318">                errors.add(new si.contactmanager.shared.error.ValidationError.FieldError(&quot;phone&quot;, r.error()));</span>
+            }
+        }
+<span class="fc" id="L321">        return new Predefined(</span>
+                new ContactInput(
+<span class="fc" id="L323">                        input.firstName(),</span>
+<span class="fc" id="L324">                        input.lastName(),</span>
+<span class="fc" id="L325">                        input.address(),</span>
+                        parts,
+                        email,
+                        phone,
+<span class="fc" id="L329">                        input.company(),</span>
+<span class="fc" id="L330">                        input.country(),</span>
+<span class="fc" id="L331">                        input.attributes(),</span>
+<span class="fc" id="L332">                        input.tags()),</span>
+<span class="fc" id="L333">                List.copyOf(errors));</span>
+    }
+
+    private static boolean sameValues(ContactDetail current, ContactInput input) {
+<span class="fc bfc" id="L337" title="All 2 branches covered.">        return Objects.equals(current.firstName(), input.firstName())</span>
+<span class="fc bfc" id="L338" title="All 2 branches covered.">                &amp;&amp; Objects.equals(current.lastName(), input.lastName())</span>
+<span class="fc bfc" id="L339" title="All 2 branches covered.">                &amp;&amp; Objects.equals(current.address(), input.address())</span>
+<span class="pc bpc" id="L340" title="1 of 2 branches missed.">                &amp;&amp; Objects.equals(current.addressParts(), input.addressParts())</span>
+<span class="pc bpc" id="L341" title="1 of 2 branches missed.">                &amp;&amp; Objects.equals(current.email(), input.email())</span>
+<span class="fc bfc" id="L342" title="All 2 branches covered.">                &amp;&amp; Objects.equals(current.phone(), input.phone())</span>
+<span class="fc bfc" id="L343" title="All 2 branches covered.">                &amp;&amp; Objects.equals(current.company(), input.company())</span>
+<span class="fc bfc" id="L344" title="All 2 branches covered.">                &amp;&amp; Objects.equals(current.country(), input.country())</span>
+<span class="fc bfc" id="L345" title="All 2 branches covered.">                &amp;&amp; current.attributes().equals(input.attributes())</span>
+<span class="fc bfc" id="L346" title="All 2 branches covered.">                &amp;&amp; current.tags().equals(input.tags());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

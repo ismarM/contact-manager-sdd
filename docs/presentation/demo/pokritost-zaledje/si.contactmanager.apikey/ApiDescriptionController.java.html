@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ApiDescriptionController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.apikey</a> &gt; <span class="el_source">ApiDescriptionController.java</span></div><h1>ApiDescriptionController.java</h1><pre class="source lang-java linenums">package si.contactmanager.apikey;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Strojno berljiv opis programskega vmesnika (019, FR-019-15, research R-08): ročno vzdrževan OpenAPI 3.1 iz
+ * {@code api/openapi-v1.json}; javen, brez ključa. {@code ApiDescriptionIT} primerja njegove operacije z dejanskimi
+ * preslikavami pod {@code /v1}.
+ */
+@RestController
+class ApiDescriptionController {
+
+    private final String description;
+
+<span class="fc" id="L23">    ApiDescriptionController() {</span>
+<span class="fc" id="L24">        try (var in = new ClassPathResource(&quot;api/openapi-v1.json&quot;).getInputStream()) {</span>
+<span class="fc" id="L25">            this.description = new String(in.readAllBytes(), StandardCharsets.UTF_8);</span>
+<span class="nc" id="L26">        } catch (IOException e) {</span>
+<span class="nc" id="L27">            throw new UncheckedIOException(e);</span>
+<span class="fc" id="L28">        }</span>
+<span class="fc" id="L29">    }</span>
+
+    @GetMapping(value = &quot;/v1/openapi.json&quot;, produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity&lt;String&gt; openApi() {
+<span class="fc" id="L33">        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(description);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContactPhotoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.image</a> &gt; <span class="el_source">ContactPhotoService.java</span></div><h1>ContactPhotoService.java</h1><pre class="source lang-java linenums">package si.contactmanager.image;
+
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import si.contactmanager.audit.PhotoChange;
+import si.contactmanager.contact.ContactPhotoSupport;
+import si.contactmanager.contact.ContactState;
+import si.contactmanager.group.GroupAccess.Membership;
+
+/**
+ * Sprememba slike kontakta (FR-018-09, FR-018-10): zamenjava slike, povečanje verzije kontakta in vnos v sledi v isti
+ * transakciji; če katerikoli korak odpove, se ne zgodi nič.
+ */
+@Service
+class ContactPhotoService {
+
+    private final ImageService images;
+    private final ImageStore store;
+    private final ContactPhotoSupport contacts;
+
+<span class="fc" id="L22">    ContactPhotoService(ImageService images, ImageStore store, ContactPhotoSupport contacts) {</span>
+<span class="fc" id="L23">        this.images = images;</span>
+<span class="fc" id="L24">        this.store = store;</span>
+<span class="fc" id="L25">        this.contacts = contacts;</span>
+<span class="fc" id="L26">    }</span>
+
+    @Transactional
+    PhotoResult put(Membership membership, UUID contact, long version, ProcessedImage image) {
+<span class="fc" id="L30">        ContactState before = contacts.begin(membership, contact, version);</span>
+<span class="fc" id="L31">        Owner owner = Owner.contact(membership.groupId(), contact);</span>
+<span class="fc" id="L32">        boolean existed = store.revision(owner).isPresent();</span>
+<span class="fc" id="L33">        long revision = images.store(owner, image);</span>
+<span class="fc" id="L34">        long newVersion =</span>
+<span class="fc bfc" id="L35" title="All 2 branches covered.">                contacts.finish(membership, contact, before, existed ? PhotoChange.REPLACED : PhotoChange.ADDED);</span>
+<span class="fc" id="L36">        return new PhotoResult(revision, newVersion);</span>
+    }
+
+    /** Idempotentno: kontakt brez slike obdrži verzijo, vnosa v sledi ni. */
+    @Transactional
+    PhotoResult remove(Membership membership, UUID contact, long version) {
+<span class="fc" id="L42">        ContactState before = contacts.begin(membership, contact, version);</span>
+<span class="fc bfc" id="L43" title="All 2 branches covered.">        if (!store.delete(Owner.contact(membership.groupId(), contact))) {</span>
+<span class="fc" id="L44">            return new PhotoResult(null, before.version());</span>
+        }
+<span class="fc" id="L46">        return new PhotoResult(null, contacts.finish(membership, contact, before, PhotoChange.REMOVED));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

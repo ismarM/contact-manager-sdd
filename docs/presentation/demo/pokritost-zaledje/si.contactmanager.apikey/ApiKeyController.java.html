@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ApiKeyController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.apikey</a> &gt; <span class="el_source">ApiKeyController.java</span></div><h1>ApiKeyController.java</h1><pre class="source lang-java linenums">package si.contactmanager.apikey;
+
+import java.util.List;
+import java.util.UUID;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import si.contactmanager.account.UserDirectory;
+import si.contactmanager.shared.error.NotFoundException;
+import si.contactmanager.shared.error.UnauthenticatedException;
+import si.contactmanager.shared.error.ValidationError;
+import si.contactmanager.shared.error.ValidationException;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * API ključi prijavljenega uporabnika (019, FR-019-01 … -04, -18; plan.md *Public Interfaces*): seznam brez žetonov,
+ * nov ključ (žeton samo v tem odgovoru) in preklic. Samo Firebase prijava ({@code /api/**}); API ključ tu ne velja (401).
+ * Vir je vezan na uporabnika: 401 brez prijave, 404 za tuj ključ. Brez sveže prijave (research R-09).
+ */
+@RestController
+@RequestMapping(&quot;/api/me/api-keys&quot;)
+class ApiKeyController {
+
+    private final UserDirectory users;
+    private final ApiKeyService service;
+    private final JsonMapper json;
+
+<span class="fc" id="L38">    ApiKeyController(UserDirectory users, ApiKeyService service, JsonMapper json) {</span>
+<span class="fc" id="L39">        this.users = users;</span>
+<span class="fc" id="L40">        this.service = service;</span>
+<span class="fc" id="L41">        this.json = json;</span>
+<span class="fc" id="L42">    }</span>
+
+    @GetMapping
+    ResponseEntity&lt;List&lt;ApiKeyService.KeyView&gt;&gt; list(@AuthenticationPrincipal Jwt jwt) {
+<span class="fc" id="L46">        long user = users.find(jwt).orElseThrow(UnauthenticatedException::new);</span>
+<span class="fc" id="L47">        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.list(user));</span>
+    }
+
+    @PostMapping
+    ResponseEntity&lt;ApiKeyService.Created&gt; create(
+            @AuthenticationPrincipal Jwt jwt, @RequestBody(required = false) String body) {
+<span class="fc" id="L53">        long user = users.find(jwt).orElseThrow(UnauthenticatedException::new);</span>
+<span class="fc" id="L54">        ApiKeyService.Created created = service.create(user, ApiKeyInputParser.parse(json, body));</span>
+<span class="fc" id="L55">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L56">                .cacheControl(CacheControl.noStore())</span>
+<span class="fc" id="L57">                .body(created);</span>
+    }
+
+    /** Statistika uporabe ključa (FR-019-20): {@code days} je 7 (privzeto) ali 30, sicer 400. */
+    @GetMapping(&quot;/{keyId}/usage&quot;)
+    ResponseEntity&lt;ApiKeyService.UsageView&gt; usage(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String keyId,
+            @RequestParam(name = &quot;days&quot;, required = false) String days) {
+<span class="fc" id="L66">        long user = users.find(jwt).orElseThrow(UnauthenticatedException::new);</span>
+<span class="fc" id="L67">        UUID id = parseId(keyId);</span>
+<span class="fc" id="L68">        int period = parseDays(days);</span>
+<span class="fc" id="L69">        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.usage(user, id, period));</span>
+    }
+
+    private static int parseDays(String days) {
+<span class="fc bfc" id="L73" title="All 2 branches covered.">        if (days == null) {</span>
+<span class="fc" id="L74">            return 7;</span>
+        }
+<span class="fc bfc" id="L76" title="All 4 branches covered.">        if (days.equals(&quot;7&quot;) || days.equals(&quot;30&quot;)) {</span>
+<span class="fc" id="L77">            return Integer.parseInt(days);</span>
+        }
+<span class="fc" id="L79">        throw new ValidationException(List.of(new ValidationError.FieldError(&quot;days&quot;, &quot;INVALID_VALUE&quot;)));</span>
+    }
+
+    private static UUID parseId(String keyId) {
+        try {
+<span class="fc" id="L84">            return UUID.fromString(keyId);</span>
+<span class="fc" id="L85">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L86">            throw new NotFoundException();</span>
+        }
+    }
+
+    @DeleteMapping(&quot;/{keyId}&quot;)
+    ResponseEntity&lt;Void&gt; revoke(@AuthenticationPrincipal Jwt jwt, @PathVariable String keyId) {
+<span class="fc" id="L92">        long user = users.find(jwt).orElseThrow(UnauthenticatedException::new);</span>
+<span class="fc" id="L93">        service.revoke(user, parseId(keyId));</span>
+<span class="fc" id="L94">        return ResponseEntity.noContent().build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

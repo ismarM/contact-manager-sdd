@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DisplayFormat.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.account</a> &gt; <span class="el_source">DisplayFormat.java</span></div><h1>DisplayFormat.java</h1><pre class="source lang-java linenums">package si.contactmanager.account;
+
+import java.util.Arrays;
+import java.util.Optional;
+
+/**
+ * Prikazne sheme uporabnika (016, FR-016-16): spremenijo samo prikaz v brskalniku; strežnik hrani in vrača eno
+ * kanonično obliko (FR-016-18). {@code null} v profilu = privzeta shema.
+ */
+public final class DisplayFormat {
+
+    private DisplayFormat() {}
+
+    /** Telefon: mednarodno (privzeto), nacionalno ali E.164. */
+<span class="fc" id="L15">    public enum PhoneFormat {</span>
+<span class="fc" id="L16">        INTERNATIONAL,</span>
+<span class="fc" id="L17">        NATIONAL,</span>
+<span class="fc" id="L18">        E164</span>
+    }
+
+    /** Datum: po jeziku vmesnika (privzeto), ISO 8601 ali dolga oblika. */
+<span class="fc" id="L22">    public enum DateFormat {</span>
+<span class="fc" id="L23">        LOCALE,</span>
+<span class="fc" id="L24">        ISO,</span>
+<span class="fc" id="L25">        LONG</span>
+    }
+
+    /** Naslov: po pravilih države (privzeto) ali enovrstično. */
+<span class="fc" id="L29">    public enum AddressFormat {</span>
+<span class="fc" id="L30">        COUNTRY,</span>
+<span class="fc" id="L31">        SINGLE_LINE</span>
+    }
+
+    /** Vrednost po imenu (natančno ujemanje); neznana vrednost ali {@code null} = prazno. */
+    static &lt;E extends Enum&lt;E&gt;&gt; Optional&lt;E&gt; parse(Class&lt;E&gt; type, String name) {
+<span class="fc bfc" id="L36" title="All 2 branches covered.">        return name == null</span>
+<span class="fc" id="L37">                ? Optional.empty()</span>
+<span class="fc" id="L38">                : Arrays.stream(type.getEnumConstants())</span>
+<span class="fc" id="L39">                        .filter(value -&gt; value.name().equals(name))</span>
+<span class="fc" id="L40">                        .findFirst();</span>
+    }
+
+    /** Vrednost v bazi; neznana se prebere kot privzeta ({@code null}). */
+    static &lt;E extends Enum&lt;E&gt;&gt; E read(Class&lt;E&gt; type, String name) {
+<span class="fc" id="L45">        return parse(type, name).orElse(null);</span>
+    }
+
+    /** Neobvezno polje zahteve: manjka (nespremenjeno) ali prisotno z vrednostjo ali {@code null} (= privzeto). */
+<span class="fc" id="L49">    public record Choice&lt;T&gt;(boolean present, T value) {</span>
+
+        public static &lt;T&gt; Choice&lt;T&gt; absent() {
+<span class="fc" id="L52">            return new Choice&lt;&gt;(false, null);</span>
+        }
+
+        public static &lt;T&gt; Choice&lt;T&gt; of(T value) {
+<span class="fc" id="L56">            return new Choice&lt;&gt;(true, value);</span>
+        }
+
+        String name() {
+<span class="fc bfc" id="L60" title="All 2 branches covered.">            return value instanceof Enum&lt;?&gt; e ? e.name() : null;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

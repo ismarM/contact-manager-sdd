@@ -1,0 +1,562 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for All files</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="prettify.css" />
+    <link rel="stylesheet" href="base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="theme.js"></script>
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        
+        <label class="theme-select quiet">
+            Theme
+            <select id="themeSelect" autocomplete="off">
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="legacy">Legacy</option>
+            </select>
+        </label>
+
+        <h1>All files</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">94.29% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>7762/8232</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">88% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>5328/6054</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">94.09% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>2153/2288</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">95.79% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>6967/7273</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line high'></div>
+    <div class="pad1">
+<table class="coverage-summary">
+<thead>
+<tr>
+   <th data-col="file" data-fmt="html" data-html="true" class="file">File</th>
+   <th data-col="pic" data-type="number" data-fmt="html" data-html="true" class="pic"></th>
+   <th data-col="statements" data-type="number" data-fmt="pct" class="pct">Statements</th>
+   <th data-col="statements_raw" data-type="number" data-fmt="html" class="abs"></th>
+   <th data-col="branches" data-type="number" data-fmt="pct" class="pct">Branches</th>
+   <th data-col="branches_raw" data-type="number" data-fmt="html" class="abs"></th>
+   <th data-col="functions" data-type="number" data-fmt="pct" class="pct">Functions</th>
+   <th data-col="functions_raw" data-type="number" data-fmt="html" class="abs"></th>
+   <th data-col="lines" data-type="number" data-fmt="pct" class="pct">Lines</th>
+   <th data-col="lines_raw" data-type="number" data-fmt="html" class="abs"></th>
+</tr>
+</thead>
+<tbody><tr>
+	<td class="file low" data-value="src"><a href="src/index.html">src</a></td>
+	<td data-value="0" class="pic low">
+	<div class="chart"><div class="cover-fill" style="width: 0%"></div><div class="cover-empty" style="width: 100%"></div></div>
+	</td>
+	<td data-value="0" class="pct low">0%</td>
+	<td data-value="4" class="abs low">0/4</td>
+	<td data-value="0" class="pct low">0%</td>
+	<td data-value="2" class="abs low">0/2</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="0" class="abs high">0/0</td>
+	<td data-value="0" class="pct low">0%</td>
+	<td data-value="4" class="abs low">0/4</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/app"><a href="src/app/index.html">src/app</a></td>
+	<td data-value="100" class="pic high">
+	<div class="chart"><div class="cover-fill cover-full" style="width: 100%"></div><div class="cover-empty" style="width: 0%"></div></div>
+	</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="14" class="abs high">14/14</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="4" class="abs high">4/4</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="5" class="abs high">5/5</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="12" class="abs high">12/12</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/features/account"><a href="src/features/account/index.html">src/features/account</a></td>
+	<td data-value="93.18" class="pic high">
+	<div class="chart"><div class="cover-fill" style="width: 93%"></div><div class="cover-empty" style="width: 7%"></div></div>
+	</td>
+	<td data-value="93.18" class="pct high">93.18%</td>
+	<td data-value="440" class="abs high">410/440</td>
+	<td data-value="86.94" class="pct high">86.94%</td>
+	<td data-value="291" class="abs high">253/291</td>
+	<td data-value="92.56" class="pct high">92.56%</td>
+	<td data-value="121" class="abs high">112/121</td>
+	<td data-value="95.62" class="pct high">95.62%</td>
+	<td data-value="411" class="abs high">393/411</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/features/api-docs"><a href="src/features/api-docs/index.html">src/features/api-docs</a></td>
+	<td data-value="95.55" class="pic high">
+	<div class="chart"><div class="cover-fill" style="width: 95%"></div><div class="cover-empty" style="width: 5%"></div></div>
+	</td>
+	<td data-value="95.55" class="pct high">95.55%</td>
+	<td data-value="45" class="abs high">43/45</td>
+	<td data-value="88.88" class="pct high">88.88%</td>
+	<td data-value="27" class="abs high">24/27</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="14" class="abs high">14/14</td>
+	<td data-value="95.55" class="pct high">95.55%</td>
+	<td data-value="45" class="abs high">43/45</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/features/apikeys"><a href="src/features/apikeys/index.html">src/features/apikeys</a></td>
+	<td data-value="90.9" class="pic high">
+	<div class="chart"><div class="cover-fill" style="width: 90%"></div><div class="cover-empty" style="width: 10%"></div></div>
+	</td>
+	<td data-value="90.9" class="pct high">90.9%</td>
+	<td data-value="297" class="abs high">270/297</td>
+	<td data-value="80.23" class="pct high">80.23%</td>
+	<td data-value="172" class="abs high">138/172</td>
+	<td data-value="89.36" class="pct high">89.36%</td>
+	<td data-value="94" class="abs high">84/94</td>
+	<td data-value="92.48" class="pct high">92.48%</td>
+	<td data-value="266" class="abs high">246/266</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/features/attributes"><a href="src/features/attributes/index.html">src/features/attributes</a></td>
+	<td data-value="88.35" class="pic high">
+	<div class="chart"><div class="cover-fill" style="width: 88%"></div><div class="cover-empty" style="width: 12%"></div></div>
+	</td>
+	<td data-value="88.35" class="pct high">88.35%</td>
+	<td data-value="146" class="abs high">129/146</td>
+	<td data-value="74.75" class="pct medium">74.75%</td>
+	<td data-value="103" class="abs medium">77/103</td>
+	<td data-value="94.87" class="pct high">94.87%</td>
+	<td data-value="39" class="abs high">37/39</td>
+	<td data-value="90.55" class="pct high">90.55%</td>
+	<td data-value="127" class="abs high">115/127</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/features/audit"><a href="src/features/audit/index.html">src/features/audit</a></td>
+	<td data-value="97.23" class="pic high">
+	<div class="chart"><div class="cover-fill" style="width: 97%"></div><div class="cover-empty" style="width: 3%"></div></div>
+	</td>
+	<td data-value="97.23" class="pct high">97.23%</td>
+	<td data-value="398" class="abs high">387/398</td>
+	<td data-value="93.68" class="pct high">93.68%</td>
+	<td data-value="380" class="abs high">356/380</td>
+	<td data-value="97.24" class="pct high">97.24%</td>
+	<td data-value="109" class="abs high">106/109</td>
+	<td data-value="98.23" class="pct high">98.23%</td>
+	<td data-value="339" class="abs high">333/339</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/features/auth"><a href="src/features/auth/index.html">src/features/auth</a></td>
+	<td data-value="93.07" class="pic high">
+	<div class="chart"><div class="cover-fill" style="width: 93%"></div><div class="cover-empty" style="width: 7%"></div></div>
+	</td>
+	<td data-value="93.07" class="pct high">93.07%</td>
+	<td data-value="592" class="abs high">551/592</td>
+	<td data-value="87.27" class="pct high">87.27%</td>
+	<td data-value="330" class="abs high">288/330</td>
+	<td data-value="93.61" class="pct high">93.61%</td>
+	<td data-value="141" class="abs high">132/141</td>
+	<td data-value="94.51" class="pct high">94.51%</td>
+	<td data-value="529" class="abs high">500/529</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/features/contacts"><a href="src/features/contacts/index.html">src/features/contacts</a></td>
+	<td data-value="94.63" class="pic high">
+	<div class="chart"><div class="cover-fill" style="width: 94%"></div><div class="cover-empty" style="width: 6%"></div></div>
+	</td>
+	<td data-value="94.63" class="pct high">94.63%</td>
+	<td data-value="1546" class="abs high">1463/1546</td>
+	<td data-value="87.78" class="pct high">87.78%</td>
+	<td data-value="1195" class="abs high">1049/1195</td>
+	<td data-value="94.77" class="pct high">94.77%</td>
+	<td data-value="459" class="abs high">435/459</td>
+	<td data-value="96.05" class="pct high">96.05%</td>
+	<td data-value="1343" class="abs high">1290/1343</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/features/contacts/export"><a href="src/features/contacts/export/index.html">src/features/contacts/export</a></td>
+	<td data-value="86.2" class="pic high">
+	<div class="chart"><div class="cover-fill" style="width: 86%"></div><div class="cover-empty" style="width: 14%"></div></div>
+	</td>
+	<td data-value="86.2" class="pct high">86.2%</td>
+	<td data-value="87" class="abs high">75/87</td>
+	<td data-value="83.33" class="pct high">83.33%</td>
+	<td data-value="84" class="abs high">70/84</td>
+	<td data-value="84.61" class="pct high">84.61%</td>
+	<td data-value="26" class="abs high">22/26</td>
+	<td data-value="86.74" class="pct high">86.74%</td>
+	<td data-value="83" class="abs high">72/83</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/features/contacts/qr"><a href="src/features/contacts/qr/index.html">src/features/contacts/qr</a></td>
+	<td data-value="92.2" class="pic high">
+	<div class="chart"><div class="cover-fill" style="width: 92%"></div><div class="cover-empty" style="width: 8%"></div></div>
+	</td>
+	<td data-value="92.2" class="pct high">92.2%</td>
+	<td data-value="526" class="abs high">485/526</td>
+	<td data-value="79.69" class="pct medium">79.69%</td>
+	<td data-value="399" class="abs medium">318/399</td>
+	<td data-value="93.91" class="pct high">93.91%</td>
+	<td data-value="115" class="abs high">108/115</td>
+	<td data-value="94.36" class="pct high">94.36%</td>
+	<td data-value="444" class="abs high">419/444</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/features/contacts/selection"><a href="src/features/contacts/selection/index.html">src/features/contacts/selection</a></td>
+	<td data-value="95.8" class="pic high">
+	<div class="chart"><div class="cover-fill" style="width: 95%"></div><div class="cover-empty" style="width: 5%"></div></div>
+	</td>
+	<td data-value="95.8" class="pct high">95.8%</td>
+	<td data-value="453" class="abs high">434/453</td>
+	<td data-value="91.18" class="pct high">91.18%</td>
+	<td data-value="261" class="abs high">238/261</td>
+	<td data-value="95.77" class="pct high">95.77%</td>
+	<td data-value="142" class="abs high">136/142</td>
+	<td data-value="97.44" class="pct high">97.44%</td>
+	<td data-value="392" class="abs high">382/392</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/features/contacts/typed"><a href="src/features/contacts/typed/index.html">src/features/contacts/typed</a></td>
+	<td data-value="94.62" class="pic high">
+	<div class="chart"><div class="cover-fill" style="width: 94%"></div><div class="cover-empty" style="width: 6%"></div></div>
+	</td>
+	<td data-value="94.62" class="pct high">94.62%</td>
+	<td data-value="186" class="abs high">176/186</td>
+	<td data-value="91.22" class="pct high">91.22%</td>
+	<td data-value="171" class="abs high">156/171</td>
+	<td data-value="94.11" class="pct high">94.11%</td>
+	<td data-value="51" class="abs high">48/51</td>
+	<td data-value="95.26" class="pct high">95.26%</td>
+	<td data-value="169" class="abs high">161/169</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/features/duplicates"><a href="src/features/duplicates/index.html">src/features/duplicates</a></td>
+	<td data-value="95.31" class="pic high">
+	<div class="chart"><div class="cover-fill" style="width: 95%"></div><div class="cover-empty" style="width: 5%"></div></div>
+	</td>
+	<td data-value="95.31" class="pct high">95.31%</td>
+	<td data-value="491" class="abs high">468/491</td>
+	<td data-value="89.28" class="pct high">89.28%</td>
+	<td data-value="336" class="abs high">300/336</td>
+	<td data-value="96.1" class="pct high">96.1%</td>
+	<td data-value="154" class="abs high">148/154</td>
+	<td data-value="96.47" class="pct high">96.47%</td>
+	<td data-value="426" class="abs high">411/426</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/features/formats"><a href="src/features/formats/index.html">src/features/formats</a></td>
+	<td data-value="95.23" class="pic high">
+	<div class="chart"><div class="cover-fill" style="width: 95%"></div><div class="cover-empty" style="width: 5%"></div></div>
+	</td>
+	<td data-value="95.23" class="pct high">95.23%</td>
+	<td data-value="84" class="abs high">80/84</td>
+	<td data-value="89.7" class="pct high">89.7%</td>
+	<td data-value="68" class="abs high">61/68</td>
+	<td data-value="92" class="pct high">92%</td>
+	<td data-value="25" class="abs high">23/25</td>
+	<td data-value="95.65" class="pct high">95.65%</td>
+	<td data-value="69" class="abs high">66/69</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/features/groups"><a href="src/features/groups/index.html">src/features/groups</a></td>
+	<td data-value="96.44" class="pic high">
+	<div class="chart"><div class="cover-fill" style="width: 96%"></div><div class="cover-empty" style="width: 4%"></div></div>
+	</td>
+	<td data-value="96.44" class="pct high">96.44%</td>
+	<td data-value="647" class="abs high">624/647</td>
+	<td data-value="93.76" class="pct high">93.76%</td>
+	<td data-value="513" class="abs high">481/513</td>
+	<td data-value="96.4" class="pct high">96.4%</td>
+	<td data-value="167" class="abs high">161/167</td>
+	<td data-value="97.56" class="pct high">97.56%</td>
+	<td data-value="575" class="abs high">561/575</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/features/history"><a href="src/features/history/index.html">src/features/history</a></td>
+	<td data-value="94.89" class="pic high">
+	<div class="chart"><div class="cover-fill" style="width: 94%"></div><div class="cover-empty" style="width: 6%"></div></div>
+	</td>
+	<td data-value="94.89" class="pct high">94.89%</td>
+	<td data-value="548" class="abs high">520/548</td>
+	<td data-value="87.35" class="pct high">87.35%</td>
+	<td data-value="585" class="abs high">511/585</td>
+	<td data-value="94.47" class="pct high">94.47%</td>
+	<td data-value="163" class="abs high">154/163</td>
+	<td data-value="96.11" class="pct high">96.11%</td>
+	<td data-value="489" class="abs high">470/489</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/features/import"><a href="src/features/import/index.html">src/features/import</a></td>
+	<td data-value="88.75" class="pic high">
+	<div class="chart"><div class="cover-fill" style="width: 88%"></div><div class="cover-empty" style="width: 12%"></div></div>
+	</td>
+	<td data-value="88.75" class="pct high">88.75%</td>
+	<td data-value="249" class="abs high">221/249</td>
+	<td data-value="83.76" class="pct high">83.76%</td>
+	<td data-value="234" class="abs high">196/234</td>
+	<td data-value="83.33" class="pct high">83.33%</td>
+	<td data-value="72" class="abs high">60/72</td>
+	<td data-value="90.99" class="pct high">90.99%</td>
+	<td data-value="222" class="abs high">202/222</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/features/invitations"><a href="src/features/invitations/index.html">src/features/invitations</a></td>
+	<td data-value="97.39" class="pic high">
+	<div class="chart"><div class="cover-fill" style="width: 97%"></div><div class="cover-empty" style="width: 3%"></div></div>
+	</td>
+	<td data-value="97.39" class="pct high">97.39%</td>
+	<td data-value="345" class="abs high">336/345</td>
+	<td data-value="92.1" class="pct high">92.1%</td>
+	<td data-value="190" class="abs high">175/190</td>
+	<td data-value="96.47" class="pct high">96.47%</td>
+	<td data-value="85" class="abs high">82/85</td>
+	<td data-value="99" class="pct high">99%</td>
+	<td data-value="303" class="abs high">300/303</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/features/map"><a href="src/features/map/index.html">src/features/map</a></td>
+	<td data-value="93.18" class="pic high">
+	<div class="chart"><div class="cover-fill" style="width: 93%"></div><div class="cover-empty" style="width: 7%"></div></div>
+	</td>
+	<td data-value="93.18" class="pct high">93.18%</td>
+	<td data-value="88" class="abs high">82/88</td>
+	<td data-value="87.93" class="pct high">87.93%</td>
+	<td data-value="58" class="abs high">51/58</td>
+	<td data-value="92.59" class="pct high">92.59%</td>
+	<td data-value="27" class="abs high">25/27</td>
+	<td data-value="98.66" class="pct high">98.66%</td>
+	<td data-value="75" class="abs high">74/75</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/features/members"><a href="src/features/members/index.html">src/features/members</a></td>
+	<td data-value="96.56" class="pic high">
+	<div class="chart"><div class="cover-fill" style="width: 96%"></div><div class="cover-empty" style="width: 4%"></div></div>
+	</td>
+	<td data-value="96.56" class="pct high">96.56%</td>
+	<td data-value="349" class="abs high">337/349</td>
+	<td data-value="90.68" class="pct high">90.68%</td>
+	<td data-value="204" class="abs high">185/204</td>
+	<td data-value="92.94" class="pct high">92.94%</td>
+	<td data-value="85" class="abs high">79/85</td>
+	<td data-value="98.14" class="pct high">98.14%</td>
+	<td data-value="323" class="abs high">317/323</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/i18n"><a href="src/i18n/index.html">src/i18n</a></td>
+	<td data-value="100" class="pic high">
+	<div class="chart"><div class="cover-fill cover-full" style="width: 100%"></div><div class="cover-empty" style="width: 0%"></div></div>
+	</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="4" class="abs high">4/4</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="2" class="abs high">2/2</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="2" class="abs high">2/2</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="4" class="abs high">4/4</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/shared"><a href="src/shared/index.html">src/shared</a></td>
+	<td data-value="100" class="pic high">
+	<div class="chart"><div class="cover-fill cover-full" style="width: 100%"></div><div class="cover-empty" style="width: 0%"></div></div>
+	</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="13" class="abs high">13/13</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="0" class="abs high">0/0</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="3" class="abs high">3/3</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="12" class="abs high">12/12</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/shared/api"><a href="src/shared/api/index.html">src/shared/api</a></td>
+	<td data-value="100" class="pic high">
+	<div class="chart"><div class="cover-fill cover-full" style="width: 100%"></div><div class="cover-empty" style="width: 0%"></div></div>
+	</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="43" class="abs high">43/43</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="21" class="abs high">21/21</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="10" class="abs high">10/10</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="40" class="abs high">40/40</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/shared/images"><a href="src/shared/images/index.html">src/shared/images</a></td>
+	<td data-value="90.86" class="pic high">
+	<div class="chart"><div class="cover-fill" style="width: 90%"></div><div class="cover-empty" style="width: 10%"></div></div>
+	</td>
+	<td data-value="90.86" class="pct high">90.86%</td>
+	<td data-value="416" class="abs high">378/416</td>
+	<td data-value="84.35" class="pct high">84.35%</td>
+	<td data-value="262" class="abs high">221/262</td>
+	<td data-value="87.62" class="pct high">87.62%</td>
+	<td data-value="97" class="abs high">85/97</td>
+	<td data-value="92.68" class="pct high">92.68%</td>
+	<td data-value="369" class="abs high">342/369</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/shared/layout"><a href="src/shared/layout/index.html">src/shared/layout</a></td>
+	<td data-value="98.38" class="pic high">
+	<div class="chart"><div class="cover-fill" style="width: 98%"></div><div class="cover-empty" style="width: 2%"></div></div>
+	</td>
+	<td data-value="98.38" class="pct high">98.38%</td>
+	<td data-value="124" class="abs high">122/124</td>
+	<td data-value="93.61" class="pct high">93.61%</td>
+	<td data-value="94" class="abs high">88/94</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="35" class="abs high">35/35</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="111" class="abs high">111/111</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/shared/lib"><a href="src/shared/lib/index.html">src/shared/lib</a></td>
+	<td data-value="100" class="pic high">
+	<div class="chart"><div class="cover-fill cover-full" style="width: 100%"></div><div class="cover-empty" style="width: 0%"></div></div>
+	</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="12" class="abs high">12/12</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="0" class="abs high">0/0</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="7" class="abs high">7/7</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="10" class="abs high">10/10</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/shared/pages"><a href="src/shared/pages/index.html">src/shared/pages</a></td>
+	<td data-value="100" class="pic high">
+	<div class="chart"><div class="cover-fill cover-full" style="width: 100%"></div><div class="cover-empty" style="width: 0%"></div></div>
+	</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="3" class="abs high">3/3</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="0" class="abs high">0/0</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="1" class="abs high">1/1</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="3" class="abs high">3/3</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/shared/ui"><a href="src/shared/ui/index.html">src/shared/ui</a></td>
+	<td data-value="100" class="pic high">
+	<div class="chart"><div class="cover-fill cover-full" style="width: 100%"></div><div class="cover-empty" style="width: 0%"></div></div>
+	</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="70" class="abs high">70/70</td>
+	<td data-value="94.73" class="pct high">94.73%</td>
+	<td data-value="57" class="abs high">54/57</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="27" class="abs high">27/27</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="66" class="abs high">66/66</td>
+	</tr>
+
+<tr>
+	<td class="file high" data-value="src/shared/ui/illustrations"><a href="src/shared/ui/illustrations/index.html">src/shared/ui/illustrations</a></td>
+	<td data-value="100" class="pic high">
+	<div class="chart"><div class="cover-fill cover-full" style="width: 100%"></div><div class="cover-empty" style="width: 0%"></div></div>
+	</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="12" class="abs high">12/12</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="11" class="abs high">11/11</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="12" class="abs high">12/12</td>
+	<td data-value="100" class="pct high">100%</td>
+	<td data-value="12" class="abs high">12/12</td>
+	</tr>
+
+</tbody>
+</table>
+</div>
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://vitest.dev/" target="_blank" rel="noopener noreferrer">Vitest</a>
+                at 2026-11-25T23:19:22.721Z
+            </div>
+        <script src="prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="sorter.js"></script>
+        <script src="block-navigation.js"></script>
+    </body>
+</html>
+    

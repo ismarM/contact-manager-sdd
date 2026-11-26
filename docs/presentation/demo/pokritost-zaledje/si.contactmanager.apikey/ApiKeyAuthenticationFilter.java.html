@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ApiKeyAuthenticationFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.apikey</a> &gt; <span class="el_source">ApiKeyAuthenticationFilter.java</span></div><h1>ApiKeyAuthenticationFilter.java</h1><pre class="source lang-java linenums">package si.contactmanager.apikey;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.filter.OncePerRequestFilter;
+import si.contactmanager.apikey.ApiKeyTokens.Verified;
+import si.contactmanager.shared.security.ApiKeyPrincipal;
+
+/**
+ * Prijava z API ključem na {@code /v1/**} (019, research R-02; FR-019-17): samo glava {@code Authorization: Bearer cmk_…}.
+ * Podpis in trditve preveri {@link ApiKeyTokens}, nato vrstico po {@code jti} (obstaja, isti lastnik, ni preklicana).
+ * Uspeh nastavi {@link ApiKeyPrincipal}; vsak neuspeh pusti zahtevo neprijavljeno in veriga vrne
+ * {@code 401 UNAUTHENTICATED}. Ključ se nikoli ne zapiše v dnevnik, samo {@code jti}.
+ */
+class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
+
+<span class="fc" id="L28">    private static final Logger LOG = LoggerFactory.getLogger(ApiKeyAuthenticationFilter.class);</span>
+    private static final String BEARER = &quot;Bearer &quot;;
+
+    private final ApiKeyTokens tokens;
+    private final ApiKeyRepository keys;
+
+<span class="fc" id="L34">    ApiKeyAuthenticationFilter(ApiKeyTokens tokens, ApiKeyRepository keys) {</span>
+<span class="fc" id="L35">        this.tokens = tokens;</span>
+<span class="fc" id="L36">        this.keys = keys;</span>
+<span class="fc" id="L37">    }</span>
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+            throws ServletException, IOException {
+<span class="fc" id="L42">        authenticate(request.getHeader(HttpHeaders.AUTHORIZATION)).ifPresent(principal -&gt; {</span>
+<span class="fc" id="L43">            SecurityContext context = SecurityContextHolder.createEmptyContext();</span>
+<span class="fc" id="L44">            context.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(principal, null, List.of()));</span>
+<span class="fc" id="L45">            SecurityContextHolder.setContext(context);</span>
+<span class="fc" id="L46">        });</span>
+<span class="fc" id="L47">        chain.doFilter(request, response);</span>
+<span class="fc" id="L48">    }</span>
+
+    private Optional&lt;ApiKeyPrincipal&gt; authenticate(String authorization) {
+<span class="fc bfc" id="L51" title="All 4 branches covered.">        if (authorization == null || !authorization.regionMatches(true, 0, BEARER, 0, BEARER.length())) {</span>
+<span class="fc" id="L52">            return Optional.empty();</span>
+        }
+<span class="fc" id="L54">        Optional&lt;Verified&gt; verified =</span>
+<span class="fc" id="L55">                tokens.verify(authorization.substring(BEARER.length()).strip());</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">        if (verified.isEmpty()) {</span>
+<span class="fc" id="L57">            return Optional.empty();</span>
+        }
+<span class="fc" id="L59">        Verified key = verified.get();</span>
+<span class="fc" id="L60">        Optional&lt;String&gt; name = keys.activeKeyName(key.keyId(), key.userId());</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        if (name.isEmpty()) {</span>
+<span class="fc" id="L62">            LOG.info(&quot;API key rejected (revoked or deleted): jti={}&quot;, key.keyId());</span>
+<span class="fc" id="L63">            return Optional.empty();</span>
+        }
+<span class="fc" id="L65">        return Optional.of(new ApiKeyPrincipal(key.userId(), key.keyId(), name.get(), key.scope()));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

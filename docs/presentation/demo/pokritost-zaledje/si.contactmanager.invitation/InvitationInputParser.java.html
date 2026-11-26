@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InvitationInputParser.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.invitation</a> &gt; <span class="el_source">InvitationInputParser.java</span></div><h1>InvitationInputParser.java</h1><pre class="source lang-java linenums">package si.contactmanager.invitation;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * Razčlenitev telesa {@code POST /api/groups/{groupId}/invitations} (research R-07): {@code email} obrezan, 1–254 znakov
+ * (kodne točke), veljavna oblika; {@code role} je znana vloga (tudi {@code OWNER} in {@code ADMIN} – o njiju odloča
+ * servis s 403). Nikoli ne vrže: napake podatkov se sporočijo šele po preverjanju dostopa (feature-map §2.2).
+ */
+public final class InvitationInputParser {
+
+    static final int EMAIL_MAX = 254;
+
+<span class="fc" id="L22">    private static final Set&lt;String&gt; FIELDS = Set.of(&quot;email&quot;, &quot;role&quot;);</span>
+<span class="fc" id="L23">    private static final Set&lt;String&gt; ROLES = Set.of(&quot;VIEWER&quot;, &quot;EDITOR&quot;, &quot;ADMIN&quot;, &quot;OWNER&quot;);</span>
+<span class="fc" id="L24">    private static final Pattern EMAIL = Pattern.compile(&quot;^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$&quot;);</span>
+
+    /** Rezultat razčlenjevanja: {@code role} je znana vloga ali {@code null}; napake po poljih. */
+<span class="fc" id="L27">    public record Parsed(String email, String role, List&lt;FieldError&gt; errors) {</span>
+
+        public boolean valid() {
+<span class="fc" id="L30">            return errors.isEmpty();</span>
+        }
+    }
+
+    private final JsonMapper json;
+
+    public InvitationInputParser() {
+<span class="fc" id="L37">        this(JsonMapper.builder().build());</span>
+<span class="fc" id="L38">    }</span>
+
+<span class="fc" id="L40">    public InvitationInputParser(JsonMapper json) {</span>
+<span class="fc" id="L41">        this.json = json;</span>
+<span class="fc" id="L42">    }</span>
+
+    public Parsed parse(String body) {
+        JsonNode root;
+        try {
+<span class="pc bpc" id="L47" title="1 of 2 branches missed.">            root = json.readTree(body == null ? &quot;&quot; : body);</span>
+<span class="fc" id="L48">        } catch (JacksonException e) {</span>
+<span class="fc" id="L49">            return malformed();</span>
+<span class="fc" id="L50">        }</span>
+<span class="pc bpc" id="L51" title="1 of 4 branches missed.">        if (root == null || !root.isObject()) {</span>
+<span class="fc" id="L52">            return malformed();</span>
+        }
+<span class="fc" id="L54">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        for (Map.Entry&lt;String, JsonNode&gt; property : root.properties()) {</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">            if (!FIELDS.contains(property.getKey())) {</span>
+<span class="fc" id="L57">                errors.add(new FieldError(property.getKey(), &quot;UNKNOWN_FIELD&quot;));</span>
+            }
+<span class="fc" id="L59">        }</span>
+<span class="fc" id="L60">        String email = email(root.get(&quot;email&quot;), errors);</span>
+<span class="fc" id="L61">        String role = role(root.get(&quot;role&quot;), errors);</span>
+<span class="fc bfc" id="L62" title="All 4 branches covered.">        return new Parsed(errors.isEmpty() ? email : null, errors.isEmpty() ? role : null, List.copyOf(errors));</span>
+    }
+
+    private static Parsed malformed() {
+<span class="fc" id="L66">        return new Parsed(null, null, List.of(new FieldError(&quot;body&quot;, &quot;MALFORMED&quot;)));</span>
+    }
+
+    private static String email(JsonNode node, List&lt;FieldError&gt; errors) {
+<span class="pc bpc" id="L70" title="1 of 4 branches missed.">        if (node == null || node.isNull()) {</span>
+<span class="fc" id="L71">            errors.add(new FieldError(&quot;email&quot;, &quot;REQUIRED&quot;));</span>
+<span class="fc" id="L72">            return null;</span>
+        }
+<span class="pc bpc" id="L74" title="1 of 2 branches missed.">        if (!node.isString()) {</span>
+<span class="nc" id="L75">            errors.add(new FieldError(&quot;email&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="nc" id="L76">            return null;</span>
+        }
+<span class="fc" id="L78">        String email = node.asString().strip();</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">        if (email.isEmpty()) {</span>
+<span class="fc" id="L80">            errors.add(new FieldError(&quot;email&quot;, &quot;REQUIRED&quot;));</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">        } else if (email.codePointCount(0, email.length()) &gt; EMAIL_MAX) {</span>
+<span class="fc" id="L82">            errors.add(new FieldError(&quot;email&quot;, &quot;TOO_LONG&quot;));</span>
+<span class="fc bfc" id="L83" title="All 2 branches covered.">        } else if (!EMAIL.matcher(email).matches()) {</span>
+<span class="fc" id="L84">            errors.add(new FieldError(&quot;email&quot;, &quot;INVALID_VALUE&quot;));</span>
+        } else {
+<span class="fc" id="L86">            return email;</span>
+        }
+<span class="fc" id="L88">        return null;</span>
+    }
+
+    private static String role(JsonNode node, List&lt;FieldError&gt; errors) {
+<span class="pc bpc" id="L92" title="1 of 4 branches missed.">        if (node == null || node.isNull()) {</span>
+<span class="fc" id="L93">            errors.add(new FieldError(&quot;role&quot;, &quot;REQUIRED&quot;));</span>
+<span class="fc" id="L94">            return null;</span>
+        }
+<span class="fc bfc" id="L96" title="All 4 branches covered.">        if (!node.isString() || !ROLES.contains(node.asString())) {</span>
+<span class="fc" id="L97">            errors.add(new FieldError(&quot;role&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L98">            return null;</span>
+        }
+<span class="fc" id="L100">        return node.asString();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

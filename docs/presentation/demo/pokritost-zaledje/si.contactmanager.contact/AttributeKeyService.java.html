@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AttributeKeyService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">AttributeKeyService.java</span></div><h1>AttributeKeyService.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import si.contactmanager.audit.AuditLog;
+import si.contactmanager.audit.ContactChange;
+import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.shared.error.AttributeTypeConflictException;
+import si.contactmanager.shared.error.GroupArchivedException;
+import si.contactmanager.shared.error.NotFoundException;
+import si.contactmanager.shared.error.VersionConflictException;
+
+/**
+ * Ključi atributov skupine in sprememba njihovega tipa (016, FR-016-04, -05, -26). Dostop do skupine in vlogo preveri
+ * {@link AttributeKeyController}; sprememba tipa je ena transakcija: zaklep skupine (R-05), zaklep vrstice ključa
+ * {@code FOR UPDATE} (počaka na urejanja kontaktov, ki drže {@code FOR SHARE}), preverjanje in normalizacija vseh
+ * vrednosti, nova verzija kontaktov in en vnos sledi {@code ATTRIBUTE_TYPE}.
+ */
+@Service
+class AttributeKeyService {
+
+    /** Največ kontaktov v telesu {@code ATTRIBUTE_TYPE_CONFLICT} (FR-016-05). */
+    static final int CONFLICT_MAX = 100;
+
+    private final AttributeKeyRepository keys;
+    private final ContactRepository contacts;
+    private final ContactSnapshots snapshots;
+    private final AuditLog audit;
+
+    AttributeKeyService(
+<span class="fc" id="L36">            AttributeKeyRepository keys, ContactRepository contacts, ContactSnapshots snapshots, AuditLog audit) {</span>
+<span class="fc" id="L37">        this.keys = keys;</span>
+<span class="fc" id="L38">        this.contacts = contacts;</span>
+<span class="fc" id="L39">        this.snapshots = snapshots;</span>
+<span class="fc" id="L40">        this.audit = audit;</span>
+<span class="fc" id="L41">    }</span>
+
+    /** Stran ključev v uporabi (samo branje). */
+    AttributeKeyPage list(Membership membership, String q, int page, int size) {
+<span class="fc" id="L45">        List&lt;AttributeKeyView&gt; items = keys.list(membership.groupId(), q, page, size).stream()</span>
+<span class="fc" id="L46">                .map(k -&gt; new AttributeKeyView(k.key(), k.type(), k.contactCount(), k.version()))</span>
+<span class="fc" id="L47">                .toList();</span>
+<span class="fc" id="L48">        return new AttributeKeyPage(items, page, size, keys.listCount(membership.groupId(), q));</span>
+    }
+
+    /**
+     * Atomarna sprememba tipa ključa. Enak tip kot trenutni: brez spremembe in brez vnosa sledi. Vrednost, ki je novi
+     * tip ne sprejme: {@code 409 ATTRIBUTE_TYPE_CONFLICT}, nič se ne spremeni.
+     */
+    @Transactional
+    AttributeKeyView changeType(Membership membership, String key, AttributeType type, long version) {
+<span class="fc" id="L57">        UUID group = membership.groupId();</span>
+<span class="fc" id="L58">        boolean archived = contacts.lockGroupArchived(group).orElseThrow(NotFoundException::new);</span>
+<span class="pc bpc" id="L59" title="1 of 2 branches missed.">        if (archived) {</span>
+<span class="nc" id="L60">            throw new GroupArchivedException();</span>
+        }
+<span class="fc" id="L62">        String norm = ContactInputParser.normalize(key);</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        if (keys.isFree(group, norm)) {</span>
+<span class="fc" id="L64">            throw new NotFoundException();</span>
+        }
+<span class="fc" id="L66">        keys.register(group, norm);</span>
+<span class="fc" id="L67">        AttributeKeyRepository.Row row = keys.lockForUpdate(group, norm).orElseThrow(NotFoundException::new);</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        if (version != row.version()) {</span>
+<span class="fc" id="L69">            throw new VersionConflictException(view(group, norm, row.type(), row.version()));</span>
+        }
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        if (row.type() == type) {</span>
+<span class="fc" id="L72">            return view(group, norm, row.type(), row.version());</span>
+        }
+<span class="fc" id="L74">        List&lt;AttributeKeyRepository.Value&gt; values = keys.values(group, norm);</span>
+<span class="fc" id="L75">        Map&lt;UUID, String&gt; converted = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L76">        List&lt;TypeConflict.Item&gt; conflicts = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L77">        long invalid = 0;</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        for (AttributeKeyRepository.Value value : values) {</span>
+            // Razčlenjen naslov postane besedilo po pravilih države (016, R-03/R-04), nato velja pravilo novega tipa.
+<span class="fc bfc" id="L80" title="All 2 branches covered.">            String text = value.parts() != null ? AddressFormats.text(value.parts()) : value.value();</span>
+<span class="fc" id="L81">            TypedValues.Result result = TypedValues.normalize(type, text, value.country());</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">            if (result.valid()) {</span>
+<span class="fc" id="L83">                converted.put(value.contactId(), result.value());</span>
+            } else {
+<span class="fc" id="L85">                invalid++;</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">                if (conflicts.size() &lt; CONFLICT_MAX) {</span>
+<span class="fc" id="L87">                    conflicts.add(new TypeConflict.Item(</span>
+<span class="fc" id="L88">                            value.contactId(),</span>
+<span class="fc" id="L89">                            ContactRepository.displayName(value.firstName(), value.lastName()),</span>
+                            text));
+                }
+            }
+<span class="fc" id="L93">        }</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">        if (invalid &gt; 0) {</span>
+<span class="fc" id="L95">            throw new AttributeTypeConflictException(new TypeConflict(List.copyOf(conflicts), invalid));</span>
+        }
+<span class="fc" id="L97">        List&lt;UUID&gt; ids =</span>
+<span class="fc" id="L98">                values.stream().map(AttributeKeyRepository.Value::contactId).toList();</span>
+<span class="fc" id="L99">        contacts.lockExisting(group, ids);</span>
+<span class="fc" id="L100">        Map&lt;UUID, ContactState&gt; before = snapshots.load(group, ids);</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">        for (AttributeKeyRepository.Value value : values) {</span>
+<span class="fc" id="L102">            String normalized = converted.get(value.contactId());</span>
+<span class="fc bfc" id="L103" title="All 4 branches covered.">            if (value.parts() != null || !normalized.equals(value.value())) {</span>
+<span class="fc" id="L104">                keys.updateValue(value.contactId(), norm, normalized);</span>
+            }
+<span class="fc" id="L106">        }</span>
+<span class="fc" id="L107">        long newVersion = keys.setType(group, norm, type);</span>
+<span class="fc" id="L108">        keys.touch(group, ids, membership.userId());</span>
+<span class="fc" id="L109">        Map&lt;UUID, ContactState&gt; after = snapshots.load(group, ids);</span>
+<span class="fc" id="L110">        List&lt;ContactChange&gt; changes = new ArrayList&lt;&gt;(ids.size());</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">        for (UUID id : ids) {</span>
+<span class="fc" id="L112">            ContactState state = after.get(id);</span>
+<span class="fc" id="L113">            changes.add(new ContactChange(</span>
+<span class="fc" id="L114">                    id, ContactRepository.displayName(state.firstName(), state.lastName()), before.get(id), state));</span>
+<span class="fc" id="L115">        }</span>
+<span class="fc" id="L116">        String spelling = contacts.canonicalKeys(group, List.of(norm)).getOrDefault(norm, key);</span>
+<span class="fc" id="L117">        audit.recordAttributeType(</span>
+<span class="fc" id="L118">                group, membership.userId(), spelling, row.type().name(), type.name(), changes);</span>
+<span class="fc" id="L119">        return new AttributeKeyView(spelling, type, ids.size(), newVersion);</span>
+    }
+
+    private AttributeKeyView view(UUID group, String norm, AttributeType type, long version) {
+<span class="fc" id="L123">        String spelling = contacts.canonicalKeys(group, List.of(norm)).getOrDefault(norm, norm);</span>
+<span class="fc" id="L124">        return new AttributeKeyView(spelling, type, keys.contactCount(group, norm), version);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

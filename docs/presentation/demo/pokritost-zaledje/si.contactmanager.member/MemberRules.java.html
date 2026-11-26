@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MemberRules.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.member</a> &gt; <span class="el_source">MemberRules.java</span></div><h1>MemberRules.java</h1><pre class="source lang-java linenums">package si.contactmanager.member;
+
+import java.util.List;
+import si.contactmanager.group.Role;
+
+/**
+ * Pravilo »le nižjim od sebe« (feature-map §2.1) kot čiste funkcije: brez stanja in brez dostopa do baze. Isto
+ * pravilo uporabljajo pisalne operacije in izračun {@code canManage} v seznamu.
+ */
+final class MemberRules {
+
+    private MemberRules() {}
+
+    /** Ali sme klicatelj upravljati člana (meni dejanj): OWNER/ADMIN, strogo nižji cilj, nearhivirana skupina. */
+    static boolean canManage(Role caller, Role target, boolean archived) {
+<span class="fc bfc" id="L16" title="All 6 branches covered.">        return !archived &amp;&amp; caller.atLeast(Role.ADMIN) &amp;&amp; target.compareTo(caller) &lt; 0;</span>
+    }
+
+    /** Vloge, ki jih klicatelj sme dodeliti (strogo nižje od svoje, brez OWNER); od najvišje do najnižje. */
+    static List&lt;Role&gt; assignable(Role caller) {
+<span class="fc bfc" id="L21" title="All 2 branches covered.">        if (!caller.atLeast(Role.ADMIN)) {</span>
+<span class="fc" id="L22">            return List.of();</span>
+        }
+<span class="fc" id="L24">        return List.of(Role.values()).reversed().stream()</span>
+<span class="fc bfc" id="L25" title="All 4 branches covered.">                .filter(role -&gt; role != Role.OWNER &amp;&amp; role.compareTo(caller) &lt; 0)</span>
+<span class="fc" id="L26">                .toList();</span>
+    }
+
+    /** Ali sme klicatelj spremeniti vlogo cilja v novo vlogo. */
+    static boolean mayChange(Role caller, Role target, Role newRole) {
+<span class="fc bfc" id="L31" title="All 2 branches covered.">        return caller.atLeast(Role.ADMIN)</span>
+<span class="fc bfc" id="L32" title="All 2 branches covered.">                &amp;&amp; target.compareTo(caller) &lt; 0</span>
+<span class="fc bfc" id="L33" title="All 2 branches covered.">                &amp;&amp; assignable(caller).contains(newRole);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

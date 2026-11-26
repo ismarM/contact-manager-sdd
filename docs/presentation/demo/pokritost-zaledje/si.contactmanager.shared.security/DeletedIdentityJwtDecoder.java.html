@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DeletedIdentityJwtDecoder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.shared.security</a> &gt; <span class="el_source">DeletedIdentityJwtDecoder.java</span></div><h1>DeletedIdentityJwtDecoder.java</h1><pre class="source lang-java linenums">package si.contactmanager.shared.security;
+
+import org.springframework.security.oauth2.jwt.BadJwtException;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtException;
+
+/**
+ * Ovije {@link FirebaseJwtDecoder} (012, research R-08): po uspešnem preverjanju podpisa in zahtevkov zavrne žeton
+ * identitete, ki je na seznamu izbrisanih (nadgrobnik) → {@code 401 UNAUTHENTICATED} povsod, tudi pri {@code PUT /api/me}
+ * (FR-012-15, FR-012-18). Stanje je v bazi; ob izpadu baze zahtevek tako ali tako ne uspe.
+ */
+public final class DeletedIdentityJwtDecoder implements JwtDecoder {
+
+    private final JwtDecoder delegate;
+    private final RevokedIdentities revoked;
+
+<span class="fc" id="L18">    public DeletedIdentityJwtDecoder(JwtDecoder delegate, RevokedIdentities revoked) {</span>
+<span class="fc" id="L19">        this.delegate = delegate;</span>
+<span class="fc" id="L20">        this.revoked = revoked;</span>
+<span class="fc" id="L21">    }</span>
+
+    @Override
+    public Jwt decode(String token) throws JwtException {
+<span class="fc" id="L25">        Jwt jwt = delegate.decode(token);</span>
+<span class="fc bfc" id="L26" title="All 2 branches covered.">        if (revoked.contains(jwt.getSubject())) {</span>
+<span class="fc" id="L27">            throw new BadJwtException(&quot;identity deleted&quot;);</span>
+        }
+<span class="fc" id="L29">        return jwt;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

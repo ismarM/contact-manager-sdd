@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>IdentityDeletionProperties.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.account</a> &gt; <span class="el_source">IdentityDeletionProperties.java</span></div><h1>IdentityDeletionProperties.java</h1><pre class="source lang-java linenums">package si.contactmanager.account;
+
+import java.time.Duration;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+/**
+ * Nastavitve brisanja identitete pri ponudniku prijave (012, research R-07, R-16). Ob zagonu se zavrnejo nevarne
+ * vrednosti: hramba nadgrobnika pod 70 minut (ID žeton velja 1 h + 60 s zamika + rezerva) in zakup, ki ni daljši od
+ * vsote časovnih omejitev klica (opravilo bi lahko prevzelo vrstico, ki jo zahtevek še obdeluje).
+ */
+@ConfigurationProperties(&quot;identity-deletion&quot;)
+public record IdentityDeletionProperties(
+        boolean schedulerEnabled,
+        Duration interval,
+        Duration lease,
+        Duration requestTimeout,
+        Duration connectTimeout,
+        Duration tombstoneRetention) {
+
+<span class="fc" id="L20">    private static final Duration MINIMUM_RETENTION = Duration.ofMinutes(70);</span>
+
+<span class="fc" id="L22">    public IdentityDeletionProperties {</span>
+<span class="fc bfc" id="L23" title="All 2 branches covered.">        if (tombstoneRetention.compareTo(MINIMUM_RETENTION) &lt; 0) {</span>
+<span class="fc" id="L24">            throw new IllegalArgumentException(&quot;identity-deletion.tombstone-retention must be at least 70 minutes&quot;);</span>
+        }
+<span class="fc bfc" id="L26" title="All 2 branches covered.">        if (lease.compareTo(connectTimeout.plus(requestTimeout)) &lt;= 0) {</span>
+<span class="fc" id="L27">            throw new IllegalArgumentException(</span>
+                    &quot;identity-deletion.lease must be longer than connect-timeout + request-timeout&quot;);
+        }
+<span class="fc" id="L30">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

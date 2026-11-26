@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuditEntry.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.audit</a> &gt; <span class="el_source">AuditEntry.java</span></div><h1>AuditEntry.java</h1><pre class="source lang-java linenums">package si.contactmanager.audit;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import java.time.Instant;
+import java.util.UUID;
+import si.contactmanager.group.UserRef;
+
+/**
+ * Vnos revizijske sledi (contracts/openapi.yaml – AuditEntry). {@code actor == null}: izbrisan uporabnik. Polja
+ * {@code attributeKey}, {@code typeBefore} in {@code typeAfter} so zapolnjena samo pri {@code ATTRIBUTE_TYPE} (016).
+ * {@code apiKeyName}: ime API ključa, s katerim je bila sprememba narejena (019, FR-019-12), sicer {@code null}.
+ * {@code photoChange}: dejstvo spremembe slike kontakta (018), sicer {@code null}.
+ */
+<span class="fc" id="L14">public record AuditEntry(</span>
+        UUID id,
+        Instant createdAt,
+        UserRef actor,
+        AuditAction action,
+        int contactCount,
+        String contactName,
+        Target target,
+        boolean targetInitial,
+        @JsonInclude(JsonInclude.Include.NON_NULL) String attributeKey,
+        @JsonInclude(JsonInclude.Include.NON_NULL) String typeBefore,
+        @JsonInclude(JsonInclude.Include.NON_NULL) String typeAfter,
+        String apiKeyName,
+        PhotoChange photoChange) {
+
+    /** Ciljni vnos rollbacka na vnos. */
+<span class="fc" id="L30">    public record Target(UUID entryId, Instant createdAt) {}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

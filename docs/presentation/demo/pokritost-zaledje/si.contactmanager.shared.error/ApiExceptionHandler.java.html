@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ApiExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.shared.error</a> &gt; <span class="el_source">ApiExceptionHandler.java</span></div><h1>ApiExceptionHandler.java</h1><pre class="source lang-java linenums">package si.contactmanager.shared.error;
+
+import java.util.List;
+import java.util.Set;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
+
+/** Preslikava napak v odgovore API (feature-map.md §2.2). */
+@RestControllerAdvice
+<span class="fc" id="L17">class ApiExceptionHandler {</span>
+
+    @ExceptionHandler(ValidationException.class)
+    ResponseEntity&lt;ValidationError&gt; validation(ValidationException exception) {
+<span class="fc" id="L21">        return ResponseEntity.badRequest().body(ValidationError.of(exception.errors()));</span>
+    }
+
+    /** Datoteka uvoza nad 10 MB (014, FR-014-08): razčlenitev je lena, zato po preverjanju dostopa (§2.2). */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ResponseEntity&lt;ValidationError&gt; uploadTooLarge() {
+<span class="fc" id="L27">        return ResponseEntity.badRequest()</span>
+<span class="fc" id="L28">                .body(ValidationError.of(List.of(new ValidationError.FieldError(&quot;file&quot;, &quot;FILE_TOO_LARGE&quot;))));</span>
+    }
+
+    /** Neberljivo telo multipart (014): kot manjkajoča datoteka. */
+    @ExceptionHandler(MultipartException.class)
+    ResponseEntity&lt;ValidationError&gt; malformedMultipart() {
+<span class="fc" id="L34">        return ResponseEntity.badRequest()</span>
+<span class="fc" id="L35">                .body(ValidationError.of(List.of(new ValidationError.FieldError(&quot;file&quot;, &quot;REQUIRED&quot;))));</span>
+    }
+
+    /** Slike Google računa ni mogoče prevzeti (018, feature-map §2.10). */
+    @ExceptionHandler(GooglePhotoUnavailableException.class)
+    ResponseEntity&lt;ErrorResponse&gt; googlePhotoUnavailable() {
+<span class="fc" id="L41">        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(&quot;GOOGLE_PHOTO_UNAVAILABLE&quot;));</span>
+    }
+
+    /** Omejitev nalaganj slik ali zasedena obdelava (018, feature-map §2.10). */
+    @ExceptionHandler(RateLimitedException.class)
+    ResponseEntity&lt;ErrorResponse&gt; rateLimited() {
+<span class="fc" id="L47">        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(new ErrorResponse(&quot;RATE_LIMITED&quot;));</span>
+    }
+
+    /** E-naslov je že pri drugem Firebase UID (017, FR-017-11). */
+    @ExceptionHandler(AccountConflictException.class)
+    ResponseEntity&lt;ErrorResponse&gt; accountConflict() {
+<span class="fc" id="L53">        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(&quot;ACCOUNT_CONFLICT&quot;));</span>
+    }
+
+    /** Občutljiva operacija s prestarim {@code auth_time} (017, FR-017-12). */
+    @ExceptionHandler(ReauthenticationRequiredException.class)
+    ResponseEntity&lt;ErrorResponse&gt; reauthenticationRequired() {
+<span class="fc" id="L59">        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(&quot;REAUTHENTICATION_REQUIRED&quot;));</span>
+    }
+
+    /** Že 10 gesel za aplikacijo (014, FR-014-21). */
+    @ExceptionHandler(AppPasswordLimitException.class)
+    ResponseEntity&lt;ErrorResponse&gt; appPasswordLimit() {
+<span class="fc" id="L65">        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(&quot;APP_PASSWORD_LIMIT&quot;));</span>
+    }
+
+    /** Že 10 aktivnih API ključev (019, FR-019-01). */
+    @ExceptionHandler(ApiKeyLimitException.class)
+    ResponseEntity&lt;ErrorResponse&gt; apiKeyLimit() {
+<span class="fc" id="L71">        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(&quot;API_KEY_LIMIT&quot;));</span>
+    }
+
+    /** Množična operacija: napake zahtevka ali končnih stanj kontaktov (research R-06). */
+    @ExceptionHandler(BulkValidationException.class)
+    ResponseEntity&lt;BulkValidationError&gt; bulkValidation(BulkValidationException exception) {
+<span class="fc" id="L77">        return ResponseEntity.badRequest()</span>
+<span class="fc" id="L78">                .body(new BulkValidationError(</span>
+                        ValidationError.VALIDATION_FAILED,
+<span class="fc" id="L80">                        exception.errors(),</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">                        exception.contacts().isEmpty() ? null : exception.contacts()));</span>
+    }
+
+    /** Izbrani kontakti skupine, ki ne obstajajo več (FR-009-10, feature-map §2.10). */
+    @ExceptionHandler(SelectionChangedException.class)
+    ResponseEntity&lt;SelectionChanged&gt; selectionChanged(SelectionChangedException exception) {
+<span class="fc" id="L87">        return ResponseEntity.status(HttpStatus.CONFLICT)</span>
+<span class="fc" id="L88">                .body(new SelectionChanged(&quot;SELECTION_CHANGED&quot;, exception.missing()));</span>
+    }
+
+    /** Telo {@code 409 SELECTION_CHANGED}. */
+<span class="fc" id="L92">    record SelectionChanged(String code, java.util.List&lt;java.util.UUID&gt; missing) {}</span>
+
+    /** Noben izbrani kontakt ne obstaja več (010, FR-010-11). */
+    @ExceptionHandler(ExportEmptyException.class)
+    ResponseEntity&lt;ErrorResponse&gt; exportEmpty() {
+<span class="fc" id="L97">        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(&quot;EXPORT_EMPTY&quot;));</span>
+    }
+
+    /** Nečlan ali neobstoječ vir: 404 s praznim telesom, enako kot neobstoječa pot (feature-map §2.2, 002 R-01). */
+    @ExceptionHandler(NotFoundException.class)
+    ResponseEntity&lt;Void&gt; notMember() {
+<span class="fc" id="L103">        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();</span>
+    }
+
+    /** Vloga pod najnižjo dovoljeno (D-25). */
+    @ExceptionHandler(ForbiddenException.class)
+    ResponseEntity&lt;ErrorResponse&gt; forbidden() {
+<span class="fc" id="L109">        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(&quot;FORBIDDEN&quot;));</span>
+    }
+
+    /** Pisanje v arhivirani skupini (feature-map §2.4). */
+    @ExceptionHandler(GroupArchivedException.class)
+    ResponseEntity&lt;ErrorResponse&gt; groupArchived() {
+<span class="fc" id="L115">        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(&quot;GROUP_ARCHIVED&quot;));</span>
+    }
+
+    /** Rollback bi bil brez učinka (feature-map §2.10). */
+    @ExceptionHandler(RollbackNoChangesException.class)
+    ResponseEntity&lt;ErrorResponse&gt; rollbackNoChanges() {
+<span class="fc" id="L121">        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(&quot;ROLLBACK_NO_CHANGES&quot;));</span>
+    }
+
+    /** Obnova kontakta (015, feature-map §2.10). */
+    @ExceptionHandler(RestoreNoChangesException.class)
+    ResponseEntity&lt;ErrorResponse&gt; restoreNoChanges() {
+<span class="fc" id="L127">        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(&quot;RESTORE_NO_CHANGES&quot;));</span>
+    }
+
+    @ExceptionHandler(RestoreNotAllowedException.class)
+    ResponseEntity&lt;ErrorResponse&gt; restoreNotAllowed() {
+<span class="fc" id="L132">        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(&quot;RESTORE_NOT_ALLOWED&quot;));</span>
+    }
+
+    /** Odarhiviranje nearhivirane skupine (feature-map §2.10). */
+    @ExceptionHandler(GroupNotArchivedException.class)
+    ResponseEntity&lt;ErrorResponse&gt; groupNotArchived() {
+<span class="fc" id="L138">        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(&quot;GROUP_NOT_ARCHIVED&quot;));</span>
+    }
+
+    /** Izbris skupine z drugimi člani (feature-map §2.10). */
+    @ExceptionHandler(GroupHasOtherMembersException.class)
+    ResponseEntity&lt;ErrorResponse&gt; groupHasOtherMembers() {
+<span class="fc" id="L144">        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(&quot;GROUP_HAS_OTHER_MEMBERS&quot;));</span>
+    }
+
+    /** Povabila (006, feature-map §2.10): poslovna pravila pošiljanja in sprejema. */
+    @ExceptionHandler(CannotInviteSelfException.class)
+    ResponseEntity&lt;ErrorResponse&gt; cannotInviteSelf() {
+<span class="fc" id="L150">        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(&quot;CANNOT_INVITE_SELF&quot;));</span>
+    }
+
+    @ExceptionHandler(InviteeNotRegisteredException.class)
+    ResponseEntity&lt;ErrorResponse&gt; inviteeNotRegistered() {
+<span class="fc" id="L155">        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(&quot;INVITEE_NOT_REGISTERED&quot;));</span>
+    }
+
+    @ExceptionHandler(AlreadyMemberException.class)
+    ResponseEntity&lt;ErrorResponse&gt; alreadyMember() {
+<span class="fc" id="L160">        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(&quot;ALREADY_MEMBER&quot;));</span>
+    }
+
+    @ExceptionHandler(InvitationAlreadyPendingException.class)
+    ResponseEntity&lt;ErrorResponse&gt; invitationAlreadyPending() {
+<span class="fc" id="L165">        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(&quot;INVITATION_ALREADY_PENDING&quot;));</span>
+    }
+
+    @ExceptionHandler(OwnerCannotLeaveException.class)
+    ResponseEntity&lt;ErrorResponse&gt; ownerCannotLeave() {
+<span class="fc" id="L170">        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(&quot;OWNER_CANNOT_LEAVE&quot;));</span>
+    }
+
+    @ExceptionHandler(LastMemberCannotLeaveException.class)
+    ResponseEntity&lt;ErrorResponse&gt; lastMemberCannotLeave() {
+<span class="fc" id="L175">        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(&quot;LAST_MEMBER_CANNOT_LEAVE&quot;));</span>
+    }
+
+    @ExceptionHandler(TargetNotMemberException.class)
+    ResponseEntity&lt;ErrorResponse&gt; targetNotMember() {
+<span class="fc" id="L180">        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(&quot;TARGET_NOT_MEMBER&quot;));</span>
+    }
+
+    /** Optimistično zaklepanje (feature-map §2.3): trenutno stanje za razrešitev v vmesniku. */
+    @ExceptionHandler(VersionConflictException.class)
+    ResponseEntity&lt;VersionConflict&gt; versionConflict(VersionConflictException exception) {
+<span class="fc" id="L186">        return ResponseEntity.status(HttpStatus.CONFLICT).body(VersionConflict.of(exception.current()));</span>
+    }
+
+    /** Sprememba tipa ključa atributa z neveljavnimi vrednostmi (016, FR-016-05, feature-map §2.10). */
+    @ExceptionHandler(AttributeTypeConflictException.class)
+    ResponseEntity&lt;DetailedError&gt; attributeTypeConflict(AttributeTypeConflictException exception) {
+<span class="fc" id="L192">        return ResponseEntity.status(HttpStatus.CONFLICT)</span>
+<span class="fc" id="L193">                .body(new DetailedError(&quot;ATTRIBUTE_TYPE_CONFLICT&quot;, exception.details()));</span>
+    }
+
+    /** Kartografska storitev ni na voljo (016, FR-016-23): telo brez podatkov o naslovu. */
+    @ExceptionHandler(MapServiceUnavailableException.class)
+    ResponseEntity&lt;ErrorResponse&gt; mapServiceUnavailable() {
+<span class="fc" id="L199">        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(new ErrorResponse(&quot;MAP_SERVICE_UNAVAILABLE&quot;));</span>
+    }
+
+    /** Metoda za pot ne obstaja (npr. PUT/PATCH/DELETE vnosa sledi, FR-005-05): 405 s praznim telesom in glavo Allow. */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    ResponseEntity&lt;Void&gt; methodNotAllowed(HttpRequestMethodNotSupportedException exception) {
+<span class="fc" id="L205">        Set&lt;HttpMethod&gt; allowed = exception.getSupportedHttpMethods();</span>
+<span class="fc" id="L206">        ResponseEntity.BodyBuilder response = ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED);</span>
+<span class="pc bpc" id="L207" title="2 of 4 branches missed.">        if (allowed != null &amp;&amp; !allowed.isEmpty()) {</span>
+<span class="fc" id="L208">            response.allow(allowed.toArray(new HttpMethod[0]));</span>
+        }
+<span class="fc" id="L210">        return response.build();</span>
+    }
+
+    /** Neobstoječa pot z veljavnim žetonom: 404 s praznim telesom (research R-10). */
+    @ExceptionHandler(NoResourceFoundException.class)
+    ResponseEntity&lt;Void&gt; notFound() {
+<span class="fc" id="L216">        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

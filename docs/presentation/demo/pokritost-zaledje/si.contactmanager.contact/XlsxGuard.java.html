@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>XlsxGuard.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">XlsxGuard.java</span></div><h1>XlsxGuard.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Enumeration;
+import java.util.Locale;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+
+/**
+ * Zaščita pred zip-bombo pred branjem {@code .xlsx} (014 research R-01; fastexcel-reader je nima): največ
+ * {@value #MAX_ENTRIES} vnosov, vsota dejansko razširjenih bajtov največ {@value #MAX_UNCOMPRESSED} (štetje med
+ * branjem, glavi arhiva se ne zaupa), razmerje razširjeno : stisnjeno največ {@value #MAX_RATIO} nad 1 MB; arhiv mora
+ * vsebovati {@code xl/workbook.xml}; noben del ne sme vsebovati {@code &lt;!DOCTYPE} (XXE).
+ */
+final class XlsxGuard {
+
+    static final int MAX_ENTRIES = 500;
+
+    static final long MAX_UNCOMPRESSED = 100L * 1024 * 1024;
+
+    static final long MAX_RATIO = 100;
+
+    private static final long RATIO_FLOOR = 1024L * 1024;
+
+    /** Datoteka ni varna ali ni preglednica; {@code code} je koda napake polja {@code file}. */
+    static final class Rejected extends Exception {
+
+        private static final long serialVersionUID = 1L;
+
+        Rejected(String code) {
+<span class="fc" id="L35">            super(code);</span>
+<span class="fc" id="L36">        }</span>
+
+        String code() {
+<span class="fc" id="L39">            return getMessage();</span>
+        }
+    }
+
+    private XlsxGuard() {}
+
+    static void check(byte[] file) throws Rejected {
+<span class="pc bpc" id="L46" title="2 of 6 branches missed.">        if (file.length &lt; 4 || file[0] != 'P' || file[1] != 'K') {</span>
+<span class="fc" id="L47">            throw new Rejected(&quot;NOT_XLSX&quot;);</span>
+        }
+<span class="fc" id="L49">        int entries = 0;</span>
+<span class="fc" id="L50">        long total = 0;</span>
+<span class="fc" id="L51">        boolean workbook = false;</span>
+<span class="fc" id="L52">        byte[] buffer = new byte[64 * 1024];</span>
+        // ZipFile bere osrednji imenik (podpira opisnike podatkov, ki jih ZipInputStream pri xlsx ne zna); začasna
+        // datoteka se vedno izbriše.
+<span class="fc" id="L55">        Path temp = null;</span>
+        try {
+<span class="fc" id="L57">            temp = Files.createTempFile(&quot;uvoz-&quot;, &quot;.xlsx&quot;);</span>
+<span class="fc" id="L58">            Files.write(temp, file);</span>
+<span class="fc" id="L59">            try (ZipFile zip = new ZipFile(temp.toFile())) {</span>
+<span class="fc" id="L60">                Enumeration&lt;? extends ZipEntry&gt; all = zip.entries();</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">                while (all.hasMoreElements()) {</span>
+<span class="fc" id="L62">                    ZipEntry entry = all.nextElement();</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">                    if (++entries &gt; MAX_ENTRIES) {</span>
+<span class="fc" id="L64">                        throw new Rejected(&quot;NOT_XLSX&quot;);</span>
+                    }
+<span class="fc" id="L66">                    workbook |= entry.getName().equals(&quot;xl/workbook.xml&quot;);</span>
+<span class="fc" id="L67">                    try (InputStream in = zip.getInputStream(entry)) {</span>
+                        int read;
+<span class="fc" id="L69">                        String tail = &quot;&quot;;</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">                        while ((read = in.read(buffer)) &gt; 0) {</span>
+<span class="fc" id="L71">                            total += read;</span>
+                            // DTD v XML delih se zavrne (XXE in razširjanje entitet); preglednice ga ne potrebujejo.
+<span class="fc" id="L73">                            String chunk = tail + new String(buffer, 0, read, StandardCharsets.ISO_8859_1);</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">                            if (chunk.toUpperCase(Locale.ROOT).contains(&quot;&lt;!DOCTYPE&quot;)) {</span>
+<span class="fc" id="L75">                                throw new Rejected(&quot;NOT_XLSX&quot;);</span>
+                            }
+<span class="fc" id="L77">                            tail = chunk.substring(Math.max(0, chunk.length() - 9));</span>
+<span class="pc bpc" id="L78" title="1 of 6 branches missed.">                            if (total &gt; MAX_UNCOMPRESSED || (total &gt; RATIO_FLOOR &amp;&amp; total / file.length &gt; MAX_RATIO)) {</span>
+<span class="fc" id="L79">                                throw new Rejected(&quot;NOT_XLSX&quot;);</span>
+                            }
+<span class="fc" id="L81">                        }</span>
+                    }
+<span class="fc" id="L83">                }</span>
+            }
+<span class="nc" id="L85">        } catch (IOException e) {</span>
+<span class="nc" id="L86">            throw new Rejected(&quot;NOT_XLSX&quot;);</span>
+        } finally {
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">            if (temp != null) {</span>
+                try {
+<span class="fc" id="L90">                    Files.deleteIfExists(temp);</span>
+<span class="nc" id="L91">                } catch (IOException e) {</span>
+<span class="nc" id="L92">                    temp.toFile().deleteOnExit();</span>
+<span class="fc" id="L93">                }</span>
+            }
+        }
+<span class="fc bfc" id="L96" title="All 2 branches covered.">        if (!workbook) {</span>
+<span class="fc" id="L97">            throw new Rejected(&quot;NOT_XLSX&quot;);</span>
+        }
+<span class="fc" id="L99">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

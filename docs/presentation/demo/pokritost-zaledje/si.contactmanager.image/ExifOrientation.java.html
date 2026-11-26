@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExifOrientation.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.image</a> &gt; <span class="el_source">ExifOrientation.java</span></div><h1>ExifOrientation.java</h1><pre class="source lang-java linenums">package si.contactmanager.image;
+
+/**
+ * Najmanjši razčlenjevalnik EXIF (research R-04): samo oznaka orientacije 0x0112 iz segmenta APP1 v prvih 64 KB
+ * JPEG-a, obe vrstni redi bajtov. Vse neveljavno ali manjkajoče pomeni orientacijo 1; izjeme ne uhajajo.
+ */
+final class ExifOrientation {
+
+    private static final int SCAN_LIMIT = 64 * 1024;
+    private static final int TAG_ORIENTATION = 0x0112;
+
+    private ExifOrientation() {}
+
+    /** Orientacija 1–8 (1 = brez spremembe). */
+    static int read(byte[] jpeg) {
+        try {
+<span class="fc" id="L17">            return parse(jpeg);</span>
+<span class="nc" id="L18">        } catch (RuntimeException e) {</span>
+<span class="nc" id="L19">            return 1;</span>
+        }
+    }
+
+    private static int parse(byte[] data) {
+<span class="fc" id="L24">        int limit = Math.min(data.length, SCAN_LIMIT);</span>
+<span class="pc bpc" id="L25" title="1 of 6 branches missed.">        if (limit &lt; 4 || u8(data, 0) != 0xFF || u8(data, 1) != 0xD8) {</span>
+<span class="fc" id="L26">            return 1;</span>
+        }
+<span class="fc" id="L28">        int pos = 2;</span>
+<span class="fc bfc" id="L29" title="All 2 branches covered.">        while (pos + 4 &lt;= limit) {</span>
+<span class="pc bpc" id="L30" title="1 of 2 branches missed.">            if (u8(data, pos) != 0xFF) {</span>
+<span class="nc" id="L31">                return 1;</span>
+            }
+<span class="fc" id="L33">            int marker = u8(data, pos + 1);</span>
+<span class="pc bpc" id="L34" title="1 of 2 branches missed.">            if (marker == 0xFF) {</span>
+<span class="nc" id="L35">                pos++; // polnilni bajt</span>
+<span class="nc" id="L36">                continue;</span>
+            }
+<span class="pc bpc" id="L38" title="1 of 4 branches missed.">            if (marker == 0xDA || marker == 0xD9) {</span>
+<span class="fc" id="L39">                return 1; // začetek podatkov slike: APP1 ni bil najden</span>
+            }
+<span class="fc" id="L41">            int length = (u8(data, pos + 2) &lt;&lt; 8) | u8(data, pos + 3);</span>
+<span class="fc bfc" id="L42" title="All 2 branches covered.">            if (length &lt; 2) {</span>
+<span class="fc" id="L43">                return 1;</span>
+            }
+<span class="fc" id="L45">            int start = pos + 4;</span>
+<span class="fc" id="L46">            int end = pos + 2 + length;</span>
+<span class="fc bfc" id="L47" title="All 6 branches covered.">            if (marker == 0xE1 &amp;&amp; end &lt;= limit &amp;&amp; isExif(data, start, end)) {</span>
+<span class="fc" id="L48">                int result = orientationIn(data, start + 6, end);</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">                if (result != 0) {</span>
+<span class="fc" id="L50">                    return result;</span>
+                }
+            }
+<span class="fc" id="L53">            pos = end;</span>
+<span class="fc" id="L54">        }</span>
+<span class="fc" id="L55">        return 1;</span>
+    }
+
+    private static boolean isExif(byte[] d, int start, int end) {
+<span class="fc bfc" id="L59" title="All 14 branches covered.">        return end - start &gt;= 14</span>
+                &amp;&amp; d[start] == 'E'
+                &amp;&amp; d[start + 1] == 'x'
+                &amp;&amp; d[start + 2] == 'i'
+                &amp;&amp; d[start + 3] == 'f'
+                &amp;&amp; d[start + 4] == 0
+                &amp;&amp; d[start + 5] == 0;
+    }
+
+    /** Orientacija iz glave TIFF v {@code [tiff, end)}; 0 = ni veljavne vrednosti. */
+    private static int orientationIn(byte[] d, int tiff, int end) {
+        boolean little;
+<span class="pc bpc" id="L71" title="1 of 4 branches missed.">        if (d[tiff] == 'I' &amp;&amp; d[tiff + 1] == 'I') {</span>
+<span class="fc" id="L72">            little = true;</span>
+<span class="fc bfc" id="L73" title="All 4 branches covered.">        } else if (d[tiff] == 'M' &amp;&amp; d[tiff + 1] == 'M') {</span>
+<span class="fc" id="L74">            little = false;</span>
+        } else {
+<span class="fc" id="L76">            return 0;</span>
+        }
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        if (u16(d, tiff + 2, little) != 0x002A) {</span>
+<span class="fc" id="L79">            return 0;</span>
+        }
+<span class="fc" id="L81">        long ifd = tiff + u32(d, tiff + 4, little);</span>
+<span class="pc bpc" id="L82" title="1 of 4 branches missed.">        if (ifd &lt; tiff || ifd + 2 &gt; end) {</span>
+<span class="fc" id="L83">            return 0;</span>
+        }
+<span class="fc" id="L85">        int count = u16(d, (int) ifd, little);</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        for (int i = 0; i &lt; count; i++) {</span>
+<span class="fc" id="L87">            long entry = ifd + 2 + 12L * i;</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">            if (entry + 12 &gt; end) {</span>
+<span class="fc" id="L89">                return 0;</span>
+            }
+<span class="fc bfc" id="L91" title="All 2 branches covered.">            if (u16(d, (int) entry, little) == TAG_ORIENTATION) {</span>
+<span class="fc" id="L92">                int type = u16(d, (int) entry + 2, little);</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">                if (type != 3) {</span>
+<span class="fc" id="L94">                    return 0;</span>
+                }
+<span class="fc" id="L96">                int value = u16(d, (int) entry + 8, little);</span>
+<span class="fc bfc" id="L97" title="All 4 branches covered.">                return value &gt;= 1 &amp;&amp; value &lt;= 8 ? value : 0;</span>
+            }
+        }
+<span class="fc" id="L100">        return 0;</span>
+    }
+
+    private static int u8(byte[] d, int i) {
+<span class="fc" id="L104">        return d[i] &amp; 0xFF;</span>
+    }
+
+    private static int u16(byte[] d, int i, boolean little) {
+<span class="fc bfc" id="L108" title="All 2 branches covered.">        return little ? u8(d, i) | (u8(d, i + 1) &lt;&lt; 8) : (u8(d, i) &lt;&lt; 8) | u8(d, i + 1);</span>
+    }
+
+    private static long u32(byte[] d, int i, boolean little) {
+<span class="fc" id="L112">        long a = u16(d, i, little);</span>
+<span class="fc" id="L113">        long b = u16(d, i + 2, little);</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">        return little ? a | (b &lt;&lt; 16) : (a &lt;&lt; 16) | b;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

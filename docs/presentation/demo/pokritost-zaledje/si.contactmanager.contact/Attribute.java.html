@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Attribute.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">Attribute.java</span></div><h1>Attribute.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+/**
+ * Dodatni atribut s tipom (contracts/openapi.yaml – Attribute, 016). Natanko eno od {@code value} in {@code parts}:
+ * {@code parts} samo pri razčlenjenem naslovu ({@code ADDRESS}). {@code type == null} (stari posnetki sledi pred 016)
+ * pomeni {@code OTHER}. Tip je lastnost ključa v skupini; v posnetku je shranjen za prikaz in rollback.
+ */
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record Attribute(String key, AttributeType type, String value, Address parts) {
+
+<span class="fc" id="L13">    public Attribute {</span>
+<span class="fc bfc" id="L14" title="All 2 branches covered.">        type = type == null ? AttributeType.OTHER : type;</span>
+<span class="fc" id="L15">    }</span>
+
+    /** Besedilni atribut tipa {@code OTHER} (pred 016 edina oblika). */
+    public Attribute(String key, String value) {
+<span class="fc" id="L19">        this(key, AttributeType.OTHER, value, null);</span>
+<span class="fc" id="L20">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

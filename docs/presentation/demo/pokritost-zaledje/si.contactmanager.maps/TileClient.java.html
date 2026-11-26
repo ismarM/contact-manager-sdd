@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TileClient.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.maps</a> &gt; <span class="el_source">TileClient.java</span></div><h1>TileClient.java</h1><pre class="source lang-java linenums">package si.contactmanager.maps;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import si.contactmanager.shared.error.MapServiceUnavailableException;
+
+/**
+ * Ploščice podlage zemljevida prek našega strežnika (016, FR-016-21, FR-016-23; research R-08, R-09): brskalnik nikoli
+ * ne kliče strežnika ploščic. Storitev prejme samo koordinate ploščice (brez podatkov uporabnika, piškotkov in {@code
+ * Referer}). Predpomnilnik v pomnilniku do {@code maxCacheBytes}, življenjska doba po {@code max-age} storitve (največ
+ * {@code tiles.maxAge}); omejitev na uporabnika (vsaka zahteva) in globalno (samo klici storitve). Napaka, časovna
+ * omejitev, omejitev ali izklop → {@link MapServiceUnavailableException}.
+ */
+@Component
+public class TileClient {
+
+<span class="fc" id="L28">    private static final Logger LOG = LoggerFactory.getLogger(TileClient.class);</span>
+
+    /** Največja povečava ploščic OSM. */
+    static final int MAX_ZOOM = 19;
+
+    /** Ploščica PNG največ 1 MB; večji odgovor ni ploščica. */
+    private static final int MAX_TILE_BYTES = 1 &lt;&lt; 20;
+
+<span class="fc" id="L36">    private static final Pattern MAX_AGE = Pattern.compile(&quot;max-age\\s*=\\s*(\\d+)&quot;);</span>
+
+    /** Ploščica in trenutek, ko poteče v predpomnilniku (za {@code Cache-Control} odgovora). */
+<span class="fc" id="L39">    public record Tile(byte[] body, long expiresAtMillis) {</span>
+
+        /** Preostala življenjska doba v sekundah (vsaj 0). */
+        public long maxAgeSeconds(long nowMillis) {
+<span class="fc" id="L43">            return Math.max(0, (expiresAtMillis - nowMillis) / 1000);</span>
+        }
+    }
+
+    private final MapsProperties properties;
+    private final HttpClient http;
+    private final BoundedCache&lt;String, Tile&gt; cache;
+    private final RateLimiter global;
+    private final RateLimiter.Keyed&lt;String&gt; perUser;
+
+    @Autowired
+    public TileClient(MapsProperties properties) {
+<span class="fc" id="L55">        this(</span>
+                properties,
+<span class="fc" id="L57">                HttpClient.newBuilder()</span>
+<span class="fc" id="L58">                        .connectTimeout(properties.connectTimeout())</span>
+<span class="fc" id="L59">                        .followRedirects(HttpClient.Redirect.NEVER)</span>
+<span class="fc" id="L60">                        .build());</span>
+<span class="fc" id="L61">    }</span>
+
+<span class="fc" id="L63">    TileClient(MapsProperties properties, HttpClient http) {</span>
+<span class="fc" id="L64">        this.properties = properties;</span>
+<span class="fc" id="L65">        this.http = http;</span>
+<span class="fc" id="L66">        this.cache = new BoundedCache&lt;&gt;(</span>
+                100_000,
+<span class="fc" id="L68">                properties.tiles().maxCacheBytes(),</span>
+<span class="fc" id="L69">                tile -&gt; tile.body().length,</span>
+<span class="fc" id="L70">                properties.tiles().maxAge(),</span>
+                System::nanoTime);
+<span class="fc" id="L72">        this.global = new RateLimiter(properties.limits().tilesPerSecond(), Duration.ofSeconds(1));</span>
+<span class="fc" id="L73">        this.perUser = new RateLimiter.Keyed&lt;&gt;(</span>
+<span class="fc" id="L74">                properties.limits().tilesPerUserPerWindow(), properties.limits().tilesWindow());</span>
+<span class="fc" id="L75">    }</span>
+
+    /** Ali so koordinate veljavne ploščice: {@code 0 ≤ z ≤ 19}, {@code 0 ≤ x, y &lt; 2^z}. */
+    static boolean valid(int z, int x, int y) {
+<span class="fc bfc" id="L79" title="All 4 branches covered.">        if (z &lt; 0 || z &gt; MAX_ZOOM) {</span>
+<span class="fc" id="L80">            return false;</span>
+        }
+<span class="fc" id="L82">        int size = 1 &lt;&lt; z;</span>
+<span class="pc bpc" id="L83" title="1 of 8 branches missed.">        return x &gt;= 0 &amp;&amp; x &lt; size &amp;&amp; y &gt;= 0 &amp;&amp; y &lt; size;</span>
+    }
+
+    /** Ploščica {@code z/x/y} (že preverjena) za uporabnika {@code user}. */
+    public Tile tile(String user, int z, int x, int y) {
+<span class="pc bpc" id="L88" title="1 of 4 branches missed.">        if (!properties.enabled() || !perUser.tryAcquire(user)) {</span>
+<span class="fc" id="L89">            throw new MapServiceUnavailableException();</span>
+        }
+<span class="fc" id="L91">        String key = z + &quot;/&quot; + x + &quot;/&quot; + y;</span>
+<span class="fc" id="L92">        Optional&lt;Tile&gt; cached = cache.get(key);</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">        if (cached.isPresent()) {</span>
+<span class="fc" id="L94">            return cached.get();</span>
+        }
+<span class="pc bpc" id="L96" title="1 of 2 branches missed.">        if (!global.tryAcquire()) {</span>
+<span class="nc" id="L97">            throw new MapServiceUnavailableException();</span>
+        }
+<span class="fc" id="L99">        HttpResponse&lt;byte[]&gt; response = fetch(z, x, y);</span>
+<span class="fc" id="L100">        byte[] body = response.body();</span>
+<span class="fc" id="L101">        String type = response.headers().firstValue(&quot;Content-Type&quot;).orElse(&quot;&quot;);</span>
+<span class="pc bpc" id="L102" title="3 of 8 branches missed.">        if (body == null || body.length == 0 || body.length &gt; MAX_TILE_BYTES || !type.startsWith(&quot;image/png&quot;)) {</span>
+<span class="fc" id="L103">            LOG.warn(&quot;Ploščice: neveljaven odgovor storitve&quot;);</span>
+<span class="fc" id="L104">            throw new MapServiceUnavailableException();</span>
+        }
+<span class="fc" id="L106">        Duration ttl = ttl(response.headers().firstValue(&quot;Cache-Control&quot;).orElse(null));</span>
+<span class="fc" id="L107">        Tile tile = new Tile(body, System.currentTimeMillis() + ttl.toMillis());</span>
+<span class="fc" id="L108">        cache.put(key, tile, ttl);</span>
+<span class="fc" id="L109">        return tile;</span>
+    }
+
+    /** {@code max-age} storitve, omejen na {@code tiles.maxAge}; brez njega največja dovoljena doba. */
+    Duration ttl(String cacheControl) {
+<span class="fc" id="L114">        Duration max = properties.tiles().maxAge();</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">        if (cacheControl == null) {</span>
+<span class="fc" id="L116">            return max;</span>
+        }
+<span class="fc" id="L118">        Matcher m = MAX_AGE.matcher(cacheControl);</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">        if (!m.find()) {</span>
+<span class="fc" id="L120">            return max;</span>
+        }
+        try {
+<span class="fc" id="L123">            Duration age = Duration.ofSeconds(Long.parseLong(m.group(1)));</span>
+<span class="fc bfc" id="L124" title="All 4 branches covered.">            return age.isZero() ? Duration.ofSeconds(1) : age.compareTo(max) &gt; 0 ? max : age;</span>
+<span class="nc" id="L125">        } catch (NumberFormatException e) {</span>
+<span class="nc" id="L126">            return max;</span>
+        }
+    }
+
+    private HttpResponse&lt;byte[]&gt; fetch(int z, int x, int y) {
+<span class="fc" id="L131">        URI uri = URI.create(properties</span>
+<span class="fc" id="L132">                .tileUrl()</span>
+<span class="fc" id="L133">                .replace(&quot;{z}&quot;, Integer.toString(z))</span>
+<span class="fc" id="L134">                .replace(&quot;{x}&quot;, Integer.toString(x))</span>
+<span class="fc" id="L135">                .replace(&quot;{y}&quot;, Integer.toString(y)));</span>
+<span class="fc" id="L136">        HttpRequest request = HttpRequest.newBuilder(uri)</span>
+<span class="fc" id="L137">                .timeout(properties.readTimeout())</span>
+<span class="fc" id="L138">                .header(&quot;User-Agent&quot;, properties.userAgent())</span>
+<span class="fc" id="L139">                .header(&quot;Accept&quot;, &quot;image/png&quot;)</span>
+<span class="fc" id="L140">                .GET()</span>
+<span class="fc" id="L141">                .build();</span>
+        try {
+<span class="fc" id="L143">            HttpResponse&lt;byte[]&gt; response = http.send(request, HttpResponse.BodyHandlers.ofByteArray());</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">            if (response.statusCode() != 200) {</span>
+<span class="fc" id="L145">                LOG.warn(&quot;Ploščice: storitev je vrnila stanje {}&quot;, response.statusCode());</span>
+<span class="fc" id="L146">                throw new MapServiceUnavailableException();</span>
+            }
+<span class="fc" id="L148">            return response;</span>
+<span class="fc" id="L149">        } catch (IOException e) {</span>
+<span class="fc" id="L150">            LOG.warn(&quot;Ploščice: storitev ni dosegljiva ({})&quot;, e.getClass().getSimpleName());</span>
+<span class="fc" id="L151">            throw new MapServiceUnavailableException();</span>
+<span class="nc" id="L152">        } catch (InterruptedException e) {</span>
+<span class="nc" id="L153">            Thread.currentThread().interrupt();</span>
+<span class="nc" id="L154">            throw new MapServiceUnavailableException();</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

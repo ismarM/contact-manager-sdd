@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EmailVerifiedFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.shared.security</a> &gt; <span class="el_source">EmailVerifiedFilter.java</span></div><h1>EmailVerifiedFilter.java</h1><pre class="source lang-java linenums">package si.contactmanager.shared.security;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.web.filter.OncePerRequestFilter;
+import si.contactmanager.shared.error.ErrorResponse;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * Potrjen e-naslov je pogoj za ves API (FR-017-02, FR-017-04, research R-01). Teče za
+ * {@code BearerTokenAuthenticationFilter}: veljaven žeton brez {@code email_verified=true} dobi {@code 403
+ * EMAIL_NOT_VERIFIED}, preden zahtevek doseže kontroler – tudi {@code PUT /api/me}, zato profil pred potrditvijo ne
+ * nastane. Neveljaven ali manjkajoč žeton ostane 401 (filter ga ne vidi). Izjema je javni {@code GET /api/health};
+ * {@code /dav/**} ima svojo verigo (gesla za aplikacijo, 014) in ga filter ne zadeva.
+ */
+public final class EmailVerifiedFilter extends OncePerRequestFilter {
+
+    static final String CLAIM = &quot;email_verified&quot;;
+<span class="fc" id="L29">    private static final ErrorResponse EMAIL_NOT_VERIFIED = new ErrorResponse(&quot;EMAIL_NOT_VERIFIED&quot;);</span>
+<span class="fc" id="L30">    private static final RequestMatcher HEALTH =</span>
+<span class="fc" id="L31">            PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.GET, &quot;/api/health&quot;);</span>
+
+    private final JsonMapper json;
+
+<span class="fc" id="L35">    public EmailVerifiedFilter(JsonMapper json) {</span>
+<span class="fc" id="L36">        this.json = json;</span>
+<span class="fc" id="L37">    }</span>
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+            throws ServletException, IOException {
+<span class="fc" id="L42">        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="fc bfc" id="L43" title="All 2 branches covered.">        if (authentication != null</span>
+<span class="fc bfc" id="L44" title="All 2 branches covered.">                &amp;&amp; authentication.getPrincipal() instanceof Jwt jwt</span>
+<span class="fc bfc" id="L45" title="All 2 branches covered.">                &amp;&amp; !isVerified(jwt)</span>
+<span class="fc bfc" id="L46" title="All 2 branches covered.">                &amp;&amp; !HEALTH.matches(request)) {</span>
+<span class="fc" id="L47">            response.setStatus(HttpServletResponse.SC_FORBIDDEN);</span>
+<span class="fc" id="L48">            response.setContentType(MediaType.APPLICATION_JSON_VALUE);</span>
+<span class="fc" id="L49">            json.writeValue(response.getWriter(), EMAIL_NOT_VERIFIED);</span>
+<span class="fc" id="L50">            return;</span>
+        }
+<span class="fc" id="L52">        chain.doFilter(request, response);</span>
+<span class="fc" id="L53">    }</span>
+
+    /** Samo logična vrednost {@code true}; manjkajoč zahtevek, {@code false} ali niz ni potrditev. */
+    static boolean isVerified(Jwt jwt) {
+<span class="fc" id="L57">        return Boolean.TRUE.equals(jwt.getClaims().get(CLAIM));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

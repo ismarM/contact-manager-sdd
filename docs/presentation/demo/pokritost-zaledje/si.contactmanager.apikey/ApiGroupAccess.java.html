@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ApiGroupAccess.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.apikey</a> &gt; <span class="el_source">ApiGroupAccess.java</span></div><h1>ApiGroupAccess.java</h1><pre class="source lang-java linenums">package si.contactmanager.apikey;
+
+import org.springframework.stereotype.Component;
+import si.contactmanager.group.GroupAccess;
+import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.group.Role;
+import si.contactmanager.shared.error.ForbiddenException;
+import si.contactmanager.shared.error.GroupArchivedException;
+import si.contactmanager.shared.error.NotFoundException;
+import si.contactmanager.shared.security.ApiKeyPrincipal;
+import si.contactmanager.shared.security.ApiKeyPrincipal.Permission;
+
+/**
+ * Dostop do skupine prek API ključa (019, research R-03; FR-019-07, -09, -13). Vrstni red: nečlan 404 → skupina izven
+ * obsega ključa 404 → učinkovita vloga = min(trenutna vloga, kapica ključa) pod {@code lowest} 403 → pisanje v
+ * arhivirani skupini 409. Vrne članstvo z &lt;b&gt;učinkovito&lt;/b&gt; vlogo, zato storitve domene ostanejo nespremenjene.
+ */
+@Component
+public class ApiGroupAccess {
+
+    private final GroupAccess groups;
+
+<span class="fc" id="L23">    ApiGroupAccess(GroupAccess groups) {</span>
+<span class="fc" id="L24">        this.groups = groups;</span>
+<span class="fc" id="L25">    }</span>
+
+    public Membership require(ApiKeyPrincipal principal, String groupId, Role lowest, boolean write) {
+<span class="fc" id="L28">        Membership membership = groups.membership(principal.userId(), groupId);</span>
+<span class="fc" id="L29">        Permission permission =</span>
+<span class="fc" id="L30">                principal.scope().permission(membership.groupId()).orElseThrow(NotFoundException::new);</span>
+<span class="fc" id="L31">        Role effective = effectiveRole(membership.role(), permission);</span>
+<span class="fc bfc" id="L32" title="All 2 branches covered.">        if (!effective.atLeast(lowest)) {</span>
+<span class="fc" id="L33">            throw new ForbiddenException();</span>
+        }
+<span class="fc bfc" id="L35" title="All 4 branches covered.">        if (write &amp;&amp; membership.archived()) {</span>
+<span class="fc" id="L36">            throw new GroupArchivedException();</span>
+        }
+<span class="fc" id="L38">        return new Membership(</span>
+<span class="fc" id="L39">                membership.groupId(),</span>
+<span class="fc" id="L40">                membership.userId(),</span>
+                effective,
+<span class="fc" id="L42">                membership.archived(),</span>
+<span class="fc" id="L43">                membership.permanentlyArchived());</span>
+    }
+
+    /** Ključ nikoli ne da več pravic, kot jih ima uporabnik: {@code READ} omeji vlogo na VIEWER. */
+    static Role effectiveRole(Role role, Permission permission) {
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        return permission == Permission.READ ? Role.VIEWER : role;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

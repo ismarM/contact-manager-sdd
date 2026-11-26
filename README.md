@@ -81,6 +81,7 @@ Protect `main` manually in GitHub: *Settings → Branches → Branch protection*
 - [AI log](docs/ai-log/) – one entry per AI session and token usage (`node scripts/token-report.mjs`)
 - [Original documentation](docs/original_documentation/) – historical, not maintained
 - [Presentation](docs/presentation/) – screenshots at 1280/768/360 px (`screenshots/`) and one image per screen (`merged/`); retake with `cd e2e; npx playwright test -c screenshots.config.ts` against the seeded demo stack
+- [Demo](docs/presentation/demo/) – architecture and quality-gate diagrams, E2E videos, test and coverage reports, a deliberately introduced bug caught by the tests
 - [docker/](docker/) – files the Compose stacks use: Firebase Auth Emulator image (`firebase-emulator.Dockerfile`, `firebase.json`), `Caddyfile` for HTTPS with real Firebase, demo data (`demo-seed.mjs`)
 
 ## Working on a change

@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PostgresImageStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.image</a> &gt; <span class="el_source">PostgresImageStore.java</span></div><h1>PostgresImageStore.java</h1><pre class="source lang-java linenums">package si.contactmanager.image;
+
+import java.sql.ResultSet;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Stream;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * {@link ImageStore} v tabelah {@code image} in {@code image_variant} (data-model.md). Pogoj lastnika vedno vsebuje
+ * {@code user_id} oziroma {@code group_id}; slika izbrisanega (odklopljenega) kontakta se ne bere.
+ */
+@Repository
+class PostgresImageStore implements ImageStore {
+
+    private static final String UPSERT_TAIL =
+            &quot; DO UPDATE SET revision = image.revision + 1, updated_at = now()&quot; + &quot; RETURNING id, revision&quot;;
+
+    private final JdbcClient jdbc;
+
+<span class="fc" id="L27">    PostgresImageStore(JdbcClient jdbc) {</span>
+<span class="fc" id="L28">        this.jdbc = jdbc;</span>
+<span class="fc" id="L29">    }</span>
+
+<span class="fc" id="L31">    private record Saved(UUID id, long revision) {}</span>
+
+    @Override
+    @Transactional
+    public long put(Owner owner, ProcessedImage image) {
+<span class="fc bfc" id="L36" title="All 3 branches covered.">        JdbcClient.StatementSpec upsert = switch (owner.kind()) {</span>
+            case USER -&gt;
+<span class="fc" id="L38">                jdbc.sql(&quot;INSERT INTO image (kind, user_id) VALUES ('USER', :user)&quot;</span>
+                                + &quot; ON CONFLICT (user_id) WHERE kind = 'USER'&quot; + UPSERT_TAIL)
+<span class="fc" id="L40">                        .param(&quot;user&quot;, owner.userId());</span>
+            case GROUP -&gt;
+<span class="fc" id="L42">                jdbc.sql(&quot;INSERT INTO image (kind, group_id) VALUES ('GROUP', :group)&quot;</span>
+                                + &quot; ON CONFLICT (group_id) WHERE kind = 'GROUP'&quot; + UPSERT_TAIL)
+<span class="fc" id="L44">                        .param(&quot;group&quot;, owner.groupId());</span>
+            case CONTACT -&gt;
+<span class="fc" id="L46">                jdbc.sql(&quot;INSERT INTO image (kind, group_id, contact_id) VALUES ('CONTACT', :group, :contact)&quot;</span>
+                                + &quot; ON CONFLICT (group_id, contact_id) WHERE kind = 'CONTACT'&quot; + UPSERT_TAIL)
+<span class="fc" id="L48">                        .param(&quot;group&quot;, owner.groupId())</span>
+<span class="fc" id="L49">                        .param(&quot;contact&quot;, owner.contactId());</span>
+        };
+        // Vrstica je zaklenjena do konca transakcije: sočasni zamenjavi se izvedeta druga za drugo.
+<span class="fc" id="L52">        Saved saved = upsert.query((rs, n) -&gt; new Saved(rs.getObject(&quot;id&quot;, UUID.class), rs.getLong(&quot;revision&quot;)))</span>
+<span class="fc" id="L53">                .single();</span>
+<span class="fc" id="L54">        jdbc.sql(&quot;DELETE FROM image_variant WHERE image_id = :id&quot;)</span>
+<span class="fc" id="L55">                .param(&quot;id&quot;, saved.id())</span>
+<span class="fc" id="L56">                .update();</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">        for (ProcessedImage.Variant variant : image.variants()) {</span>
+<span class="fc" id="L58">            jdbc.sql(&quot;INSERT INTO image_variant (image_id, size, content_type, data)&quot;</span>
+                            + &quot; VALUES (:id, :size, :type, :data)&quot;)
+<span class="fc" id="L60">                    .param(&quot;id&quot;, saved.id())</span>
+<span class="fc" id="L61">                    .param(&quot;size&quot;, (short) variant.size())</span>
+<span class="fc" id="L62">                    .param(&quot;type&quot;, variant.contentType())</span>
+<span class="fc" id="L63">                    .param(&quot;data&quot;, variant.data())</span>
+<span class="fc" id="L64">                    .update();</span>
+<span class="fc" id="L65">        }</span>
+<span class="fc" id="L66">        return saved.revision();</span>
+    }
+
+    @Override
+    public Optional&lt;StoredImage&gt; get(Owner owner, int size) {
+<span class="fc" id="L71">        return bind(</span>
+<span class="fc" id="L72">                        jdbc.sql(&quot;SELECT i.revision, v.size, v.content_type, v.data FROM image i&quot;</span>
+<span class="fc" id="L73">                                + &quot; JOIN image_variant v ON v.image_id = i.id WHERE &quot; + ownerWhere(owner)</span>
+                                + &quot; AND v.size = (SELECT max(m.size) FROM image_variant m&quot;
+                                + &quot; WHERE m.image_id = i.id AND m.size &lt;= :size)&quot;),
+                        owner)
+<span class="fc" id="L77">                .param(&quot;size&quot;, (short) size)</span>
+<span class="fc" id="L78">                .query((rs, n) -&gt; new StoredImage(</span>
+<span class="fc" id="L79">                        rs.getLong(&quot;revision&quot;), rs.getInt(&quot;size&quot;), rs.getString(&quot;content_type&quot;), rs.getBytes(&quot;data&quot;)))</span>
+<span class="fc" id="L80">                .optional();</span>
+    }
+
+    @Override
+    public Optional&lt;Long&gt; revision(Owner owner) {
+<span class="fc" id="L85">        return bind(jdbc.sql(&quot;SELECT i.revision FROM image i WHERE &quot; + ownerWhere(owner)), owner)</span>
+<span class="fc" id="L86">                .query(Long.class)</span>
+<span class="fc" id="L87">                .optional();</span>
+    }
+
+    @Override
+    @Transactional
+    public boolean delete(Owner owner) {
+        // Tudi odklopljena slika kontakta se izbriše (npr. ob združevanju); pogoj ostane vezan na skupino.
+<span class="fc" id="L94">        return bind(jdbc.sql(&quot;DELETE FROM image i WHERE &quot; + ownerWhereAnyState(owner)), owner)</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">                        .update()</span>
+                &gt; 0;
+    }
+
+    @Override
+    @Transactional
+    public void reassign(Owner from, Owner to) {
+<span class="pc bpc" id="L102" title="2 of 4 branches missed.">        if (from.kind() != Owner.Kind.CONTACT || to.kind() != Owner.Kind.CONTACT) {</span>
+<span class="nc" id="L103">            throw new IllegalArgumentException(&quot;preusmeritev je mogoča samo med kontakti&quot;);</span>
+        }
+<span class="fc" id="L105">        jdbc.sql(&quot;UPDATE image SET contact_id = :to, revision = revision + 1, updated_at = now()&quot;</span>
+                        + &quot; WHERE kind = 'CONTACT' AND group_id = :group AND contact_id = :from&quot;)
+<span class="fc" id="L107">                .param(&quot;to&quot;, to.contactId())</span>
+<span class="fc" id="L108">                .param(&quot;from&quot;, from.contactId())</span>
+<span class="fc" id="L109">                .param(&quot;group&quot;, from.groupId())</span>
+<span class="fc" id="L110">                .update();</span>
+<span class="fc" id="L111">    }</span>
+
+    @Override
+    public Map&lt;UUID, Long&gt; contactRevisions(UUID group, Collection&lt;UUID&gt; contactIds) {
+<span class="fc" id="L115">        Map&lt;UUID, Long&gt; revisions = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">        if (contactIds.isEmpty()) {</span>
+<span class="fc" id="L117">            return revisions;</span>
+        }
+<span class="fc" id="L119">        jdbc.sql(&quot;SELECT i.contact_id, i.revision FROM image i WHERE i.kind = 'CONTACT' AND i.group_id = :group&quot;</span>
+                        + &quot; AND i.contact_id IN (:ids) AND i.detached_at IS NULL&quot;)
+<span class="fc" id="L121">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L122">                .param(&quot;ids&quot;, contactIds)</span>
+<span class="fc" id="L123">                .query((ResultSet rs) -&gt; {</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">                    while (rs.next()) {</span>
+<span class="fc" id="L125">                        revisions.put(rs.getObject(&quot;contact_id&quot;, UUID.class), rs.getLong(&quot;revision&quot;));</span>
+                    }
+<span class="fc" id="L127">                    return revisions;</span>
+                });
+<span class="fc" id="L129">        return revisions;</span>
+    }
+
+    @Override
+    @Transactional
+    public void mergeInto(UUID group, UUID keeper, List&lt;UUID&gt; losers) {
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">        if (losers.isEmpty()) {</span>
+<span class="nc" id="L136">            return;</span>
+        }
+<span class="fc" id="L138">        List&lt;UUID&gt; withImage = jdbc.sql(&quot;SELECT contact_id FROM image WHERE kind = 'CONTACT' AND group_id = :group&quot;</span>
+                        + &quot; AND contact_id IN (:ids)&quot;)
+<span class="fc" id="L140">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L141">                .param(&quot;ids&quot;, Stream.concat(Stream.of(keeper), losers.stream()).toList())</span>
+<span class="fc" id="L142">                .query(UUID.class)</span>
+<span class="fc" id="L143">                .list();</span>
+<span class="fc" id="L144">        UUID adopted = null;</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">        if (!withImage.contains(keeper)) {</span>
+<span class="fc" id="L146">            adopted = losers.stream().filter(withImage::contains).findFirst().orElse(null);</span>
+        }
+<span class="fc bfc" id="L148" title="All 2 branches covered.">        if (adopted != null) {</span>
+<span class="fc" id="L149">            reassign(Owner.contact(group, adopted), Owner.contact(group, keeper));</span>
+        }
+<span class="fc bfc" id="L151" title="All 2 branches covered.">        for (UUID loser : losers) {</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">            if (!loser.equals(adopted)) {</span>
+<span class="fc" id="L153">                delete(Owner.contact(group, loser));</span>
+            }
+<span class="fc" id="L155">        }</span>
+<span class="fc" id="L156">    }</span>
+
+    private static String ownerWhere(Owner owner) {
+<span class="fc bfc" id="L159" title="All 2 branches covered.">        return ownerWhereAnyState(owner) + (owner.kind() == Owner.Kind.CONTACT ? &quot; AND i.detached_at IS NULL&quot; : &quot;&quot;);</span>
+    }
+
+    private static String ownerWhereAnyState(Owner owner) {
+<span class="fc bfc" id="L163" title="All 3 branches covered.">        return switch (owner.kind()) {</span>
+<span class="fc" id="L164">            case USER -&gt; &quot;i.kind = 'USER' AND i.user_id = :user&quot;;</span>
+<span class="fc" id="L165">            case GROUP -&gt; &quot;i.kind = 'GROUP' AND i.group_id = :group&quot;;</span>
+<span class="fc" id="L166">            case CONTACT -&gt; &quot;i.kind = 'CONTACT' AND i.group_id = :group AND i.contact_id = :contact&quot;;</span>
+        };
+    }
+
+    private static JdbcClient.StatementSpec bind(JdbcClient.StatementSpec spec, Owner owner) {
+<span class="fc bfc" id="L171" title="All 3 branches covered.">        return switch (owner.kind()) {</span>
+<span class="fc" id="L172">            case USER -&gt; spec.param(&quot;user&quot;, owner.userId());</span>
+<span class="fc" id="L173">            case GROUP -&gt; spec.param(&quot;group&quot;, owner.groupId());</span>
+<span class="fc" id="L174">            case CONTACT -&gt; spec.param(&quot;group&quot;, owner.groupId()).param(&quot;contact&quot;, owner.contactId());</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

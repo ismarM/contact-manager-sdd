@@ -1,0 +1,415 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VcardReader.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">VcardReader.java</span></div><h1>VcardReader.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import ezvcard.Ezvcard;
+import ezvcard.VCard;
+import ezvcard.property.Address;
+import ezvcard.property.Birthday;
+import ezvcard.property.Categories;
+import ezvcard.property.Email;
+import ezvcard.property.FormattedName;
+import ezvcard.property.Note;
+import ezvcard.property.Organization;
+import ezvcard.property.RawProperty;
+import ezvcard.property.StructuredName;
+import ezvcard.property.Telephone;
+import ezvcard.property.Url;
+import ezvcard.property.VCardProperty;
+import java.io.IOException;
+import java.io.StringReader;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoField;
+import java.time.temporal.Temporal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * Branje vizitk vCard 2.1, 3.0 in 4.0 v kandidate uvoza (FR-014-13, research R-03): prednostni (sicer prvi) e-naslov,
+ * telefon in naslov v predefinirana polja, naslednji v oštevilčene atribute; rojstni dan, spletna stran in opomba v
+ * atribute v jeziku vmesnika; fotografije in drugih lastnosti ne uvozi. Tipi (016, FR-016-24): {@code ADR} po delih
+ * gre v {@code addressParts}, dodatni {@code EMAIL}, {@code TEL}, {@code ADR}, rojstni dan, spletna stran in opomba v
+ * atribute tipov &lt;i&gt;E-naslov&lt;/i&gt;, &lt;i&gt;Telefon&lt;/i&gt;, &lt;i&gt;Naslov&lt;/i&gt;, &lt;i&gt;Datum&lt;/i&gt;, &lt;i&gt;Spletni naslov&lt;/i&gt; in &lt;i&gt;Opombe&lt;/i&gt;;
+ * lastnosti v skupini z {@code X-CM-KEY} (izvoz te aplikacije) dobijo ključ iz skupine.
+ */
+public final class VcardReader {
+
+    /** Največ vizitk v eni datoteki (FR-014-08). */
+    public static final int MAX_CARDS = 10_000;
+
+    /** Prebrane vizitke in vrste izpuščenih lastnosti ({@code PHOTO}, {@code OTHER}). */
+<span class="fc" id="L50">    public record Result(List&lt;ImportCandidate&gt; candidates, Set&lt;String&gt; omitted) {}</span>
+
+    /** Datoteka ni vCard ali ima preveč vizitk. */
+    public static final class Invalid extends Exception {
+
+        private static final long serialVersionUID = 1L;
+
+        private final String code;
+
+        Invalid(String code) {
+<span class="fc" id="L60">            super(code);</span>
+<span class="fc" id="L61">            this.code = code;</span>
+<span class="fc" id="L62">        }</span>
+
+        public String code() {
+<span class="fc" id="L65">            return code;</span>
+        }
+    }
+
+<span class="fc" id="L69">    private static final Set&lt;Class&lt;?&gt;&gt; KNOWN = Set.of(</span>
+            StructuredName.class,
+            FormattedName.class,
+            Organization.class,
+            Email.class,
+            Telephone.class,
+            Address.class,
+            Categories.class,
+            Birthday.class,
+            Url.class,
+            Note.class,
+            ezvcard.property.Uid.class,
+            ezvcard.property.Revision.class,
+            ezvcard.property.ProductId.class);
+
+    private VcardReader() {}
+
+    public static Result read(String text, String language) throws Invalid {
+<span class="pc bpc" id="L87" title="1 of 2 branches missed.">        String body = text.startsWith(&quot;﻿&quot;) ? text.substring(1) : text;</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        if (!body.toUpperCase(Locale.ROOT).contains(&quot;BEGIN:VCARD&quot;)) {</span>
+<span class="fc" id="L89">            throw new Invalid(&quot;NOT_VCF&quot;);</span>
+        }
+        List&lt;VCard&gt; cards;
+        try {
+<span class="fc" id="L93">            cards = Ezvcard.parse(new StringReader(body)).all();</span>
+<span class="nc" id="L94">        } catch (IOException | RuntimeException e) {</span>
+<span class="nc" id="L95">            throw new Invalid(&quot;NOT_VCF&quot;);</span>
+<span class="fc" id="L96">        }</span>
+<span class="pc bpc" id="L97" title="1 of 2 branches missed.">        if (cards.isEmpty()) {</span>
+<span class="nc" id="L98">            throw new Invalid(&quot;NOT_VCF&quot;);</span>
+        }
+<span class="fc bfc" id="L100" title="All 2 branches covered.">        if (cards.size() &gt; MAX_CARDS) {</span>
+<span class="fc" id="L101">            throw new Invalid(&quot;TOO_MANY_ROWS&quot;);</span>
+        }
+<span class="fc" id="L103">        Set&lt;String&gt; omitted = new TreeSet&lt;&gt;();</span>
+<span class="fc" id="L104">        List&lt;ImportCandidate&gt; candidates = new ArrayList&lt;&gt;(cards.size());</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">        for (VCard card : cards) {</span>
+<span class="fc" id="L106">            candidates.add(candidate(card, VcardMapping.labels(language), omitted));</span>
+<span class="fc" id="L107">        }</span>
+<span class="fc" id="L108">        return new Result(List.copyOf(candidates), Set.copyOf(omitted));</span>
+    }
+
+    static ImportCandidate candidate(VCard card, VcardMapping.Labels labels, Set&lt;String&gt; omitted) {
+<span class="fc bfc" id="L112" title="All 2 branches covered.">        for (VCardProperty property : card.getProperties()) {</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">            if (property instanceof ezvcard.property.Photo) {</span>
+<span class="fc" id="L114">                omitted.add(&quot;PHOTO&quot;);</span>
+<span class="pc bpc" id="L115" title="1 of 4 branches missed.">            } else if (!(property instanceof RawProperty) &amp;&amp; !KNOWN.contains(property.getClass())) {</span>
+<span class="nc" id="L116">                omitted.add(&quot;OTHER&quot;);</span>
+            }
+<span class="fc" id="L118">        }</span>
+<span class="fc" id="L119">        String first = null;</span>
+<span class="fc" id="L120">        String last = null;</span>
+<span class="fc" id="L121">        StructuredName n = card.getStructuredName();</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">        if (n != null) {</span>
+<span class="fc" id="L123">            List&lt;String&gt; given = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">            if (n.getGiven() != null) {</span>
+<span class="fc" id="L125">                given.add(n.getGiven());</span>
+            }
+<span class="fc" id="L127">            given.addAll(n.getAdditionalNames());</span>
+<span class="fc" id="L128">            first = blankToNull(</span>
+<span class="pc bpc" id="L129" title="1 of 2 branches missed.">                    String.join(&quot; &quot;, given.stream().filter(s -&gt; !s.isBlank()).toList()));</span>
+<span class="fc bfc" id="L130" title="All 2 branches covered.">            last = blankToNull(String.join(&quot; &quot;, n.getFamily() == null ? List.of() : List.of(n.getFamily())));</span>
+        }
+<span class="pc bpc" id="L132" title="2 of 6 branches missed.">        if (first == null &amp;&amp; last == null &amp;&amp; card.getFormattedName() != null) {</span>
+<span class="fc" id="L133">            String[] split = VcardMapping.splitFullName(card.getFormattedName().getValue());</span>
+<span class="fc" id="L134">            first = split[0];</span>
+<span class="fc" id="L135">            last = split[1];</span>
+        }
+
+<span class="fc" id="L138">        VcardMapping.AttributeList attributes = new VcardMapping.AttributeList();</span>
+<span class="fc" id="L139">        Set&lt;VCardProperty&gt; grouped = Collections.newSetFromMap(new IdentityHashMap&lt;&gt;());</span>
+<span class="fc" id="L140">        groupedAttributes(card, attributes, grouped);</span>
+
+<span class="fc" id="L142">        List&lt;Email&gt; emails = preferredFirst(without(card.getEmails(), grouped), Email::getPref, VcardReader::typePref);</span>
+<span class="fc" id="L143">        List&lt;Telephone&gt; phones =</span>
+<span class="fc" id="L144">                preferredFirst(without(card.getTelephoneNumbers(), grouped), Telephone::getPref, VcardReader::typePref);</span>
+<span class="fc" id="L145">        List&lt;Address&gt; addresses =</span>
+<span class="fc" id="L146">                preferredFirst(without(card.getAddresses(), grouped), Address::getPref, VcardReader::typePref);</span>
+
+<span class="fc bfc" id="L148" title="All 2 branches covered.">        String email = emails.isEmpty() ? null : emails.get(0).getValue();</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">        String phone = phones.isEmpty() ? null : phoneText(phones.get(0));</span>
+<span class="fc" id="L150">        String address = null;</span>
+<span class="fc" id="L151">        si.contactmanager.contact.Address addressParts = null;</span>
+<span class="fc" id="L152">        String country = null;</span>
+<span class="fc bfc" id="L153" title="All 2 branches covered.">        if (!addresses.isEmpty()) {</span>
+<span class="fc" id="L154">            addressParts = parts(addresses.get(0));</span>
+<span class="fc bfc" id="L155" title="All 2 branches covered.">            address = addressParts == null ? addressText(addresses.get(0)) : null;</span>
+<span class="fc" id="L156">            country = countryText(addresses.get(0));</span>
+        }
+<span class="fc bfc" id="L158" title="All 2 branches covered.">        for (int i = 1; i &lt; emails.size(); i++) {</span>
+<span class="fc" id="L159">            attributes.addNumbered(</span>
+<span class="fc" id="L160">                    labels.email(), 2, AttributeType.EMAIL, emails.get(i).getValue());</span>
+        }
+<span class="fc bfc" id="L162" title="All 2 branches covered.">        for (int i = 1; i &lt; phones.size(); i++) {</span>
+<span class="fc" id="L163">            attributes.addNumbered(labels.phone(), 2, AttributeType.PHONE, phoneText(phones.get(i)));</span>
+        }
+<span class="fc bfc" id="L165" title="All 2 branches covered.">        for (int i = 1; i &lt; addresses.size(); i++) {</span>
+<span class="fc" id="L166">            List&lt;String&gt; lines = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L167">            String text = addressText(addresses.get(i));</span>
+<span class="pc bpc" id="L168" title="1 of 2 branches missed.">            if (text != null) {</span>
+<span class="fc" id="L169">                lines.addAll(List.of(text.split(&quot;\n&quot;)));</span>
+            }
+<span class="fc" id="L171">            String extraCountry = addresses.get(i).getCountry();</span>
+<span class="pc bpc" id="L172" title="2 of 4 branches missed.">            if (extraCountry != null &amp;&amp; !extraCountry.isBlank()) {</span>
+<span class="fc" id="L173">                lines.add(extraCountry.strip());</span>
+            }
+<span class="fc" id="L175">            attributes.addNumbered(labels.address(), 2, AttributeType.ADDRESS, blankToNull(String.join(&quot;, &quot;, lines)));</span>
+        }
+<span class="fc" id="L177">        List&lt;Birthday&gt; birthdays = without(card.getBirthdays(), grouped);</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">        if (!birthdays.isEmpty()) {</span>
+<span class="fc" id="L179">            attributes.addNumbered(labels.birthday(), 1, AttributeType.DATE, birthday(birthdays.get(0)));</span>
+        }
+<span class="fc bfc" id="L181" title="All 2 branches covered.">        for (Url url : without(card.getUrls(), grouped)) {</span>
+<span class="fc" id="L182">            attributes.addNumbered(labels.website(), 1, AttributeType.URL, url.getValue());</span>
+<span class="fc" id="L183">        }</span>
+<span class="fc bfc" id="L184" title="All 2 branches covered.">        for (Note note : without(card.getNotes(), grouped)) {</span>
+<span class="fc" id="L185">            attributes.addNumbered(labels.note(), 1, AttributeType.NOTES, lf(note.getValue()));</span>
+<span class="fc" id="L186">        }</span>
+
+<span class="fc" id="L188">        String company = null;</span>
+<span class="fc" id="L189">        Organization organization = card.getOrganization();</span>
+<span class="pc bpc" id="L190" title="1 of 4 branches missed.">        if (organization != null &amp;&amp; !organization.getValues().isEmpty()) {</span>
+<span class="fc" id="L191">            company = blankToNull(organization.getValues().get(0));</span>
+        }
+<span class="fc" id="L193">        List&lt;String&gt; tags = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">        for (Categories categories : card.getCategoriesList()) {</span>
+<span class="fc bfc" id="L195" title="All 2 branches covered.">            for (String value : categories.getValues()) {</span>
+<span class="fc" id="L196">                String tag = VcardMapping.tag(value);</span>
+<span class="pc bpc" id="L197" title="1 of 2 branches missed.">                if (tag != null) {</span>
+<span class="fc" id="L198">                    tags.add(tag);</span>
+                }
+<span class="fc" id="L200">            }</span>
+<span class="fc" id="L201">        }</span>
+<span class="fc" id="L202">        return new ImportCandidate(</span>
+<span class="fc" id="L203">                first, last, address, addressParts, email, phone, company, country, attributes.list(), tags);</span>
+    }
+
+<span class="fc" id="L206">    private static final Pattern ATTR_GROUP = Pattern.compile(&quot;attr(\\d+)&quot;);</span>
+
+    /** Lastnosti ene skupine vizitke: oznaka ključa, vrednost para {@code X-CM-VALUE} in tipizirana lastnost. */
+    private static final class Group {
+        String key;
+        String value;
+        VCardProperty typed;
+    }
+
+    private static &lt;T&gt; List&lt;T&gt; without(List&lt;T&gt; properties, Set&lt;VCardProperty&gt; consumed) {
+<span class="fc" id="L216">        return properties.stream()</span>
+<span class="pc bpc" id="L217" title="1 of 6 branches missed.">                .filter(p -&gt; !(p instanceof VCardProperty vp &amp;&amp; consumed.contains(vp)))</span>
+<span class="fc" id="L218">                .toList();</span>
+    }
+
+    /**
+     * Dodatni atributi po skupinah ({@code attrN}, po številki): par {@code X-CM-KEY}/{@code X-CM-VALUE} je tipa
+     * &lt;i&gt;Drugo&lt;/i&gt;, tipizirana lastnost ({@code TEL}, {@code EMAIL}, {@code ADR}, {@code URL}, {@code BDAY},
+     * {@code NOTE}) z {@code X-CM-KEY} v isti skupini pa atribut ustreznega tipa; prebrane lastnosti se zapišejo v
+     * {@code consumed}, da jih predefinirana polja ne uporabijo znova.
+     */
+    private static void groupedAttributes(
+            VCard card, VcardMapping.AttributeList attributes, Set&lt;VCardProperty&gt; consumed) {
+<span class="fc" id="L229">        Map&lt;String, Group&gt; groups = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L230" title="All 2 branches covered.">        for (VCardProperty property : card.getProperties()) {</span>
+<span class="fc bfc" id="L231" title="All 2 branches covered.">            if (property.getGroup() == null) {</span>
+<span class="fc" id="L232">                continue;</span>
+            }
+<span class="fc" id="L234">            Group group = groups.computeIfAbsent(property.getGroup().toLowerCase(Locale.ROOT), g -&gt; new Group());</span>
+<span class="fc bfc" id="L235" title="All 2 branches covered.">            if (property instanceof RawProperty raw) {</span>
+<span class="fc" id="L236">                String name = raw.getPropertyName().toUpperCase(Locale.ROOT);</span>
+<span class="fc bfc" id="L237" title="All 2 branches covered.">                if (name.equals(VcardMapping.KEY)) {</span>
+<span class="fc" id="L238">                    group.key = VcardMapping.unescape(raw.getValue());</span>
+<span class="fc bfc" id="L239" title="All 2 branches covered.">                } else if (name.equals(VcardMapping.VALUE)) {</span>
+<span class="fc" id="L240">                    group.value = VcardMapping.unescape(raw.getValue());</span>
+                }
+<span class="pc bpc" id="L242" title="2 of 14 branches missed.">            } else if (group.typed == null</span>
+                    &amp;&amp; (property instanceof Telephone
+                            || property instanceof Email
+                            || property instanceof Address
+                            || property instanceof Url
+                            || property instanceof Birthday
+                            || property instanceof Note)) {
+<span class="fc" id="L249">                group.typed = property;</span>
+            }
+<span class="fc" id="L251">        }</span>
+<span class="fc" id="L252">        groups.entrySet().stream()</span>
+<span class="fc" id="L253">                .sorted(java.util.Comparator.comparingInt(e -&gt; {</span>
+<span class="fc" id="L254">                    Matcher m = ATTR_GROUP.matcher(e.getKey());</span>
+<span class="pc bpc" id="L255" title="1 of 2 branches missed.">                    return m.matches() ? Integer.parseInt(m.group(1)) : Integer.MAX_VALUE;</span>
+                }))
+<span class="fc" id="L257">                .map(Map.Entry::getValue)</span>
+<span class="fc bfc" id="L258" title="All 2 branches covered.">                .filter(group -&gt; group.key != null)</span>
+<span class="fc" id="L259">                .forEach(group -&gt; {</span>
+<span class="fc bfc" id="L260" title="All 2 branches covered.">                    if (group.value != null) {</span>
+<span class="fc" id="L261">                        attributes.add(group.key, group.value);</span>
+<span class="pc bpc" id="L262" title="1 of 2 branches missed.">                    } else if (group.typed != null) {</span>
+<span class="fc" id="L263">                        consumed.add(group.typed);</span>
+<span class="fc" id="L264">                        typedAttribute(attributes, group.key, group.typed);</span>
+                    }
+<span class="fc" id="L266">                });</span>
+<span class="fc" id="L267">    }</span>
+
+    private static void typedAttribute(VcardMapping.AttributeList attributes, String key, VCardProperty property) {
+<span class="fc bfc" id="L270" title="All 2 branches covered.">        if (property instanceof Telephone telephone) {</span>
+<span class="fc" id="L271">            attributes.add(key, AttributeType.PHONE, phoneText(telephone), null);</span>
+<span class="fc bfc" id="L272" title="All 2 branches covered.">        } else if (property instanceof Email email) {</span>
+<span class="fc" id="L273">            attributes.add(key, AttributeType.EMAIL, email.getValue(), null);</span>
+<span class="fc bfc" id="L274" title="All 2 branches covered.">        } else if (property instanceof Url url) {</span>
+<span class="fc" id="L275">            attributes.add(key, AttributeType.URL, url.getValue(), null);</span>
+<span class="fc bfc" id="L276" title="All 2 branches covered.">        } else if (property instanceof Note note) {</span>
+<span class="fc" id="L277">            attributes.add(key, AttributeType.NOTES, lf(note.getValue()), null);</span>
+<span class="fc bfc" id="L278" title="All 2 branches covered.">        } else if (property instanceof Birthday birthday) {</span>
+<span class="fc" id="L279">            attributes.add(key, AttributeType.DATE, birthday(birthday), null);</span>
+<span class="pc bpc" id="L280" title="1 of 2 branches missed.">        } else if (property instanceof Address address) {</span>
+<span class="fc" id="L281">            si.contactmanager.contact.Address parts = parts(address);</span>
+<span class="fc bfc" id="L282" title="All 2 branches covered.">            attributes.add(key, AttributeType.ADDRESS, parts == null ? addressText(address) : null, parts);</span>
+        }
+<span class="fc" id="L284">    }</span>
+
+    /**
+     * Deli {@code ADR} (016, FR-016-24): ulica; dodatna vrstica iz poštnega predala in dodatnega naslova; kraj, regija,
+     * poštna številka; država samo kot koda ({@code X-CM-CC}). {@code null}, kadar naslov ni po delih (samo ulica, brez
+     * oznake {@code X-CM-PARTS}) ali nima ulice ne kraja.
+     */
+    static si.contactmanager.contact.Address parts(Address address) {
+<span class="fc" id="L292">        String street = lf(join(address.getStreetAddresses()));</span>
+<span class="fc" id="L293">        String extra = lf(join(</span>
+<span class="fc" id="L294">                java.util.stream.Stream.concat(address.getPoBoxes().stream(), address.getExtendedAddresses().stream())</span>
+<span class="fc" id="L295">                        .toList()));</span>
+<span class="fc" id="L296">        String city = join(address.getLocalities());</span>
+<span class="fc" id="L297">        String region = join(address.getRegions());</span>
+<span class="fc" id="L298">        String postal = join(address.getPostalCodes());</span>
+<span class="fc bfc" id="L299" title="All 2 branches covered.">        boolean marked = address.getParameters().first(VcardMapping.PARTS) != null;</span>
+<span class="pc bpc" id="L300" title="2 of 10 branches missed.">        boolean structured = marked || !extra.isEmpty() || !city.isEmpty() || !region.isEmpty() || !postal.isEmpty();</span>
+<span class="pc bpc" id="L301" title="3 of 6 branches missed.">        if (!structured || (street.isEmpty() &amp;&amp; city.isEmpty())) {</span>
+<span class="fc" id="L302">            return null;</span>
+        }
+<span class="fc" id="L304">        return new si.contactmanager.contact.Address(</span>
+<span class="fc" id="L305">                blankToNull(street),</span>
+<span class="fc" id="L306">                blankToNull(extra),</span>
+<span class="fc" id="L307">                blankToNull(postal),</span>
+<span class="fc" id="L308">                blankToNull(city),</span>
+<span class="fc" id="L309">                blankToNull(region),</span>
+<span class="fc" id="L310">                code(address, VcardMapping.PARTS_COUNTRY));</span>
+    }
+
+    private static String countryCode(Address address) {
+<span class="fc" id="L314">        return code(address, VcardMapping.COUNTRY_CODE);</span>
+    }
+
+    private static String code(Address address, String parameter) {
+<span class="fc" id="L318">        String code = address.getParameters().first(parameter);</span>
+<span class="pc bpc" id="L319" title="1 of 4 branches missed.">        if (code != null &amp;&amp; CountryNames.isValid(code.strip().toUpperCase(Locale.ROOT))) {</span>
+<span class="fc" id="L320">            return code.strip().toUpperCase(Locale.ROOT);</span>
+        }
+<span class="fc" id="L322">        return null;</span>
+    }
+
+    private static boolean typePref(VCardProperty property) {
+<span class="fc bfc" id="L326" title="All 2 branches covered.">        for (String type : property.getParameters().getTypes()) {</span>
+<span class="fc bfc" id="L327" title="All 2 branches covered.">            if (type.equalsIgnoreCase(&quot;pref&quot;)) {</span>
+<span class="fc" id="L328">                return true;</span>
+            }
+<span class="fc" id="L330">        }</span>
+<span class="fc" id="L331">        return false;</span>
+    }
+
+    /** Prednostna lastnost (najmanjši {@code PREF} ali {@code TYPE=pref}) na začetek, ostale v vrstnem redu datoteke. */
+    private static &lt;T extends VCardProperty&gt; List&lt;T&gt; preferredFirst(
+            List&lt;T&gt; properties, Function&lt;T, Integer&gt; pref, java.util.function.Predicate&lt;T&gt; typePref) {
+<span class="fc" id="L337">        List&lt;T&gt; list = new ArrayList&lt;&gt;(properties);</span>
+<span class="fc" id="L338">        T best = null;</span>
+<span class="fc" id="L339">        int bestRank = Integer.MAX_VALUE;</span>
+<span class="fc bfc" id="L340" title="All 2 branches covered.">        for (T property : list) {</span>
+<span class="fc" id="L341">            Integer p = pref.apply(property);</span>
+<span class="fc bfc" id="L342" title="All 4 branches covered.">            int rank = p != null ? p : typePref.test(property) ? 100 : Integer.MAX_VALUE;</span>
+<span class="fc bfc" id="L343" title="All 2 branches covered.">            if (rank &lt; bestRank) {</span>
+<span class="fc" id="L344">                best = property;</span>
+<span class="fc" id="L345">                bestRank = rank;</span>
+            }
+<span class="fc" id="L347">        }</span>
+<span class="fc bfc" id="L348" title="All 2 branches covered.">        if (best != null) {</span>
+<span class="fc" id="L349">            list.remove(best);</span>
+<span class="fc" id="L350">            list.add(0, best);</span>
+        }
+<span class="fc" id="L352">        return list;</span>
+    }
+
+    private static String phoneText(Telephone telephone) {
+<span class="fc bfc" id="L356" title="All 2 branches covered.">        if (telephone.getText() != null) {</span>
+<span class="fc" id="L357">            return telephone.getText();</span>
+        }
+<span class="pc bpc" id="L359" title="1 of 2 branches missed.">        return telephone.getUri() == null ? null : telephone.getUri().getNumber();</span>
+    }
+
+    /** Vrstice naslova: poštni predal, dodatni naslov, ulica, »poštna številka kraj«, regija. */
+    static String addressText(Address address) {
+<span class="fc" id="L364">        List&lt;String&gt; lines = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L365">        addLine(lines, join(address.getPoBoxes()));</span>
+<span class="fc" id="L366">        addLine(lines, join(address.getExtendedAddresses()));</span>
+<span class="fc" id="L367">        addLine(lines, join(address.getStreetAddresses()));</span>
+<span class="fc" id="L368">        String postal = join(address.getPostalCodes());</span>
+<span class="fc" id="L369">        String locality = join(address.getLocalities());</span>
+<span class="fc" id="L370">        addLine(lines, (postal + &quot; &quot; + locality).strip());</span>
+<span class="fc" id="L371">        addLine(lines, join(address.getRegions()));</span>
+<span class="fc" id="L372">        return blankToNull(String.join(&quot;\n&quot;, lines));</span>
+    }
+
+    private static String countryText(Address address) {
+<span class="fc" id="L376">        String code = countryCode(address);</span>
+<span class="fc bfc" id="L377" title="All 2 branches covered.">        return code != null ? code : blankToNull(join(address.getCountries()));</span>
+    }
+
+    private static String birthday(Birthday birthday) {
+<span class="fc" id="L381">        Temporal date = birthday.getDate();</span>
+<span class="pc bpc" id="L382" title="2 of 4 branches missed.">        if (date != null &amp;&amp; date.isSupported(ChronoField.EPOCH_DAY)) {</span>
+<span class="fc" id="L383">            return DateTimeFormatter.ISO_LOCAL_DATE.format(LocalDate.from(date));</span>
+        }
+<span class="nc bnc" id="L385" title="All 2 branches missed.">        if (birthday.getText() != null) {</span>
+<span class="nc" id="L386">            return birthday.getText();</span>
+        }
+<span class="nc bnc" id="L388" title="All 2 branches missed.">        return birthday.getPartialDate() == null</span>
+<span class="nc" id="L389">                ? null</span>
+<span class="nc" id="L390">                : birthday.getPartialDate().toISO8601(true);</span>
+    }
+
+    private static void addLine(List&lt;String&gt; lines, String line) {
+<span class="fc bfc" id="L394" title="All 2 branches covered.">        for (String part : line.split(&quot;\n&quot;)) {</span>
+<span class="fc bfc" id="L395" title="All 2 branches covered.">            if (!part.isBlank()) {</span>
+<span class="fc" id="L396">                lines.add(part.strip());</span>
+            }
+        }
+<span class="fc" id="L399">    }</span>
+
+    private static String join(List&lt;String&gt; values) {
+<span class="fc" id="L402">        return String.join(</span>
+<span class="pc bpc" id="L403" title="2 of 4 branches missed.">                &quot;, &quot;, values.stream().filter(v -&gt; v != null &amp;&amp; !v.isBlank()).toList());</span>
+    }
+
+    /** Prelomi vrstic kot LF (knjižnica jih vrne po sistemu). */
+    private static String lf(String value) {
+<span class="pc bpc" id="L408" title="1 of 2 branches missed.">        return value == null ? null : value.replace(&quot;\r\n&quot;, &quot;\n&quot;).replace('\r', '\n');</span>
+    }
+
+    private static String blankToNull(String value) {
+<span class="pc bpc" id="L412" title="1 of 4 branches missed.">        return value == null || value.isBlank() ? null : value.strip();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UploadRateLimiter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.image</a> &gt; <span class="el_source">UploadRateLimiter.java</span></div><h1>UploadRateLimiter.java</h1><pre class="source lang-java linenums">package si.contactmanager.image;
+
+import java.time.Clock;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import si.contactmanager.shared.error.RateLimitedException;
+
+/**
+ * Drsno okno nalaganj na uporabnika (research R-09): največ {@code limit} poskusov na minuto, vključno z neuspelimi in
+ * z Google prevzemom. Stanje je v pomnilniku enega primerka (pri več primerkih bi bila potrebna skupna shramba).
+ */
+@Component
+class UploadRateLimiter {
+
+    private static final long WINDOW_MILLIS = 60_000L;
+
+    private final int limit;
+    private final Clock clock;
+<span class="fc" id="L23">    private final ConcurrentMap&lt;String, Deque&lt;Long&gt;&gt; attempts = new ConcurrentHashMap&lt;&gt;();</span>
+
+    @Autowired
+    UploadRateLimiter(ImageProperties properties) {
+<span class="fc" id="L27">        this(properties.uploadPerMinute(), Clock.systemUTC());</span>
+<span class="fc" id="L28">    }</span>
+
+<span class="fc" id="L30">    UploadRateLimiter(int limit, Clock clock) {</span>
+<span class="fc" id="L31">        this.limit = limit;</span>
+<span class="fc" id="L32">        this.clock = clock;</span>
+<span class="fc" id="L33">    }</span>
+
+    /** Zabeleži poskus; {@link RateLimitedException}, če je okno polno (poskus se tedaj ne šteje). */
+    void check(String key) {
+<span class="fc" id="L37">        long now = clock.millis();</span>
+<span class="fc" id="L38">        boolean[] allowed = new boolean[1];</span>
+<span class="fc" id="L39">        attempts.compute(key, (k, window) -&gt; {</span>
+<span class="fc bfc" id="L40" title="All 2 branches covered.">            Deque&lt;Long&gt; times = window == null ? new ArrayDeque&lt;&gt;() : window;</span>
+<span class="fc bfc" id="L41" title="All 4 branches covered.">            while (!times.isEmpty() &amp;&amp; now - times.peekFirst() &gt;= WINDOW_MILLIS) {</span>
+<span class="fc" id="L42">                times.pollFirst();</span>
+            }
+<span class="fc bfc" id="L44" title="All 2 branches covered.">            if (times.size() &lt; limit) {</span>
+<span class="fc" id="L45">                times.addLast(now);</span>
+<span class="fc" id="L46">                allowed[0] = true;</span>
+            }
+<span class="pc bpc" id="L48" title="1 of 2 branches missed.">            return times.isEmpty() ? null : times;</span>
+        });
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        if (!allowed[0]) {</span>
+<span class="fc" id="L51">            throw new RateLimitedException();</span>
+        }
+<span class="fc" id="L53">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ApiKeyProperties.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.apikey</a> &gt; <span class="el_source">ApiKeyProperties.java</span></div><h1>ApiKeyProperties.java</h1><pre class="source lang-java linenums">package si.contactmanager.apikey;
+
+import java.time.Duration;
+import java.time.ZoneId;
+import java.util.Base64;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+/**
+ * Nastavitve API ključev (019, research R-01, R-05 … R-07). Podpisna skrivnost je obvezna (base64, vsaj 32 bajtov);
+ * brez nje ali s prekratko vrednostjo zagon pade. Vrednost se nikoli ne izpiše.
+ */
+@ConfigurationProperties(&quot;api-keys&quot;)
+public record ApiKeyProperties(String signingSecret, int rateLimit, ZoneId statsZone, Duration purgeInterval) {
+
+    static final int MINIMUM_SECRET_BYTES = 32;
+
+<span class="fc" id="L17">    public ApiKeyProperties {</span>
+<span class="fc" id="L18">        secretBytes(signingSecret);</span>
+<span class="pc bpc" id="L19" title="1 of 2 branches missed.">        if (rateLimit &lt; 1) {</span>
+<span class="nc" id="L20">            throw new IllegalArgumentException(&quot;api-keys.rate-limit must be at least 1&quot;);</span>
+        }
+<span class="pc bpc" id="L22" title="1 of 2 branches missed.">        if (statsZone == null) {</span>
+<span class="nc" id="L23">            throw new IllegalArgumentException(&quot;api-keys.stats-zone is required&quot;);</span>
+        }
+<span class="pc bpc" id="L25" title="3 of 6 branches missed.">        if (purgeInterval == null || purgeInterval.isNegative() || purgeInterval.isZero()) {</span>
+<span class="nc" id="L26">            throw new IllegalArgumentException(&quot;api-keys.purge-interval must be positive&quot;);</span>
+        }
+<span class="fc" id="L28">    }</span>
+
+    /** Podpisni ključ HS256 (dekodirana skrivnost). */
+    byte[] secretKey() {
+<span class="fc" id="L32">        return secretBytes(signingSecret);</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="fc" id="L37">        return &quot;ApiKeyProperties[signingSecret=***, rateLimit=&quot; + rateLimit + &quot;, statsZone=&quot; + statsZone</span>
+                + &quot;, purgeInterval=&quot; + purgeInterval + &quot;]&quot;;
+    }
+
+    private static byte[] secretBytes(String secret) {
+<span class="fc bfc" id="L42" title="All 4 branches covered.">        if (secret == null || secret.isBlank()) {</span>
+<span class="fc" id="L43">            throw new IllegalArgumentException(</span>
+                    &quot;api-keys.signing-secret (API_KEY_SIGNING_SECRET) is required: openssl rand -base64 32&quot;);
+        }
+        byte[] bytes;
+        try {
+<span class="fc" id="L48">            bytes = Base64.getDecoder().decode(secret.strip());</span>
+<span class="fc" id="L49">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L50">            throw new IllegalArgumentException(&quot;api-keys.signing-secret must be base64&quot;);</span>
+<span class="fc" id="L51">        }</span>
+<span class="fc bfc" id="L52" title="All 2 branches covered.">        if (bytes.length &lt; MINIMUM_SECRET_BYTES) {</span>
+<span class="fc" id="L53">            throw new IllegalArgumentException(&quot;api-keys.signing-secret must decode to at least 32 bytes&quot;);</span>
+        }
+<span class="fc" id="L55">        return bytes;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

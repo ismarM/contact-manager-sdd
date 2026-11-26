@@ -1,0 +1,364 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ImageProcessor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.image</a> &gt; <span class="el_source">ImageProcessor.java</span></div><h1>ImageProcessor.java</h1><pre class="source lang-java linenums">package si.contactmanager.image;
+
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.IndexColorModel;
+import java.awt.image.Raster;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReadParam;
+import javax.imageio.ImageReader;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageInputStream;
+import javax.imageio.stream.MemoryCacheImageOutputStream;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import si.contactmanager.shared.error.RateLimitedException;
+
+/**
+ * Varna obdelava slike (research R-02, R-03, R-04): meje velikosti in mer pred dekodiranjem, dekodiranje z
+ * podvzorčenjem (največ {@code decodeSide} točk), omejena sočasnost, orientacija EXIF, sredinski kvadrat, tri velikosti
+ * in ponovno kodiranje (JPEG, PNG pri prosojnosti) brez metapodatkov. Vse izjeme dekodiranja so {@code INVALID_IMAGE}.
+ */
+@Component
+public class ImageProcessor {
+
+<span class="fc" id="L40">    static final int[] SIZES = {512, 256, 96};</span>
+    private static final float JPEG_QUALITY = 0.85f;
+
+    private final ImageProperties properties;
+    private final Semaphore permits;
+
+    static {
+<span class="fc" id="L47">        ImageIO.setUseCache(false); // brez začasnih datotek</span>
+<span class="fc" id="L48">        System.setProperty(&quot;java.awt.headless&quot;, &quot;true&quot;);</span>
+<span class="fc" id="L49">    }</span>
+
+    /** Opazovalec dekodirane slike (samo za teste porabe pomnilnika: preveri, da podvzorčenje omeji velikost). */
+<span class="fc" id="L52">    private volatile Consumer&lt;BufferedImage&gt; decodedObserver = decoded -&gt; {};</span>
+
+    @Autowired
+    ImageProcessor(ImageProperties properties) {
+<span class="fc" id="L56">        this(properties, new Semaphore(properties.concurrent(), true));</span>
+<span class="fc" id="L57">    }</span>
+
+<span class="fc" id="L59">    ImageProcessor(ImageProperties properties, Semaphore permits) {</span>
+<span class="fc" id="L60">        this.properties = properties;</span>
+<span class="fc" id="L61">        this.permits = permits;</span>
+<span class="fc" id="L62">    }</span>
+
+    void observeDecoded(Consumer&lt;BufferedImage&gt; observer) {
+<span class="fc" id="L65">        this.decodedObserver = observer;</span>
+<span class="fc" id="L66">    }</span>
+
+    /** Obdela sliko iz toka; bere največ {@code maxBytes + 1} bajtov ({@code FILE_TOO_LARGE} ob preseganju). */
+    public ProcessedImage process(InputStream in) {
+        byte[] bytes;
+        try {
+<span class="fc" id="L72">            bytes = in.readNBytes((int) properties.maxBytes() + 1);</span>
+<span class="nc" id="L73">        } catch (IOException e) {</span>
+<span class="nc" id="L74">            throw new ImageRejectedException(&quot;INVALID_IMAGE&quot;);</span>
+<span class="fc" id="L75">        }</span>
+<span class="fc" id="L76">        return process(bytes);</span>
+    }
+
+    /** Obdela sliko; {@link ImageRejectedException} pri neveljavni, preveliki ali poškodovani datoteki. */
+    public ProcessedImage process(byte[] bytes) {
+<span class="fc bfc" id="L81" title="All 2 branches covered.">        if (bytes.length &gt; properties.maxBytes()) {</span>
+<span class="fc" id="L82">            throw new ImageRejectedException(&quot;FILE_TOO_LARGE&quot;);</span>
+        }
+<span class="fc" id="L84">        boolean jpeg = startsWith(bytes, 0xFF, 0xD8, 0xFF);</span>
+<span class="fc" id="L85">        boolean png = startsWith(bytes, 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A);</span>
+<span class="fc bfc" id="L86" title="All 4 branches covered.">        if (!jpeg &amp;&amp; !png) {</span>
+<span class="fc" id="L87">            throw new ImageRejectedException(&quot;INVALID_IMAGE&quot;);</span>
+        }
+<span class="fc" id="L89">        try (ImageInputStream input = ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {</span>
+<span class="pc bpc" id="L90" title="1 of 2 branches missed.">            if (input == null) {</span>
+<span class="nc" id="L91">                throw new ImageRejectedException(&quot;INVALID_IMAGE&quot;);</span>
+            }
+<span class="fc bfc" id="L93" title="All 2 branches covered.">            Iterator&lt;ImageReader&gt; readers = ImageIO.getImageReadersByFormatName(jpeg ? &quot;jpeg&quot; : &quot;png&quot;);</span>
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">            if (!readers.hasNext()) {</span>
+<span class="nc" id="L95">                throw new ImageRejectedException(&quot;INVALID_IMAGE&quot;);</span>
+            }
+<span class="fc" id="L97">            ImageReader reader = readers.next();</span>
+            try {
+<span class="fc" id="L99">                reader.setInput(input, true, true);</span>
+<span class="fc" id="L100">                int width = reader.getWidth(0);</span>
+<span class="fc" id="L101">                int height = reader.getHeight(0);</span>
+<span class="pc bpc" id="L102" title="2 of 4 branches missed.">                if (width &lt; 1 || height &lt; 1) {</span>
+<span class="nc" id="L103">                    throw new ImageRejectedException(&quot;INVALID_IMAGE&quot;);</span>
+                }
+<span class="fc bfc" id="L105" title="All 2 branches covered.">                if (width &gt; properties.maxSide()</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">                        || height &gt; properties.maxSide()</span>
+<span class="pc bpc" id="L107" title="1 of 2 branches missed.">                        || (long) width * height &gt; properties.maxPixels()) {</span>
+<span class="fc" id="L108">                    throw new ImageRejectedException(&quot;IMAGE_TOO_LARGE&quot;);</span>
+                }
+<span class="fc bfc" id="L110" title="All 4 branches covered.">                if (jpeg &amp;&amp; jpegComponents(bytes) == 4) {</span>
+<span class="fc" id="L111">                    throw new ImageRejectedException(&quot;INVALID_IMAGE&quot;); // CMYK/YCCK: ni podprto</span>
+                }
+<span class="fc" id="L113">                return decodeAndEncode(reader, bytes, jpeg, width, height);</span>
+            } finally {
+<span class="fc" id="L115">                reader.dispose();</span>
+            }
+<span class="fc" id="L117">        } catch (ImageRejectedException | RateLimitedException e) {</span>
+<span class="fc" id="L118">            throw e;</span>
+<span class="fc" id="L119">        } catch (IOException | RuntimeException | OutOfMemoryError e) {</span>
+            // OutOfMemoryError je zavestno ujet: presežena meja pomnilnika pomeni zavrnitev slike, ne okvare strežnika
+<span class="fc" id="L121">            throw new ImageRejectedException(&quot;INVALID_IMAGE&quot;);</span>
+        }
+    }
+
+    private ProcessedImage decodeAndEncode(ImageReader reader, byte[] bytes, boolean jpeg, int width, int height)
+            throws IOException {
+<span class="fc" id="L127">        acquire();</span>
+        try {
+<span class="fc" id="L129">            int factor = Math.max(1, (int) Math.ceil(Math.max(width, height) / (double) properties.decodeSide()));</span>
+<span class="fc" id="L130">            ImageReadParam param = reader.getDefaultReadParam();</span>
+<span class="fc" id="L131">            param.setSourceSubsampling(factor, factor, 0, 0);</span>
+<span class="fc" id="L132">            AtomicBoolean warned = new AtomicBoolean();</span>
+<span class="fc" id="L133">            reader.addIIOReadWarningListener((source, warning) -&gt; warned.set(true));</span>
+<span class="fc" id="L134">            BufferedImage decoded = reader.read(0, param);</span>
+<span class="fc bfc" id="L135" title="All 4 branches covered.">            if (jpeg &amp;&amp; warned.get()) {</span>
+<span class="fc" id="L136">                throw new ImageRejectedException(&quot;INVALID_IMAGE&quot;); // okrnjen ali poškodovan tok</span>
+            }
+<span class="fc" id="L138">            decodedObserver.accept(decoded);</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">            int orientation = jpeg ? ExifOrientation.read(bytes) : 1;</span>
+<span class="fc" id="L140">            return encode(decoded, orientation);</span>
+        } finally {
+<span class="fc" id="L142">            permits.release();</span>
+        }
+    }
+
+    private void acquire() {
+        try {
+<span class="fc bfc" id="L148" title="All 2 branches covered.">            if (!permits.tryAcquire(properties.waitSeconds(), TimeUnit.SECONDS)) {</span>
+<span class="fc" id="L149">                throw new RateLimitedException();</span>
+            }
+<span class="nc" id="L151">        } catch (InterruptedException e) {</span>
+<span class="nc" id="L152">            Thread.currentThread().interrupt();</span>
+<span class="nc" id="L153">            throw new RateLimitedException();</span>
+<span class="fc" id="L154">        }</span>
+<span class="fc" id="L155">    }</span>
+
+    private static ProcessedImage encode(BufferedImage decoded, int orientation) throws IOException {
+<span class="fc" id="L158">        boolean alpha = decoded.getColorModel().hasAlpha();</span>
+<span class="fc" id="L159">        int w = decoded.getWidth();</span>
+<span class="fc" id="L160">        int h = decoded.getHeight();</span>
+<span class="fc" id="L161">        int side = Math.min(w, h);</span>
+<span class="fc" id="L162">        BufferedImage square = decoded.getSubimage((w - side) / 2, (h - side) / 2, side, side);</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">        if (isGray(decoded.getColorModel())) {</span>
+<span class="fc" id="L164">            square = grayToRgb(square, alpha);</span>
+        }
+<span class="fc" id="L166">        BufferedImage base = orient(scale(square, Math.min(side, SIZES[0]), alpha), orientation);</span>
+<span class="fc bfc" id="L167" title="All 4 branches covered.">        boolean transparent = alpha &amp;&amp; hasTransparentPixel(base);</span>
+<span class="fc" id="L168">        List&lt;ProcessedImage.Variant&gt; variants = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L169">        int baseSize = base.getWidth();</span>
+<span class="fc bfc" id="L170" title="All 2 branches covered.">        for (int size : SIZES) {</span>
+<span class="fc bfc" id="L171" title="All 2 branches covered.">            if (size &lt;= baseSize) {</span>
+<span class="fc bfc" id="L172" title="All 2 branches covered.">                variants.add(variant(size, size == baseSize ? base : scale(base, size, transparent), transparent));</span>
+            }
+        }
+<span class="fc bfc" id="L175" title="All 2 branches covered.">        if (baseSize &lt; 96) {</span>
+<span class="fc" id="L176">            variants.add(variant(96, base, transparent)); // nikoli povečava: manjša slika ostane izvirne velikosti</span>
+        }
+<span class="fc" id="L178">        return new ProcessedImage(variants);</span>
+    }
+
+    /** Število komponent iz prvega segmenta SOF (0xC0–0xCF razen DHT/JPG/DAC), sicer 0. */
+    private static int jpegComponents(byte[] bytes) {
+<span class="fc" id="L183">        int i = 2;</span>
+<span class="pc bpc" id="L184" title="1 of 2 branches missed.">        while (i + 9 &lt; bytes.length) {</span>
+<span class="pc bpc" id="L185" title="1 of 2 branches missed.">            if ((bytes[i] &amp; 0xFF) != 0xFF) {</span>
+<span class="nc" id="L186">                return 0;</span>
+            }
+<span class="fc" id="L188">            int marker = bytes[i + 1] &amp; 0xFF;</span>
+<span class="pc bpc" id="L189" title="1 of 2 branches missed.">            if (marker == 0xFF) {</span>
+<span class="nc" id="L190">                i++;</span>
+<span class="nc" id="L191">                continue;</span>
+            }
+<span class="pc bpc" id="L193" title="2 of 4 branches missed.">            if (marker == 0xDA || marker == 0xD9) {</span>
+<span class="nc" id="L194">                return 0;</span>
+            }
+<span class="fc" id="L196">            int length = ((bytes[i + 2] &amp; 0xFF) &lt;&lt; 8) | (bytes[i + 3] &amp; 0xFF);</span>
+<span class="pc bpc" id="L197" title="4 of 10 branches missed.">            if (marker &gt;= 0xC0 &amp;&amp; marker &lt;= 0xCF &amp;&amp; marker != 0xC4 &amp;&amp; marker != 0xC8 &amp;&amp; marker != 0xCC) {</span>
+<span class="fc" id="L198">                return bytes[i + 9] &amp; 0xFF;</span>
+            }
+<span class="fc" id="L200">            i += 2 + length;</span>
+<span class="fc" id="L201">        }</span>
+<span class="nc" id="L202">        return 0;</span>
+    }
+
+    private static boolean isGray(ColorModel model) {
+<span class="pc bpc" id="L206" title="1 of 4 branches missed.">        return model.getNumColorComponents() == 1 &amp;&amp; !(model instanceof IndexColorModel);</span>
+    }
+
+    /** Sivinska slika se prepiše po vzorcih: risanje v RGB bi vrednosti zaradi linearnega sivinskega prostora posvetlilo. */
+    private static BufferedImage grayToRgb(BufferedImage gray, boolean alpha) {
+<span class="fc" id="L211">        Raster raster = gray.getRaster();</span>
+<span class="fc" id="L212">        ColorModel model = gray.getColorModel();</span>
+<span class="fc" id="L213">        int bits = model.getComponentSize(0);</span>
+<span class="fc" id="L214">        int max = (1 &lt;&lt; bits) - 1;</span>
+<span class="pc bpc" id="L215" title="1 of 2 branches missed.">        int alphaMax = alpha ? (1 &lt;&lt; model.getComponentSize(model.getNumComponents() - 1)) - 1 : 1;</span>
+<span class="fc" id="L216">        int w = gray.getWidth();</span>
+<span class="fc" id="L217">        int h = gray.getHeight();</span>
+<span class="pc bpc" id="L218" title="1 of 2 branches missed.">        BufferedImage out = new BufferedImage(w, h, alpha ? BufferedImage.TYPE_INT_ARGB : BufferedImage.TYPE_INT_RGB);</span>
+<span class="fc" id="L219">        int[] sample = new int[raster.getNumBands()];</span>
+<span class="fc bfc" id="L220" title="All 2 branches covered.">        for (int y = 0; y &lt; h; y++) {</span>
+<span class="fc bfc" id="L221" title="All 2 branches covered.">            for (int x = 0; x &lt; w; x++) {</span>
+<span class="fc" id="L222">                raster.getPixel(x, y, sample);</span>
+<span class="fc" id="L223">                int v = sample[0] * 255 / max;</span>
+<span class="pc bpc" id="L224" title="1 of 2 branches missed.">                int a = alpha ? sample[sample.length - 1] * 255 / alphaMax : 255;</span>
+<span class="fc" id="L225">                out.setRGB(x, y, (a &lt;&lt; 24) | (v &lt;&lt; 16) | (v &lt;&lt; 8) | v);</span>
+            }
+        }
+<span class="fc" id="L228">        return out;</span>
+    }
+
+    private static boolean hasTransparentPixel(BufferedImage image) {
+<span class="fc" id="L232">        int w = image.getWidth();</span>
+<span class="fc" id="L233">        int[] row = new int[w];</span>
+<span class="fc bfc" id="L234" title="All 2 branches covered.">        for (int y = 0; y &lt; image.getHeight(); y++) {</span>
+<span class="fc" id="L235">            image.getRGB(0, y, w, 1, row, 0, w);</span>
+<span class="fc bfc" id="L236" title="All 2 branches covered.">            for (int argb : row) {</span>
+<span class="fc bfc" id="L237" title="All 2 branches covered.">                if ((argb &gt;&gt;&gt; 24) != 0xFF) {</span>
+<span class="fc" id="L238">                    return true;</span>
+                }
+            }
+        }
+<span class="fc" id="L242">        return false;</span>
+    }
+
+    /** Pomanjšanje v korakih po polovico (boljša kakovost od enega skoka); nikoli povečava. */
+    private static BufferedImage scale(BufferedImage source, int target, boolean alpha) {
+<span class="fc bfc" id="L247" title="All 2 branches covered.">        int type = alpha ? BufferedImage.TYPE_INT_ARGB : BufferedImage.TYPE_INT_RGB;</span>
+<span class="fc" id="L248">        BufferedImage current = source;</span>
+<span class="fc" id="L249">        int size = source.getWidth();</span>
+<span class="fc bfc" id="L250" title="All 4 branches covered.">        if (size == target &amp;&amp; current.getType() == type) {</span>
+<span class="fc" id="L251">            return current;</span>
+        }
+        do {
+<span class="fc" id="L254">            int next = Math.max(target, size / 2);</span>
+<span class="fc" id="L255">            BufferedImage out = new BufferedImage(next, next, type);</span>
+<span class="fc" id="L256">            Graphics2D g = out.createGraphics();</span>
+            try {
+<span class="fc" id="L258">                g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);</span>
+<span class="fc" id="L259">                g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);</span>
+<span class="fc" id="L260">                g.drawImage(current, 0, 0, next, next, null);</span>
+            } finally {
+<span class="fc" id="L262">                g.dispose();</span>
+            }
+<span class="fc" id="L264">            current = out;</span>
+<span class="fc" id="L265">            size = next;</span>
+<span class="fc bfc" id="L266" title="All 2 branches covered.">        } while (size &gt; target);</span>
+<span class="fc" id="L267">        return current;</span>
+    }
+
+    /** Orientacija EXIF 1–8 na kvadratni sliki. */
+    private static BufferedImage orient(BufferedImage src, int orientation) {
+<span class="fc bfc" id="L272" title="All 2 branches covered.">        if (orientation == 1) {</span>
+<span class="fc" id="L273">            return src;</span>
+        }
+<span class="fc" id="L275">        int n = src.getWidth();</span>
+<span class="fc" id="L276">        BufferedImage out = new BufferedImage(n, n, src.getType());</span>
+<span class="fc bfc" id="L277" title="All 2 branches covered.">        for (int y = 0; y &lt; n; y++) {</span>
+<span class="fc bfc" id="L278" title="All 2 branches covered.">            for (int x = 0; x &lt; n; x++) {</span>
+                int sx;
+                int sy;
+<span class="fc bfc" id="L281" title="All 7 branches covered.">                switch (orientation) {</span>
+                    case 2 -&gt; {
+<span class="fc" id="L283">                        sx = n - 1 - x;</span>
+<span class="fc" id="L284">                        sy = y;</span>
+<span class="fc" id="L285">                    }</span>
+                    case 3 -&gt; {
+<span class="fc" id="L287">                        sx = n - 1 - x;</span>
+<span class="fc" id="L288">                        sy = n - 1 - y;</span>
+<span class="fc" id="L289">                    }</span>
+                    case 4 -&gt; {
+<span class="fc" id="L291">                        sx = x;</span>
+<span class="fc" id="L292">                        sy = n - 1 - y;</span>
+<span class="fc" id="L293">                    }</span>
+                    case 5 -&gt; {
+<span class="fc" id="L295">                        sx = y;</span>
+<span class="fc" id="L296">                        sy = x;</span>
+<span class="fc" id="L297">                    }</span>
+                    case 6 -&gt; {
+<span class="fc" id="L299">                        sx = y;</span>
+<span class="fc" id="L300">                        sy = n - 1 - x;</span>
+<span class="fc" id="L301">                    }</span>
+                    case 7 -&gt; {
+<span class="fc" id="L303">                        sx = n - 1 - y;</span>
+<span class="fc" id="L304">                        sy = n - 1 - x;</span>
+<span class="fc" id="L305">                    }</span>
+                    default -&gt; {
+<span class="fc" id="L307">                        sx = n - 1 - y;</span>
+<span class="fc" id="L308">                        sy = x;</span>
+                    }
+                }
+<span class="fc" id="L311">                out.setRGB(x, y, src.getRGB(sx, sy));</span>
+            }
+        }
+<span class="fc" id="L314">        return out;</span>
+    }
+
+    private static ProcessedImage.Variant variant(int size, BufferedImage image, boolean png) throws IOException {
+<span class="fc" id="L318">        ByteArrayOutputStream out = new ByteArrayOutputStream();</span>
+<span class="fc bfc" id="L319" title="All 2 branches covered.">        if (png) {</span>
+<span class="pc bpc" id="L320" title="1 of 2 branches missed.">            BufferedImage argb = image.getType() == BufferedImage.TYPE_INT_ARGB ? image : copy(image, true);</span>
+<span class="pc bpc" id="L321" title="1 of 2 branches missed.">            if (!ImageIO.write(argb, &quot;png&quot;, out)) {</span>
+<span class="nc" id="L322">                throw new IOException(&quot;ni pisalca PNG&quot;);</span>
+            }
+<span class="fc" id="L324">            return new ProcessedImage.Variant(size, &quot;image/png&quot;, out.toByteArray());</span>
+        }
+<span class="pc bpc" id="L326" title="1 of 2 branches missed.">        BufferedImage rgb = image.getType() == BufferedImage.TYPE_INT_RGB ? image : copy(image, false);</span>
+<span class="fc" id="L327">        ImageWriter writer = ImageIO.getImageWritersByFormatName(&quot;jpeg&quot;).next();</span>
+<span class="fc" id="L328">        try (MemoryCacheImageOutputStream stream = new MemoryCacheImageOutputStream(out)) {</span>
+<span class="fc" id="L329">            ImageWriteParam param = writer.getDefaultWriteParam();</span>
+<span class="fc" id="L330">            param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);</span>
+<span class="fc" id="L331">            param.setCompressionQuality(JPEG_QUALITY);</span>
+<span class="fc" id="L332">            writer.setOutput(stream);</span>
+<span class="fc" id="L333">            writer.write(null, new IIOImage(rgb, null, null), param); // brez metapodatkov (EXIF, GPS, ICC, XMP)</span>
+        } finally {
+<span class="fc" id="L335">            writer.dispose();</span>
+        }
+<span class="fc" id="L337">        return new ProcessedImage.Variant(size, &quot;image/jpeg&quot;, out.toByteArray());</span>
+    }
+
+    private static BufferedImage copy(BufferedImage src, boolean alpha) {
+<span class="nc" id="L341">        BufferedImage out = new BufferedImage(</span>
+<span class="nc bnc" id="L342" title="All 2 branches missed.">                src.getWidth(), src.getHeight(), alpha ? BufferedImage.TYPE_INT_ARGB : BufferedImage.TYPE_INT_RGB);</span>
+<span class="nc" id="L343">        Graphics2D g = out.createGraphics();</span>
+        try {
+<span class="nc" id="L345">            g.drawImage(src, 0, 0, null);</span>
+        } finally {
+<span class="nc" id="L347">            g.dispose();</span>
+        }
+<span class="nc" id="L349">        return out;</span>
+    }
+
+    private static boolean startsWith(byte[] data, int... prefix) {
+<span class="fc bfc" id="L353" title="All 2 branches covered.">        if (data.length &lt; prefix.length) {</span>
+<span class="fc" id="L354">            return false;</span>
+        }
+<span class="fc bfc" id="L356" title="All 2 branches covered.">        for (int i = 0; i &lt; prefix.length; i++) {</span>
+<span class="fc bfc" id="L357" title="All 2 branches covered.">            if ((data[i] &amp; 0xFF) != prefix[i]) {</span>
+<span class="fc" id="L358">                return false;</span>
+            }
+        }
+<span class="fc" id="L361">        return true;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

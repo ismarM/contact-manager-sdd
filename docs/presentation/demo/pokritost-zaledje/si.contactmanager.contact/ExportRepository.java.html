@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExportRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">ExportRepository.java</span></div><h1>ExportRepository.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+
+/**
+ * Branje za izvoz (010, research R-06): vrstice izbranih kontaktov v vrstnem redu seznama 008, njihovi atributi in
+ * značke ter ključi stolpcev. Vsaka poizvedba kontakta ima pogoj {@code group_id} (konstitucija III).
+ */
+@Repository
+class ExportRepository {
+
+    /** Največ identitet v enem stavku pri atributih in značkah. */
+    private static final int CHUNK = 5000;
+
+    /** Kontakt iz baze brez atributov in značk. */
+<span class="fc" id="L24">    record Contact(</span>
+            UUID id,
+            String firstName,
+            String lastName,
+            String address,
+            Address addressParts,
+            String email,
+            String phone,
+            String country,
+            String company) {}
+
+    /** Atribut kontakta z izvirnim zapisom ključa. */
+<span class="fc" id="L36">    record Attribute(UUID contactId, String key, String keyNorm, String value, Address parts) {}</span>
+
+    private final JdbcClient jdbc;
+
+<span class="fc" id="L40">    ExportRepository(JdbcClient jdbc) {</span>
+<span class="fc" id="L41">        this.jdbc = jdbc;</span>
+<span class="fc" id="L42">    }</span>
+
+    /** Obstoječi kontakti skupine iz {@code ids} v vrstnem redu {@link ContactSearch#orderBy}. */
+    List&lt;Contact&gt; rows(UUID group, Collection&lt;UUID&gt; ids, ContactQuery order) {
+<span class="fc" id="L46">        Map&lt;String, Object&gt; parameters = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L47">        String orderBy = ContactSearch.orderBy(order, parameters);</span>
+<span class="fc" id="L48">        var statement = jdbc.sql(&quot;SELECT c.id, c.first_name, c.last_name, c.address,&quot;</span>
+                        + &quot; c.address_parts::text AS address_parts, c.email, c.phone, c.country, c.company FROM contact c&quot;
+                        + &quot; WHERE c.group_id = :group AND c.id IN (:ids) ORDER BY &quot; + orderBy)
+<span class="fc" id="L51">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L52">                .param(&quot;ids&quot;, List.copyOf(ids));</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        for (Map.Entry&lt;String, Object&gt; parameter : parameters.entrySet()) {</span>
+<span class="fc" id="L54">            statement = statement.param(parameter.getKey(), parameter.getValue());</span>
+<span class="fc" id="L55">        }</span>
+<span class="fc" id="L56">        return statement</span>
+<span class="fc" id="L57">                .query((rs, n) -&gt; new Contact(</span>
+<span class="fc" id="L58">                        rs.getObject(&quot;id&quot;, UUID.class),</span>
+<span class="fc" id="L59">                        rs.getString(&quot;first_name&quot;),</span>
+<span class="fc" id="L60">                        rs.getString(&quot;last_name&quot;),</span>
+<span class="fc" id="L61">                        rs.getString(&quot;address&quot;),</span>
+<span class="fc" id="L62">                        AddressJson.read(rs.getString(&quot;address_parts&quot;)),</span>
+<span class="fc" id="L63">                        rs.getString(&quot;email&quot;),</span>
+<span class="fc" id="L64">                        rs.getString(&quot;phone&quot;),</span>
+<span class="fc" id="L65">                        rs.getString(&quot;country&quot;),</span>
+<span class="fc" id="L66">                        rs.getString(&quot;company&quot;)))</span>
+<span class="fc" id="L67">                .list();</span>
+    }
+
+    /** Atributi kontaktov po vrstnem redu zapisa (za prvi zapis ključa v datoteki). */
+    List&lt;Attribute&gt; attributes(Collection&lt;UUID&gt; ids) {
+<span class="fc" id="L72">        List&lt;Attribute&gt; all = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">        for (List&lt;UUID&gt; chunk : chunks(ids)) {</span>
+<span class="fc" id="L74">            all.addAll(jdbc.sql(&quot;SELECT contact_id, key, key_norm, value, parts::text AS parts FROM contact_attribute&quot;</span>
+                            + &quot; WHERE contact_id IN (:ids) ORDER BY contact_id, position&quot;)
+<span class="fc" id="L76">                    .param(&quot;ids&quot;, chunk)</span>
+<span class="fc" id="L77">                    .query((rs, n) -&gt; new Attribute(</span>
+<span class="fc" id="L78">                            rs.getObject(&quot;contact_id&quot;, UUID.class),</span>
+<span class="fc" id="L79">                            rs.getString(&quot;key&quot;),</span>
+<span class="fc" id="L80">                            rs.getString(&quot;key_norm&quot;),</span>
+<span class="fc" id="L81">                            rs.getString(&quot;value&quot;),</span>
+<span class="fc" id="L82">                            AddressJson.read(rs.getString(&quot;parts&quot;))))</span>
+<span class="fc" id="L83">                    .list());</span>
+<span class="fc" id="L84">        }</span>
+<span class="fc" id="L85">        return all;</span>
+    }
+
+    /** Značke po kontaktih, po slovenski abecedi ({@code sort_sl}). */
+    Map&lt;UUID, List&lt;String&gt;&gt; tags(Collection&lt;UUID&gt; ids) {
+<span class="fc" id="L90">        Map&lt;UUID, List&lt;String&gt;&gt; tags = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        for (List&lt;UUID&gt; chunk : chunks(ids)) {</span>
+<span class="fc" id="L92">            jdbc.sql(&quot;SELECT contact_id, tag FROM contact_tag WHERE contact_id IN (:ids)&quot;</span>
+                            + &quot; ORDER BY contact_id, tag_norm COLLATE sort_sl, tag_norm&quot;)
+<span class="fc" id="L94">                    .param(&quot;ids&quot;, chunk)</span>
+<span class="fc" id="L95">                    .query((rs, n) -&gt; Map.entry(rs.getObject(&quot;contact_id&quot;, UUID.class), rs.getString(&quot;tag&quot;)))</span>
+<span class="fc" id="L96">                    .list()</span>
+<span class="fc" id="L97">                    .forEach(e -&gt; tags.computeIfAbsent(e.getKey(), k -&gt; new ArrayList&lt;&gt;())</span>
+<span class="fc" id="L98">                            .add(e.getValue()));</span>
+<span class="fc" id="L99">        }</span>
+<span class="fc" id="L100">        return tags;</span>
+    }
+
+    /**
+     * Različni normalizirani ključi atributov kontaktov v slovenski abecedi, ne glede na velikost črk (D-63). Ena
+     * poizvedba (največ 10 000 identitet, pod mejo parametrov), da je vrstni red skupen.
+     */
+    List&lt;String&gt; keyOrder(Collection&lt;UUID&gt; ids) {
+<span class="fc" id="L108">        return jdbc.sql(&quot;SELECT key_norm FROM contact_attribute WHERE contact_id IN (:ids)&quot;</span>
+                        + &quot; GROUP BY key_norm ORDER BY key_norm COLLATE sort_sl, key_norm&quot;)
+<span class="fc" id="L110">                .param(&quot;ids&quot;, List.copyOf(ids))</span>
+<span class="fc" id="L111">                .query(String.class)</span>
+<span class="fc" id="L112">                .list();</span>
+    }
+
+    private static List&lt;List&lt;UUID&gt;&gt; chunks(Collection&lt;UUID&gt; ids) {
+<span class="fc" id="L116">        List&lt;UUID&gt; list = List.copyOf(ids);</span>
+<span class="fc" id="L117">        List&lt;List&lt;UUID&gt;&gt; chunks = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">        for (int i = 0; i &lt; list.size(); i += CHUNK) {</span>
+<span class="fc" id="L119">            chunks.add(list.subList(i, Math.min(list.size(), i + CHUNK)));</span>
+        }
+<span class="fc" id="L121">        return chunks;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

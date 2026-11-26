@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuditController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.audit</a> &gt; <span class="el_source">AuditController.java</span></div><h1>AuditController.java</h1><pre class="source lang-java linenums">package si.contactmanager.audit;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import si.contactmanager.audit.AuditRepository.Filter;
+import si.contactmanager.group.GroupAccess;
+import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.group.Role;
+import si.contactmanager.shared.error.ForbiddenException;
+import si.contactmanager.shared.error.GroupArchivedException;
+import si.contactmanager.shared.error.NotFoundException;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+import si.contactmanager.shared.error.ValidationException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * Endpointi revizijske sledi (plan.md – REST endpoints). Branje: {@link GroupAccess} z VIEWER (tudi v arhivirani
+ * skupini); neveljaven {@code entryId} je 404. Rollback je dodan v US3.
+ */
+@RestController
+@RequestMapping(&quot;/api/groups/{groupId}/audit&quot;)
+class AuditController {
+
+    private static final int DEFAULT_SIZE = 25;
+<span class="fc" id="L39">    private static final Set&lt;Integer&gt; PAGE_SIZES = Set.of(25, 50, 100);</span>
+
+    private final AuditService service;
+    private final RollbackService rollbacks;
+    private final GroupAccess access;
+    private final JsonMapper json;
+
+<span class="fc" id="L46">    AuditController(AuditService service, RollbackService rollbacks, GroupAccess access, JsonMapper json) {</span>
+<span class="fc" id="L47">        this.service = service;</span>
+<span class="fc" id="L48">        this.rollbacks = rollbacks;</span>
+<span class="fc" id="L49">        this.access = access;</span>
+<span class="fc" id="L50">        this.json = json;</span>
+<span class="fc" id="L51">    }</span>
+
+    /** Stran vnosov, najnovejši zgoraj (FR-005-07, -09, -10, -14). */
+    @GetMapping
+    AuditPage list(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String groupId,
+            @RequestParam(required = false) String page,
+            @RequestParam(required = false) String size,
+            @RequestParam(required = false) List&lt;String&gt; action,
+            @RequestParam(required = false) String contact,
+            @RequestParam(required = false) String actor) {
+<span class="fc" id="L63">        Membership membership = access.require(jwt, groupId, Role.VIEWER, false);</span>
+<span class="fc" id="L64">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L65">        Integer pageNumber = parsePage(page, errors);</span>
+<span class="fc" id="L66">        Integer pageSize = parseSize(size, errors);</span>
+<span class="fc" id="L67">        List&lt;AuditAction&gt; actions = parseActions(action, errors);</span>
+<span class="fc" id="L68">        UUID contactId = parseContact(contact, errors);</span>
+<span class="fc" id="L69">        String actorToken = parseActor(actor, errors);</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (!errors.isEmpty()) {</span>
+<span class="fc" id="L71">            throw new ValidationException(errors);</span>
+        }
+<span class="fc" id="L73">        return service.list(membership, new Filter(actions, contactId, actorToken), pageNumber, pageSize);</span>
+    }
+
+    /** Izvajalci te sledi za filter (015, FR-015-03). */
+    @GetMapping(&quot;/actors&quot;)
+    ActorList actors(@AuthenticationPrincipal Jwt jwt, @PathVariable String groupId) {
+<span class="fc" id="L79">        Membership membership = access.require(jwt, groupId, Role.VIEWER, false);</span>
+<span class="fc" id="L80">        return new ActorList(service.actors(membership));</span>
+    }
+
+    /** Odgovor {@code GET /audit/actors}. */
+<span class="fc" id="L84">    record ActorList(List&lt;ActorView&gt; items) {}</span>
+
+    /** En vnos (FR-005-12, FR-005-19). */
+    @GetMapping(&quot;/{entryId}&quot;)
+    AuditEntry get(@AuthenticationPrincipal Jwt jwt, @PathVariable String groupId, @PathVariable String entryId) {
+<span class="fc" id="L89">        Membership membership = access.require(jwt, groupId, Role.VIEWER, false);</span>
+<span class="fc" id="L90">        return service.entry(membership, parseEntry(entryId));</span>
+    }
+
+    /** Prizadeti kontakti vnosa s spremenjenimi polji (FR-005-02, FR-005-08). */
+    @GetMapping(&quot;/{entryId}/changes&quot;)
+    ChangePage changes(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String groupId,
+            @PathVariable String entryId,
+            @RequestParam(required = false) String page,
+            @RequestParam(required = false) String size) {
+<span class="fc" id="L101">        Membership membership = access.require(jwt, groupId, Role.VIEWER, false);</span>
+<span class="fc" id="L102">        UUID entry = parseEntry(entryId);</span>
+<span class="fc" id="L103">        service.entry(membership, entry);</span>
+<span class="fc" id="L104">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L105">        Integer pageNumber = parsePage(page, errors);</span>
+<span class="fc" id="L106">        Integer pageSize = parseSize(size, errors);</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">        if (!errors.isEmpty()) {</span>
+<span class="fc" id="L108">            throw new ValidationException(errors);</span>
+        }
+<span class="fc" id="L110">        return service.changes(membership, entry, pageNumber, pageSize);</span>
+    }
+
+    /**
+     * Rollback na stanje takoj po vnosu (FR-005-11 … FR-005-15, -17). Vrstni red (R-09): 404 skupine ali vnosa → 403 →
+     * GROUP_ARCHIVED → 400 → VERSION_CONFLICT → ROLLBACK_NO_CHANGES.
+     */
+    @PostMapping(&quot;/{entryId}/rollback&quot;)
+    ResponseEntity&lt;AuditEntry&gt; rollback(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String groupId,
+            @PathVariable String entryId,
+            @RequestBody(required = false) String body) {
+<span class="fc" id="L123">        Membership membership = access.require(jwt, groupId, Role.VIEWER, false);</span>
+<span class="fc" id="L124">        UUID target = parseEntry(entryId);</span>
+<span class="fc" id="L125">        service.entry(membership, target);</span>
+<span class="fc" id="L126">        return perform(membership, target, body);</span>
+    }
+
+    /** Rollback na {@code Začetno stanje} (FR-005-20). */
+    @PostMapping(&quot;/initial-state/rollback&quot;)
+    ResponseEntity&lt;AuditEntry&gt; rollbackInitial(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String groupId,
+            @RequestBody(required = false) String body) {
+<span class="fc" id="L135">        Membership membership = access.require(jwt, groupId, Role.VIEWER, false);</span>
+<span class="fc" id="L136">        return perform(membership, null, body);</span>
+    }
+
+    private ResponseEntity&lt;AuditEntry&gt; perform(Membership membership, UUID target, String body) {
+<span class="fc bfc" id="L140" title="All 2 branches covered.">        if (!membership.role().atLeast(Role.ADMIN)) {</span>
+<span class="fc" id="L141">            throw new ForbiddenException();</span>
+        }
+<span class="fc bfc" id="L143" title="All 2 branches covered.">        if (membership.archived()) {</span>
+<span class="fc" id="L144">            throw new GroupArchivedException();</span>
+        }
+<span class="fc" id="L146">        UUID latest = parseLatest(body);</span>
+<span class="fc" id="L147">        return ResponseEntity.status(HttpStatus.CREATED).body(rollbacks.rollback(membership, target, latest));</span>
+    }
+
+    /** Telo {@code {&quot;latestEntryId&quot;: uuid}}; manjka → REQUIRED, ni uuid → INVALID_VALUE, pokvarjeno → body MALFORMED. */
+    private UUID parseLatest(String body) {
+<span class="pc bpc" id="L152" title="2 of 4 branches missed.">        if (body == null || body.isBlank()) {</span>
+<span class="nc" id="L153">            throw new ValidationException(List.of(new FieldError(&quot;latestEntryId&quot;, &quot;REQUIRED&quot;)));</span>
+        }
+        JsonNode root;
+        try {
+<span class="fc" id="L157">            root = json.readTree(body);</span>
+<span class="fc" id="L158">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L159">            throw new ValidationException(List.of(new FieldError(&quot;body&quot;, &quot;MALFORMED&quot;)));</span>
+<span class="fc" id="L160">        }</span>
+<span class="pc bpc" id="L161" title="2 of 4 branches missed.">        if (root == null || !root.isObject()) {</span>
+<span class="nc" id="L162">            throw new ValidationException(List.of(new FieldError(&quot;body&quot;, &quot;MALFORMED&quot;)));</span>
+        }
+<span class="fc" id="L164">        JsonNode value = root.get(&quot;latestEntryId&quot;);</span>
+<span class="fc bfc" id="L165" title="All 4 branches covered.">        if (value == null || value.isNull()) {</span>
+<span class="fc" id="L166">            throw new ValidationException(List.of(new FieldError(&quot;latestEntryId&quot;, &quot;REQUIRED&quot;)));</span>
+        }
+<span class="fc bfc" id="L168" title="All 2 branches covered.">        if (!value.isString()) {</span>
+<span class="fc" id="L169">            throw new ValidationException(List.of(new FieldError(&quot;latestEntryId&quot;, &quot;INVALID_VALUE&quot;)));</span>
+        }
+        try {
+<span class="fc" id="L172">            return UUID.fromString(value.asString());</span>
+<span class="fc" id="L173">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L174">            throw new ValidationException(List.of(new FieldError(&quot;latestEntryId&quot;, &quot;INVALID_VALUE&quot;)));</span>
+        }
+    }
+
+    private static UUID parseEntry(String value) {
+        try {
+<span class="fc" id="L180">            return UUID.fromString(value);</span>
+<span class="fc" id="L181">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L182">            throw new NotFoundException();</span>
+        }
+    }
+
+    private static Integer parsePage(String value, List&lt;FieldError&gt; errors) {
+<span class="fc bfc" id="L187" title="All 2 branches covered.">        if (value == null) {</span>
+<span class="fc" id="L188">            return 0;</span>
+        }
+        try {
+<span class="fc" id="L191">            int number = Integer.parseInt(value);</span>
+<span class="fc bfc" id="L192" title="All 2 branches covered.">            if (number &gt;= 0) {</span>
+<span class="fc" id="L193">                return number;</span>
+            }
+<span class="fc" id="L195">        } catch (NumberFormatException e) {</span>
+            // obravnavano spodaj
+<span class="fc" id="L197">        }</span>
+<span class="fc" id="L198">        errors.add(new FieldError(&quot;page&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L199">        return null;</span>
+    }
+
+    private static Integer parseSize(String value, List&lt;FieldError&gt; errors) {
+<span class="fc bfc" id="L203" title="All 2 branches covered.">        if (value == null) {</span>
+<span class="fc" id="L204">            return DEFAULT_SIZE;</span>
+        }
+        try {
+<span class="fc" id="L207">            int number = Integer.parseInt(value);</span>
+<span class="fc bfc" id="L208" title="All 2 branches covered.">            if (PAGE_SIZES.contains(number)) {</span>
+<span class="fc" id="L209">                return number;</span>
+            }
+<span class="fc" id="L211">        } catch (NumberFormatException e) {</span>
+            // obravnavano spodaj
+<span class="fc" id="L213">        }</span>
+<span class="fc" id="L214">        errors.add(new FieldError(&quot;size&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L215">        return null;</span>
+    }
+
+    private static List&lt;AuditAction&gt; parseActions(List&lt;String&gt; values, List&lt;FieldError&gt; errors) {
+<span class="fc" id="L219">        List&lt;AuditAction&gt; actions = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L220" title="All 2 branches covered.">        if (values == null) {</span>
+<span class="fc" id="L221">            return actions;</span>
+        }
+<span class="fc bfc" id="L223" title="All 2 branches covered.">        for (String value : values) {</span>
+            try {
+<span class="fc" id="L225">                AuditAction parsed = AuditAction.valueOf(value);</span>
+<span class="pc bpc" id="L226" title="1 of 2 branches missed.">                if (!actions.contains(parsed)) {</span>
+<span class="fc" id="L227">                    actions.add(parsed);</span>
+                }
+<span class="fc" id="L229">            } catch (IllegalArgumentException e) {</span>
+<span class="pc bpc" id="L230" title="1 of 2 branches missed.">                if (errors.stream().noneMatch(error -&gt; error.field().equals(&quot;action&quot;))) {</span>
+<span class="fc" id="L231">                    errors.add(new FieldError(&quot;action&quot;, &quot;INVALID_VALUE&quot;));</span>
+                }
+<span class="fc" id="L233">            }</span>
+<span class="fc" id="L234">        }</span>
+<span class="fc" id="L235">        return actions;</span>
+    }
+
+    /** Žeton izvajalca: uuid ali {@code deleted}; drugo → INVALID_VALUE (015). */
+    private static String parseActor(String value, List&lt;FieldError&gt; errors) {
+<span class="fc bfc" id="L240" title="All 2 branches covered.">        if (value == null) {</span>
+<span class="fc" id="L241">            return null;</span>
+        }
+<span class="fc bfc" id="L243" title="All 2 branches covered.">        if (ActorView.DELETED_TOKEN.equals(value)) {</span>
+<span class="fc" id="L244">            return value;</span>
+        }
+        try {
+<span class="fc" id="L247">            return UUID.fromString(value).toString();</span>
+<span class="fc" id="L248">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L249">            errors.add(new FieldError(&quot;actor&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L250">            return null;</span>
+        }
+    }
+
+    private static UUID parseContact(String value, List&lt;FieldError&gt; errors) {
+<span class="fc bfc" id="L255" title="All 2 branches covered.">        if (value == null) {</span>
+<span class="fc" id="L256">            return null;</span>
+        }
+        try {
+<span class="fc" id="L259">            return UUID.fromString(value);</span>
+<span class="fc" id="L260">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L261">            errors.add(new FieldError(&quot;contact&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L262">            return null;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

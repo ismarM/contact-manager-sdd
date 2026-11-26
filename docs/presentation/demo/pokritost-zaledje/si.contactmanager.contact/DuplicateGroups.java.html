@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DuplicateGroups.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">DuplicateGroups.java</span></div><h1>DuplicateGroups.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.text.Collator;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * Grupiranje, razvrščanje in izrez strani skupin dvojnikov (FR-011-07, research R-04). Čista funkcija nad seznamom
+ * kontaktov: kontakt je v največ eni skupini, skupina ima vsaj dva kontakta, vrstni red je deterministični.
+ */
+final class DuplicateGroups {
+
+    private DuplicateGroups() {}
+
+    /** Skupine kategorije {@code category} iz kontaktov skupine; {@code page} je 0-osno, {@code size} 25, 50 ali 100. */
+    static DuplicatePage build(String category, List&lt;DuplicateCandidate&gt; candidates, int page, int size) {
+        // Vrstni red kontaktov: created_at, nato id (kot v bazi: bajti UUID, zato niz, ne UUID.compareTo).
+<span class="fc" id="L23">        List&lt;DuplicateCandidate&gt; ordered = new ArrayList&lt;&gt;(candidates);</span>
+<span class="fc" id="L24">        ordered.sort(OLDEST_FIRST);</span>
+
+<span class="fc" id="L26">        Map&lt;String, List&lt;DuplicateCandidate&gt;&gt; byKey = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L27" title="All 2 branches covered.">        for (DuplicateCandidate candidate : ordered) {</span>
+<span class="fc" id="L28">            Optional&lt;String&gt; key = DuplicateKeys.key(</span>
+                    category,
+<span class="fc" id="L30">                    candidate.firstName(),</span>
+<span class="fc" id="L31">                    candidate.lastName(),</span>
+<span class="fc" id="L32">                    candidate.email(),</span>
+<span class="fc" id="L33">                    candidate.phone(),</span>
+<span class="fc" id="L34">                    candidate.country());</span>
+<span class="fc" id="L35">            key.ifPresent(</span>
+<span class="fc" id="L36">                    k -&gt; byKey.computeIfAbsent(k, ignored -&gt; new ArrayList&lt;&gt;()).add(candidate));</span>
+<span class="fc" id="L37">        }</span>
+
+<span class="fc" id="L39">        Collator collator = Collator.getInstance(Locale.forLanguageTag(&quot;sl&quot;));</span>
+<span class="fc" id="L40">        collator.setStrength(Collator.SECONDARY);</span>
+<span class="fc" id="L41">        List&lt;Group&gt; groups = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L42" title="All 2 branches covered.">        for (List&lt;DuplicateCandidate&gt; members : byKey.values()) {</span>
+<span class="fc bfc" id="L43" title="All 2 branches covered.">            if (members.size() &gt;= 2) {</span>
+<span class="fc" id="L44">                groups.add(new Group(reasonValue(category, members.get(0)), members));</span>
+            }
+<span class="fc" id="L46">        }</span>
+<span class="fc" id="L47">        groups.sort(Comparator.&lt;Group, String&gt;comparing(g -&gt; g.value, collator)</span>
+<span class="fc" id="L48">                .thenComparing(g -&gt; g.members.get(0), OLDEST_FIRST));</span>
+
+<span class="fc" id="L50">        int from = (int) Math.min((long) page * size, groups.size());</span>
+<span class="fc" id="L51">        int to = Math.min(groups.size(), from + size);</span>
+<span class="fc" id="L52">        List&lt;DuplicateGroup&gt; pageGroups =</span>
+<span class="fc" id="L53">                groups.subList(from, to).stream().map(g -&gt; toGroup(category, g)).toList();</span>
+<span class="fc" id="L54">        return new DuplicatePage(category, groups.size(), page, size, pageGroups);</span>
+    }
+
+<span class="fc" id="L57">    private static final Comparator&lt;DuplicateCandidate&gt; OLDEST_FIRST =</span>
+<span class="fc" id="L58">            Comparator.comparing(DuplicateCandidate::createdAt).thenComparing(c -&gt; c.id().toString());</span>
+
+<span class="fc" id="L60">    private record Group(String value, List&lt;DuplicateCandidate&gt; members) {}</span>
+
+    /** Vrednost prvega kontakta, nenormalizirana (FR-011-07). */
+    private static String reasonValue(String category, DuplicateCandidate first) {
+<span class="fc bfc" id="L64" title="All 3 branches covered.">        return switch (category) {</span>
+<span class="fc" id="L65">            case &quot;name&quot; -&gt; displayName(first);</span>
+<span class="fc" id="L66">            case &quot;email&quot; -&gt; first.email();</span>
+<span class="fc" id="L67">            default -&gt; first.phone();</span>
+        };
+    }
+
+    private static String displayName(DuplicateCandidate candidate) {
+<span class="fc" id="L72">        String name = ContactRepository.displayName(candidate.firstName(), candidate.lastName());</span>
+<span class="pc bpc" id="L73" title="1 of 2 branches missed.">        return name == null ? &quot;&quot; : name;</span>
+    }
+
+    private static DuplicateGroup toGroup(String category, Group group) {
+<span class="fc" id="L77">        List&lt;DuplicateContact&gt; contacts = group.members.stream()</span>
+<span class="fc" id="L78">                .map(c -&gt; new DuplicateContact(c.id(), displayName(c), null))</span>
+<span class="fc" id="L79">                .toList();</span>
+<span class="fc" id="L80">        return new DuplicateGroup(new DuplicateGroup.Reason(category, group.value), contacts.size(), contacts);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

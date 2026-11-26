@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GroupPhotoController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.image</a> &gt; <span class="el_source">GroupPhotoController.java</span></div><h1>GroupPhotoController.java</h1><pre class="source lang-java linenums">package si.contactmanager.image;
+
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import si.contactmanager.group.GroupAccess;
+import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.group.GroupPhotoVersion;
+import si.contactmanager.group.Role;
+
+/**
+ * Slika skupine (FR-018-05 do 08): branje VIEWER+ (tudi arhivirana skupina), spreminjanje ADMIN+ v nearhivirani
+ * skupini. Vrstni red: 401 → 404 → 403 → 409 {@code GROUP_ARCHIVED} → 409 {@code VERSION_CONFLICT} → 400 (datoteka).
+ */
+@RestController
+@RequestMapping(&quot;/api/groups/{groupId}/photo&quot;)
+class GroupPhotoController {
+
+    private final GroupAccess access;
+    private final ImageService images;
+    private final GroupPhotoService photos;
+    private final GroupPhotoVersion versions;
+
+    GroupPhotoController(
+<span class="fc" id="L35">            GroupAccess access, ImageService images, GroupPhotoService photos, GroupPhotoVersion versions) {</span>
+<span class="fc" id="L36">        this.access = access;</span>
+<span class="fc" id="L37">        this.images = images;</span>
+<span class="fc" id="L38">        this.photos = photos;</span>
+<span class="fc" id="L39">        this.versions = versions;</span>
+<span class="fc" id="L40">    }</span>
+
+    @GetMapping
+    ResponseEntity&lt;byte[]&gt; get(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String groupId,
+            @RequestParam(name = &quot;size&quot;, required = false) String size,
+            @RequestHeader(name = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch) {
+<span class="fc" id="L48">        Membership membership = access.require(jwt, groupId, Role.VIEWER, false);</span>
+<span class="fc" id="L49">        return images.serve(Owner.group(membership.groupId()), UploadGuard.size(size), ifNoneMatch);</span>
+    }
+
+    @PutMapping
+    PhotoResult put(@AuthenticationPrincipal Jwt jwt, @PathVariable String groupId, HttpServletRequest request) {
+<span class="fc" id="L54">        Membership membership = access.require(jwt, groupId, Role.ADMIN, true);</span>
+<span class="fc" id="L55">        images.throttle(membership.userId());</span>
+<span class="fc" id="L56">        long version = UploadGuard.version(request);</span>
+<span class="fc" id="L57">        versions.check(membership, version);</span>
+<span class="fc" id="L58">        ProcessedImage image = images.prepare(UploadGuard.file(request, images.maxBytes()));</span>
+<span class="fc" id="L59">        return photos.put(membership, version, image);</span>
+    }
+
+    @DeleteMapping
+    PhotoResult delete(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String groupId,
+            @RequestParam(name = &quot;version&quot;, required = false) String version) {
+<span class="fc" id="L67">        Membership membership = access.require(jwt, groupId, Role.ADMIN, true);</span>
+<span class="fc" id="L68">        long sent = UploadGuard.version(version);</span>
+<span class="fc" id="L69">        versions.check(membership, sent);</span>
+<span class="fc" id="L70">        return photos.remove(membership, sent);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

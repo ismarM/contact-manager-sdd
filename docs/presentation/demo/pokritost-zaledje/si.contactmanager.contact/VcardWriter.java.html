@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VcardWriter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">VcardWriter.java</span></div><h1>VcardWriter.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import ezvcard.Ezvcard;
+import ezvcard.VCard;
+import ezvcard.VCardVersion;
+import ezvcard.parameter.EmailType;
+import ezvcard.parameter.TelephoneType;
+import ezvcard.property.Birthday;
+import ezvcard.property.Categories;
+import ezvcard.property.Email;
+import ezvcard.property.FormattedName;
+import ezvcard.property.Note;
+import ezvcard.property.Organization;
+import ezvcard.property.RawProperty;
+import ezvcard.property.Revision;
+import ezvcard.property.StructuredName;
+import ezvcard.property.Telephone;
+import ezvcard.property.Uid;
+import ezvcard.property.Url;
+import ezvcard.property.VCardProperty;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Zapis kontaktov kot vizitk vCard 3.0 v UTF-8 (FR-014-11, research R-03): {@code N}, {@code FN}, {@code ORG},
+ * {@code EMAIL}, {@code TEL}, {@code ADR} (naslov v ulici, ime države v jeziku in {@code X-CM-CC}), {@code CATEGORIES},
+ * dodatni atributi kot pari {@code X-CM-KEY}/{@code X-CM-VALUE} v skupini {@code attrN}; {@code UID} in {@code REV}
+ * samo, kadar sta znana. Tipi (016, FR-016-25): {@code ADR} po delih (ulica, dodatna vrstica, kraj, regija, poštna
+ * številka; nerazčlenjen naslov v delu ulice), dodatni atributi tipov &lt;i&gt;Telefon&lt;/i&gt;, &lt;i&gt;E-naslov&lt;/i&gt;, &lt;i&gt;Naslov&lt;/i&gt;,
+ * &lt;i&gt;Spletni naslov&lt;/i&gt;, &lt;i&gt;Datum&lt;/i&gt; in &lt;i&gt;Opombe&lt;/i&gt; kot {@code attrN.TEL|EMAIL|ADR|URL|BDAY|NOTE} z
+ * {@code attrN.X-ABLabel} in {@code attrN.X-CM-KEY} (oznaka ključa); &lt;i&gt;Drugo&lt;/i&gt; kot doslej. Vrednosti so kanonične.
+ */
+public final class VcardWriter {
+
+    private VcardWriter() {}
+
+    /** Vizitke v podanem vrstnem redu; {@code language} določa ime države v {@code ADR}. */
+    public static String write(List&lt;VcardContact&gt; contacts, String language) {
+<span class="fc" id="L41">        List&lt;VCard&gt; cards = new ArrayList&lt;&gt;(contacts.size());</span>
+<span class="fc bfc" id="L42" title="All 2 branches covered.">        for (VcardContact contact : contacts) {</span>
+<span class="fc" id="L43">            cards.add(card(contact, language));</span>
+<span class="fc" id="L44">        }</span>
+<span class="fc" id="L45">        return Ezvcard.write(cards).version(VCardVersion.V3_0).prodId(false).go();</span>
+    }
+
+    private static VCard card(VcardContact contact, String language) {
+<span class="fc" id="L49">        VCard card = new VCard();</span>
+<span class="fc" id="L50">        StructuredName name = new StructuredName();</span>
+<span class="fc" id="L51">        name.setFamily(contact.lastName());</span>
+<span class="fc" id="L52">        name.setGiven(contact.firstName());</span>
+<span class="fc" id="L53">        card.setStructuredName(name);</span>
+<span class="fc" id="L54">        card.setFormattedName(new FormattedName(fullName(contact)));</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        if (contact.company() != null) {</span>
+<span class="fc" id="L56">            Organization organization = new Organization();</span>
+<span class="fc" id="L57">            organization.getValues().add(contact.company());</span>
+<span class="fc" id="L58">            card.setOrganization(organization);</span>
+        }
+<span class="fc bfc" id="L60" title="All 2 branches covered.">        if (contact.email() != null) {</span>
+<span class="fc" id="L61">            Email email = new Email(contact.email());</span>
+<span class="fc" id="L62">            email.getTypes().add(EmailType.INTERNET);</span>
+<span class="fc" id="L63">            card.addEmail(email);</span>
+        }
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        if (contact.phone() != null) {</span>
+<span class="fc" id="L66">            card.addTelephoneNumber(contact.phone(), TelephoneType.VOICE);</span>
+        }
+<span class="fc bfc" id="L68" title="All 6 branches covered.">        if (contact.address() != null || contact.addressParts() != null || contact.country() != null) {</span>
+<span class="fc" id="L69">            card.addAddress(address(contact.address(), contact.addressParts(), contact.country(), language));</span>
+        }
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        if (!contact.tags().isEmpty()) {</span>
+<span class="fc" id="L72">            Categories categories = new Categories();</span>
+<span class="fc" id="L73">            categories.getValues().addAll(contact.tags());</span>
+<span class="fc" id="L74">            card.setCategories(categories);</span>
+        }
+<span class="fc bfc" id="L76" title="All 2 branches covered.">        for (int i = 0; i &lt; contact.attributes().size(); i++) {</span>
+<span class="fc" id="L77">            attribute(card, contact.attributes().get(i), &quot;attr&quot; + (i + 1), language);</span>
+        }
+<span class="fc bfc" id="L79" title="All 2 branches covered.">        if (contact.id() != null) {</span>
+<span class="fc" id="L80">            card.setUid(new Uid(&quot;urn:uuid:&quot; + contact.id()));</span>
+        }
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        if (contact.updatedAt() != null) {</span>
+<span class="fc" id="L83">            card.setRevision(new Revision(contact.updatedAt()));</span>
+        }
+<span class="fc" id="L85">        return card;</span>
+    }
+
+    private static String fullName(VcardContact contact) {
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">        if (contact.firstName() == null) {</span>
+<span class="nc" id="L90">            return contact.lastName();</span>
+        }
+<span class="fc bfc" id="L92" title="All 2 branches covered.">        return contact.lastName() == null ? contact.firstName() : contact.firstName() + &quot; &quot; + contact.lastName();</span>
+    }
+
+    /** Dodatni atribut: tipizirana lastnost z oznako ključa ali (tip {@code OTHER}) par ključ/vrednost. */
+    private static void attribute(VCard card, Attribute attribute, String group, String language) {
+<span class="fc" id="L97">        VCardProperty typed = typedProperty(attribute, language);</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">        if (typed == null) {</span>
+<span class="fc" id="L99">            RawProperty key = card.addExtendedProperty(VcardMapping.KEY, VcardMapping.escape(attribute.key()));</span>
+<span class="fc" id="L100">            key.setGroup(group);</span>
+<span class="fc" id="L101">            RawProperty value = card.addExtendedProperty(</span>
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">                    VcardMapping.VALUE, VcardMapping.escape(attribute.value() == null ? &quot;&quot; : attribute.value()));</span>
+<span class="fc" id="L103">            value.setGroup(group);</span>
+<span class="fc" id="L104">            return;</span>
+        }
+<span class="fc" id="L106">        typed.setGroup(group);</span>
+<span class="fc" id="L107">        card.addProperty(typed);</span>
+<span class="fc" id="L108">        card.addExtendedProperty(VcardMapping.LABEL, VcardMapping.escape(attribute.key()))</span>
+<span class="fc" id="L109">                .setGroup(group);</span>
+<span class="fc" id="L110">        card.addExtendedProperty(VcardMapping.KEY, VcardMapping.escape(attribute.key()))</span>
+<span class="fc" id="L111">                .setGroup(group);</span>
+<span class="fc" id="L112">    }</span>
+
+    private static VCardProperty typedProperty(Attribute attribute, String language) {
+<span class="fc" id="L115">        String value = attribute.value();</span>
+<span class="fc bfc" id="L116" title="All 7 branches covered.">        return switch (attribute.type()) {</span>
+<span class="pc bpc" id="L117" title="1 of 2 branches missed.">            case PHONE -&gt; value == null ? null : new Telephone(value);</span>
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">            case EMAIL -&gt; value == null ? null : new Email(value);</span>
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">            case URL -&gt; value == null ? null : new Url(value);</span>
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">            case NOTES -&gt; value == null ? null : new Note(value);</span>
+            case DATE -&gt; {
+                try {
+<span class="pc bpc" id="L123" title="1 of 2 branches missed.">                    yield value == null ? null : new Birthday(LocalDate.parse(value));</span>
+<span class="nc" id="L124">                } catch (DateTimeParseException e) {</span>
+<span class="nc" id="L125">                    yield null;</span>
+                }
+            }
+            case ADDRESS -&gt;
+<span class="pc bpc" id="L129" title="1 of 4 branches missed.">                attribute.parts() == null &amp;&amp; value == null ? null : address(value, attribute.parts(), null, language);</span>
+<span class="fc" id="L130">            case OTHER -&gt; null;</span>
+        };
+    }
+
+    /**
+     * {@code ADR}: deli naslova ({@code ;;ulica;kraj;regija;poštna;država}, dodatna vrstica v drugem polju, parameter
+     * {@code X-CM-PARTS}) ali nerazčlenjen naslov v delu ulice; država z imenom v jeziku in {@code X-CM-CC}.
+     */
+    private static ezvcard.property.Address address(String text, Address parts, String country, String language) {
+<span class="fc" id="L139">        ezvcard.property.Address address = new ezvcard.property.Address();</span>
+<span class="fc" id="L140">        String code = country;</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">        if (parts == null) {</span>
+<span class="fc" id="L142">            address.setStreetAddress(text);</span>
+        } else {
+<span class="fc" id="L144">            address.setStreetAddress(parts.street());</span>
+<span class="fc" id="L145">            address.setExtendedAddress(parts.extra());</span>
+<span class="fc" id="L146">            address.setLocality(parts.city());</span>
+<span class="fc" id="L147">            address.setRegion(parts.region());</span>
+<span class="fc" id="L148">            address.setPostalCode(parts.postalCode());</span>
+<span class="fc" id="L149">            address.getParameters().put(VcardMapping.PARTS, &quot;1&quot;);</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">            if (parts.country() != null) {</span>
+<span class="fc" id="L151">                address.getParameters().put(VcardMapping.PARTS_COUNTRY, parts.country());</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">                if (code == null) {</span>
+<span class="fc" id="L153">                    code = parts.country();</span>
+                }
+            }
+        }
+<span class="fc bfc" id="L157" title="All 2 branches covered.">        if (code != null) {</span>
+<span class="fc" id="L158">            address.setCountry(CountryNames.display(code, language));</span>
+<span class="fc" id="L159">            address.getParameters().put(VcardMapping.COUNTRY_CODE, code);</span>
+        }
+<span class="fc" id="L161">        return address;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

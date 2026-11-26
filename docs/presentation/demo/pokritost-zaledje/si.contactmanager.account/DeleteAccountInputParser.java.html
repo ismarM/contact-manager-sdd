@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DeleteAccountInputParser.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.account</a> &gt; <span class="el_source">DeleteAccountInputParser.java</span></div><h1>DeleteAccountInputParser.java</h1><pre class="source lang-java linenums">package si.contactmanager.account;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * Telo {@code POST /api/me/deletion} (012, FR-012-07): {@code {&quot;email&quot;: &quot;…&quot;}}. Nikoli ne vrže; napake po poljih
+ * ({@code REQUIRED}, {@code UNKNOWN_FIELD}, {@code body: MALFORMED}).
+ */
+final class DeleteAccountInputParser {
+
+    /** {@code email} je vpisan e-naslov (neobrezan) ali {@code null}. */
+<span class="fc" id="L19">    record ParsedDeletion(String email, List&lt;FieldError&gt; errors) {}</span>
+
+<span class="fc" id="L21">    private static final JsonMapper JSON = JsonMapper.builder().build();</span>
+
+    private DeleteAccountInputParser() {}
+
+    static ParsedDeletion parse(String body) {
+<span class="fc" id="L26">        JsonNode root = object(body);</span>
+<span class="fc bfc" id="L27" title="All 2 branches covered.">        if (root == null) {</span>
+<span class="fc" id="L28">            return new ParsedDeletion(null, List.of(new FieldError(&quot;body&quot;, &quot;MALFORMED&quot;)));</span>
+        }
+<span class="fc" id="L30">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L31" title="All 2 branches covered.">        for (Map.Entry&lt;String, JsonNode&gt; property : root.properties()) {</span>
+<span class="fc bfc" id="L32" title="All 2 branches covered.">            if (!&quot;email&quot;.equals(property.getKey())) {</span>
+<span class="fc" id="L33">                errors.add(new FieldError(property.getKey(), &quot;UNKNOWN_FIELD&quot;));</span>
+            }
+<span class="fc" id="L35">        }</span>
+<span class="fc" id="L36">        JsonNode node = root.get(&quot;email&quot;);</span>
+<span class="fc" id="L37">        String email = null;</span>
+<span class="fc bfc" id="L38" title="All 8 branches covered.">        if (node == null || node.isNull() || !node.isString() || node.asString().isBlank()) {</span>
+<span class="fc" id="L39">            errors.add(new FieldError(&quot;email&quot;, &quot;REQUIRED&quot;));</span>
+        } else {
+<span class="fc" id="L41">            email = node.asString();</span>
+        }
+<span class="fc bfc" id="L43" title="All 2 branches covered.">        return new ParsedDeletion(errors.isEmpty() ? email : null, List.copyOf(errors));</span>
+    }
+
+    /** Primerjava vpisanega e-naslova z e-naslovom računa: po obrezu in brez velikosti črk. */
+    static boolean matches(String typed, String actual) {
+<span class="pc bpc" id="L48" title="1 of 4 branches missed.">        if (typed == null || actual == null) {</span>
+<span class="fc" id="L49">            return false;</span>
+        }
+<span class="fc" id="L51">        return typed.strip().toLowerCase(Locale.ROOT).equals(actual.strip().toLowerCase(Locale.ROOT));</span>
+    }
+
+    private static JsonNode object(String body) {
+        try {
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">            JsonNode root = JSON.readTree(body == null ? &quot;&quot; : body);</span>
+<span class="pc bpc" id="L57" title="1 of 4 branches missed.">            return root != null &amp;&amp; root.isObject() ? root : null;</span>
+<span class="fc" id="L58">        } catch (JacksonException e) {</span>
+<span class="fc" id="L59">            return null;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

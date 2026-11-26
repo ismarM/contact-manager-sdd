@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InvitationRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.invitation</a> &gt; <span class="el_source">InvitationRepository.java</span></div><h1>InvitationRepository.java</h1><pre class="source lang-java linenums">package si.contactmanager.invitation;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import si.contactmanager.group.UserRef;
+
+/** Čakajoča povabila v tabeli {@code invitation} (data-model.md); vse poizvedbe uporabnika imajo {@code invitee_id}. */
+@Repository
+class InvitationRepository {
+
+    /** Vstavljeno povabilo: id in čas nastanka. */
+<span class="fc" id="L16">    record Inserted(UUID id, Instant createdAt) {}</span>
+
+    /** Prevzeto povabilo: skupina in ponujena vloga. */
+<span class="fc" id="L19">    record Claimed(UUID groupId, String role) {}</span>
+
+    private final JdbcClient jdbc;
+
+<span class="fc" id="L23">    InvitationRepository(JdbcClient jdbc) {</span>
+<span class="fc" id="L24">        this.jdbc = jdbc;</span>
+<span class="fc" id="L25">    }</span>
+
+    /** Zaklene vrstico skupine do konca transakcije; vrne, ali je arhivirana (prazno: skupine ni). */
+    Optional&lt;Boolean&gt; lockGroup(UUID groupId) {
+<span class="fc" id="L29">        return jdbc.sql(&quot;SELECT archived_at IS NOT NULL FROM contact_group WHERE id = :id FOR UPDATE&quot;)</span>
+<span class="fc" id="L30">                .param(&quot;id&quot;, groupId)</span>
+<span class="fc" id="L31">                .query(Boolean.class)</span>
+<span class="fc" id="L32">                .optional();</span>
+    }
+
+    String callerEmail(long userId) {
+<span class="fc" id="L36">        return jdbc.sql(&quot;SELECT email FROM app_user WHERE id = :id&quot;)</span>
+<span class="fc" id="L37">                .param(&quot;id&quot;, userId)</span>
+<span class="fc" id="L38">                .query(String.class)</span>
+<span class="fc" id="L39">                .single();</span>
+    }
+
+    Optional&lt;Long&gt; findUserByEmail(String email) {
+<span class="fc" id="L43">        return jdbc.sql(&quot;SELECT id FROM app_user WHERE lower(email) = lower(:email)&quot;)</span>
+<span class="fc" id="L44">                .param(&quot;email&quot;, email)</span>
+<span class="fc" id="L45">                .query(Long.class)</span>
+<span class="fc" id="L46">                .optional();</span>
+    }
+
+    boolean isMember(UUID groupId, long userId) {
+<span class="fc" id="L50">        return jdbc.sql(&quot;SELECT EXISTS (SELECT 1 FROM group_member WHERE group_id = :group AND user_id = :user)&quot;)</span>
+<span class="fc" id="L51">                .param(&quot;group&quot;, groupId)</span>
+<span class="fc" id="L52">                .param(&quot;user&quot;, userId)</span>
+<span class="fc" id="L53">                .query(Boolean.class)</span>
+<span class="fc" id="L54">                .single();</span>
+    }
+
+    boolean hasPending(UUID groupId, long inviteeId) {
+<span class="fc" id="L58">        return jdbc.sql(&quot;SELECT EXISTS (SELECT 1 FROM invitation WHERE group_id = :group AND invitee_id = :user)&quot;)</span>
+<span class="fc" id="L59">                .param(&quot;group&quot;, groupId)</span>
+<span class="fc" id="L60">                .param(&quot;user&quot;, inviteeId)</span>
+<span class="fc" id="L61">                .query(Boolean.class)</span>
+<span class="fc" id="L62">                .single();</span>
+    }
+
+    Inserted insert(UUID groupId, long inviteeId, long inviterId, String role) {
+<span class="fc" id="L66">        return jdbc.sql(&quot;INSERT INTO invitation (group_id, invitee_id, inviter_id, role)&quot;</span>
+                        + &quot; VALUES (:group, :invitee, :inviter, :role) RETURNING id, created_at&quot;)
+<span class="fc" id="L68">                .param(&quot;group&quot;, groupId)</span>
+<span class="fc" id="L69">                .param(&quot;invitee&quot;, inviteeId)</span>
+<span class="fc" id="L70">                .param(&quot;inviter&quot;, inviterId)</span>
+<span class="fc" id="L71">                .param(&quot;role&quot;, role)</span>
+<span class="fc" id="L72">                .query((rs, row) -&gt; new Inserted(</span>
+<span class="fc" id="L73">                        rs.getObject(&quot;id&quot;, UUID.class),</span>
+<span class="fc" id="L74">                        rs.getTimestamp(&quot;created_at&quot;).toInstant()))</span>
+<span class="fc" id="L75">                .single();</span>
+    }
+
+    /** Profil kot odgovor API ({@code null} ime je dovoljeno). */
+    UserRef userRef(long userId) {
+<span class="fc" id="L80">        return jdbc.sql(&quot;SELECT name, email FROM app_user WHERE id = :id&quot;)</span>
+<span class="fc" id="L81">                .param(&quot;id&quot;, userId)</span>
+<span class="fc" id="L82">                .query((rs, row) -&gt; new UserRef(rs.getString(&quot;name&quot;), rs.getString(&quot;email&quot;)))</span>
+<span class="fc" id="L83">                .single();</span>
+    }
+
+    // --- povabila skupine ------------------------------------------------------------------------------------------
+
+    List&lt;OutgoingRow&gt; pageOutgoing(UUID groupId, int page, int size) {
+<span class="fc" id="L89">        return jdbc.sql(&quot;SELECT i.id, i.role, i.created_at, u.email AS invitee_email,&quot;</span>
+                        + &quot; p.name AS inviter_name, p.email AS inviter_email&quot;
+                        + &quot; FROM invitation i JOIN app_user u ON u.id = i.invitee_id&quot;
+                        + &quot; LEFT JOIN app_user p ON p.id = i.inviter_id&quot;
+                        + &quot; WHERE i.group_id = :group ORDER BY i.created_at DESC, i.id DESC&quot;
+                        + &quot; LIMIT :size OFFSET :offset&quot;)
+<span class="fc" id="L95">                .param(&quot;group&quot;, groupId)</span>
+<span class="fc" id="L96">                .param(&quot;size&quot;, size)</span>
+<span class="fc" id="L97">                .param(&quot;offset&quot;, (long) page * size)</span>
+<span class="fc" id="L98">                .query((rs, row) -&gt; new OutgoingRow(</span>
+<span class="fc" id="L99">                        rs.getObject(&quot;id&quot;, UUID.class),</span>
+<span class="fc" id="L100">                        rs.getString(&quot;invitee_email&quot;),</span>
+<span class="fc" id="L101">                        rs.getString(&quot;role&quot;),</span>
+<span class="fc" id="L102">                        userOrNull(rs.getString(&quot;inviter_name&quot;), rs.getString(&quot;inviter_email&quot;)),</span>
+<span class="fc" id="L103">                        rs.getTimestamp(&quot;created_at&quot;).toInstant()))</span>
+<span class="fc" id="L104">                .list();</span>
+    }
+
+    /** Vrstica seznama poslanih povabil pred izračunom {@code canWithdraw}. */
+<span class="fc" id="L108">    record OutgoingRow(UUID id, String inviteeEmail, String role, UserRef invitedBy, Instant createdAt) {}</span>
+
+    int countOutgoing(UUID groupId) {
+<span class="fc" id="L111">        return jdbc.sql(&quot;SELECT count(*) FROM invitation WHERE group_id = :group&quot;)</span>
+<span class="fc" id="L112">                .param(&quot;group&quot;, groupId)</span>
+<span class="fc" id="L113">                .query(Integer.class)</span>
+<span class="fc" id="L114">                .single();</span>
+    }
+
+    /** Ponujena vloga povabila v tej skupini (prazno: povabila v tej skupini ni). */
+    Optional&lt;String&gt; roleOf(UUID invitationId, UUID groupId) {
+<span class="fc" id="L119">        return jdbc.sql(&quot;SELECT role FROM invitation WHERE id = :id AND group_id = :group&quot;)</span>
+<span class="fc" id="L120">                .param(&quot;id&quot;, invitationId)</span>
+<span class="fc" id="L121">                .param(&quot;group&quot;, groupId)</span>
+<span class="fc" id="L122">                .query(String.class)</span>
+<span class="fc" id="L123">                .optional();</span>
+    }
+
+    boolean withdraw(UUID invitationId, UUID groupId) {
+<span class="fc" id="L127">        return jdbc.sql(&quot;DELETE FROM invitation WHERE id = :id AND group_id = :group&quot;)</span>
+<span class="fc" id="L128">                        .param(&quot;id&quot;, invitationId)</span>
+<span class="fc" id="L129">                        .param(&quot;group&quot;, groupId)</span>
+<span class="fc bfc" id="L130" title="All 2 branches covered.">                        .update()</span>
+                &gt; 0;
+    }
+
+    // --- povabila uporabnika (vedno z invitee_id) --------------------------------------------------------------------
+
+    List&lt;ReceivedInvitation&gt; pageReceived(long userId, int page, int size) {
+<span class="fc" id="L137">        return jdbc.sql(&quot;SELECT i.id, i.role, i.created_at, g.id AS group_id, g.title, g.color,&quot;</span>
+                        + &quot; g.archived_at IS NOT NULL AS archived, p.name AS inviter_name, p.email AS inviter_email&quot;
+                        + &quot; FROM invitation i JOIN contact_group g ON g.id = i.group_id&quot;
+                        + &quot; LEFT JOIN app_user p ON p.id = i.inviter_id&quot;
+                        + &quot; WHERE i.invitee_id = :user ORDER BY i.created_at DESC, i.id DESC&quot;
+                        + &quot; LIMIT :size OFFSET :offset&quot;)
+<span class="fc" id="L143">                .param(&quot;user&quot;, userId)</span>
+<span class="fc" id="L144">                .param(&quot;size&quot;, size)</span>
+<span class="fc" id="L145">                .param(&quot;offset&quot;, (long) page * size)</span>
+<span class="fc" id="L146">                .query((rs, row) -&gt; new ReceivedInvitation(</span>
+<span class="fc" id="L147">                        rs.getObject(&quot;id&quot;, UUID.class),</span>
+                        new InvitationGroup(
+<span class="fc" id="L149">                                rs.getObject(&quot;group_id&quot;, UUID.class),</span>
+<span class="fc" id="L150">                                rs.getString(&quot;title&quot;),</span>
+<span class="fc" id="L151">                                rs.getString(&quot;color&quot;),</span>
+<span class="fc" id="L152">                                rs.getBoolean(&quot;archived&quot;)),</span>
+<span class="fc" id="L153">                        rs.getString(&quot;role&quot;),</span>
+<span class="fc" id="L154">                        userOrNull(rs.getString(&quot;inviter_name&quot;), rs.getString(&quot;inviter_email&quot;)),</span>
+<span class="fc" id="L155">                        rs.getTimestamp(&quot;created_at&quot;).toInstant()))</span>
+<span class="fc" id="L156">                .list();</span>
+    }
+
+    int countReceived(long userId) {
+<span class="fc" id="L160">        return jdbc.sql(&quot;SELECT count(*) FROM invitation WHERE invitee_id = :user&quot;)</span>
+<span class="fc" id="L161">                .param(&quot;user&quot;, userId)</span>
+<span class="fc" id="L162">                .query(Integer.class)</span>
+<span class="fc" id="L163">                .single();</span>
+    }
+
+    Optional&lt;UUID&gt; findGroupOf(UUID invitationId, long inviteeId) {
+<span class="fc" id="L167">        return jdbc.sql(&quot;SELECT group_id FROM invitation WHERE id = :id AND invitee_id = :user&quot;)</span>
+<span class="fc" id="L168">                .param(&quot;id&quot;, invitationId)</span>
+<span class="fc" id="L169">                .param(&quot;user&quot;, inviteeId)</span>
+<span class="fc" id="L170">                .query(UUID.class)</span>
+<span class="fc" id="L171">                .optional();</span>
+    }
+
+    /** Prevzame (izbriše) povabilo uporabnika; prazno, če ga ni (že obdelano, umaknjeno ali tuje). */
+    Optional&lt;Claimed&gt; claim(UUID invitationId, long inviteeId) {
+<span class="fc" id="L176">        return jdbc.sql(&quot;DELETE FROM invitation WHERE id = :id AND invitee_id = :user RETURNING group_id, role&quot;)</span>
+<span class="fc" id="L177">                .param(&quot;id&quot;, invitationId)</span>
+<span class="fc" id="L178">                .param(&quot;user&quot;, inviteeId)</span>
+<span class="fc" id="L179">                .query((rs, row) -&gt; new Claimed(rs.getObject(&quot;group_id&quot;, UUID.class), rs.getString(&quot;role&quot;)))</span>
+<span class="fc" id="L180">                .optional();</span>
+    }
+
+    /** Doda člana; vrne število dodanih vrstic (0 = že član). */
+    int addMember(UUID groupId, long userId, String role) {
+<span class="fc" id="L185">        return jdbc.sql(&quot;INSERT INTO group_member (group_id, user_id, role) VALUES (:group, :user, :role)&quot;</span>
+                        + &quot; ON CONFLICT DO NOTHING&quot;)
+<span class="fc" id="L187">                .param(&quot;group&quot;, groupId)</span>
+<span class="fc" id="L188">                .param(&quot;user&quot;, userId)</span>
+<span class="fc" id="L189">                .param(&quot;role&quot;, role)</span>
+<span class="fc" id="L190">                .update();</span>
+    }
+
+    /** Naslov in arhiviranost skupine za odgovor sprejema. */
+    Optional&lt;GroupHeading&gt; heading(UUID groupId) {
+<span class="fc" id="L195">        return jdbc.sql(&quot;SELECT title, archived_at IS NOT NULL AS archived FROM contact_group WHERE id = :id&quot;)</span>
+<span class="fc" id="L196">                .param(&quot;id&quot;, groupId)</span>
+<span class="fc" id="L197">                .query((rs, row) -&gt; new GroupHeading(rs.getString(&quot;title&quot;), rs.getBoolean(&quot;archived&quot;)))</span>
+<span class="fc" id="L198">                .optional();</span>
+    }
+
+<span class="fc" id="L201">    record GroupHeading(String title, boolean archived) {}</span>
+
+    boolean decline(UUID invitationId, long inviteeId) {
+<span class="fc" id="L204">        return jdbc.sql(&quot;DELETE FROM invitation WHERE id = :id AND invitee_id = :user&quot;)</span>
+<span class="fc" id="L205">                        .param(&quot;id&quot;, invitationId)</span>
+<span class="fc" id="L206">                        .param(&quot;user&quot;, inviteeId)</span>
+<span class="fc bfc" id="L207" title="All 2 branches covered.">                        .update()</span>
+                &gt; 0;
+    }
+
+    private static UserRef userOrNull(String name, String email) {
+<span class="fc bfc" id="L212" title="All 2 branches covered.">        return email == null ? null : new UserRef(name, email);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

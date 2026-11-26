@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContactHistoryController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.audit</a> &gt; <span class="el_source">ContactHistoryController.java</span></div><h1>ContactHistoryController.java</h1><pre class="source lang-java linenums">package si.contactmanager.audit;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import si.contactmanager.audit.HistoryViews.Compare;
+import si.contactmanager.audit.HistoryViews.History;
+import si.contactmanager.audit.HistoryViews.RestorePreview;
+import si.contactmanager.audit.HistoryViews.Version;
+import si.contactmanager.audit.RestoreService.Request;
+import si.contactmanager.group.GroupAccess;
+import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.group.Role;
+import si.contactmanager.shared.error.ForbiddenException;
+import si.contactmanager.shared.error.GroupArchivedException;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+import si.contactmanager.shared.error.ValidationException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * Zgodovina, različice, primerjava, predogled in obnova kontakta (015, plan.md – REST endpoints). Branje: VIEWER, tudi v
+ * arhivirani skupini. Obnova (§2.2): 404 skupine ali kontakta → 403 (pod EDITOR) → GROUP_ARCHIVED → 400 → 404 različice
+ * → VERSION_CONFLICT → RESTORE_NOT_ALLOWED → RESTORE_NO_CHANGES.
+ */
+@RestController
+@RequestMapping(&quot;/api/groups/{groupId}/contacts/{contactId}&quot;)
+class ContactHistoryController {
+
+    private final ContactHistoryService service;
+    private final RestoreService restores;
+    private final GroupAccess access;
+    private final JsonMapper json;
+
+    ContactHistoryController(
+<span class="fc" id="L47">            ContactHistoryService service, RestoreService restores, GroupAccess access, JsonMapper json) {</span>
+<span class="fc" id="L48">        this.service = service;</span>
+<span class="fc" id="L49">        this.restores = restores;</span>
+<span class="fc" id="L50">        this.access = access;</span>
+<span class="fc" id="L51">        this.json = json;</span>
+<span class="fc" id="L52">    }</span>
+
+    @GetMapping(&quot;/history&quot;)
+    History history(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String groupId,
+            @PathVariable String contactId,
+            @RequestParam(required = false) String page,
+            @RequestParam(required = false) String size) {
+<span class="fc" id="L61">        Membership membership = access.require(jwt, groupId, Role.VIEWER, false);</span>
+<span class="fc" id="L62">        UUID contact = AuditParams.id(contactId);</span>
+<span class="fc" id="L63">        service.known(membership, contact);</span>
+<span class="fc" id="L64">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L65">        Integer pageNumber = AuditParams.page(page, errors);</span>
+<span class="fc" id="L66">        Integer pageSize = AuditParams.size(size, errors);</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">        if (!errors.isEmpty()) {</span>
+<span class="fc" id="L68">            throw new ValidationException(errors);</span>
+        }
+<span class="fc" id="L70">        return service.history(membership, contact, pageNumber, pageSize);</span>
+    }
+
+    @GetMapping(&quot;/versions/{ref}&quot;)
+    Version version(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String groupId,
+            @PathVariable String contactId,
+            @PathVariable String ref) {
+<span class="fc" id="L79">        Membership membership = access.require(jwt, groupId, Role.VIEWER, false);</span>
+<span class="fc" id="L80">        return service.version(membership, AuditParams.id(contactId), ref);</span>
+    }
+
+    @GetMapping(&quot;/compare&quot;)
+    Compare compare(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String groupId,
+            @PathVariable String contactId,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to) {
+<span class="fc" id="L90">        Membership membership = access.require(jwt, groupId, Role.VIEWER, false);</span>
+<span class="fc" id="L91">        UUID contact = AuditParams.id(contactId);</span>
+<span class="fc" id="L92">        service.known(membership, contact);</span>
+<span class="fc" id="L93">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L94" title="2 of 4 branches missed.">        if (from == null || from.isBlank()) {</span>
+<span class="nc" id="L95">            errors.add(new FieldError(&quot;from&quot;, &quot;REQUIRED&quot;));</span>
+        }
+<span class="pc bpc" id="L97" title="1 of 4 branches missed.">        if (to == null || to.isBlank()) {</span>
+<span class="fc" id="L98">            errors.add(new FieldError(&quot;to&quot;, &quot;REQUIRED&quot;));</span>
+        }
+<span class="fc bfc" id="L100" title="All 2 branches covered.">        if (!errors.isEmpty()) {</span>
+<span class="fc" id="L101">            throw new ValidationException(errors);</span>
+        }
+<span class="fc" id="L103">        return service.compare(membership, contact, from, to);</span>
+    }
+
+    @GetMapping(&quot;/restore-preview&quot;)
+    RestorePreview preview(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String groupId,
+            @PathVariable String contactId,
+            @RequestParam(required = false) String from) {
+<span class="fc" id="L112">        Membership membership = access.require(jwt, groupId, Role.VIEWER, false);</span>
+<span class="fc" id="L113">        UUID contact = AuditParams.id(contactId);</span>
+<span class="fc" id="L114">        service.known(membership, contact);</span>
+<span class="pc bpc" id="L115" title="2 of 4 branches missed.">        if (from == null || from.isBlank()) {</span>
+<span class="nc" id="L116">            throw new ValidationException(List.of(new FieldError(&quot;from&quot;, &quot;REQUIRED&quot;)));</span>
+        }
+<span class="fc" id="L118">        return service.preview(membership, contact, from);</span>
+    }
+
+    @PostMapping(&quot;/restore&quot;)
+    ResponseEntity&lt;AuditEntry&gt; restore(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String groupId,
+            @PathVariable String contactId,
+            @RequestBody(required = false) String body) {
+<span class="fc" id="L127">        Membership membership = access.require(jwt, groupId, Role.VIEWER, false);</span>
+<span class="fc" id="L128">        UUID contact = AuditParams.id(contactId);</span>
+<span class="fc" id="L129">        service.known(membership, contact);</span>
+<span class="fc bfc" id="L130" title="All 2 branches covered.">        if (!membership.role().atLeast(Role.EDITOR)) {</span>
+<span class="fc" id="L131">            throw new ForbiddenException();</span>
+        }
+<span class="fc bfc" id="L133" title="All 2 branches covered.">        if (membership.archived()) {</span>
+<span class="fc" id="L134">            throw new GroupArchivedException();</span>
+        }
+<span class="fc" id="L136">        return ResponseEntity.status(HttpStatus.CREATED).body(restores.restore(membership, contact, parse(body)));</span>
+    }
+
+    /** Telo {@code {&quot;from&quot;, &quot;version&quot;?, &quot;lastEntryId&quot;?}}: manjkajoč {@code from} → REQUIRED, napačna oblika → INVALID_VALUE. */
+    private Request parse(String body) {
+<span class="pc bpc" id="L141" title="2 of 4 branches missed.">        if (body == null || body.isBlank()) {</span>
+<span class="nc" id="L142">            throw new ValidationException(List.of(new FieldError(&quot;from&quot;, &quot;REQUIRED&quot;)));</span>
+        }
+        JsonNode root;
+        try {
+<span class="fc" id="L146">            root = json.readTree(body);</span>
+<span class="nc" id="L147">        } catch (RuntimeException e) {</span>
+<span class="nc" id="L148">            throw new ValidationException(List.of(new FieldError(&quot;body&quot;, &quot;MALFORMED&quot;)));</span>
+<span class="fc" id="L149">        }</span>
+<span class="pc bpc" id="L150" title="2 of 4 branches missed.">        if (root == null || !root.isObject()) {</span>
+<span class="nc" id="L151">            throw new ValidationException(List.of(new FieldError(&quot;body&quot;, &quot;MALFORMED&quot;)));</span>
+        }
+<span class="fc" id="L153">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L154">        String from = null;</span>
+<span class="fc" id="L155">        JsonNode fromNode = root.get(&quot;from&quot;);</span>
+<span class="pc bpc" id="L156" title="1 of 4 branches missed.">        if (fromNode == null || fromNode.isNull()) {</span>
+<span class="fc" id="L157">            errors.add(new FieldError(&quot;from&quot;, &quot;REQUIRED&quot;));</span>
+<span class="pc bpc" id="L158" title="1 of 4 branches missed.">        } else if (!fromNode.isString() || !validRef(fromNode.asString())) {</span>
+<span class="fc" id="L159">            errors.add(new FieldError(&quot;from&quot;, &quot;INVALID_VALUE&quot;));</span>
+        } else {
+<span class="fc" id="L161">            from = fromNode.asString();</span>
+        }
+<span class="fc" id="L163">        Long version = null;</span>
+<span class="fc" id="L164">        JsonNode versionNode = root.get(&quot;version&quot;);</span>
+<span class="pc bpc" id="L165" title="1 of 4 branches missed.">        if (versionNode != null &amp;&amp; !versionNode.isNull()) {</span>
+<span class="pc bpc" id="L166" title="1 of 2 branches missed.">            if (!versionNode.isIntegralNumber()) {</span>
+<span class="nc" id="L167">                errors.add(new FieldError(&quot;version&quot;, &quot;INVALID_VALUE&quot;));</span>
+            } else {
+<span class="fc" id="L169">                version = versionNode.asLong();</span>
+            }
+        }
+<span class="fc" id="L172">        UUID last = null;</span>
+<span class="fc" id="L173">        JsonNode lastNode = root.get(&quot;lastEntryId&quot;);</span>
+<span class="pc bpc" id="L174" title="1 of 4 branches missed.">        if (lastNode != null &amp;&amp; !lastNode.isNull()) {</span>
+            try {
+<span class="pc bpc" id="L176" title="1 of 2 branches missed.">                last = lastNode.isString() ? UUID.fromString(lastNode.asString()) : null;</span>
+<span class="nc" id="L177">            } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L178">                last = null;</span>
+<span class="fc" id="L179">            }</span>
+<span class="pc bpc" id="L180" title="1 of 2 branches missed.">            if (last == null) {</span>
+<span class="nc" id="L181">                errors.add(new FieldError(&quot;lastEntryId&quot;, &quot;INVALID_VALUE&quot;));</span>
+            }
+        }
+<span class="fc bfc" id="L184" title="All 2 branches covered.">        if (!errors.isEmpty()) {</span>
+<span class="fc" id="L185">            throw new ValidationException(errors);</span>
+        }
+<span class="fc" id="L187">        return new Request(from, version, last);</span>
+    }
+
+    private static boolean validRef(String ref) {
+<span class="fc bfc" id="L191" title="All 2 branches covered.">        if (&quot;initial&quot;.equals(ref)) {</span>
+<span class="fc" id="L192">            return true;</span>
+        }
+        try {
+<span class="fc" id="L195">            UUID.fromString(ref);</span>
+<span class="fc" id="L196">            return true;</span>
+<span class="fc" id="L197">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L198">            return false;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

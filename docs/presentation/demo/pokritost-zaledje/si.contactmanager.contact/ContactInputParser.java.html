@@ -1,0 +1,433 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContactInputParser.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.contact</a> &gt; <span class="el_source">ContactInputParser.java</span></div><h1>ContactInputParser.java</h1><pre class="source lang-java linenums">package si.contactmanager.contact;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * Razčlenitev telesa {@code POST}/{@code PUT …/contacts} (research R-06, feature-map §2.6): vrednosti obrezane, prazna
+ * neobvezna polja {@code null}, dolžine v kodnih točkah, prelomi vrstic naslova poenoteni v {@code \n}; vsaj ime ali
+ * priimek; atributi (do 50, ključ 1–50, vrednost 1–500, ključ edinstven ne glede na velikost črk, ne ime
+ * predefiniranega polja) in značke (do 30, 1–50 znakov, brez presledkov, edinstvene ne glede na velikost črk). Popolnoma
+ * prazna vrstica atributa se ne shrani. Nikoli ne vrže: napake podatkov se po feature-map §2.2 sporočijo šele po
+ * preverjanju dostopa, arhiviranosti in verzije.
+ */
+public final class ContactInputParser {
+
+    static final int NAME_MAX = 100;
+    static final int ADDRESS_MAX = 300;
+    static final int EMAIL_MAX = 254;
+    static final int PHONE_MAX = 30;
+    static final int COMPANY_MAX = 200;
+    static final int KEY_MAX = 50;
+    static final int VALUE_MAX = 500;
+    static final int TAG_MAX = 50;
+    static final int ATTRIBUTES_MAX = 50;
+    static final int TAGS_MAX = 30;
+
+<span class="fc" id="L36">    static final Pattern EMAIL = Pattern.compile(&quot;^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$&quot;);</span>
+<span class="fc" id="L37">    static final Pattern PHONE = Pattern.compile(&quot;^[0-9+\\-()/ ]+$&quot;);</span>
+<span class="fc" id="L38">    static final Pattern WHITESPACE = Pattern.compile(&quot;\\s&quot;);</span>
+<span class="fc" id="L39">    static final Pattern SPACES = Pattern.compile(&quot;\\s+&quot;);</span>
+
+    /** Imena predefiniranih polj v obeh jezikih (normalizirana: male črke, en presledek). */
+<span class="fc" id="L42">    static final Set&lt;String&gt; RESERVED_KEYS = Set.of(</span>
+            &quot;ime&quot;,
+            &quot;first name&quot;,
+            &quot;priimek&quot;,
+            &quot;last name&quot;,
+            &quot;naslov&quot;,
+            &quot;address&quot;,
+            &quot;e-naslov&quot;,
+            &quot;email&quot;,
+            &quot;e-mail&quot;,
+            &quot;telefon&quot;,
+            &quot;phone&quot;);
+
+<span class="fc" id="L55">    private static final Set&lt;String&gt; CREATE_FIELDS = Set.of(</span>
+            &quot;firstName&quot;,
+            &quot;lastName&quot;,
+            &quot;address&quot;,
+            &quot;addressParts&quot;,
+            &quot;email&quot;,
+            &quot;phone&quot;,
+            &quot;company&quot;,
+            &quot;country&quot;,
+            &quot;attributes&quot;,
+            &quot;tags&quot;);
+<span class="fc" id="L66">    private static final Set&lt;String&gt; UPDATE_FIELDS = Set.of(</span>
+            &quot;firstName&quot;,
+            &quot;lastName&quot;,
+            &quot;address&quot;,
+            &quot;addressParts&quot;,
+            &quot;email&quot;,
+            &quot;phone&quot;,
+            &quot;company&quot;,
+            &quot;country&quot;,
+            &quot;attributes&quot;,
+            &quot;tags&quot;,
+            &quot;version&quot;);
+
+    /** Rezultat: {@code input} je {@code null} ob kateri koli napaki; {@code version} je {@code null}, če ga ni. */
+<span class="fc" id="L80">    public record Parsed(ContactInput input, Long version, List&lt;FieldError&gt; errors, List&lt;AttributeExtra&gt; extras) {</span>
+
+        public Parsed(ContactInput input, Long version, List&lt;FieldError&gt; errors) {
+<span class="fc" id="L83">            this(input, version, errors, List.of());</span>
+<span class="fc" id="L84">        }</span>
+
+        public boolean valid() {
+<span class="fc" id="L87">            return errors.isEmpty();</span>
+        }
+    }
+
+    /**
+     * Podatki vrstice atributa, ki jih {@link Attribute} ne nosi (016): zahtevani tip ({@code null}: ni naveden) in
+     * dobesedna vrednost brez obreza (za tip opombe). Seznam v {@link Parsed} je poravnan z {@code input.attributes()}.
+     */
+<span class="fc" id="L95">    public record AttributeExtra(AttributeType type, String raw) {}</span>
+
+    private final JsonMapper json;
+
+    public ContactInputParser() {
+<span class="fc" id="L100">        this(JsonMapper.builder().build());</span>
+<span class="fc" id="L101">    }</span>
+
+<span class="fc" id="L103">    public ContactInputParser(JsonMapper json) {</span>
+<span class="fc" id="L104">        this.json = json;</span>
+<span class="fc" id="L105">    }</span>
+
+    public Parsed parseCreate(String body) {
+<span class="fc" id="L108">        return parse(body, false);</span>
+    }
+
+    public Parsed parseUpdate(String body) {
+<span class="fc" id="L112">        return parse(body, true);</span>
+    }
+
+    /** Normalizirana oblika ključa atributa ali značke za primerjavo ne glede na velikost črk. */
+    static String normalize(String text) {
+<span class="fc" id="L117">        return text.toLowerCase(Locale.ROOT);</span>
+    }
+
+    private Parsed parse(String body, boolean update) {
+        JsonNode root;
+        try {
+<span class="fc bfc" id="L123" title="All 2 branches covered.">            root = json.readTree(body == null ? &quot;&quot; : body);</span>
+<span class="fc" id="L124">        } catch (JacksonException e) {</span>
+<span class="fc" id="L125">            return malformed();</span>
+<span class="fc" id="L126">        }</span>
+<span class="fc" id="L127">        return parseNode(root, update);</span>
+    }
+
+    /**
+     * Razčlenitev že prebranega objekta (014 uvoz: en kontakt iz seznama); enaka pravila kot {@link #parseCreate}. Ne-objekt
+     * je {@code body MALFORMED}.
+     */
+    public Parsed parseNode(JsonNode root, boolean update) {
+<span class="pc bpc" id="L135" title="1 of 4 branches missed.">        if (root == null || !root.isObject()) {</span>
+<span class="fc" id="L136">            return malformed();</span>
+        }
+<span class="fc" id="L138">        List&lt;FieldError&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">        Set&lt;String&gt; allowed = update ? UPDATE_FIELDS : CREATE_FIELDS;</span>
+<span class="fc bfc" id="L140" title="All 2 branches covered.">        for (Map.Entry&lt;String, JsonNode&gt; property : root.properties()) {</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">            if (!allowed.contains(property.getKey())) {</span>
+<span class="fc" id="L142">                errors.add(new FieldError(property.getKey(), &quot;UNKNOWN_FIELD&quot;));</span>
+            }
+<span class="fc" id="L144">        }</span>
+<span class="fc" id="L145">        String firstName = text(root, &quot;firstName&quot;, NAME_MAX, errors);</span>
+<span class="fc" id="L146">        String lastName = text(root, &quot;lastName&quot;, NAME_MAX, errors);</span>
+<span class="pc bpc" id="L147" title="1 of 8 branches missed.">        if (firstName == null &amp;&amp; lastName == null &amp;&amp; !hasError(errors, &quot;firstName&quot;) &amp;&amp; !hasError(errors, &quot;lastName&quot;)) {</span>
+<span class="fc" id="L148">            errors.add(new FieldError(&quot;firstName&quot;, &quot;REQUIRED&quot;));</span>
+<span class="fc" id="L149">            errors.add(new FieldError(&quot;lastName&quot;, &quot;REQUIRED&quot;));</span>
+        }
+<span class="fc" id="L151">        String address = text(root, &quot;address&quot;, ADDRESS_MAX, errors);</span>
+<span class="fc" id="L152">        Address addressParts = parts(root.get(&quot;addressParts&quot;), &quot;addressParts&quot;, errors);</span>
+<span class="fc bfc" id="L153" title="All 4 branches covered.">        if (address != null &amp;&amp; addressParts != null) {</span>
+            // Natanko ena oblika naslova (016, R-04): nerazčlenjeno besedilo ali deli.
+<span class="fc" id="L155">            errors.add(new FieldError(&quot;addressParts&quot;, &quot;INVALID_VALUE&quot;));</span>
+        }
+<span class="fc" id="L157">        String email = text(root, &quot;email&quot;, EMAIL_MAX, errors);</span>
+<span class="fc bfc" id="L158" title="All 6 branches covered.">        if (email != null &amp;&amp; !hasError(errors, &quot;email&quot;) &amp;&amp; !EMAIL.matcher(email).matches()) {</span>
+<span class="fc" id="L159">            errors.add(new FieldError(&quot;email&quot;, &quot;INVALID_VALUE&quot;));</span>
+        }
+<span class="fc" id="L161">        String phone = text(root, &quot;phone&quot;, PHONE_MAX, errors);</span>
+<span class="fc bfc" id="L162" title="All 6 branches covered.">        if (phone != null &amp;&amp; !hasError(errors, &quot;phone&quot;) &amp;&amp; !PHONE.matcher(phone).matches()) {</span>
+<span class="fc" id="L163">            errors.add(new FieldError(&quot;phone&quot;, &quot;INVALID_VALUE&quot;));</span>
+        }
+<span class="fc" id="L165">        String company = text(root, &quot;company&quot;, COMPANY_MAX, errors);</span>
+<span class="fc" id="L166">        String country = text(root, &quot;country&quot;, 100, errors);</span>
+<span class="pc bpc" id="L167" title="1 of 6 branches missed.">        if (country != null &amp;&amp; !hasError(errors, &quot;country&quot;) &amp;&amp; !CountryNames.isValid(country)) {</span>
+<span class="fc" id="L168">            errors.add(new FieldError(&quot;country&quot;, &quot;INVALID_VALUE&quot;));</span>
+        }
+<span class="fc" id="L170">        List&lt;AttributeExtra&gt; extras = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L171">        List&lt;Attribute&gt; attributes = attributes(root, errors, extras);</span>
+<span class="fc" id="L172">        List&lt;String&gt; tags = tags(root, errors);</span>
+<span class="fc bfc" id="L173" title="All 2 branches covered.">        Long version = update ? version(root, errors) : null;</span>
+<span class="fc bfc" id="L174" title="All 2 branches covered.">        ContactInput input = errors.isEmpty()</span>
+<span class="fc" id="L175">                ? new ContactInput(</span>
+                        firstName, lastName, address, addressParts, email, phone, company, country, attributes, tags)
+<span class="fc" id="L177">                : null;</span>
+<span class="fc" id="L178">        return new Parsed(input, version, List.copyOf(errors), List.copyOf(extras));</span>
+    }
+
+    /** Neobvezno besedilno polje: obrezano, prazno = {@code null}; naslov s poenotenimi prelomi vrstic. */
+    private static String text(JsonNode root, String field, int max, List&lt;FieldError&gt; errors) {
+<span class="fc" id="L183">        JsonNode node = root.get(field);</span>
+<span class="fc bfc" id="L184" title="All 4 branches covered.">        if (node == null || node.isNull()) {</span>
+<span class="fc" id="L185">            return null;</span>
+        }
+<span class="fc bfc" id="L187" title="All 2 branches covered.">        if (!node.isString()) {</span>
+<span class="fc" id="L188">            errors.add(new FieldError(field, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L189">            return null;</span>
+        }
+<span class="fc" id="L191">        String value = node.asString().replace(&quot;\r\n&quot;, &quot;\n&quot;).replace('\r', '\n').strip();</span>
+<span class="fc bfc" id="L192" title="All 2 branches covered.">        if (value.isEmpty()) {</span>
+<span class="fc" id="L193">            return null;</span>
+        }
+<span class="fc bfc" id="L195" title="All 2 branches covered.">        if (length(value) &gt; max) {</span>
+<span class="fc" id="L196">            errors.add(new FieldError(field, &quot;TOO_LONG&quot;));</span>
+        }
+<span class="fc" id="L198">        return value;</span>
+    }
+
+    private static List&lt;Attribute&gt; attributes(JsonNode root, List&lt;FieldError&gt; errors, List&lt;AttributeExtra&gt; extrasOut) {
+<span class="fc" id="L202">        JsonNode node = root.get(&quot;attributes&quot;);</span>
+<span class="pc bpc" id="L203" title="1 of 4 branches missed.">        if (node == null || node.isNull()) {</span>
+<span class="fc" id="L204">            return List.of();</span>
+        }
+<span class="pc bpc" id="L206" title="1 of 2 branches missed.">        if (!node.isArray()) {</span>
+<span class="nc" id="L207">            errors.add(new FieldError(&quot;attributes&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="nc" id="L208">            return List.of();</span>
+        }
+<span class="fc" id="L210">        List&lt;Attribute&gt; attributes = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L211">        List&lt;AttributeExtra&gt; extras = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L212">        Set&lt;String&gt; keys = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L213">        int index = 0;</span>
+<span class="fc bfc" id="L214" title="All 2 branches covered.">        for (JsonNode row : node) {</span>
+<span class="fc" id="L215">            String prefix = &quot;attributes[&quot; + index + &quot;]&quot;;</span>
+<span class="fc" id="L216">            index++;</span>
+<span class="pc bpc" id="L217" title="1 of 2 branches missed.">            if (!row.isObject()) {</span>
+<span class="nc" id="L218">                errors.add(new FieldError(prefix, &quot;INVALID_VALUE&quot;));</span>
+<span class="nc" id="L219">                continue;</span>
+            }
+<span class="fc bfc" id="L221" title="All 2 branches covered.">            for (Map.Entry&lt;String, JsonNode&gt; property : row.properties()) {</span>
+<span class="fc bfc" id="L222" title="All 2 branches covered.">                if (!property.getKey().equals(&quot;key&quot;)</span>
+<span class="fc bfc" id="L223" title="All 2 branches covered.">                        &amp;&amp; !property.getKey().equals(&quot;value&quot;)</span>
+<span class="fc bfc" id="L224" title="All 2 branches covered.">                        &amp;&amp; !property.getKey().equals(&quot;type&quot;)</span>
+<span class="pc bpc" id="L225" title="1 of 2 branches missed.">                        &amp;&amp; !property.getKey().equals(&quot;parts&quot;)) {</span>
+<span class="nc" id="L226">                    errors.add(new FieldError(prefix + &quot;.&quot; + property.getKey(), &quot;UNKNOWN_FIELD&quot;));</span>
+                }
+<span class="fc" id="L228">            }</span>
+<span class="fc" id="L229">            String key = rowText(row, &quot;key&quot;, prefix, errors);</span>
+<span class="fc" id="L230">            String value = rowText(row, &quot;value&quot;, prefix, errors);</span>
+<span class="fc" id="L231">            AttributeType requested = requestedType(row, prefix, errors);</span>
+<span class="fc" id="L232">            Address parts = parts(row.get(&quot;parts&quot;), prefix + &quot;.parts&quot;, errors);</span>
+<span class="pc bpc" id="L233" title="1 of 4 branches missed.">            String raw = row.get(&quot;value&quot;) != null &amp;&amp; row.get(&quot;value&quot;).isString()</span>
+<span class="fc" id="L234">                    ? row.get(&quot;value&quot;).asString()</span>
+<span class="fc" id="L235">                    : &quot;&quot;;</span>
+<span class="pc bpc" id="L236" title="1 of 4 branches missed.">            boolean hasParts = row.get(&quot;parts&quot;) != null &amp;&amp; !row.get(&quot;parts&quot;).isNull();</span>
+<span class="fc bfc" id="L237" title="All 4 branches covered.">            if (hasParts &amp;&amp; parts == null) {</span>
+                // Neveljavni deli: napake so že zapisane ob delih.
+<span class="fc" id="L239">                checkKey(key, prefix, keys, errors);</span>
+<span class="fc" id="L240">                continue;</span>
+            }
+<span class="fc bfc" id="L242" title="All 2 branches covered.">            if (parts != null) {</span>
+                // Razčlenjen naslov (016): vrednost ni dovoljena hkrati z deli; tip preveri razreševanje tipov.
+<span class="pc bpc" id="L244" title="1 of 4 branches missed.">                if (value == null || !value.isEmpty()) {</span>
+<span class="fc" id="L245">                    errors.add(new FieldError(prefix + &quot;.value&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc bfc" id="L246" title="All 4 branches covered.">                } else if (requested != null &amp;&amp; requested != AttributeType.ADDRESS) {</span>
+<span class="fc" id="L247">                    errors.add(new FieldError(prefix + &quot;.type&quot;, &quot;INVALID_VALUE&quot;));</span>
+                }
+<span class="fc" id="L249">                checkKey(key, prefix, keys, errors);</span>
+<span class="fc" id="L250">                attributes.add(new Attribute(key, AttributeType.ADDRESS, null, parts));</span>
+<span class="fc" id="L251">                extras.add(new AttributeExtra(requested, raw));</span>
+<span class="fc" id="L252">                continue;</span>
+            }
+<span class="pc bpc" id="L254" title="2 of 8 branches missed.">            if (key != null &amp;&amp; key.isEmpty() &amp;&amp; value != null &amp;&amp; value.isEmpty()) {</span>
+                // Popolnoma prazna vrstica se ne shrani (Edge Cases).
+<span class="fc" id="L256">                continue;</span>
+            }
+<span class="fc" id="L258">            checkKey(key, prefix, keys, errors);</span>
+<span class="pc bpc" id="L259" title="1 of 2 branches missed.">            if (value != null) {</span>
+<span class="fc bfc" id="L260" title="All 2 branches covered.">                if (value.isEmpty()) {</span>
+<span class="fc" id="L261">                    errors.add(new FieldError(prefix + &quot;.value&quot;, &quot;REQUIRED&quot;));</span>
+<span class="fc bfc" id="L262" title="All 2 branches covered.">                } else if (length(value) &gt; VALUE_MAX) {</span>
+<span class="fc" id="L263">                    errors.add(new FieldError(prefix + &quot;.value&quot;, &quot;TOO_LONG&quot;));</span>
+                }
+            }
+<span class="fc" id="L266">            attributes.add(new Attribute(key, value));</span>
+<span class="fc" id="L267">            extras.add(new AttributeExtra(requested, raw));</span>
+<span class="fc" id="L268">        }</span>
+<span class="fc bfc" id="L269" title="All 2 branches covered.">        if (attributes.size() &gt; ATTRIBUTES_MAX) {</span>
+<span class="fc" id="L270">            errors.add(new FieldError(&quot;attributes&quot;, &quot;TOO_MANY&quot;));</span>
+        }
+<span class="fc" id="L272">        List&lt;Attribute&gt; kept = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L273" title="All 2 branches covered.">        for (int i = 0; i &lt; attributes.size(); i++) {</span>
+<span class="fc" id="L274">            Attribute a = attributes.get(i);</span>
+<span class="pc bpc" id="L275" title="2 of 6 branches missed.">            if (a.key() != null &amp;&amp; (a.value() != null || a.parts() != null)) {</span>
+<span class="fc" id="L276">                kept.add(a);</span>
+<span class="fc" id="L277">                extrasOut.add(extras.get(i));</span>
+            }
+        }
+<span class="fc" id="L280">        return List.copyOf(kept);</span>
+    }
+
+    /** Ključ vrstice: obvezen, do 50 znakov, ne ime predefiniranega polja, edinstven ne glede na velikost črk. */
+    private static void checkKey(String key, String prefix, Set&lt;String&gt; keys, List&lt;FieldError&gt; errors) {
+<span class="pc bpc" id="L285" title="1 of 2 branches missed.">        if (key == null) {</span>
+<span class="nc" id="L286">            return;</span>
+        }
+<span class="fc" id="L288">        String normalized = normalize(key);</span>
+<span class="fc bfc" id="L289" title="All 2 branches covered.">        if (key.isEmpty()) {</span>
+<span class="fc" id="L290">            errors.add(new FieldError(prefix + &quot;.key&quot;, &quot;REQUIRED&quot;));</span>
+<span class="fc bfc" id="L291" title="All 2 branches covered.">        } else if (length(key) &gt; KEY_MAX) {</span>
+<span class="fc" id="L292">            errors.add(new FieldError(prefix + &quot;.key&quot;, &quot;TOO_LONG&quot;));</span>
+<span class="fc bfc" id="L293" title="All 2 branches covered.">        } else if (RESERVED_KEYS.contains(SPACES.matcher(normalized).replaceAll(&quot; &quot;))) {</span>
+<span class="fc" id="L294">            errors.add(new FieldError(prefix + &quot;.key&quot;, &quot;RESERVED_KEY&quot;));</span>
+<span class="fc bfc" id="L295" title="All 2 branches covered.">        } else if (!keys.add(normalized)) {</span>
+<span class="fc" id="L296">            errors.add(new FieldError(prefix + &quot;.key&quot;, &quot;DUPLICATE&quot;));</span>
+        }
+<span class="fc" id="L298">    }</span>
+
+<span class="fc" id="L300">    private static final Set&lt;String&gt; ADDRESS_FIELDS =</span>
+<span class="fc" id="L301">            Set.of(&quot;street&quot;, &quot;extra&quot;, &quot;postalCode&quot;, &quot;city&quot;, &quot;region&quot;, &quot;country&quot;);</span>
+
+    /**
+     * Deli naslova (016, R-04): objekt z nizi {@code street}, {@code extra}, {@code postalCode}, {@code city},
+     * {@code region}, {@code country}; manjkajoč ali {@code null} = {@code null}. Neznano polje je
+     * {@code UNKNOWN_FIELD}, ne-niz {@code INVALID_VALUE}. Meje in normalizacijo preveri {@link TypedValues}.
+     */
+    static Address parts(JsonNode node, String field, List&lt;FieldError&gt; errors) {
+<span class="fc bfc" id="L309" title="All 4 branches covered.">        if (node == null || node.isNull()) {</span>
+<span class="fc" id="L310">            return null;</span>
+        }
+<span class="fc bfc" id="L312" title="All 2 branches covered.">        if (!node.isObject()) {</span>
+<span class="fc" id="L313">            errors.add(new FieldError(field, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L314">            return null;</span>
+        }
+<span class="fc" id="L316">        int before = errors.size();</span>
+<span class="fc" id="L317">        Map&lt;String, String&gt; values = new java.util.HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L318" title="All 2 branches covered.">        for (Map.Entry&lt;String, JsonNode&gt; property : node.properties()) {</span>
+<span class="fc" id="L319">            String name = property.getKey();</span>
+<span class="fc" id="L320">            JsonNode value = property.getValue();</span>
+<span class="fc bfc" id="L321" title="All 2 branches covered.">            if (!ADDRESS_FIELDS.contains(name)) {</span>
+<span class="fc" id="L322">                errors.add(new FieldError(field + &quot;.&quot; + name, &quot;UNKNOWN_FIELD&quot;));</span>
+<span class="fc bfc" id="L323" title="All 2 branches covered.">            } else if (value.isString()) {</span>
+<span class="fc" id="L324">                values.put(name, value.asString());</span>
+<span class="fc bfc" id="L325" title="All 2 branches covered.">            } else if (!value.isNull()) {</span>
+<span class="fc" id="L326">                errors.add(new FieldError(field + &quot;.&quot; + name, &quot;INVALID_VALUE&quot;));</span>
+            }
+<span class="fc" id="L328">        }</span>
+<span class="fc bfc" id="L329" title="All 2 branches covered.">        if (errors.size() &gt; before) {</span>
+<span class="fc" id="L330">            return null;</span>
+        }
+<span class="fc" id="L332">        return new Address(</span>
+<span class="fc" id="L333">                values.get(&quot;street&quot;),</span>
+<span class="fc" id="L334">                values.get(&quot;extra&quot;),</span>
+<span class="fc" id="L335">                values.get(&quot;postalCode&quot;),</span>
+<span class="fc" id="L336">                values.get(&quot;city&quot;),</span>
+<span class="fc" id="L337">                values.get(&quot;region&quot;),</span>
+<span class="fc" id="L338">                values.get(&quot;country&quot;));</span>
+    }
+
+    /** Neobvezen {@code type} vrstice: ime tipa; neznano ali ne-niz je {@code INVALID_VALUE} (016). */
+    private static AttributeType requestedType(JsonNode row, String prefix, List&lt;FieldError&gt; errors) {
+<span class="fc" id="L343">        JsonNode node = row.get(&quot;type&quot;);</span>
+<span class="pc bpc" id="L344" title="1 of 4 branches missed.">        if (node == null || node.isNull()) {</span>
+<span class="fc" id="L345">            return null;</span>
+        }
+<span class="pc bpc" id="L347" title="1 of 2 branches missed.">        if (node.isString()) {</span>
+<span class="fc bfc" id="L348" title="All 2 branches covered.">            for (AttributeType type : AttributeType.values()) {</span>
+<span class="fc bfc" id="L349" title="All 2 branches covered.">                if (type.name().equals(node.asString())) {</span>
+<span class="fc" id="L350">                    return type;</span>
+                }
+            }
+        }
+<span class="fc" id="L354">        errors.add(new FieldError(prefix + &quot;.type&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L355">        return null;</span>
+    }
+
+    /** Besedilo v vrstici atributa: obrezano, manjkajoče = prazno; ne-niz je napaka ({@code null}). */
+    private static String rowText(JsonNode row, String field, String prefix, List&lt;FieldError&gt; errors) {
+<span class="fc" id="L360">        JsonNode node = row.get(field);</span>
+<span class="pc bpc" id="L361" title="1 of 4 branches missed.">        if (node == null || node.isNull()) {</span>
+<span class="fc" id="L362">            return &quot;&quot;;</span>
+        }
+<span class="pc bpc" id="L364" title="1 of 2 branches missed.">        if (!node.isString()) {</span>
+<span class="nc" id="L365">            errors.add(new FieldError(prefix + &quot;.&quot; + field, &quot;INVALID_VALUE&quot;));</span>
+<span class="nc" id="L366">            return null;</span>
+        }
+<span class="fc" id="L368">        return node.asString().strip();</span>
+    }
+
+    private static List&lt;String&gt; tags(JsonNode root, List&lt;FieldError&gt; errors) {
+<span class="fc" id="L372">        JsonNode node = root.get(&quot;tags&quot;);</span>
+<span class="pc bpc" id="L373" title="1 of 4 branches missed.">        if (node == null || node.isNull()) {</span>
+<span class="fc" id="L374">            return List.of();</span>
+        }
+<span class="fc bfc" id="L376" title="All 2 branches covered.">        if (!node.isArray()) {</span>
+<span class="fc" id="L377">            errors.add(new FieldError(&quot;tags&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L378">            return List.of();</span>
+        }
+<span class="fc" id="L380">        List&lt;String&gt; tags = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L381">        Set&lt;String&gt; seen = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L382">        int index = 0;</span>
+<span class="fc bfc" id="L383" title="All 2 branches covered.">        for (JsonNode item : node) {</span>
+<span class="fc" id="L384">            String field = &quot;tags[&quot; + index + &quot;]&quot;;</span>
+<span class="fc" id="L385">            index++;</span>
+<span class="pc bpc" id="L386" title="1 of 2 branches missed.">            if (!item.isString()) {</span>
+<span class="nc" id="L387">                errors.add(new FieldError(field, &quot;INVALID_VALUE&quot;));</span>
+<span class="nc" id="L388">                continue;</span>
+            }
+<span class="fc" id="L390">            String tag = item.asString().strip();</span>
+<span class="fc bfc" id="L391" title="All 2 branches covered.">            if (tag.isEmpty()) {</span>
+<span class="fc" id="L392">                errors.add(new FieldError(field, &quot;REQUIRED&quot;));</span>
+<span class="fc bfc" id="L393" title="All 2 branches covered.">            } else if (WHITESPACE.matcher(tag).find()) {</span>
+<span class="fc" id="L394">                errors.add(new FieldError(field, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc bfc" id="L395" title="All 2 branches covered.">            } else if (length(tag) &gt; TAG_MAX) {</span>
+<span class="fc" id="L396">                errors.add(new FieldError(field, &quot;TOO_LONG&quot;));</span>
+<span class="fc bfc" id="L397" title="All 2 branches covered.">            } else if (!seen.add(normalize(tag))) {</span>
+<span class="fc" id="L398">                errors.add(new FieldError(field, &quot;DUPLICATE&quot;));</span>
+            }
+<span class="fc" id="L400">            tags.add(tag);</span>
+<span class="fc" id="L401">        }</span>
+<span class="fc bfc" id="L402" title="All 2 branches covered.">        if (tags.size() &gt; TAGS_MAX) {</span>
+<span class="fc" id="L403">            errors.add(new FieldError(&quot;tags&quot;, &quot;TOO_MANY&quot;));</span>
+        }
+<span class="fc" id="L405">        return List.copyOf(tags);</span>
+    }
+
+    private static Long version(JsonNode root, List&lt;FieldError&gt; errors) {
+<span class="fc" id="L409">        JsonNode node = root.get(&quot;version&quot;);</span>
+<span class="fc bfc" id="L410" title="All 4 branches covered.">        if (node == null || node.isNull()) {</span>
+<span class="fc" id="L411">            errors.add(new FieldError(&quot;version&quot;, &quot;REQUIRED&quot;));</span>
+<span class="fc" id="L412">            return null;</span>
+        }
+<span class="pc bpc" id="L414" title="1 of 4 branches missed.">        if (!node.isIntegralNumber() || !node.canConvertToLong()) {</span>
+<span class="fc" id="L415">            errors.add(new FieldError(&quot;version&quot;, &quot;INVALID_VALUE&quot;));</span>
+<span class="fc" id="L416">            return null;</span>
+        }
+<span class="fc" id="L418">        return node.longValue();</span>
+    }
+
+    private static boolean hasError(List&lt;FieldError&gt; errors, String field) {
+<span class="fc" id="L422">        return errors.stream().anyMatch(e -&gt; e.field().equals(field));</span>
+    }
+
+    static int length(String text) {
+<span class="fc" id="L426">        return text.codePointCount(0, text.length());</span>
+    }
+
+    private static Parsed malformed() {
+<span class="fc" id="L430">        return new Parsed(null, null, List.of(new FieldError(&quot;body&quot;, &quot;MALFORMED&quot;)));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

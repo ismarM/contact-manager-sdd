@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RestoreService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.audit</a> &gt; <span class="el_source">RestoreService.java</span></div><h1>RestoreService.java</h1><pre class="source lang-java linenums">package si.contactmanager.audit;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import si.contactmanager.audit.ContactHistoryRepository.Latest;
+import si.contactmanager.audit.HistoryViews.Status;
+import si.contactmanager.contact.ContactSnapshots;
+import si.contactmanager.contact.ContactState;
+import si.contactmanager.contact.RestoreRules;
+import si.contactmanager.group.GroupAccess.Membership;
+import si.contactmanager.shared.error.GroupArchivedException;
+import si.contactmanager.shared.error.NotFoundException;
+import si.contactmanager.shared.error.RestoreNoChangesException;
+import si.contactmanager.shared.error.RestoreNotAllowedException;
+import si.contactmanager.shared.error.ValidationError.FieldError;
+import si.contactmanager.shared.error.ValidationException;
+import si.contactmanager.shared.error.VersionConflictException;
+
+/**
+ * Obnova enega kontakta (015, research R-05). Vse v eni transakciji pod zaklepom skupine (isti zaklep kot rollback in
+ * druga pisanja): preverbe sočasnosti in poslovnih pravil, zamenjava samo tega kontakta in en vnos {@code RESTORE}.
+ */
+@Service
+class RestoreService {
+
+    /** Zahteva za obnovo: {@code from} je id vnosa ali {@code initial}; {@code version} ali {@code lastEntryId}. */
+<span class="fc" id="L30">    record Request(String from, Long version, UUID lastEntryId) {}</span>
+
+    private final AuditRepository audit;
+    private final ContactHistoryRepository history;
+    private final ContactHistoryService service;
+    private final ContactSnapshots snapshots;
+    private final AuditLog log;
+    private final RestoreRules rules;
+
+    RestoreService(
+            AuditRepository audit,
+            ContactHistoryRepository history,
+            ContactHistoryService service,
+            ContactSnapshots snapshots,
+            AuditLog log,
+<span class="fc" id="L45">            RestoreRules rules) {</span>
+<span class="fc" id="L46">        this.rules = rules;</span>
+<span class="fc" id="L47">        this.audit = audit;</span>
+<span class="fc" id="L48">        this.history = history;</span>
+<span class="fc" id="L49">        this.service = service;</span>
+<span class="fc" id="L50">        this.snapshots = snapshots;</span>
+<span class="fc" id="L51">        this.log = log;</span>
+<span class="fc" id="L52">    }</span>
+
+    @Transactional
+    AuditEntry restore(Membership membership, UUID contact, Request request) {
+<span class="fc" id="L56">        UUID group = membership.groupId();</span>
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">        if (audit.lockGroupArchived(group).orElseThrow(NotFoundException::new)) {</span>
+<span class="nc" id="L58">            throw new GroupArchivedException();</span>
+        }
+<span class="fc" id="L60">        ContactHistoryService.Known known = service.known(membership, contact);</span>
+<span class="fc" id="L61">        service.resolve(group, contact, request.from(), false);</span>
+<span class="fc" id="L62">        boolean initial = &quot;initial&quot;.equals(request.from());</span>
+<span class="fc" id="L63">        ContactState recorded =</span>
+<span class="fc" id="L64">                history.fullState(group, contact, request.from()).orElseThrow(NotFoundException::new);</span>
+
+<span class="fc" id="L66">        ContactState now = snapshots.snapshot(group, contact);</span>
+<span class="fc" id="L67">        UUID latest = known.latest().map(Latest::entryId).orElse(null);</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        if (now != null) {</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">            if (request.version() == null) {</span>
+                // Odjemalec je kontakt videl kot izbrisanega, medtem je spet obstaja: sočasna obnova (FR-015-13).
+<span class="fc bfc" id="L71" title="All 2 branches covered.">                if (request.lastEntryId() != null) {</span>
+<span class="fc" id="L72">                    throw new VersionConflictException(</span>
+<span class="fc" id="L73">                            Map.of(&quot;version&quot;, now.version(), &quot;latestEntryId&quot;, String.valueOf(latest)));</span>
+                }
+<span class="fc" id="L75">                throw new ValidationException(List.of(new FieldError(&quot;version&quot;, &quot;REQUIRED&quot;)));</span>
+            }
+<span class="fc bfc" id="L77" title="All 2 branches covered.">            if (request.version() != now.version()) {</span>
+<span class="fc" id="L78">                throw new VersionConflictException(</span>
+<span class="fc" id="L79">                        Map.of(&quot;version&quot;, now.version(), &quot;latestEntryId&quot;, String.valueOf(latest)));</span>
+            }
+        } else {
+<span class="fc bfc" id="L82" title="All 2 branches covered.">            if (request.lastEntryId() == null) {</span>
+                // Odjemalec je kontakt videl kot obstoječega, medtem je izbrisan: sočasna sprememba (FR-015-13).
+<span class="fc bfc" id="L84" title="All 2 branches covered.">                if (request.version() != null) {</span>
+<span class="fc" id="L85">                    throw new VersionConflictException(Map.of(&quot;latestEntryId&quot;, String.valueOf(latest)));</span>
+                }
+<span class="fc" id="L87">                throw new ValidationException(List.of(new FieldError(&quot;lastEntryId&quot;, &quot;REQUIRED&quot;)));</span>
+            }
+<span class="fc bfc" id="L89" title="All 2 branches covered.">            if (!request.lastEntryId().equals(latest)) {</span>
+<span class="fc" id="L90">                throw new VersionConflictException(Map.of(&quot;latestEntryId&quot;, String.valueOf(latest)));</span>
+            }
+<span class="fc bfc" id="L92" title="All 2 branches covered.">            if (known.status() == Status.MERGED) {</span>
+<span class="fc" id="L93">                throw new RestoreNotAllowedException();</span>
+            }
+        }
+
+        // Trenutna pravila 013 (država, podjetje, rezervirani ključi, kanonični zapis): zgodovina ostane dobesedna,
+        // novo
+        // stanje mora biti veljavno (research R-11).
+<span class="fc" id="L100">        ContactState goal = rules.conform(group, recorded, now);</span>
+<span class="fc bfc" id="L101" title="All 4 branches covered.">        if (now != null &amp;&amp; RollbackService.sameContent(now, goal)) {</span>
+<span class="fc" id="L102">            throw new RestoreNoChangesException();</span>
+        }
+
+<span class="fc" id="L105">        long previous = audit.maxVersions(group, List.of(contact)).getOrDefault(contact, -1L);</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">        long version = Math.max(now == null ? -1 : now.version(), previous) + 1;</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">        snapshots.restore(group, contact, goal, version, membership.userId(), now != null);</span>
+<span class="fc" id="L108">        ContactState after = snapshots.snapshot(group, contact);</span>
+
+<span class="fc bfc" id="L110" title="All 2 branches covered.">        UUID entryTarget = initial ? null : UUID.fromString(request.from());</span>
+<span class="fc" id="L111">        UUID entry = log.recordRestore(</span>
+<span class="fc" id="L112">                group, membership.userId(), new ContactChange(contact, name(after), now, after), entryTarget, initial);</span>
+<span class="fc" id="L113">        return audit.find(group, entry).orElseThrow();</span>
+    }
+
+    private static String name(ContactState state) {
+<span class="fc" id="L117">        return ContactHistoryRepository.name(state.firstName(), state.lastName());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

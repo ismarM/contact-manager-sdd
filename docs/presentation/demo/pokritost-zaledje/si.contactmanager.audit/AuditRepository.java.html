@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuditRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">contact-manager-backend</a> &gt; <a href="index.source.html" class="el_package">si.contactmanager.audit</a> &gt; <span class="el_source">AuditRepository.java</span></div><h1>AuditRepository.java</h1><pre class="source lang-java linenums">package si.contactmanager.audit;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.core.simple.JdbcClient.StatementSpec;
+import org.springframework.stereotype.Repository;
+import si.contactmanager.contact.ContactState;
+import si.contactmanager.group.UserRef;
+import si.contactmanager.shared.security.ApiKeyPrincipal;
+import tools.jackson.databind.json.JsonMapper;
+
+/** Tabele {@code audit_entry}, {@code audit_change} in {@code audit_head} (data-model.md). Vsaka poizvedba ima {@code group_id}. */
+@Repository
+class AuditRepository {
+
+    private static final String ENTRY_SELECT =
+            &quot;SELECT e.id, e.created_at, u.name AS actor_name, u.email AS actor_email, e.action, e.contact_count,&quot;
+                    + &quot; e.contact_name, t.id AS target_id, t.created_at AS target_at, e.target_initial, e.attribute_key,&quot;
+                    + &quot; e.type_before, e.type_after, e.api_key_name, e.photo_change&quot;
+                    + &quot; FROM audit_entry e LEFT JOIN app_user u ON u.id = e.actor_id&quot;
+                    + &quot; LEFT JOIN audit_entry t ON t.id = e.target_entry_id&quot;;
+
+    /** Največ sprememb v enem stavku {@code unnest}. */
+    private static final int AUDIT_CHUNK = 1000;
+
+    /**
+     * Filtri seznama (vsi neobvezni, med seboj IN): vrste dejanj, kontakt in izvajalec ({@code actor}: žeton izvajalca
+     * ali {@link ActorView#DELETED_TOKEN}; research R-03).
+     */
+<span class="fc" id="L42">    record Filter(List&lt;AuditAction&gt; actions, UUID contact, String actor) {}</span>
+
+    /** Žeton izvajalca (015, R-03): prvih 16 bajtov sha256(skupina:uporabnik) kot uuid; interni id ni izpostavljen. */
+    private static final String TOKEN =
+            &quot;CAST(encode(substring(sha256(convert_to(CAST(:group AS text) || ':' || CAST(%s AS text), 'UTF8'))&quot;
+                    + &quot; FROM 1 FOR 16), 'hex') AS uuid)&quot;;
+
+    private final JdbcClient jdbc;
+    private final NamedParameterJdbcTemplate batch;
+    private final JsonMapper json;
+
+<span class="fc" id="L53">    AuditRepository(JdbcClient jdbc, NamedParameterJdbcTemplate batch, JsonMapper json) {</span>
+<span class="fc" id="L54">        this.jdbc = jdbc;</span>
+<span class="fc" id="L55">        this.batch = batch;</span>
+<span class="fc" id="L56">        this.json = json;</span>
+<span class="fc" id="L57">    }</span>
+
+    /**
+     * Zapiše vnos s spremembami in posodobi glavo sledi (research R-02): glava zaklene vrstico do konca transakcije,
+     * zato je vrstni red {@code seq} enak vrstnemu redu potrditev.
+     */
+    UUID insert(
+            UUID group,
+            long actor,
+            AuditAction action,
+            List&lt;ContactChange&gt; changes,
+            UUID targetEntry,
+            boolean targetInitial) {
+<span class="fc" id="L70">        return insert(group, actor, action, changes, targetEntry, targetInitial, null, null, null, null);</span>
+    }
+
+    /**
+     * Kot {@code insert}, s ključem in tipoma pred/po za vnos {@code ATTRIBUTE_TYPE} (016; sicer vsi trije {@code null})
+     * in dejstvom spremembe slike (018; sicer {@code null}).
+     */
+    UUID insert(
+            UUID group,
+            long actor,
+            AuditAction action,
+            List&lt;ContactChange&gt; changes,
+            UUID targetEntry,
+            boolean targetInitial,
+            String attributeKey,
+            String typeBefore,
+            String typeAfter,
+            PhotoChange photoChange) {
+<span class="fc" id="L88">        UUID id = jdbc.sql(&quot;SELECT uuidv7()&quot;).query(UUID.class).single();</span>
+<span class="fc" id="L89">        long seq = jdbc.sql(&quot;INSERT INTO audit_head (group_id, last_seq, last_entry_id) VALUES (:group, 1, :id)&quot;</span>
+                        + &quot; ON CONFLICT (group_id) DO UPDATE SET last_seq = audit_head.last_seq + 1,&quot;
+                        + &quot; last_entry_id = EXCLUDED.last_entry_id RETURNING last_seq&quot;)
+<span class="fc" id="L92">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L93">                .param(&quot;id&quot;, id)</span>
+<span class="fc" id="L94">                .query(Long.class)</span>
+<span class="fc" id="L95">                .single();</span>
+<span class="fc bfc" id="L96" title="All 4 branches covered.">        String name = changes.size() == 1 &amp;&amp; action != AuditAction.ROLLBACK</span>
+<span class="fc" id="L97">                ? changes.get(0).displayName()</span>
+<span class="fc" id="L98">                : null;</span>
+<span class="fc" id="L99">        jdbc.sql(&quot;INSERT INTO audit_entry (id, group_id, seq, actor_id, action, contact_count, contact_name,&quot;</span>
+                        + &quot; target_entry_id, target_initial, attribute_key, type_before, type_after, api_key_name,&quot;
+                        + &quot; photo_change)&quot;
+                        + &quot; VALUES (:id, :group, :seq, :actor, :action, :count, :name, :target, :initial, :akey,&quot;
+                        + &quot; :tbefore, :tafter, :apiKey, :photo)&quot;)
+<span class="fc" id="L104">                .param(&quot;id&quot;, id)</span>
+<span class="fc" id="L105">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L106">                .param(&quot;seq&quot;, seq)</span>
+<span class="fc" id="L107">                .param(&quot;actor&quot;, actor)</span>
+<span class="fc" id="L108">                .param(&quot;action&quot;, action.name())</span>
+<span class="fc" id="L109">                .param(&quot;count&quot;, changes.size())</span>
+<span class="fc" id="L110">                .param(&quot;name&quot;, name)</span>
+<span class="fc" id="L111">                .param(&quot;target&quot;, targetEntry)</span>
+<span class="fc" id="L112">                .param(&quot;initial&quot;, targetInitial)</span>
+<span class="fc" id="L113">                .param(&quot;akey&quot;, attributeKey)</span>
+<span class="fc" id="L114">                .param(&quot;tbefore&quot;, typeBefore)</span>
+<span class="fc" id="L115">                .param(&quot;tafter&quot;, typeAfter)</span>
+                // 019 (R-04): ime API ključa, če je klicatelj ključ; spletna aplikacija in CardDAV ga nimata.
+<span class="fc" id="L117">                .param(</span>
+                        &quot;apiKey&quot;,
+<span class="fc" id="L119">                        ApiKeyPrincipal.current().map(ApiKeyPrincipal::keyName).orElse(null))</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">                .param(&quot;photo&quot;, photoChange == null ? null : photoChange.name())</span>
+<span class="fc" id="L121">                .update();</span>
+        // Večvrstični stavki (unnest) po AUDIT_CHUNK vrstic: en klic na kos namesto na spremembo (SC-002).
+<span class="fc bfc" id="L123" title="All 2 branches covered.">        for (int from = 0; from &lt; changes.size(); from += AUDIT_CHUNK) {</span>
+<span class="fc" id="L124">            List&lt;ContactChange&gt; chunk = changes.subList(from, Math.min(changes.size(), from + AUDIT_CHUNK));</span>
+<span class="fc" id="L125">            int offset = from;</span>
+<span class="fc" id="L126">            Integer[] positions = new Integer[chunk.size()];</span>
+<span class="fc" id="L127">            UUID[] contacts = new UUID[chunk.size()];</span>
+<span class="fc" id="L128">            String[] names = new String[chunk.size()];</span>
+<span class="fc" id="L129">            String[] befores = new String[chunk.size()];</span>
+<span class="fc" id="L130">            String[] afters = new String[chunk.size()];</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">            for (int i = 0; i &lt; chunk.size(); i++) {</span>
+<span class="fc" id="L132">                ContactChange change = chunk.get(i);</span>
+<span class="fc" id="L133">                positions[i] = offset + i;</span>
+<span class="fc" id="L134">                contacts[i] = change.contactId();</span>
+<span class="fc" id="L135">                names[i] = change.displayName();</span>
+<span class="fc" id="L136">                befores[i] = write(change.before());</span>
+<span class="fc" id="L137">                afters[i] = write(change.after());</span>
+            }
+<span class="fc" id="L139">            batch.getJdbcOperations()</span>
+<span class="fc" id="L140">                    .update(</span>
+                            &quot;INSERT INTO audit_change (entry_id, position, contact_id, display_name, before, after)&quot;
+                                    + &quot; SELECT ?, v.pos, v.cid, v.dname, CAST(v.bef AS jsonb), CAST(v.aft AS jsonb)&quot;
+                                    + &quot; FROM unnest(?::int[], ?::uuid[], ?::text[], ?::text[], ?::text[])&quot;
+                                    + &quot; AS v(pos, cid, dname, bef, aft)&quot;,
+                            (PreparedStatement ps) -&gt; {
+<span class="fc" id="L146">                                ps.setObject(1, id);</span>
+<span class="fc" id="L147">                                ps.setArray(2, ps.getConnection().createArrayOf(&quot;int4&quot;, positions));</span>
+<span class="fc" id="L148">                                ps.setArray(3, ps.getConnection().createArrayOf(&quot;uuid&quot;, contacts));</span>
+<span class="fc" id="L149">                                ps.setArray(4, ps.getConnection().createArrayOf(&quot;text&quot;, names));</span>
+<span class="fc" id="L150">                                ps.setArray(5, ps.getConnection().createArrayOf(&quot;text&quot;, befores));</span>
+<span class="fc" id="L151">                                ps.setArray(6, ps.getConnection().createArrayOf(&quot;text&quot;, afters));</span>
+<span class="fc" id="L152">                            });</span>
+        }
+<span class="fc" id="L154">        return id;</span>
+    }
+
+    private static String where(Filter filter) {
+<span class="fc" id="L158">        StringBuilder where = new StringBuilder(&quot; WHERE e.group_id = :group&quot;);</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">        if (!filter.actions().isEmpty()) {</span>
+<span class="fc" id="L160">            where.append(&quot; AND e.action IN (:actions)&quot;);</span>
+        }
+<span class="fc bfc" id="L162" title="All 2 branches covered.">        if (filter.contact() != null) {</span>
+<span class="fc" id="L163">            where.append(</span>
+                    &quot; AND EXISTS (SELECT 1 FROM audit_change c WHERE c.entry_id = e.id AND c.contact_id = :contact)&quot;);
+        }
+<span class="fc bfc" id="L166" title="All 2 branches covered.">        if (ActorView.DELETED_TOKEN.equals(filter.actor())) {</span>
+<span class="fc" id="L167">            where.append(&quot; AND e.actor_id IS NULL&quot;);</span>
+<span class="fc bfc" id="L168" title="All 2 branches covered.">        } else if (filter.actor() != null) {</span>
+            // Neznan žeton ne zadene nobenega izvajalca te skupine: podpoizvedba vrne NULL in seznam je prazen.
+<span class="fc" id="L170">            where.append(&quot; AND e.actor_id = (SELECT a.actor_id FROM (SELECT DISTINCT actor_id FROM audit_entry&quot;</span>
+                    + &quot; WHERE group_id = :group AND actor_id IS NOT NULL) a WHERE &quot;
+<span class="fc" id="L172">                    + TOKEN.formatted(&quot;a.actor_id&quot;) + &quot; = CAST(:actor AS uuid))&quot;);</span>
+        }
+<span class="fc" id="L174">        return where.toString();</span>
+    }
+
+    private static StatementSpec bind(StatementSpec spec, UUID group, Filter filter) {
+<span class="fc" id="L178">        StatementSpec bound = spec.param(&quot;group&quot;, group);</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">        if (!filter.actions().isEmpty()) {</span>
+<span class="fc" id="L180">            bound = bound.param(</span>
+<span class="fc" id="L181">                    &quot;actions&quot;, filter.actions().stream().map(Enum::name).toList());</span>
+        }
+<span class="fc bfc" id="L183" title="All 2 branches covered.">        if (filter.contact() != null) {</span>
+<span class="fc" id="L184">            bound = bound.param(&quot;contact&quot;, filter.contact());</span>
+        }
+<span class="fc bfc" id="L186" title="All 4 branches covered.">        if (filter.actor() != null &amp;&amp; !ActorView.DELETED_TOKEN.equals(filter.actor())) {</span>
+<span class="fc" id="L187">            bound = bound.param(&quot;actor&quot;, filter.actor());</span>
+        }
+<span class="fc" id="L189">        return bound;</span>
+    }
+
+    long count(UUID group, Filter filter) {
+<span class="fc" id="L193">        return bind(jdbc.sql(&quot;SELECT count(*) FROM audit_entry e&quot; + where(filter)), group, filter)</span>
+<span class="fc" id="L194">                .query(Long.class)</span>
+<span class="fc" id="L195">                .single();</span>
+    }
+
+    /** Stran vnosov, najnovejši (največji {@code seq}) prvi. */
+    List&lt;AuditEntry&gt; page(UUID group, Filter filter, int size, int page) {
+<span class="fc" id="L200">        StatementSpec spec = jdbc.sql(ENTRY_SELECT + where(filter) + &quot; ORDER BY e.seq DESC LIMIT :size OFFSET :offset&quot;)</span>
+<span class="fc" id="L201">                .param(&quot;size&quot;, size)</span>
+<span class="fc" id="L202">                .param(&quot;offset&quot;, (long) page * size);</span>
+<span class="fc" id="L203">        return bind(spec, group, filter).query(AuditRepository::entry).list();</span>
+    }
+
+    Optional&lt;AuditEntry&gt; find(UUID group, UUID id) {
+<span class="fc" id="L207">        return jdbc.sql(ENTRY_SELECT + &quot; WHERE e.group_id = :group AND e.id = :id&quot;)</span>
+<span class="fc" id="L208">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L209">                .param(&quot;id&quot;, id)</span>
+<span class="fc" id="L210">                .query(AuditRepository::entry)</span>
+<span class="fc" id="L211">                .optional();</span>
+    }
+
+    /**
+     * Izvajalci sledi skupine (015, FR-015-03): trenutni člani, nekdanji člani in – če obstaja vnos izbrisanega
+     * uporabnika – ena postavka »izbrisan uporabnik«. Vrstni red: člani, nekdanji (po imenu), izbrisan zadnji.
+     */
+    List&lt;ActorView&gt; actors(UUID group) {
+<span class="fc" id="L219">        List&lt;ActorView&gt; actors = new ArrayList&lt;&gt;(jdbc.sql(&quot;SELECT &quot; + TOKEN.formatted(&quot;a.actor_id&quot;) + &quot; AS token,&quot;</span>
+                        + &quot; u.name, u.email, m.user_id IS NOT NULL AS member FROM (SELECT DISTINCT actor_id&quot;
+                        + &quot; FROM audit_entry WHERE group_id = :group AND actor_id IS NOT NULL) a&quot;
+                        + &quot; JOIN app_user u ON u.id = a.actor_id&quot;
+                        + &quot; LEFT JOIN group_member m ON m.group_id = :group AND m.user_id = a.actor_id&quot;
+                        + &quot; ORDER BY (m.user_id IS NULL), lower(coalesce(u.name, u.email)), u.id&quot;)
+<span class="fc" id="L225">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L226">                .query((rs, row) -&gt; new ActorView(</span>
+<span class="fc" id="L227">                        rs.getObject(&quot;token&quot;, UUID.class).toString(),</span>
+<span class="fc bfc" id="L228" title="All 2 branches covered.">                        rs.getBoolean(&quot;member&quot;) ? ActorView.Kind.MEMBER : ActorView.Kind.FORMER,</span>
+<span class="fc" id="L229">                        new UserRef(rs.getString(&quot;name&quot;), rs.getString(&quot;email&quot;))))</span>
+<span class="fc" id="L230">                .list());</span>
+<span class="fc" id="L231">        boolean deleted = jdbc.sql(</span>
+                        &quot;SELECT EXISTS (SELECT 1 FROM audit_entry WHERE group_id = :group&quot; + &quot; AND actor_id IS NULL)&quot;)
+<span class="fc" id="L233">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L234">                .query(Boolean.class)</span>
+<span class="fc" id="L235">                .single();</span>
+<span class="fc bfc" id="L236" title="All 2 branches covered.">        if (deleted) {</span>
+<span class="fc" id="L237">            actors.add(new ActorView(ActorView.DELETED_TOKEN, ActorView.Kind.DELETED, null));</span>
+        }
+<span class="fc" id="L239">        return actors;</span>
+    }
+
+    /** Najnovejši vnos celotne sledi (glava sledi); prazno, če sled nima vnosov. */
+    Optional&lt;UUID&gt; latestEntryId(UUID group) {
+<span class="fc" id="L244">        return jdbc.sql(&quot;SELECT last_entry_id FROM audit_head WHERE group_id = :group&quot;)</span>
+<span class="fc" id="L245">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L246">                .query(UUID.class)</span>
+<span class="fc" id="L247">                .optional();</span>
+    }
+
+    /** Ime kontakta iz njegove najnovejše spremembe v tej skupini; prazno, če sled kontakta nima vnosov. */
+    Optional&lt;String&gt; latestDisplayName(UUID group, UUID contact) {
+<span class="fc" id="L252">        return jdbc.sql(&quot;SELECT c.display_name FROM audit_change c JOIN audit_entry e ON e.id = c.entry_id&quot;</span>
+                        + &quot; WHERE e.group_id = :group AND c.contact_id = :contact ORDER BY e.seq DESC LIMIT 1&quot;)
+<span class="fc" id="L254">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L255">                .param(&quot;contact&quot;, contact)</span>
+<span class="fc" id="L256">                .query(String.class)</span>
+<span class="fc" id="L257">                .optional();</span>
+    }
+
+    long countChanges(UUID entry) {
+<span class="fc" id="L261">        return jdbc.sql(&quot;SELECT count(*) FROM audit_change WHERE entry_id = :entry&quot;)</span>
+<span class="fc" id="L262">                .param(&quot;entry&quot;, entry)</span>
+<span class="fc" id="L263">                .query(Long.class)</span>
+<span class="fc" id="L264">                .single();</span>
+    }
+
+    /** Stran sprememb vnosa v vrstnem redu vnosa; polja so izpeljana iz stanj prej/potem. */
+    List&lt;ContactChangeView&gt; changes(UUID entry, int size, int page) {
+<span class="fc" id="L269">        List&lt;ContactChangeView&gt; views = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L270">        jdbc.sql(&quot;SELECT contact_id, display_name, before::text AS before, after::text AS after FROM audit_change&quot;</span>
+                        + &quot; WHERE entry_id = :entry ORDER BY position LIMIT :size OFFSET :offset&quot;)
+<span class="fc" id="L272">                .param(&quot;entry&quot;, entry)</span>
+<span class="fc" id="L273">                .param(&quot;size&quot;, size)</span>
+<span class="fc" id="L274">                .param(&quot;offset&quot;, (long) page * size)</span>
+<span class="fc" id="L275">                .query((ResultSet rs) -&gt; {</span>
+<span class="fc bfc" id="L276" title="All 2 branches covered.">                    while (rs.next()) {</span>
+<span class="fc" id="L277">                        ContactState before = read(rs.getString(&quot;before&quot;));</span>
+<span class="fc" id="L278">                        ContactState after = read(rs.getString(&quot;after&quot;));</span>
+<span class="fc bfc" id="L279" title="All 2 branches covered.">                        ContactChangeView.Kind kind = before == null</span>
+<span class="fc" id="L280">                                ? ContactChangeView.Kind.ADDED</span>
+<span class="fc bfc" id="L281" title="All 2 branches covered.">                                : after == null ? ContactChangeView.Kind.REMOVED : ContactChangeView.Kind.CHANGED;</span>
+<span class="fc" id="L282">                        views.add(new ContactChangeView(</span>
+<span class="fc" id="L283">                                rs.getObject(&quot;contact_id&quot;, UUID.class),</span>
+<span class="fc" id="L284">                                rs.getString(&quot;display_name&quot;),</span>
+                                kind,
+<span class="fc" id="L286">                                ChangeDiff.fields(before, after)));</span>
+<span class="fc" id="L287">                    }</span>
+<span class="fc" id="L288">                    return views;</span>
+                });
+<span class="fc" id="L290">        return views;</span>
+    }
+
+    /** Zaklene vrstico skupine (izključi sočasna pisanja kontaktov in arhiviranje); vrne, ali je arhivirana. */
+    Optional&lt;Boolean&gt; lockGroupArchived(UUID group) {
+<span class="fc" id="L295">        return jdbc.sql(&quot;SELECT archived_at IS NOT NULL FROM contact_group WHERE id = :group FOR UPDATE&quot;)</span>
+<span class="fc" id="L296">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L297">                .query(Boolean.class)</span>
+<span class="fc" id="L298">                .optional();</span>
+    }
+
+    /** Zaklene glavo sledi in vrne najnovejši vnos; prazno, če sled nima vnosov. */
+    Optional&lt;UUID&gt; lockHead(UUID group) {
+<span class="fc" id="L303">        return jdbc.sql(&quot;SELECT last_entry_id FROM audit_head WHERE group_id = :group FOR UPDATE&quot;)</span>
+<span class="fc" id="L304">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L305">                .query(UUID.class)</span>
+<span class="fc" id="L306">                .optional();</span>
+    }
+
+    Optional&lt;Long&gt; seqOf(UUID group, UUID entry) {
+<span class="fc" id="L310">        return jdbc.sql(&quot;SELECT seq FROM audit_entry WHERE group_id = :group AND id = :id&quot;)</span>
+<span class="fc" id="L311">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L312">                .param(&quot;id&quot;, entry)</span>
+<span class="fc" id="L313">                .query(Long.class)</span>
+<span class="fc" id="L314">                .optional();</span>
+    }
+
+    /**
+     * Ciljno stanje po vnosu s {@code seq}: za vsak kontakt, ki ga je spremenil vnos z večjim {@code seq}, je to
+     * {@code before} njegove prve takšne spremembe ({@code null} = kontakt takrat ni obstajal) – research R-04.
+     */
+    Map&lt;UUID, ContactState&gt; statesAfter(UUID group, long seq) {
+<span class="fc" id="L322">        Map&lt;UUID, ContactState&gt; states = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L323">        jdbc.sql(&quot;SELECT DISTINCT ON (c.contact_id) c.contact_id, c.before::text AS before FROM audit_change c&quot;</span>
+                        + &quot; JOIN audit_entry e ON e.id = c.entry_id WHERE e.group_id = :group AND e.seq &gt; :seq&quot;
+                        + &quot; ORDER BY c.contact_id, e.seq&quot;)
+<span class="fc" id="L326">                .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L327">                .param(&quot;seq&quot;, seq)</span>
+<span class="fc" id="L328">                .query((ResultSet rs) -&gt; {</span>
+<span class="fc bfc" id="L329" title="All 2 branches covered.">                    while (rs.next()) {</span>
+<span class="fc" id="L330">                        states.put(rs.getObject(&quot;contact_id&quot;, UUID.class), read(rs.getString(&quot;before&quot;)));</span>
+                    }
+<span class="fc" id="L332">                    return states;</span>
+                });
+<span class="fc" id="L334">        return states;</span>
+    }
+
+    /** Največja verzija vsakega kontakta v stanjih sledi (FR-005-13). */
+    Map&lt;UUID, Long&gt; maxVersions(UUID group, Collection&lt;UUID&gt; ids) {
+<span class="fc" id="L339">        Map&lt;UUID, Long&gt; versions = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L340">        List&lt;UUID&gt; all = new ArrayList&lt;&gt;(ids);</span>
+<span class="fc bfc" id="L341" title="All 2 branches covered.">        for (int from = 0; from &lt; all.size(); from += 5000) {</span>
+<span class="fc" id="L342">            List&lt;UUID&gt; chunk = all.subList(from, Math.min(all.size(), from + 5000));</span>
+<span class="fc" id="L343">            jdbc.sql(&quot;SELECT c.contact_id, max(greatest(coalesce((c.before-&gt;&gt;'version')::bigint, -1),&quot;</span>
+                            + &quot; coalesce((c.after-&gt;&gt;'version')::bigint, -1))) AS version FROM audit_change c&quot;
+                            + &quot; JOIN audit_entry e ON e.id = c.entry_id&quot;
+                            + &quot; WHERE e.group_id = :group AND c.contact_id IN (:ids) GROUP BY c.contact_id&quot;)
+<span class="fc" id="L347">                    .param(&quot;group&quot;, group)</span>
+<span class="fc" id="L348">                    .param(&quot;ids&quot;, chunk)</span>
+<span class="fc" id="L349">                    .query((ResultSet rs) -&gt; {</span>
+<span class="fc bfc" id="L350" title="All 2 branches covered.">                        while (rs.next()) {</span>
+<span class="fc" id="L351">                            versions.put(rs.getObject(&quot;contact_id&quot;, UUID.class), rs.getLong(&quot;version&quot;));</span>
+                        }
+<span class="fc" id="L353">                        return versions;</span>
+                    });
+        }
+<span class="fc" id="L356">        return versions;</span>
+    }
+
+    /** Podmnožica uporabnikov, ki še obstajajo. */
+    Set&lt;Long&gt; existingUsers(Collection&lt;Long&gt; ids) {
+<span class="fc bfc" id="L361" title="All 2 branches covered.">        if (ids.isEmpty()) {</span>
+<span class="fc" id="L362">            return Set.of();</span>
+        }
+<span class="fc" id="L364">        return new HashSet&lt;&gt;(jdbc.sql(&quot;SELECT id FROM app_user WHERE id IN (:ids)&quot;)</span>
+<span class="fc" id="L365">                .param(&quot;ids&quot;, ids)</span>
+<span class="fc" id="L366">                .query(Long.class)</span>
+<span class="fc" id="L367">                .list());</span>
+    }
+
+    private ContactState read(String text) {
+<span class="fc bfc" id="L371" title="All 2 branches covered.">        return text == null ? null : json.readValue(text, ContactState.class);</span>
+    }
+
+    private String write(ContactState state) {
+<span class="fc bfc" id="L375" title="All 2 branches covered.">        return state == null ? null : json.writeValueAsString(state);</span>
+    }
+
+    private static AuditEntry entry(ResultSet rs, int row) throws SQLException {
+<span class="fc" id="L379">        String email = rs.getString(&quot;actor_email&quot;);</span>
+<span class="fc" id="L380">        UUID target = rs.getObject(&quot;target_id&quot;, UUID.class);</span>
+<span class="fc" id="L381">        String photoChange = rs.getString(&quot;photo_change&quot;);</span>
+<span class="fc" id="L382">        return new AuditEntry(</span>
+<span class="fc" id="L383">                rs.getObject(&quot;id&quot;, UUID.class),</span>
+<span class="fc" id="L384">                rs.getTimestamp(&quot;created_at&quot;).toInstant(),</span>
+<span class="fc bfc" id="L385" title="All 2 branches covered.">                email == null ? null : new UserRef(rs.getString(&quot;actor_name&quot;), email),</span>
+<span class="fc" id="L386">                AuditAction.valueOf(rs.getString(&quot;action&quot;)),</span>
+<span class="fc" id="L387">                rs.getInt(&quot;contact_count&quot;),</span>
+<span class="fc" id="L388">                rs.getString(&quot;contact_name&quot;),</span>
+<span class="fc bfc" id="L389" title="All 2 branches covered.">                target == null</span>
+<span class="fc" id="L390">                        ? null</span>
+<span class="fc" id="L391">                        : new AuditEntry.Target(</span>
+<span class="fc" id="L392">                                target, rs.getTimestamp(&quot;target_at&quot;).toInstant()),</span>
+<span class="fc" id="L393">                rs.getBoolean(&quot;target_initial&quot;),</span>
+<span class="fc" id="L394">                rs.getString(&quot;attribute_key&quot;),</span>
+<span class="fc" id="L395">                rs.getString(&quot;type_before&quot;),</span>
+<span class="fc" id="L396">                rs.getString(&quot;type_after&quot;),</span>
+<span class="fc" id="L397">                rs.getString(&quot;api_key_name&quot;),</span>
+<span class="fc bfc" id="L398" title="All 2 branches covered.">                photoChange == null ? null : PhotoChange.valueOf(photoChange));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
